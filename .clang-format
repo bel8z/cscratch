@@ -1,0 +1,27 @@
+BasedOnStyle: LLVM
+
+BreakBeforeBraces: Allman
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Inline
+
+IndentCaseLabels: true
+IndentPPDirectives: None
+
+AlignAfterOpenBracket: true
+AlignConsecutiveBitFields: true
+
+AlwaysBreakAfterReturnType: TopLevelDefinitions 
+
+AlwaysBreakTemplateDeclarations: Yes
+AccessModifierOffset: -4
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+BreakConstructorInitializers: BeforeComma
+BreakInheritanceList: BeforeComma
+NamespaceIndentation: None
