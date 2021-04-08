@@ -9,44 +9,44 @@
 struct ArrayHeader
 {
     Allocator *alloc;
-    size_t len;    // Number of stored items
-    size_t cap;    // Number of storable items
-    uint8_t buf[]; // Storage in bytes
+    usize len; // Number of stored items
+    usize cap; // Number of storable items
 };
 
 inline ArrayHeader *
 array_header(void *array)
 {
     ASSERT_NOT_NULL(array);
-    return (ArrayHeader *)((uint8_t *)array - offsetof(ArrayHeader, buf));
+    return (ArrayHeader *)array - 1;
 }
 
 static ArrayHeader *
-array_header_grow(ArrayHeader *header, size_t room, size_t item_size)
+array_header_grow(ArrayHeader *header, usize room, usize item_size)
 {
-    size_t const req_cap = header->len + room;
+    usize const req_cap = header->len + room;
 
     if (req_cap > header->cap)
     {
-        size_t const dbl_cap = header->cap ? header->cap * 2 : 1;
-        size_t const new_cap = req_cap > dbl_cap ? req_cap : dbl_cap;
+        usize const dbl_cap = header->cap ? header->cap * 2 : 1;
+        usize const new_cap = req_cap > dbl_cap ? req_cap : dbl_cap;
 
-        header = header->alloc->reallocate(
-            header, sizeof(*header) + new_cap * item_size,
-            header->alloc->state);
+        usize const old_size = sizeof(*header) + header->cap * item_size;
+        usize const new_size = sizeof(*header) + new_cap * item_size;
+
+        header = REALLOCATE(header->alloc, header, old_size, new_size);
         header->cap = new_cap;
     }
 
     return header;
 }
 
-size_t
+usize
 array_capacity(void *array)
 {
     return array_header(array)->cap;
 }
 
-size_t
+usize
 array_size(void *array)
 {
     return array_header(array)->len;
@@ -58,35 +58,33 @@ internal__array_init(void *array, ArrayParams const *params)
     (void)array; // Unused for now
 
     Allocator *alloc = params->alloc;
-    size_t bytes = params->capacity * params->item_size;
+    usize bytes = params->capacity * params->item_size;
 
-    ArrayHeader *header =
-        alloc->allocate(sizeof(*header) + bytes, alloc->state);
+    ArrayHeader *header = ALLOCATE(alloc, sizeof(*header) + bytes);
 
     header->alloc = alloc;
     header->cap = params->capacity;
     header->len = 0;
 
-    return header->buf;
+    return (header + 1);
 }
 
 void
-internal__array_free(void *array)
+internal__array_free(void *array, usize item_size)
 {
     ArrayHeader *header = array_header(array);
-    header->alloc->deallocate(header, header->alloc->state);
+    DEALLOCATE(header->alloc, header, sizeof(*header) + header->cap * item_size);
 }
 
 void *
-internal__array_grow(void *array, size_t room, size_t item_size)
+internal__array_grow(void *array, usize room, usize item_size)
 {
-    ArrayHeader *header =
-        array_header_grow(array_header(array), room, item_size);
-    return header->buf;
+    ArrayHeader *header = array_header_grow(array_header(array), room, item_size);
+    return (header + 1);
 }
 
 void *
-internal__array_ensure(void *array, size_t capacity, size_t item_size)
+internal__array_ensure(void *array, usize capacity, usize item_size)
 {
     ArrayHeader *header = array_header(array);
 
@@ -95,20 +93,19 @@ internal__array_ensure(void *array, size_t capacity, size_t item_size)
         header = array_header_grow(header, capacity - header->cap, item_size);
     }
 
-    return header->buf;
+    return (header + 1);
 }
 
 void *
-internal__array_extend(void *array, size_t room, size_t item_size)
+internal__array_extend(void *array, usize room, usize item_size)
 {
-    ArrayHeader *header =
-        array_header_grow(array_header(array), room, item_size);
+    ArrayHeader *header = array_header_grow(array_header(array), room, item_size);
     header->len++;
-    return header->buf;
+    return (header + 1);
 }
 
 void *
-internal__array_shrink(void *array, size_t room)
+internal__array_shrink(void *array, usize room)
 {
     ASSERT_NOT_EMPTY(array);
     assert(array_header(array)->len >= room);
@@ -117,42 +114,39 @@ internal__array_shrink(void *array, size_t room)
 }
 
 void *
-internal__array_remove(void *array, size_t pos, size_t item_count,
-                       size_t item_size)
+internal__array_remove(void *array, usize pos, usize item_count, usize item_size)
 {
     ArrayHeader *header = array_header(array);
 
     assert(pos < header->len);
     assert(pos + item_count < header->len);
 
-    size_t const items = header->len - pos - item_count;
-    size_t const bytes = items * item_size;
-    uint8_t *dst = header->buf + pos * item_size;
+    usize const items = header->len - pos - item_count;
+    usize const bytes = items * item_size;
+    u8 *dst = (u8 *)(header + 1) + pos * item_size;
 
     memmove_s(dst, bytes, dst + item_size * item_count, bytes);
 
     --header->len;
 
-    return header->buf;
+    return (header + 1);
 }
 
 void *
-internal__array_insert(void *array, size_t pos, size_t item_count,
-                       size_t item_size)
+internal__array_insert(void *array, usize pos, usize item_count, usize item_size)
 {
-    ArrayHeader *header =
-        array_header_grow(array_header(array), item_count, item_size);
+    ArrayHeader *header = array_header_grow(array_header(array), item_count, item_size);
 
     assert(pos < header->len);
 
-    size_t const items = header->len - pos;
-    size_t const bytes = items * item_size;
+    usize const items = header->len - pos;
+    usize const bytes = items * item_size;
 
-    uint8_t *src = header->buf + pos * item_size;
+    u8 *src = (u8 *)(header + 1) + pos * item_size;
 
     memmove_s(src + item_size * item_count, bytes, src, bytes);
 
     ++header->len;
 
-    return header->buf;
+    return (header + 1);
 }

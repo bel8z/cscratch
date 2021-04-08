@@ -2,11 +2,7 @@
 // -----------------------------------------------------------------------------
 
 #include "allocator.h"
-
-#include <assert.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
+#include "common.h"
 
 // -----------------------------------------------------------------------------
 // Data types
@@ -16,9 +12,9 @@ typedef struct ArrayParams
 {
     // Mandatory parameters
     Allocator *alloc;
-    size_t item_size;
+    usize item_size;
     // Optional parameters
-    size_t capacity;
+    usize capacity;
 } ArrayParams;
 
 typedef struct ArrayHeader ArrayHeader;
@@ -28,21 +24,21 @@ typedef struct ArrayHeader ArrayHeader;
 // -----------------------------------------------------------------------------
 
 /// Initialize a dynamic array with the given allocator and optional capacity
-#define array_init(array, allocator, ...)                                      \
-    (array = internal__array_init(array, &(ArrayParams){                       \
-                                             .alloc = (allocator),             \
-                                             .item_size = sizeof(*array),      \
-                                             __VA_ARGS__,                      \
+#define array_init(array, allocator, ...)                                 \
+    (array = internal__array_init(array, &(ArrayParams){                  \
+                                             .alloc = (allocator),        \
+                                             .item_size = sizeof(*array), \
+                                             __VA_ARGS__,                 \
                                          }))
 
 /// Free the dynamic array
-#define array_free(array) internal__array_free(array)
+#define array_free(array) internal__array_free(array, sizeof(*array))
 
 /// Capacity of the array (number of elements that can be stored before the
 /// array grows)
-size_t array_capacity(void *array);
+usize array_capacity(void *array);
 /// Size of the array (number of stored items)
-size_t array_size(void *array);
+usize array_size(void *array);
 /// Size of the stored items in bytes (useful for 'memcpy' and the like)
 #define array_bytes(array) (array_size(array) * sizeof(*array))
 
@@ -58,56 +54,50 @@ size_t array_size(void *array);
 
 /// Grow the array capacity to store at least the given room
 /// Growth is geometrical
-#define array_grow(array, room)                                                \
-    (array = internal__array_grow(array, room, sizeof(*array)))
+#define array_grow(array, room) (array = internal__array_grow(array, room, sizeof(*array)))
 
 /// Ensure the array has the given capacity by growing if necessary
-#define array_ensure(array, capacity)                                          \
-    (internal__array_ensure(array, capacity, sizeof(*array)))
+#define array_ensure(array, capacity) (internal__array_ensure(array, capacity, sizeof(*array)))
 
 /// Push the given item at the end of the array
-#define array_push(array, item)                                                \
-    (array = internal__array_extend(array, 1, sizeof(*array)),                 \
-     *array_last(array) = item)
+#define array_push(array, item) \
+    (array = internal__array_extend(array, 1, sizeof(*array)), *array_last(array) = item)
 
 /// Push the given items at the end of the array
-#define array_push_range(array, items, count)                                  \
-    do                                                                         \
-    {                                                                          \
-        array = internal_array_extend(array, count, sizeof(*array));           \
-        memcpy(array, items, count * sizeof(*items));                          \
+#define array_push_range(array, items, count)                        \
+    do                                                               \
+    {                                                                \
+        array = internal_array_extend(array, count, sizeof(*array)); \
+        memcpy(array, items, count * sizeof(*items));                \
     } while (0)
 
 /// Pop and return the last element of the array
-#define array_pop(array)                                                       \
-    (array = internal__array_shrink(array, 1), *array_end(array))
+#define array_pop(array) (array = internal__array_shrink(array, 1), *array_end(array))
 
 /// Insert the given item at the given position in the array
-#define array_insert(array, item, pos)                                         \
-    (array = internal__array_insert(array, pos, 1, sizeof(*array)),            \
-     (array)[pos] = item)
+#define array_insert(array, item, pos) \
+    (array = internal__array_insert(array, pos, 1, sizeof(*array)), (array)[pos] = item)
 
 /// Insert the given items at the given position in the array
-#define array_insert_range(array, items, count, pos)                           \
-    do                                                                         \
-    {                                                                          \
-        array = internal__array_insert(array, pos, count, sizeof(*array));     \
-        memcpy(array + pos, items, count *sizeof(*items) ;                     \
+#define array_insert_range(array, items, count, pos)                       \
+    do                                                                     \
+    {                                                                      \
+        array = internal__array_insert(array, pos, count, sizeof(*array)); \
+        memcpy(array + pos, items, count *sizeof(*items) ;                 \
     } while (0)
 
 /// Remove the item at the given position in the array
 /// The items after the removed item are relocated
-#define array_remove(array, pos)                                               \
-    (array = internal__array_remove(array, pos, 1, sizeof(*array)))
+#define array_remove(array, pos) (array = internal__array_remove(array, pos, 1, sizeof(*array)))
 
 /// Remove the items at the given position in the array
 /// The items after the removed items are relocated
-#define array_remove_range(array, count, pos)                                  \
+#define array_remove_range(array, count, pos) \
     (array = internal__array_remove(array, pos, count, sizeof(*array)))
 
 /// Remove the item at the given position in the array, without relocation (the
 /// last element of the array takes the place of the removed item)
-#define array_swap_remove(array, pos)                                          \
+#define array_swap_remove(array, pos) \
     (array = internal__array_shrink(array, 1), (array)[pos] = *array_end(array))
 
 // TODO
@@ -129,17 +119,15 @@ size_t array_size(void *array);
 // -----------------------------------------------------------------------------
 
 void *internal__array_init(void *array, ArrayParams const *params);
-void internal__array_free(void *array);
+void internal__array_free(void *array, usize item_size);
 
-void *internal__array_grow(void *array, size_t room, size_t item_size);
-void *internal__array_ensure(void *array, size_t capacity, size_t item_size);
-void *internal__array_extend(void *array, size_t room, size_t item_size);
-void *internal__array_shrink(void *array, size_t room);
+void *internal__array_grow(void *array, usize room, usize item_size);
+void *internal__array_ensure(void *array, usize capacity, usize item_size);
+void *internal__array_extend(void *array, usize room, usize item_size);
+void *internal__array_shrink(void *array, usize room);
 
-void *internal__array_insert(void *array, size_t pos, size_t item_count,
-                             size_t item_size);
-void *internal__array_remove(void *array, size_t pos, size_t item_count,
-                             size_t item_size);
+void *internal__array_insert(void *array, usize pos, usize item_count, usize item_size);
+void *internal__array_remove(void *array, usize pos, usize item_count, usize item_size);
 
 // -----------------------------------------------------------------------------
 #define ARRAY_H

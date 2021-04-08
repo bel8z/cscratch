@@ -8,8 +8,8 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-# set(SOURCES array.c array_test.c)
-set(SOURCES vm_arena.c)
+set(SOURCES tests/test_array.c array.c)
+# set(SOURCES sparse.c)
 set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
 
 add_executable( ${PROJECT_NAME} ${SOURCES})

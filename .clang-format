@@ -1,27 +1,57 @@
+#--------------
+# Basic style
+#--------------
+
 BasedOnStyle: LLVM
 
-BreakBeforeBraces: Allman
+
+#--------------
+# Spacing
+#--------------
+
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
 ColumnLimit: 100
 
+#--------------
+# Line break
+#--------------
+
+BreakBeforeBraces: Allman
+AlwaysBreakAfterReturnType: TopLevelDefinitions 
+
+#--------------
+# Indentation
+#--------------
+
+IndentCaseLabels: true
+## IndentPPDirectives: AfterHash
+
+#--------------
+# Alignment
+#--------------
+
+AlignAfterOpenBracket: true
+AlignConsecutiveBitFields: true
+AlignEscapedNewlines: Left
+
+#--------------
+# Single lines
+#--------------
+
+# AllowShortBlocksOnASingleLine: Empty -> This conflicts with AllowShortIfStatementsOnASingleLine
 AllowShortCaseLabelsOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLoopsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: Inline
 
-IndentCaseLabels: true
-IndentPPDirectives: None
-
-AlignAfterOpenBracket: true
-AlignConsecutiveBitFields: true
-
-AlwaysBreakAfterReturnType: TopLevelDefinitions 
+#--------------
+# C++ specific
+#--------------
 
 AlwaysBreakTemplateDeclarations: Yes
 AccessModifierOffset: -4
-ConstructorInitializerAllOnOneLineOrOnePerLine: true
 BreakConstructorInitializers: BeforeComma
 BreakInheritanceList: BeforeComma
 NamespaceIndentation: None

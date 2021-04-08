@@ -1,35 +1,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "array.h"
+#include "../array.h"
 
-static void *allocate(size_t size, void *state)
+static ALLOCATOR_FUNC(reallocate)
 {
     (void)(state);
-    return malloc(size);
-}
+    (void)(old_size);
 
-static void *reallocate(void *memory, size_t size, void *state)
-{
-    (void)(state);
-    return realloc(memory, size);
-}
+    if (new_size) return realloc(memory, new_size);
 
-static void deallocate(void *memory, void *state)
-{
-    (void)(state);
     free(memory);
+    return NULL;
 }
 
-int32_t main(int32_t argc, char **argv)
+int32_t
+main(int32_t argc, char **argv)
 {
     (void)argc;
     (void)argv;
 
     int32_t *array = NULL;
-    Allocator *alloc = &(Allocator){.allocate = allocate,
-                                    .deallocate = deallocate,
-                                    .reallocate = reallocate};
+    Allocator *alloc = &(Allocator){.reallocate = reallocate};
     array_init(array, alloc, .capacity = 10);
 
     array_push(array, 0);
