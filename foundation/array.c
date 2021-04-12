@@ -1,9 +1,3 @@
-#include <assert.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "array.h"
 
 struct ArrayHeader
@@ -125,7 +119,7 @@ internal__array_remove(void *array, usize pos, usize item_count, usize item_size
     usize const bytes = items * item_size;
     u8 *dst = (u8 *)(header + 1) + pos * item_size;
 
-    memmove_s(dst, bytes, dst + item_size * item_count, bytes);
+    memory_copy(dst + item_size * item_count, dst, bytes);
 
     --header->len;
 
@@ -144,7 +138,7 @@ internal__array_insert(void *array, usize pos, usize item_count, usize item_size
 
     u8 *src = (u8 *)(header + 1) + pos * item_size;
 
-    memmove_s(src + item_size * item_count, bytes, src, bytes);
+    memory_copy(src, src + item_size * item_count, bytes);
 
     ++header->len;
 

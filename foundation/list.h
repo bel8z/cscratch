@@ -1,9 +1,6 @@
 #ifndef LIST_H
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
+#include "common.h"
 
 // Intrusive doubly-linked list
 
@@ -26,8 +23,7 @@ list_init(List *list)
     list->next = list->prev = list;
 }
 
-#define list_entry(node, type, member)                                         \
-    (type *)((uint8_t const *)(node)-offsetof(type, member))
+#define list_entry(node, type, member) (type *)((u8 const *)(node)-offsetof(type, member))
 
 static inline bool
 list_is_empty(List const *head)

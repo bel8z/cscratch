@@ -1,21 +1,15 @@
 #include <windows.h>
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stdint.h>
+#include "common.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <wchar.h>
 
-#ifdef bool
-#undef bool
-typedef _Bool bool;
-#endif
-
 typedef struct FileInfo
 {
     char path[MAX_PATH];
-    size_t size;
+    usize size;
 } FileInfo;
 
 typedef struct DirectoryInfo
@@ -66,8 +60,7 @@ fs_next_file(FsIter *iter, FileInfo *file)
     assert(iter);
     assert(file);
 
-    while (iter->state &&
-           iter->data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    while (iter->state && iter->data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
     {
         iter->state = FindNextFileA(iter->finder, &iter->data);
     }
@@ -93,8 +86,7 @@ fs_next_directory(FsIter *iter, DirectoryInfo *dir)
     assert(iter);
     assert(dir);
 
-    while (iter->state &&
-           !(iter->data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+    while (iter->state && !(iter->data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
     {
         iter->state = FindNextFileA(iter->finder, &iter->data);
     }

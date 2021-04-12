@@ -63,8 +63,7 @@ arena_shrink(VmArena *arena)
 {
     if (arena->allocated < arena->committed)
     {
-        vm_decommit(arena->memory + arena->allocated,
-                    arena->committed - arena->allocated);
+        vm_decommit(arena->memory + arena->allocated, arena->committed - arena->allocated);
     }
 }
 
@@ -126,8 +125,7 @@ vm_reserve(u32 size)
 static void
 vm_commit(void *mem, u32 size)
 {
-    void *committed =
-        VirtualAlloc(mem, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    void *committed = VirtualAlloc(mem, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
     ASSERT(committed, "Memory not previously reserved");
 }
 
@@ -156,41 +154,3 @@ vm_page_size()
 #else
 #error "Virtual memory arena is supported only on Windows"
 #endif // defined(_WIN32)
-
-//------------------------------------------------------------------------------
-// Test
-//------------------------------------------------------------------------------
-
-#include <stdio.h>
-
-int
-main()
-{
-    VmArena arena;
-
-    if (!arena_init(&arena, 1024 * 1024 * 1024))
-    {
-        printf("Cannot init memory arena");
-        return -1;
-    }
-
-    int *ints = arena_push_array(&arena, int, 1024);
-
-    for (int i = 0; i < 1024; ++i)
-    {
-        ints[i] = i;
-    }
-
-    arena_pop_array(&arena, int, 1024, ints);
-    arena_shrink(&arena);
-    arena_free(&arena);
-
-    for (int i = 0; i < 512; ++i)
-    {
-        assert(ints[i] == i);
-    }
-
-    printf("YEAH!");
-
-    return 0;
-}

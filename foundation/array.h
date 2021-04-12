@@ -3,6 +3,7 @@
 
 #include "allocator.h"
 #include "common.h"
+#include "util.h"
 
 // -----------------------------------------------------------------------------
 // Data types
@@ -68,7 +69,7 @@ usize array_size(void *array);
     do                                                               \
     {                                                                \
         array = internal_array_extend(array, count, sizeof(*array)); \
-        memcpy(array, items, count * sizeof(*items));                \
+        memory_copy(items, array, count * sizeof(*items));           \
     } while (0)
 
 /// Pop and return the last element of the array
@@ -83,7 +84,7 @@ usize array_size(void *array);
     do                                                                     \
     {                                                                      \
         array = internal__array_insert(array, pos, count, sizeof(*array)); \
-        memcpy(array + pos, items, count *sizeof(*items) ;                 \
+        memory_copy(items, array + pos, count *sizeof(*items) ;            \
     } while (0)
 
 /// Remove the item at the given position in the array
@@ -110,7 +111,6 @@ usize array_size(void *array);
 // Invariants
 // -----------------------------------------------------------------------------
 
-#define ASSERT_NOT_NULL(array) assert(array && "Array is null")
 #define ASSERT_NOT_EMPTY(array) assert(array_size(array) && "Array is empty")
 #define ASSERT_EMPTY(array) assert(!array_size(array) && "Array is not empty")
 

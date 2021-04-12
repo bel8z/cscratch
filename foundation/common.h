@@ -100,6 +100,7 @@ typedef double f64;
 
 #define STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
 #define ASSERT(expr, msg) ((void)(expr), assert((expr) && (msg)))
+#define ASSERT_NOT_NULL(array) ASSERT(array, "Array is null")
 
 #if defined(RESTORE_NDEBUG)
 #define NDEBUG 1
