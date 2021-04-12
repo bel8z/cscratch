@@ -4,7 +4,6 @@
 
 BasedOnStyle: LLVM
 
-
 #--------------
 # Spacing
 #--------------
@@ -26,7 +25,7 @@ AlwaysBreakAfterReturnType: TopLevelDefinitions
 #--------------
 
 IndentCaseLabels: true
-## IndentPPDirectives: AfterHash
+# IndentPPDirectives: AfterHash
 
 #--------------
 # Alignment
