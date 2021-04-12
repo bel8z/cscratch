@@ -1,4 +1,4 @@
-#ifndef MATHS_H
+#ifndef CF_MATHS_H
 
 #include <math.h>
 
@@ -13,5 +13,5 @@
 
 #define fmod(X, Y) _Generic((X, Y), default : fmod, f32 : fmodf)(X, Y)
 
-#define MATHS_H
+#define CF_MATHS_H
 #endif

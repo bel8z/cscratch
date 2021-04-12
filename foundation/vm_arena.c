@@ -1,8 +1,7 @@
 #include "vm_arena.h"
 
 #include "common.h"
-
-#include <string.h>
+#include "util.h"
 
 //------------------------------------------------------------------------------
 // VM access API
@@ -26,7 +25,7 @@ static void vm_decommit(void *mem, u32 size);
 static inline u32
 round_up(u32 block_size, u32 page_size)
 {
-    ASSERT((page_size & (page_size - 1)) == 0, "Page size is not a power of 2");
+    CF_ASSERT((page_size & (page_size - 1)) == 0, "Page size is not a power of 2");
     return page_size * ((block_size + page_size - 1) / page_size);
 }
 
@@ -87,7 +86,7 @@ arena_push_size(VmArena *arena, u32 size)
         // VM is cleared to 0 by the OS; here we are reusing already committed
         // memory so it is our responsibility to clean up
         u32 dirty = arena->committed - arena->allocated;
-        memset(result + size - dirty, 0, dirty);
+        cf_write_memory(result + size - dirty, 0, dirty);
     }
 
     return result;
@@ -126,7 +125,7 @@ static void
 vm_commit(void *mem, u32 size)
 {
     void *committed = VirtualAlloc(mem, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-    ASSERT(committed, "Memory not previously reserved");
+    CF_ASSERT(committed, "Memory not previously reserved");
 }
 
 static void

@@ -1,4 +1,4 @@
-#ifndef COMMON_H
+#ifndef CF_COMMON_H
 
 #include <float.h>
 #include <stdbool.h>
@@ -98,9 +98,9 @@ typedef double f64;
 
 #include <assert.h>
 
-#define STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
-#define ASSERT(expr, msg) ((void)(expr), assert((expr) && (msg)))
-#define ASSERT_NOT_NULL(array) ASSERT(array, "Array is null")
+#define CF_STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
+#define CF_ASSERT(expr, msg) ((void)(expr), assert((expr) && (msg)))
+#define CF_ASSERT_NOT_NULL(array) CF_ASSERT(array, "Array is null")
 
 #if defined(RESTORE_NDEBUG)
 #define NDEBUG 1
@@ -108,5 +108,5 @@ typedef double f64;
 #endif
 //------------------------------------------------------------------------------
 
-#define COMMON_H
+#define CF_COMMON_H
 #endif

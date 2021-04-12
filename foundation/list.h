@@ -1,62 +1,62 @@
-#ifndef LIST_H
+#ifndef CF_LIST_H
 
 #include "common.h"
 
 // Intrusive doubly-linked list
 
-typedef struct List List;
+typedef struct CfList CfList;
 
-struct List
+struct CfList
 {
-    List *prev, *next;
+    CfList *prev, *next;
 };
 
-static inline List
-list_create(List *head)
+static inline CfList
+cf_list_create(CfList *head)
 {
-    return (List){.next = head, .prev = head};
+    return (CfList){.next = head, .prev = head};
 }
 
 static inline void
-list_init(List *list)
+cf_list_init(CfList *list)
 {
     list->next = list->prev = list;
 }
 
-#define list_entry(node, type, member) (type *)((u8 const *)(node)-offsetof(type, member))
+#define cf_list_entry(node, type, member) (type *)((u8 const *)(node)-offsetof(type, member))
 
 static inline bool
-list_is_empty(List const *head)
+cf_list_is_empty(CfList const *head)
 {
     return (head->next == head);
 }
 
 static inline int
-list_is_head(List const *list, List const *node)
+cf_list_is_head(CfList const *list, CfList const *node)
 {
     return (list->next == node);
 }
 
 static inline int
-list_is_tail(List const *list, List const *node)
+cf_list_is_tail(CfList const *list, CfList const *node)
 {
     return (list->prev == node);
 }
 
-static inline List const *
-list_head(List const *list)
+static inline CfList const *
+cf_list_head(CfList const *list)
 {
     return list->next;
 }
 
-static inline List const *
-list_tail(List const *list)
+static inline CfList const *
+cf_list_tail(CfList const *list)
 {
     return list->prev;
 }
 
 static inline void
-list_insert(List *node, List *prev, List *next)
+cf_list_insert(CfList *node, CfList *prev, CfList *next)
 {
     node->prev = prev;
     node->next = next;
@@ -66,7 +66,7 @@ list_insert(List *node, List *prev, List *next)
 }
 
 static inline void
-list_remove(List *node)
+cf_list_remove(CfList *node)
 {
     node->prev->next = node->next;
     node->next->prev = node->prev;
@@ -75,48 +75,48 @@ list_remove(List *node)
 }
 
 static inline void
-list_push_head(List *list, List *node)
+cf_list_push_head(CfList *list, CfList *node)
 {
-    list_insert(node, list, list->next);
+    cf_list_insert(node, list, list->next);
     assert(list->next == node);
 }
 
 static inline void
-list_push_tail(List *list, List *node)
+cf_list_push_tail(CfList *list, CfList *node)
 {
-    list_insert(node, list->prev, list);
+    cf_list_insert(node, list->prev, list);
     assert(list->prev == node);
 }
 
-static inline List *
-list_pop_head(List *list)
+static inline CfList *
+cf_list_pop_head(CfList *list)
 {
-    List *head = list->next;
-    list_remove(head);
+    CfList *head = list->next;
+    cf_list_remove(head);
     return head;
 }
 
-static inline List *
-list_pop_tail(List *list)
+static inline CfList *
+cf_list_pop_tail(CfList *list)
 {
-    List *tail = list->prev;
-    list_remove(tail);
+    CfList *tail = list->prev;
+    cf_list_remove(tail);
     return tail;
 }
 
 static inline bool
-list_iter_next(List const **cursor)
+cf_list_iter_next(CfList const **cursor)
 {
     *cursor = (*cursor)->next;
     return (*cursor != (*cursor)->next);
 }
 
 static inline bool
-list_iter_prev(List const **cursor)
+cf_list_iter_prev(CfList const **cursor)
 {
     *cursor = (*cursor)->prev;
     return (*cursor != (*cursor)->prev);
 }
 
-#define LIST_H
+#define CF_LIST_H
 #endif

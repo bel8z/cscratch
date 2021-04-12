@@ -1,7 +1,5 @@
 #include "foundation/common.h"
 
-#include <stdlib.h>
-
 enum
 {
     MAX_INDICES = 1024
@@ -54,15 +52,15 @@ main(void)
 
     u32 a = sparse_add(&sparse);
 
-    ASSERT(sparse_has(&sparse, a), "");
+    CF_ASSERT(sparse_has(&sparse, a), "");
 
     u32 b = sparse_add(&sparse);
 
-    ASSERT(sparse_has(&sparse, b), "");
+    CF_ASSERT(sparse_has(&sparse, b), "");
 
     sparse_remove(&sparse, a);
 
-    ASSERT(!sparse_has(&sparse, a), "");
+    CF_ASSERT(!sparse_has(&sparse, a), "");
 
     return 0;
 }

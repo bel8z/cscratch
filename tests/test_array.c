@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../array.h"
+#include "foundation/array.h"
 
-static ALLOCATOR_FUNC(reallocate)
+static CF_ALLOCATOR_FUNC(reallocate)
 {
     (void)(state);
     (void)(old_size);
@@ -21,15 +21,15 @@ main(int32_t argc, char **argv)
     (void)argv;
 
     int32_t *array = NULL;
-    Allocator *alloc = &(Allocator){.reallocate = reallocate};
-    array_init(array, alloc, .capacity = 10);
+    CfAllocator *alloc = &(CfAllocator){.reallocate = reallocate};
+    cf_array_init(array, alloc, .capacity = 10);
 
-    array_push(array, 0);
-    array_push(array, 1);
-    array_push(array, 2);
+    cf_array_push(array, 0);
+    cf_array_push(array, 1);
+    cf_array_push(array, 2);
 
     printf("{");
-    for (size_t i = 0; i < array_size(array); ++i)
+    for (size_t i = 0; i < cf_array_size(array); ++i)
     {
         printf("%d, ", array[i]);
     }
@@ -37,62 +37,62 @@ main(int32_t argc, char **argv)
 
     printf("\n");
 
-    printf("pop: %d\n", array_pop(array));
-    printf("pop: %d\n", array_pop(array));
-    printf("pop: %d\n", array_pop(array));
+    printf("pop: %d\n", cf_array_pop(array));
+    printf("pop: %d\n", cf_array_pop(array));
+    printf("pop: %d\n", cf_array_pop(array));
 
     printf("\n");
 
     printf("{");
-    for (size_t i = 0; i < array_size(array); ++i)
+    for (size_t i = 0; i < cf_array_size(array); ++i)
     {
         printf("%d, ", array[i]);
     }
     printf("}\n");
 
-    array_push(array, 0);
-    array_push(array, 1);
-    array_push(array, 2);
-    array_push(array, 3);
-    array_push(array, 4);
+    cf_array_push(array, 0);
+    cf_array_push(array, 1);
+    cf_array_push(array, 2);
+    cf_array_push(array, 3);
+    cf_array_push(array, 4);
 
     printf("\n");
 
     printf("{");
-    for (size_t i = 0; i < array_size(array); ++i)
+    for (size_t i = 0; i < cf_array_size(array); ++i)
     {
         printf("%d, ", array[i]);
     }
     printf("}\n");
 
-    array_remove(array, 1);
+    cf_array_remove(array, 1);
 
     printf("{");
-    for (size_t i = 0; i < array_size(array); ++i)
+    for (size_t i = 0; i < cf_array_size(array); ++i)
     {
         printf("%d, ", array[i]);
     }
     printf("}\n");
 
-    array_swap_remove(array, 1);
+    cf_array_swap_remove(array, 1);
 
     printf("{");
-    for (size_t i = 0; i < array_size(array); ++i)
+    for (size_t i = 0; i < cf_array_size(array); ++i)
     {
         printf("%d, ", array[i]);
     }
     printf("}\n");
 
-    array_insert(array, 8, 1);
+    cf_array_insert(array, 8, 1);
 
     printf("{");
-    for (size_t i = 0; i < array_size(array); ++i)
+    for (size_t i = 0; i < cf_array_size(array); ++i)
     {
         printf("%d, ", array[i]);
     }
     printf("}\n");
 
-    array_free(array);
+    cf_array_free(array);
 
     return 0;
 }
