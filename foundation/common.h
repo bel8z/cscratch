@@ -104,6 +104,10 @@ typedef double f64;
 #define CF_ASSERT(expr, msg) (CF_UNUSED(expr), assert((expr) && (msg)))
 #define CF_ASSERT_NOT_NULL(array) CF_ASSERT(array, "Array is null")
 
+#define CF_NOT_IMPLEMENTED() CF_ASSERT(false, "Not implemented")
+
+#define CF_INVALID_CODE_PATH() CF_ASSERT(false, "Invalid code path")
+
 #if defined(RESTORE_NDEBUG)
 #define NDEBUG 1
 #undef RESTORE_NDEBUG
