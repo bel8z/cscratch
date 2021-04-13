@@ -11,17 +11,19 @@ round_up(u32 block_size, u32 page_size)
 }
 
 bool
-arena_init(VmArena *arena, Vm *vm, u32 reserved_size)
+arena_init(VmArena *arena, cfVirtualMemory *vm, u32 reserved_size)
 {
-    arena->reserved = round_up(reserved_size, vm->page_size);
     arena->committed = 0;
     arena->allocated = 0;
-    arena->memory = VM_RESERVE(vm, arena->reserved);
+    arena->reserved = round_up(reserved_size, vm->page_size);
+    arena->memory = vm->reserve(arena->reserved);
+    arena->vm = vm;
 
     if (!arena->memory)
     {
         arena->reserved = 0;
         arena->memory = NULL;
+        arena->vm = NULL;
         return false;
     }
 
@@ -31,7 +33,7 @@ arena_init(VmArena *arena, Vm *vm, u32 reserved_size)
 void
 arena_free(VmArena *arena)
 {
-    VM_RELEASE(arena->vm, arena->memory, arena->reserved);
+    arena->vm->release(arena->memory, arena->reserved);
     // Make the arena unusable
     *arena = (VmArena){0};
 }
@@ -41,7 +43,7 @@ arena_shrink(VmArena *arena)
 {
     if (arena->allocated < arena->committed)
     {
-        VM_REVERT(arena->vm, arena->memory + arena->allocated, arena->committed - arena->allocated);
+        arena->vm->revert(arena->memory + arena->allocated, arena->committed - arena->allocated);
     }
 }
 
@@ -57,7 +59,7 @@ arena_push_size(VmArena *arena, u32 size)
     if (arena->allocated > arena->committed)
     {
         u32 commit_size = round_up(arena->allocated, arena->vm->page_size);
-        VM_COMMIT(arena->vm, arena->memory + arena->committed, commit_size);
+        arena->vm->commit(arena->memory + arena->committed, commit_size);
         arena->committed += commit_size;
     }
     else

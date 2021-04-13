@@ -5,13 +5,13 @@
 #include "vm.h"
 
 // Basic platform API
-typedef struct Platform
+typedef struct cfPlatform
 {
-    Vm vm;
+    cfVirtualMemory vm;
     cfAllocator heap;
-} Platform;
+} cfPlatform;
 
-Platform platform_create();
+cfPlatform cf_platform_create();
 
 #define CF_PLATFORM_H
 #endif

@@ -33,20 +33,20 @@ static cfAllocatorStats win32_heap_alloc = {0};
 // Main API
 // -----------------------------------------------------------------------------
 
-Platform
-platform_create()
+cfPlatform
+cf_platform_create()
 {
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
 
-    Platform plat = {.vm = {.reserve = win32_vm_reserve,
-                            .release = win32_vm_release,
-                            .commit = win32_vm_commit,
-                            .revert = win32_vm_decommit,
-                            .page_size = sysinfo.dwPageSize},
-                     .heap = {.state = &win32_heap_alloc,
-                              .reallocate = win32_alloc_func,
-                              .stats = win32_alloc_stats}};
+    cfPlatform plat = {.vm = {.reserve = win32_vm_reserve,
+                              .release = win32_vm_release,
+                              .commit = win32_vm_commit,
+                              .revert = win32_vm_decommit,
+                              .page_size = sysinfo.dwPageSize},
+                       .heap = {.state = &win32_heap_alloc,
+                                .reallocate = win32_alloc_func,
+                                .stats = win32_alloc_stats}};
 
     return plat;
 }
@@ -57,13 +57,11 @@ platform_create()
 
 VM_RESERVE_FUNC(win32_vm_reserve)
 {
-    CF_UNUSED(state);
     return VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_NOACCESS);
 }
 
 VM_COMMIT_FUNC(win32_vm_commit)
 {
-    CF_UNUSED(state);
     void *committed = VirtualAlloc(memory, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
     CF_ASSERT(committed, "Memory not previously reserved");
     return committed != NULL;
@@ -71,13 +69,11 @@ VM_COMMIT_FUNC(win32_vm_commit)
 
 VM_REVERT_FUNC(win32_vm_decommit)
 {
-    CF_UNUSED(state);
     VirtualFree(memory, size, MEM_DECOMMIT);
 }
 
 VM_RELEASE_FUNC(win32_vm_release)
 {
-    CF_UNUSED(state);
     VirtualFree(memory, size, MEM_RELEASE);
 }
 

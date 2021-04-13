@@ -10,12 +10,12 @@ typedef struct VmArena
     u32 committed;
     u32 allocated;
     u8 *memory;
-    Vm *vm;
+    cfVirtualMemory *vm;
 } VmArena;
 
 /// Initialize the arena by reserving a block of virtual memory of the required
 /// size
-bool arena_init(VmArena *arena, Vm *vm, u32 reserved_size);
+bool arena_init(VmArena *arena, cfVirtualMemory *vm, u32 reserved_size);
 /// Free all the memory allocated by the arena. The arena is unable to provide
 /// any memory after this call.
 void arena_free(VmArena *arena);
