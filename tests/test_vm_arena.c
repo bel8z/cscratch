@@ -1,5 +1,5 @@
 
-#include "../vm_arena.h"
+#include "foundation/vm_arena.h"
 
 #include <stdio.h>
 

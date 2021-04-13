@@ -1,4 +1,4 @@
-#include "../vec.h"
+#include "foundation/vec.h"
 
 #include <stdio.h>
 
