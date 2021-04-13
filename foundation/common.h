@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define CF_UNUSED(var) (void)(var)
+
 //------------------------------------------------------------------------------
 // Boolean type
 
@@ -99,7 +101,7 @@ typedef double f64;
 #include <assert.h>
 
 #define CF_STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
-#define CF_ASSERT(expr, msg) ((void)(expr), assert((expr) && (msg)))
+#define CF_ASSERT(expr, msg) (CF_UNUSED(expr), assert((expr) && (msg)))
 #define CF_ASSERT_NOT_NULL(array) CF_ASSERT(array, "Array is null")
 
 #if defined(RESTORE_NDEBUG)
