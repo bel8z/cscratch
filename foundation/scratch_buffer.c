@@ -10,6 +10,7 @@ void *
 cf_scratch_alloc(cfScratchBuffer *sb, usize size)
 {
     // TODO (Matteo): Implement something
+    CF_NOT_IMPLEMENTED();
 
     CF_UNUSED(sb);
     CF_UNUSED(size);
