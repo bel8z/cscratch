@@ -1,21 +1,21 @@
 #include "array.h"
 
-struct CfArrayHeader
+struct cfArrayHeader
 {
-    CfAllocator *alloc;
+    cfAllocator *alloc;
     usize len; // Number of stored items
     usize cap; // Number of storable items
 };
 
-inline CfArrayHeader *
+inline cfArrayHeader *
 array_header(void *array)
 {
     CF_ASSERT_NOT_NULL(array);
-    return (CfArrayHeader *)array - 1;
+    return (cfArrayHeader *)array - 1;
 }
 
-static CfArrayHeader *
-array_header_grow(CfArrayHeader *header, usize room, usize item_size)
+static cfArrayHeader *
+array_header_grow(cfArrayHeader *header, usize room, usize item_size)
 {
     usize const req_cap = header->len + room;
 
@@ -47,14 +47,14 @@ cf_array_size(void *array)
 }
 
 void *
-cfinternal__array_init(void *array, CfArrayParams const *params)
+cfinternal__array_init(void *array, cfArrayParams const *params)
 {
     (void)array; // Unused for now
 
-    CfAllocator *alloc = params->alloc;
+    cfAllocator *alloc = params->alloc;
     usize bytes = params->capacity * params->item_size;
 
-    CfArrayHeader *header = CF_ALLOCATE(alloc, sizeof(*header) + bytes);
+    cfArrayHeader *header = CF_ALLOCATE(alloc, sizeof(*header) + bytes);
 
     header->alloc = alloc;
     header->cap = params->capacity;
@@ -66,21 +66,21 @@ cfinternal__array_init(void *array, CfArrayParams const *params)
 void
 cfinternal__array_free(void *array, usize item_size)
 {
-    CfArrayHeader *header = array_header(array);
+    cfArrayHeader *header = array_header(array);
     CF_DEALLOCATE(header->alloc, header, sizeof(*header) + header->cap * item_size);
 }
 
 void *
 cfinternal__array_grow(void *array, usize room, usize item_size)
 {
-    CfArrayHeader *header = array_header_grow(array_header(array), room, item_size);
+    cfArrayHeader *header = array_header_grow(array_header(array), room, item_size);
     return (header + 1);
 }
 
 void *
 cfinternal__array_ensure(void *array, usize capacity, usize item_size)
 {
-    CfArrayHeader *header = array_header(array);
+    cfArrayHeader *header = array_header(array);
 
     if (capacity > header->cap)
     {
@@ -93,7 +93,7 @@ cfinternal__array_ensure(void *array, usize capacity, usize item_size)
 void *
 cfinternal__array_extend(void *array, usize room, usize item_size)
 {
-    CfArrayHeader *header = array_header_grow(array_header(array), room, item_size);
+    cfArrayHeader *header = array_header_grow(array_header(array), room, item_size);
     header->len++;
     return (header + 1);
 }
@@ -110,7 +110,7 @@ cfinternal__array_shrink(void *array, usize room)
 void *
 cfinternal__array_remove(void *array, usize pos, usize item_count, usize item_size)
 {
-    CfArrayHeader *header = array_header(array);
+    cfArrayHeader *header = array_header(array);
 
     CF_ASSERT(pos < header->len, "Removing out of bounds range");
     CF_ASSERT(pos + item_count < header->len, "Removing out of bounds range");
@@ -129,7 +129,7 @@ cfinternal__array_remove(void *array, usize pos, usize item_count, usize item_si
 void *
 cfinternal__array_insert(void *array, usize pos, usize item_count, usize item_size)
 {
-    CfArrayHeader *header = array_header_grow(array_header(array), item_count, item_size);
+    cfArrayHeader *header = array_header_grow(array_header(array), item_count, item_size);
 
     CF_ASSERT(pos < header->len, "Inserting out of bounds");
 

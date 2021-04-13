@@ -27,7 +27,7 @@ static CF_ALLOC_STATS_FUNC(win32_alloc_stats);
 // Internal globals
 // -----------------------------------------------------------------------------
 
-static CfAllocatorStats win32_heap_alloc = {0};
+static cfAllocatorStats win32_heap_alloc = {0};
 
 // -----------------------------------------------------------------------------
 // Main API
@@ -83,7 +83,7 @@ VM_RELEASE_FUNC(win32_vm_release)
 
 CF_ALLOCATOR_FUNC(win32_alloc_func)
 {
-    CfAllocatorStats *stats = state;
+    cfAllocatorStats *stats = state;
 
     if (new_size)
     {
@@ -112,7 +112,7 @@ CF_ALLOCATOR_FUNC(win32_alloc_func)
 
 static CF_ALLOC_STATS_FUNC(win32_alloc_stats)
 {
-    CfAllocatorStats *stats = state;
+    cfAllocatorStats *stats = state;
     return *stats;
 }
 

@@ -2,17 +2,17 @@
 
 #include "common.h"
 
-typedef struct ScratchBuffer
+typedef struct cfScratchBuffer
 {
     u8 *buf;
     usize cap;
     usize beg;
     usize len;
-} ScratchBuffer;
+} cfScratchBuffer;
 
-ScratchBuffer scratch_create(u8 *memory, usize size);
+cfScratchBuffer cf_scratch_create(u8 *memory, usize size);
 
-void *scratch_alloc(ScratchBuffer *sb, usize size);
+void *cf_scratch_alloc(cfScratchBuffer *sb, usize size);
 
 #define CF_SCRATCH_BUFFER_H
 #endif

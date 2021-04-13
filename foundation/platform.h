@@ -8,7 +8,7 @@
 typedef struct Platform
 {
     Vm vm;
-    CfAllocator heap;
+    cfAllocator heap;
 } Platform;
 
 Platform platform_create();

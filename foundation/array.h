@@ -9,16 +9,19 @@
 // Data types
 // -----------------------------------------------------------------------------
 
-typedef struct CfArrayParams
+typedef struct cfArrayParams
 {
     // Mandatory parameters
-    CfAllocator *alloc;
+    cfAllocator *alloc;
     usize item_size;
     // Optional parameters
     usize capacity;
-} CfArrayParams;
+} cfArrayParams;
 
-typedef struct CfArrayHeader CfArrayHeader;
+typedef struct cfArrayHeader cfArrayHeader;
+
+// Use it to explicitly declare an array (e.g. cfArray(i32) ints;)
+#define cfArray(Type) Type *
 
 // -----------------------------------------------------------------------------
 // Operations
@@ -26,7 +29,7 @@ typedef struct CfArrayHeader CfArrayHeader;
 
 /// Initialize a dynamic array with the given allocator and optional capacity
 #define cf_array_init(array, allocator, ...)                                \
-    (array = cfinternal__array_init(array, &(CfArrayParams){                \
+    (array = cfinternal__array_init(array, &(cfArrayParams){                \
                                                .alloc = (allocator),        \
                                                .item_size = sizeof(*array), \
                                                __VA_ARGS__,                 \
@@ -112,7 +115,7 @@ usize cf_array_size(void *array);
 // Internals
 // -----------------------------------------------------------------------------
 
-void *cfinternal__array_init(void *array, CfArrayParams const *params);
+void *cfinternal__array_init(void *array, cfArrayParams const *params);
 void cfinternal__array_free(void *array, usize item_size);
 
 void *cfinternal__array_grow(void *array, usize room, usize item_size);

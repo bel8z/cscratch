@@ -20,8 +20,8 @@ main(int32_t argc, char **argv)
     (void)argc;
     (void)argv;
 
-    int32_t *array = NULL;
-    CfAllocator *alloc = &(CfAllocator){.reallocate = reallocate};
+    cfArray(i32) array = NULL;
+    cfAllocator *alloc = &(cfAllocator){.reallocate = reallocate};
     cf_array_init(array, alloc, .capacity = 10);
 
     cf_array_push(array, 0);
@@ -29,7 +29,7 @@ main(int32_t argc, char **argv)
     cf_array_push(array, 2);
 
     printf("{");
-    for (size_t i = 0; i < cf_array_size(array); ++i)
+    for (usize i = 0; i < cf_array_size(array); ++i)
     {
         printf("%d, ", array[i]);
     }
@@ -44,7 +44,7 @@ main(int32_t argc, char **argv)
     printf("\n");
 
     printf("{");
-    for (size_t i = 0; i < cf_array_size(array); ++i)
+    for (usize i = 0; i < cf_array_size(array); ++i)
     {
         printf("%d, ", array[i]);
     }
@@ -59,7 +59,7 @@ main(int32_t argc, char **argv)
     printf("\n");
 
     printf("{");
-    for (size_t i = 0; i < cf_array_size(array); ++i)
+    for (usize i = 0; i < cf_array_size(array); ++i)
     {
         printf("%d, ", array[i]);
     }
@@ -68,7 +68,7 @@ main(int32_t argc, char **argv)
     cf_array_remove(array, 1);
 
     printf("{");
-    for (size_t i = 0; i < cf_array_size(array); ++i)
+    for (usize i = 0; i < cf_array_size(array); ++i)
     {
         printf("%d, ", array[i]);
     }
@@ -77,7 +77,7 @@ main(int32_t argc, char **argv)
     cf_array_swap_remove(array, 1);
 
     printf("{");
-    for (size_t i = 0; i < cf_array_size(array); ++i)
+    for (usize i = 0; i < cf_array_size(array); ++i)
     {
         printf("%d, ", array[i]);
     }
@@ -86,7 +86,7 @@ main(int32_t argc, char **argv)
     cf_array_insert(array, 8, 1);
 
     printf("{");
-    for (size_t i = 0; i < cf_array_size(array); ++i)
+    for (usize i = 0; i < cf_array_size(array); ++i)
     {
         printf("%d, ", array[i]);
     }
