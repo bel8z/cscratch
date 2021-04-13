@@ -13,19 +13,16 @@ round_up(u32 block_size, u32 page_size)
 bool
 arena_init(VmArena *arena, cfVirtualMemory *vm, u32 reserved_size)
 {
+    u32 rounded = round_up(reserved_size, vm->page_size);
+    u8 *buffer = vm->reserve(rounded);
+
+    if (!buffer) return false;
+
+    arena->vm = vm;
+    arena->memory = buffer;
+    arena->reserved = rounded;
     arena->committed = 0;
     arena->allocated = 0;
-    arena->reserved = round_up(reserved_size, vm->page_size);
-    arena->memory = vm->reserve(arena->reserved);
-    arena->vm = vm;
-
-    if (!arena->memory)
-    {
-        arena->reserved = 0;
-        arena->memory = NULL;
-        arena->vm = NULL;
-        return false;
-    }
 
     return true;
 }
