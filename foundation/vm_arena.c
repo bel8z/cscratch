@@ -3,25 +3,6 @@
 #include "common.h"
 #include "util.h"
 
-//------------------------------------------------------------------------------
-// VM access API
-//------------------------------------------------------------------------------
-
-// NOTE (Matteo): The nomenclature is heavily influenced by the Win32 VM Api,
-// which is currently the only supported implementation
-
-static u32 vm_page_size();
-
-static void *vm_reserve(u32 size);
-static void vm_release(void *mem, u32 size);
-
-static void vm_commit(void *mem, u32 size);
-static void vm_decommit(void *mem, u32 size);
-
-//------------------------------------------------------------------------------
-// VM arena implementation
-//------------------------------------------------------------------------------
-
 static inline u32
 round_up(u32 block_size, u32 page_size)
 {
@@ -30,17 +11,15 @@ round_up(u32 block_size, u32 page_size)
 }
 
 bool
-arena_init(VmArena *arena, u32 reserved_size)
+arena_init(VmArena *arena, Vm *vm, u32 reserved_size)
 {
-    arena->page_size = vm_page_size();
-    arena->reserved = round_up(reserved_size, arena->page_size);
+    arena->reserved = round_up(reserved_size, vm->page_size);
     arena->committed = 0;
     arena->allocated = 0;
-    arena->memory = vm_reserve(arena->reserved);
+    arena->memory = VM_RESERVE(vm, arena->reserved);
 
     if (!arena->memory)
     {
-        arena->page_size = 0;
         arena->reserved = 0;
         arena->memory = NULL;
         return false;
@@ -52,7 +31,7 @@ arena_init(VmArena *arena, u32 reserved_size)
 void
 arena_free(VmArena *arena)
 {
-    vm_release(arena->memory, arena->reserved);
+    VM_RELEASE(arena->vm, arena->memory, arena->reserved);
     // Make the arena unusable
     *arena = (VmArena){0};
 }
@@ -62,7 +41,7 @@ arena_shrink(VmArena *arena)
 {
     if (arena->allocated < arena->committed)
     {
-        vm_decommit(arena->memory + arena->allocated, arena->committed - arena->allocated);
+        VM_REVERT(arena->vm, arena->memory + arena->allocated, arena->committed - arena->allocated);
     }
 }
 
@@ -77,8 +56,8 @@ arena_push_size(VmArena *arena, u32 size)
 
     if (arena->allocated > arena->committed)
     {
-        u32 commit_size = round_up(arena->allocated, arena->page_size);
-        vm_commit(arena->memory + arena->committed, commit_size);
+        u32 commit_size = round_up(arena->allocated, arena->vm->page_size);
+        VM_COMMIT(arena->vm, arena->memory + arena->committed, commit_size);
         arena->committed += commit_size;
     }
     else
@@ -103,53 +82,3 @@ arena_pop_size(VmArena *arena, u32 size, void const *memory)
         arena->allocated -= size;
     }
 }
-
-//------------------------------------------------------------------------------
-// VM access implementation
-//------------------------------------------------------------------------------
-
-#if defined(_WIN32)
-
-#pragma warning(push)
-#pragma warning(disable : 5105)
-
-#include <Windows.h>
-
-static void *
-vm_reserve(u32 size)
-{
-    return VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_NOACCESS);
-}
-
-static void
-vm_commit(void *mem, u32 size)
-{
-    void *committed = VirtualAlloc(mem, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-    CF_ASSERT(committed, "Memory not previously reserved");
-}
-
-static void
-vm_decommit(void *mem, u32 size)
-{
-    VirtualFree(mem, size, MEM_DECOMMIT);
-}
-
-static void
-vm_release(void *mem, u32 size)
-{
-    VirtualFree(mem, size, MEM_RELEASE);
-}
-
-static u32
-vm_page_size()
-{
-    SYSTEM_INFO sysinfo;
-    GetSystemInfo(&sysinfo);
-    return sysinfo.dwPageSize;
-}
-
-#pragma warning(pop)
-
-#else
-#error "Virtual memory arena is supported only on Windows"
-#endif // defined(_WIN32)

@@ -2,16 +2,29 @@
 
 #include "common.h"
 
+typedef struct CfAllocator CfAllocator;
+typedef struct CfAllocatorStats CfAllocatorStats;
+
 #define CF_ALLOCATOR_FUNC(name) \
     void *name(void *state, void *memory, usize old_size, usize new_size)
 
-typedef CF_ALLOCATOR_FUNC(AllocatorFunc);
+#define CF_ALLOC_STATS_FUNC(name) CfAllocatorStats name(void *state)
 
-typedef struct CfAllocator
+typedef CF_ALLOCATOR_FUNC(CfAllocatorFunc);
+typedef CF_ALLOC_STATS_FUNC(CfAllocStatsFunc);
+
+struct CfAllocatorStats
+{
+    usize count;
+    usize size;
+};
+
+struct CfAllocator
 {
     void *state;
-    AllocatorFunc *reallocate;
-} CfAllocator;
+    CfAllocatorFunc *reallocate;
+    CfAllocStatsFunc *stats;
+};
 
 #define CF_ALLOCATE(a, size) a->reallocate(a->state, NULL, 0, size)
 
