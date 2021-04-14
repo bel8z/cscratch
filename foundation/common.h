@@ -1,7 +1,6 @@
 #ifndef CF_COMMON_H
 
 #include <float.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -9,6 +8,8 @@
 
 //------------------------------------------------------------------------------
 // Boolean type
+
+#include <stdbool.h>
 
 #ifdef bool
 #undef bool
