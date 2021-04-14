@@ -61,7 +61,7 @@ main(int argc, char **argv)
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
     // Initialize OpenGL loader
-    if (!opengl_loader_init())
+    if (opengl_loader_init())
     {
         fprintf(stderr, "Failed to initialize OpenGL loader!\n");
         return 1;
