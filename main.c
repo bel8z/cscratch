@@ -6,6 +6,7 @@
 
 #include "foundation/common.h"
 
+#define IMGUI_IMPL_OPENGL_LOADER_GL3W
 #include "imgui_decl.h"
 #include "imgui_impl.h"
 
@@ -15,7 +16,7 @@
 #include <stdio.h>
 
 static void
-gui_set_green_style(ImGuiStyle *style)
+guiSetCustomStyle(ImGuiStyle *style)
 
 {
     ImVec4 *colors = style->Colors;
@@ -152,7 +153,7 @@ main(int argc, char **argv)
         style->Colors[ImGuiCol_WindowBg].w = 1.0f;
     }
 
-    gui_set_green_style(style);
+    guiSetCustomStyle(style);
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);

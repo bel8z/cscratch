@@ -56,7 +56,7 @@ set(BACKEND_SOURCES
 
 add_library(backend STATIC ${BACKEND_SOURCES})
 
-target_compile_definitions(backend PUBLIC IMGUI_IMPL_OPENGL_LOADER_GL3W)
+target_compile_definitions(backend PRIVATE IMGUI_IMPL_OPENGL_LOADER_GL3W)
 
 target_include_directories(backend PRIVATE 
     ${IMGUI_DIR}/imgui

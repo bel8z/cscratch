@@ -1,6 +1,10 @@
-#ifndef GL_LOADER_H
+#ifndef IMGUI_IMPL_H
 
 #include "foundation/common.h"
+
+//------------------------------------------------------------------------------
+// SDL2 backend declarations
+//------------------------------------------------------------------------------
 
 typedef struct SDL_Window SDL_Window;
 typedef union SDL_Event SDL_Event;
@@ -13,6 +17,10 @@ extern void ImGui_ImplSDL2_Shutdown();
 extern void ImGui_ImplSDL2_NewFrame(SDL_Window *window);
 extern bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event *event);
 
+//------------------------------------------------------------------------------
+// OpenGL3 backend declarations
+//------------------------------------------------------------------------------
+
 typedef struct ImDrawData ImDrawData;
 
 extern bool ImGui_ImplOpenGL3_Init(const char *glsl_version);
@@ -23,6 +31,10 @@ extern bool ImGui_ImplOpenGL3_CreateFontsTexture();
 extern void ImGui_ImplOpenGL3_DestroyFontsTexture();
 extern bool ImGui_ImplOpenGL3_CreateDeviceObjects();
 extern void ImGui_ImplOpenGL3_DestroyDeviceObjects();
+
+//------------------------------------------------------------------------------
+// OpenGl loader
+//------------------------------------------------------------------------------
 
 // About Desktop OpenGL function loaders:
 //  Modern desktop OpenGL doesn't have a standard portable header file to load OpenGL function
@@ -81,5 +93,5 @@ opengl_loader_init(void)
     return err;
 }
 
-#define GL_LOADER_H
+#define IMGUI_IMPL_H
 #endif
