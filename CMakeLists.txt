@@ -24,7 +24,9 @@ set(IMGUI_DIR ext/cimgui)
 set(BACKEND_DIR ${IMGUI_DIR}/imgui/backends)
 set(GL3W_DIR ${IMGUI_DIR}/imgui/examples/libs/gl3w)
 set(SDL2_DIR ext/SDL2-2.0.14)
+set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
 
+#-------------------
 
 if (WIN32)
     add_definitions("-DIMGUI_IMPL_API=extern \"C\" __declspec\(dllexport\)")
@@ -38,9 +40,13 @@ add_definitions("-DIMGUI_DISABLE_OBSOLETE_FUNCTIONS=1")
 # Dependency libraries
 #-----------------------
 
-add_subdirectory(foundation)
-add_subdirectory(${IMGUI_DIR})
+# cimgui static library with freetype support
 set(IMGUI_STATIC "yes" CACHE STRING "Build as a static library" FORCE)
+set(IMGUI_FREETYPE "yes" CACHE STRING "Build with freetype library" FORCE)
+set(FREETYPE_PATH ${FREETYPE_DIR})
+add_subdirectory(${IMGUI_DIR})
+
+add_subdirectory(foundation)
 
 find_package(OpenGL REQUIRED)
 find_package(SDL2 REQUIRED PATHS ${SDL2_DIR})

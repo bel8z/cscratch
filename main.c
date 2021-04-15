@@ -1,9 +1,3 @@
-// Dear ImGui: standalone example application for GLFW + OpenGL 3, using programmable pipeline
-// (GLFW is a cross-platform general purpose library for handling windows, inputs,
-// OpenGL/Vulkan/Metal graphics context creation, etc.) If you are new to Dear ImGui, read
-// documentation from the docs/ folder + read the top of imgui.cpp. Read online:
-// https://github.com/ocornut/imgui/tree/master/docs
-
 #include "foundation/common.h"
 
 #define IMGUI_IMPL_OPENGL_LOADER_GL3W
@@ -15,68 +9,38 @@
 
 #include <stdio.h>
 
-static void
-guiSetCustomStyle(ImGuiStyle *style)
+//------------------------------------------------------------------------------
+// Local data & functions
+//------------------------------------------------------------------------------
 
+typedef struct FontOptions
 {
-    ImVec4 *colors = style->Colors;
+    f32 rasterizer_multiply;
 
-    colors[ImGuiCol_Text] = (ImVec4){1.00f, 1.00f, 1.00f, 1.00f};
-    colors[ImGuiCol_TextDisabled] = (ImVec4){0.50f, 0.50f, 0.50f, 1.00f};
-    colors[ImGuiCol_WindowBg] = (ImVec4){0.06f, 0.06f, 0.06f, 0.94f};
-    colors[ImGuiCol_ChildBg] = (ImVec4){0.00f, 0.00f, 0.00f, 0.00f};
-    colors[ImGuiCol_PopupBg] = (ImVec4){0.08f, 0.08f, 0.08f, 0.94f};
-    colors[ImGuiCol_Border] = (ImVec4){0.43f, 0.43f, 0.50f, 0.50f};
-    colors[ImGuiCol_BorderShadow] = (ImVec4){0.00f, 0.00f, 0.00f, 0.00f};
-    colors[ImGuiCol_FrameBg] = (ImVec4){0.44f, 0.44f, 0.44f, 0.60f};
-    colors[ImGuiCol_FrameBgHovered] = (ImVec4){0.57f, 0.57f, 0.57f, 0.70f};
-    colors[ImGuiCol_FrameBgActive] = (ImVec4){0.76f, 0.76f, 0.76f, 0.80f};
-    colors[ImGuiCol_TitleBg] = (ImVec4){0.04f, 0.04f, 0.04f, 1.00f};
-    colors[ImGuiCol_TitleBgActive] = (ImVec4){0.16f, 0.16f, 0.16f, 1.00f};
-    colors[ImGuiCol_TitleBgCollapsed] = (ImVec4){0.00f, 0.00f, 0.00f, 0.60f};
-    colors[ImGuiCol_MenuBarBg] = (ImVec4){0.14f, 0.14f, 0.14f, 1.00f};
-    colors[ImGuiCol_ScrollbarBg] = (ImVec4){0.02f, 0.02f, 0.02f, 0.53f};
-    colors[ImGuiCol_ScrollbarGrab] = (ImVec4){0.31f, 0.31f, 0.31f, 1.00f};
-    colors[ImGuiCol_ScrollbarGrabHovered] = (ImVec4){0.41f, 0.41f, 0.41f, 1.00f};
-    colors[ImGuiCol_ScrollbarGrabActive] = (ImVec4){0.51f, 0.51f, 0.51f, 1.00f};
-    colors[ImGuiCol_CheckMark] = (ImVec4){0.13f, 0.75f, 0.55f, 0.80f};
-    colors[ImGuiCol_SliderGrab] = (ImVec4){0.13f, 0.75f, 0.75f, 0.80f};
-    colors[ImGuiCol_SliderGrabActive] = (ImVec4){0.13f, 0.75f, 1.00f, 0.80f};
-    colors[ImGuiCol_Button] = (ImVec4){0.13f, 0.75f, 0.55f, 0.40f};
-    colors[ImGuiCol_ButtonHovered] = (ImVec4){0.13f, 0.75f, 0.75f, 0.60f};
-    colors[ImGuiCol_ButtonActive] = (ImVec4){0.13f, 0.75f, 1.00f, 0.80f};
-    colors[ImGuiCol_Header] = (ImVec4){0.13f, 0.75f, 0.55f, 0.40f};
-    colors[ImGuiCol_HeaderHovered] = (ImVec4){0.13f, 0.75f, 0.75f, 0.60f};
-    colors[ImGuiCol_HeaderActive] = (ImVec4){0.13f, 0.75f, 1.00f, 0.80f};
-    colors[ImGuiCol_Separator] = (ImVec4){0.13f, 0.75f, 0.55f, 0.40f};
-    colors[ImGuiCol_SeparatorHovered] = (ImVec4){0.13f, 0.75f, 0.75f, 0.60f};
-    colors[ImGuiCol_SeparatorActive] = (ImVec4){0.13f, 0.75f, 1.00f, 0.80f};
-    colors[ImGuiCol_ResizeGrip] = (ImVec4){0.13f, 0.75f, 0.55f, 0.40f};
-    colors[ImGuiCol_ResizeGripHovered] = (ImVec4){0.13f, 0.75f, 0.75f, 0.60f};
-    colors[ImGuiCol_ResizeGripActive] = (ImVec4){0.13f, 0.75f, 1.00f, 0.80f};
-    colors[ImGuiCol_Tab] = (ImVec4){0.13f, 0.75f, 0.55f, 0.80f};
-    colors[ImGuiCol_TabHovered] = (ImVec4){0.13f, 0.75f, 0.75f, 0.80f};
-    colors[ImGuiCol_TabActive] = (ImVec4){0.13f, 0.75f, 1.00f, 0.80f};
-    colors[ImGuiCol_TabUnfocused] = (ImVec4){0.18f, 0.18f, 0.18f, 1.00f};
-    colors[ImGuiCol_TabUnfocusedActive] = (ImVec4){0.36f, 0.36f, 0.36f, 0.54f};
-    colors[ImGuiCol_DockingPreview] = (ImVec4){0.13f, 0.75f, 0.55f, 0.80f};
-    colors[ImGuiCol_DockingEmptyBg] = (ImVec4){0.13f, 0.13f, 0.13f, 0.80f};
-    colors[ImGuiCol_PlotLines] = (ImVec4){0.61f, 0.61f, 0.61f, 1.00f};
-    colors[ImGuiCol_PlotLinesHovered] = (ImVec4){1.00f, 0.43f, 0.35f, 1.00f};
-    colors[ImGuiCol_PlotHistogram] = (ImVec4){0.90f, 0.70f, 0.00f, 1.00f};
-    colors[ImGuiCol_PlotHistogramHovered] = (ImVec4){1.00f, 0.60f, 0.00f, 1.00f};
-    colors[ImGuiCol_TableHeaderBg] = (ImVec4){0.19f, 0.19f, 0.20f, 1.00f};
-    colors[ImGuiCol_TableBorderStrong] = (ImVec4){0.31f, 0.31f, 0.35f, 1.00f};
-    colors[ImGuiCol_TableBorderLight] = (ImVec4){0.23f, 0.23f, 0.25f, 1.00f};
-    colors[ImGuiCol_TableRowBg] = (ImVec4){0.00f, 0.00f, 0.00f, 0.00f};
-    colors[ImGuiCol_TableRowBgAlt] = (ImVec4){1.00f, 1.00f, 1.00f, 0.07f};
-    colors[ImGuiCol_TextSelectedBg] = (ImVec4){0.26f, 0.59f, 0.98f, 0.35f};
-    colors[ImGuiCol_DragDropTarget] = (ImVec4){1.00f, 1.00f, 0.00f, 0.90f};
-    colors[ImGuiCol_NavHighlight] = (ImVec4){0.26f, 0.59f, 0.98f, 1.00f};
-    colors[ImGuiCol_NavWindowingHighlight] = (ImVec4){1.00f, 1.00f, 1.00f, 0.70f};
-    colors[ImGuiCol_NavWindowingDimBg] = (ImVec4){0.80f, 0.80f, 0.80f, 0.20f};
-    colors[ImGuiCol_ModalWindowDimBg] = (ImVec4){0.80f, 0.80f, 0.80f, 0.35f};
-}
+    // Freetype only
+    bool freetype_enabled;
+    ImGuiFreeTypeBuilderFlags freetype_flags;
+    // Stb only
+    i32 oversample_h;
+    i32 oversample_v;
+} FontOptions;
+
+typedef struct State
+{
+    bool show_demo_window;
+    bool show_another_window;
+    ImVec4 clear_color;
+    FontOptions font_opts;
+    bool rebuild_fonts;
+} State;
+
+static bool before_frame(State *state);
+static void guiUpdate(State *state, f32 framerate);
+static void guiSetCustomStyle(ImGuiStyle *style);
+
+//------------------------------------------------------------------------------
+// Main
+//------------------------------------------------------------------------------
 
 int
 main(int argc, char **argv)
@@ -180,15 +144,19 @@ main(int argc, char **argv)
     // NULL, io.Fonts->GetGlyphRangesJapanese()); IM_ASSERT(font != NULL);
 
     // Our state
-    bool show_demo_window = true;
-    bool show_another_window = false;
-    ImVec4 clear_color = {0.45f, 0.55f, 0.60f, 1.00f};
+    State state = {.show_demo_window = true,
+                   .show_another_window = false,
+                   .clear_color = {0.45f, 0.55f, 0.60f, 1.00f},
+                   .font_opts = {.freetype_enabled = true,
+                                 .freetype_flags = 0,
+                                 .oversample_h = 1,
+                                 .oversample_v = 1,
+                                 .rasterizer_multiply = 1.0f}};
 
     // Main loop
     bool done = false;
     while (!done)
     {
-        ImVec2 const button_size = {0};
 
         // Poll and handle events (inputs, window resize, etc.)
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear
@@ -208,64 +176,27 @@ main(int argc, char **argv)
                 done = true;
         }
 
+        if (before_frame(&state))
+        {
+            // Re-upload font texture on the GPU
+            ImGui_ImplOpenGL3_DestroyDeviceObjects();
+            ImGui_ImplOpenGL3_CreateDeviceObjects();
+        }
+
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame(window);
-
         igNewFrame();
 
-        // 1. Show the big demo window (Most of the sample code is in igShowDemoWindow()! You
-        // can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window) igShowDemoWindow(&show_demo_window);
-
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created
-        // a named window.
-        {
-            static float f = 0.0f;
-            static int counter = 0;
-
-            // Create a window called "Hello, world!" and append into it.
-            igBegin("Hello, world!", NULL, 0);
-
-            // Display some text (you can use a format strings  too)
-            igText("This is some useful text.");
-            // Edit bools storing our window open/close state
-            igCheckbox("Demo Window", &show_demo_window);
-            igCheckbox("Another Window", &show_another_window);
-
-            // Edit 1 float using a slider from 0.0f to 1.0f
-            igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
-            // Edit 3 floats representing a color
-            igColorEdit3("clear color", (float *)&clear_color, 0);
-
-            // Buttons return true when clicked (most widgets return true
-            // when edited/activated)
-            if (igButton("Button", button_size)) counter++;
-
-            igSameLine(0.0f, -1.0f);
-            igText("counter = %d", counter);
-
-            igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io->Framerate,
-                   io->Framerate);
-            igEnd();
-        }
-
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            // Pass a pointer to our bool variable (the window will have
-            // a closing button that will clear the bool when clicked)
-            igBegin("Another Window", &show_another_window, 0);
-            igText("Hello from another window!");
-            if (igButton("Close Me", button_size)) show_another_window = false;
-            igEnd();
-        }
+        // Application frame update
+        guiUpdate(&state, io->Framerate);
 
         // Rendering
         igRender();
-        glViewport(0, 0, (int)io->DisplaySize.x, (int)io->DisplaySize.y);
-        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w,
-                     clear_color.z * clear_color.w, clear_color.w);
+        glViewport(0, 0, (i32)io->DisplaySize.x, (i32)io->DisplaySize.y);
+        glClearColor(state.clear_color.x * state.clear_color.w,
+                     state.clear_color.y * state.clear_color.w,
+                     state.clear_color.z * state.clear_color.w, state.clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
 
@@ -296,4 +227,218 @@ main(int argc, char **argv)
     SDL_Quit();
 
     return 0;
+}
+
+//------------------------------------------------------------------------------
+// Local functions
+//------------------------------------------------------------------------------
+
+static bool
+show_font_options(FontOptions *state, bool *p_open)
+{
+    ImFontAtlas *atlas = igGetIO()->Fonts;
+    bool rebuild_fonts = false;
+
+    igBegin("Font Options", p_open, 0);
+    igShowFontSelector("Fonts");
+
+    if (igRadioButton_Bool("FreeType", state->freetype_enabled))
+    {
+        state->freetype_enabled = true;
+        rebuild_fonts = true;
+    }
+    igSameLine(0.0f, -1.0f);
+    if (igRadioButton_Bool("Stb (Default)", !state->freetype_enabled))
+    {
+        state->freetype_enabled = false;
+        rebuild_fonts = true;
+    }
+
+    rebuild_fonts |= igDragInt("TexGlyphPadding", &atlas->TexGlyphPadding, 0.1f, 1, 16, NULL,
+                               ImGuiSliderFlags_None);
+
+    rebuild_fonts |= igDragFloat("RasterizerMultiply", &state->rasterizer_multiply, 0.001f, 0.0f,
+                                 2.0f, NULL, ImGuiSliderFlags_None);
+
+    igSeparator();
+
+    if (state->freetype_enabled)
+    {
+
+        rebuild_fonts |= igCheckboxFlags_IntPtr("NoHinting", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_NoHinting);
+        rebuild_fonts |= igCheckboxFlags_IntPtr("NoAutoHint", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_NoAutoHint);
+        rebuild_fonts |= igCheckboxFlags_IntPtr("ForceAutoHint", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_ForceAutoHint);
+        rebuild_fonts |= igCheckboxFlags_IntPtr("LightHinting", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_LightHinting);
+        rebuild_fonts |= igCheckboxFlags_IntPtr("MonoHinting", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_MonoHinting);
+        rebuild_fonts |=
+            igCheckboxFlags_IntPtr("Bold", &state->freetype_flags, ImGuiFreeTypeBuilderFlags_Bold);
+        rebuild_fonts |= igCheckboxFlags_IntPtr("Oblique", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_Oblique);
+        rebuild_fonts |= igCheckboxFlags_IntPtr("Monochrome", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_Monochrome);
+    }
+    else
+    {
+        rebuild_fonts |= igDragInt("Oversample H", &state->oversample_h, 0.1f, 1, 5, NULL,
+                                   ImGuiSliderFlags_None);
+        rebuild_fonts |= igDragInt("Oversample V", &state->oversample_v, 0.1f, 1, 5, NULL,
+                                   ImGuiSliderFlags_None);
+    }
+
+    igEnd();
+
+    return rebuild_fonts;
+}
+
+bool
+before_frame(State *state)
+{
+    if (!state->rebuild_fonts) return false;
+
+    ImGuiIO *io = igGetIO();
+    ImFontAtlas *fonts = io->Fonts;
+    FontOptions *font_opts = &state->font_opts;
+
+    for (i32 i = 0; i < fonts->ConfigData.Size; ++i)
+    {
+        fonts->ConfigData.Data[i].RasterizerMultiply = font_opts->rasterizer_multiply;
+        fonts->ConfigData.Data[i].OversampleH = font_opts->oversample_h;
+        fonts->ConfigData.Data[i].OversampleV = font_opts->oversample_v;
+    }
+
+    if (font_opts->freetype_enabled)
+    {
+        fonts->FontBuilderIO = ImGuiFreeType_GetBuilderForFreeType();
+        fonts->FontBuilderFlags = (u32)font_opts->freetype_flags;
+    }
+    else
+    {
+        fonts->FontBuilderIO = igImFontAtlasGetBuilderForStbTruetype();
+    }
+
+    ImFontAtlas_Build(fonts);
+    state->rebuild_fonts = false;
+
+    return true;
+}
+
+static void
+guiUpdate(State *state, f32 framerate)
+{
+    ImVec2 const button_size = {0};
+
+    // 1. Show the big demo window (Most of the sample code is in igShowDemoWindow()! You
+    // can browse its code to learn more about Dear ImGui!).
+    if (state->show_demo_window) igShowDemoWindow(&state->show_demo_window);
+
+    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created
+    // a named window.
+    {
+        static f32 f = 0.0f;
+        static i32 counter = 0;
+
+        // Create a window called "Hello, world!" and append into it.
+        igBegin("Hello, world!", NULL, 0);
+
+        // Display some text (you can use a format strings  too)
+        igText("This is some useful text.");
+        // Edit bools storing our window open/close state
+        igCheckbox("Demo Window", &state->show_demo_window);
+        igCheckbox("Another Window", &state->show_another_window);
+
+        // Edit 1 float using a slider from 0.0f to 1.0f
+        igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
+        // Edit 3 floats representing a color
+        igColorEdit3("clear color", (float *)&state->clear_color, 0);
+
+        // Buttons return true when clicked (most widgets return true
+        // when edited/activated)
+        if (igButton("Button", button_size)) counter++;
+
+        igSameLine(0.0f, -1.0f);
+        igText("counter = %d", counter);
+
+        igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / framerate, framerate);
+        igEnd();
+    }
+
+    // 3. Show another simple window.
+    if (state->show_another_window)
+    {
+        // Pass a pointer to our bool variable (the window will have
+        // a closing button that will clear the bool when clicked)
+        igBegin("Another Window", &state->show_another_window, 0);
+        igText("Hello from another window!");
+        if (igButton("Close Me", button_size)) state->show_another_window = false;
+        igEnd();
+    }
+
+    state->rebuild_fonts = show_font_options(&state->font_opts, NULL);
+}
+
+static void
+guiSetCustomStyle(ImGuiStyle *style)
+{
+    ImVec4 *colors = style->Colors;
+
+    colors[ImGuiCol_Text] = (ImVec4){1.00f, 1.00f, 1.00f, 1.00f};
+    colors[ImGuiCol_TextDisabled] = (ImVec4){0.50f, 0.50f, 0.50f, 1.00f};
+    colors[ImGuiCol_WindowBg] = (ImVec4){0.06f, 0.06f, 0.06f, 0.94f};
+    colors[ImGuiCol_ChildBg] = (ImVec4){0.00f, 0.00f, 0.00f, 0.00f};
+    colors[ImGuiCol_PopupBg] = (ImVec4){0.08f, 0.08f, 0.08f, 0.94f};
+    colors[ImGuiCol_Border] = (ImVec4){0.43f, 0.43f, 0.50f, 0.50f};
+    colors[ImGuiCol_BorderShadow] = (ImVec4){0.00f, 0.00f, 0.00f, 0.00f};
+    colors[ImGuiCol_FrameBg] = (ImVec4){0.44f, 0.44f, 0.44f, 0.60f};
+    colors[ImGuiCol_FrameBgHovered] = (ImVec4){0.57f, 0.57f, 0.57f, 0.70f};
+    colors[ImGuiCol_FrameBgActive] = (ImVec4){0.76f, 0.76f, 0.76f, 0.80f};
+    colors[ImGuiCol_TitleBg] = (ImVec4){0.04f, 0.04f, 0.04f, 1.00f};
+    colors[ImGuiCol_TitleBgActive] = (ImVec4){0.16f, 0.16f, 0.16f, 1.00f};
+    colors[ImGuiCol_TitleBgCollapsed] = (ImVec4){0.00f, 0.00f, 0.00f, 0.60f};
+    colors[ImGuiCol_MenuBarBg] = (ImVec4){0.14f, 0.14f, 0.14f, 1.00f};
+    colors[ImGuiCol_ScrollbarBg] = (ImVec4){0.02f, 0.02f, 0.02f, 0.53f};
+    colors[ImGuiCol_ScrollbarGrab] = (ImVec4){0.31f, 0.31f, 0.31f, 1.00f};
+    colors[ImGuiCol_ScrollbarGrabHovered] = (ImVec4){0.41f, 0.41f, 0.41f, 1.00f};
+    colors[ImGuiCol_ScrollbarGrabActive] = (ImVec4){0.51f, 0.51f, 0.51f, 1.00f};
+    colors[ImGuiCol_CheckMark] = (ImVec4){0.13f, 0.75f, 0.55f, 0.80f};
+    colors[ImGuiCol_SliderGrab] = (ImVec4){0.13f, 0.75f, 0.75f, 0.80f};
+    colors[ImGuiCol_SliderGrabActive] = (ImVec4){0.13f, 0.75f, 1.00f, 0.80f};
+    colors[ImGuiCol_Button] = (ImVec4){0.13f, 0.75f, 0.55f, 0.40f};
+    colors[ImGuiCol_ButtonHovered] = (ImVec4){0.13f, 0.75f, 0.75f, 0.60f};
+    colors[ImGuiCol_ButtonActive] = (ImVec4){0.13f, 0.75f, 1.00f, 0.80f};
+    colors[ImGuiCol_Header] = (ImVec4){0.13f, 0.75f, 0.55f, 0.40f};
+    colors[ImGuiCol_HeaderHovered] = (ImVec4){0.13f, 0.75f, 0.75f, 0.60f};
+    colors[ImGuiCol_HeaderActive] = (ImVec4){0.13f, 0.75f, 1.00f, 0.80f};
+    colors[ImGuiCol_Separator] = (ImVec4){0.13f, 0.75f, 0.55f, 0.40f};
+    colors[ImGuiCol_SeparatorHovered] = (ImVec4){0.13f, 0.75f, 0.75f, 0.60f};
+    colors[ImGuiCol_SeparatorActive] = (ImVec4){0.13f, 0.75f, 1.00f, 0.80f};
+    colors[ImGuiCol_ResizeGrip] = (ImVec4){0.13f, 0.75f, 0.55f, 0.40f};
+    colors[ImGuiCol_ResizeGripHovered] = (ImVec4){0.13f, 0.75f, 0.75f, 0.60f};
+    colors[ImGuiCol_ResizeGripActive] = (ImVec4){0.13f, 0.75f, 1.00f, 0.80f};
+    colors[ImGuiCol_Tab] = (ImVec4){0.13f, 0.75f, 0.55f, 0.80f};
+    colors[ImGuiCol_TabHovered] = (ImVec4){0.13f, 0.75f, 0.75f, 0.80f};
+    colors[ImGuiCol_TabActive] = (ImVec4){0.13f, 0.75f, 1.00f, 0.80f};
+    colors[ImGuiCol_TabUnfocused] = (ImVec4){0.18f, 0.18f, 0.18f, 1.00f};
+    colors[ImGuiCol_TabUnfocusedActive] = (ImVec4){0.36f, 0.36f, 0.36f, 0.54f};
+    colors[ImGuiCol_DockingPreview] = (ImVec4){0.13f, 0.75f, 0.55f, 0.80f};
+    colors[ImGuiCol_DockingEmptyBg] = (ImVec4){0.13f, 0.13f, 0.13f, 0.80f};
+    colors[ImGuiCol_PlotLines] = (ImVec4){0.61f, 0.61f, 0.61f, 1.00f};
+    colors[ImGuiCol_PlotLinesHovered] = (ImVec4){1.00f, 0.43f, 0.35f, 1.00f};
+    colors[ImGuiCol_PlotHistogram] = (ImVec4){0.90f, 0.70f, 0.00f, 1.00f};
+    colors[ImGuiCol_PlotHistogramHovered] = (ImVec4){1.00f, 0.60f, 0.00f, 1.00f};
+    colors[ImGuiCol_TableHeaderBg] = (ImVec4){0.19f, 0.19f, 0.20f, 1.00f};
+    colors[ImGuiCol_TableBorderStrong] = (ImVec4){0.31f, 0.31f, 0.35f, 1.00f};
+    colors[ImGuiCol_TableBorderLight] = (ImVec4){0.23f, 0.23f, 0.25f, 1.00f};
+    colors[ImGuiCol_TableRowBg] = (ImVec4){0.00f, 0.00f, 0.00f, 0.00f};
+    colors[ImGuiCol_TableRowBgAlt] = (ImVec4){1.00f, 1.00f, 1.00f, 0.07f};
+    colors[ImGuiCol_TextSelectedBg] = (ImVec4){0.26f, 0.59f, 0.98f, 0.35f};
+    colors[ImGuiCol_DragDropTarget] = (ImVec4){1.00f, 1.00f, 0.00f, 0.90f};
+    colors[ImGuiCol_NavHighlight] = (ImVec4){0.26f, 0.59f, 0.98f, 1.00f};
+    colors[ImGuiCol_NavWindowingHighlight] = (ImVec4){1.00f, 1.00f, 1.00f, 0.70f};
+    colors[ImGuiCol_NavWindowingDimBg] = (ImVec4){0.80f, 0.80f, 0.80f, 0.20f};
+    colors[ImGuiCol_ModalWindowDimBg] = (ImVec4){0.80f, 0.80f, 0.80f, 0.35f};
 }
