@@ -20,10 +20,11 @@ include(CPack)
 # Dependency paths
 #-------------------
 
-set(IMGUI_DIR ext/cimgui)
+set(EXT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext)
+set(IMGUI_DIR ${EXT_DIR}/cimgui)
 set(BACKEND_DIR ${IMGUI_DIR}/imgui/backends)
 set(GL3W_DIR ${IMGUI_DIR}/imgui/examples/libs/gl3w)
-set(SDL2_DIR ext/SDL2-2.0.14)
+set(SDL2_DIR ${EXT_DIR}/SDL2-2.0.14)
 set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
 
 #-------------------
