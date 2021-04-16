@@ -78,7 +78,7 @@ target_link_libraries(backend PUBLIC
 # Main executable
 #-----------------------
 
-set(SOURCES main.c)
+set(SOURCES tests/test_rotate.c)
 set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
 
 add_executable( ${PROJECT_NAME} ${SOURCES})
