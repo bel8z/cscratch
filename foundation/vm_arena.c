@@ -11,7 +11,7 @@ round_up(u32 block_size, u32 page_size)
 }
 
 bool
-arena_init(VmArena *arena, cfVirtualMemory *vm, u32 reserved_size)
+arenaInit(VmArena *arena, cfVirtualMemory *vm, u32 reserved_size)
 {
     u32 rounded = round_up(reserved_size, vm->page_size);
     u8 *buffer = vm->reserve(rounded);
@@ -28,7 +28,7 @@ arena_init(VmArena *arena, cfVirtualMemory *vm, u32 reserved_size)
 }
 
 void
-arena_free(VmArena *arena)
+arenaFree(VmArena *arena)
 {
     arena->vm->release(arena->memory, arena->reserved);
     // Make the arena unusable
@@ -36,7 +36,7 @@ arena_free(VmArena *arena)
 }
 
 void
-arena_shrink(VmArena *arena)
+arenaShrink(VmArena *arena)
 {
     if (arena->allocated < arena->committed)
     {
@@ -45,7 +45,7 @@ arena_shrink(VmArena *arena)
 }
 
 void *
-arena_push_size(VmArena *arena, u32 size)
+arenaPushSize(VmArena *arena, u32 size)
 {
     if (arena->reserved - arena->allocated < size) return NULL;
 
@@ -71,7 +71,7 @@ arena_push_size(VmArena *arena, u32 size)
 }
 
 void
-arena_pop_size(VmArena *arena, u32 size, void const *memory)
+arenaPopSize(VmArena *arena, u32 size, void const *memory)
 {
     // Memory management is LIFO, so only the last allocated block can be
     // released

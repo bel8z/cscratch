@@ -14,16 +14,16 @@ main()
         return -1;
     }
 
-    int *ints = arena_push_array(&arena, int, 1024);
+    int *ints = arenaPushArray(&arena, int, 1024);
 
     for (int i = 0; i < 1024; ++i)
     {
         ints[i] = i;
     }
 
-    arena_pop_array(&arena, int, 1024, ints);
-    arena_shrink(&arena);
-    arena_free(&arena);
+    arenaPopArray(&arena, int, 1024, ints);
+    arenaShrink(&arena);
+    arenaFree(&arena);
 
     for (int i = 0; i < 512; ++i)
     {

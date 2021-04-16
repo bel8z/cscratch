@@ -10,9 +10,9 @@ typedef struct cfScratchBuffer
     usize len;
 } cfScratchBuffer;
 
-cfScratchBuffer cf_scratch_create(u8 *memory, usize size);
+cfScratchBuffer cfScratchCreate(u8 *memory, usize size);
 
-void *cf_scratch_alloc(cfScratchBuffer *sb, usize size);
+void *cfScratchAlloc(cfScratchBuffer *sb, usize size);
 
 #define CF_SCRATCH_BUFFER_H
 #endif
