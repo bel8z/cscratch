@@ -25,6 +25,12 @@ typedef struct FontOptions
     i32 oversample_v;
 } FontOptions;
 
+typedef struct AppPaths
+{
+    char base[1024];
+    char data[1024];
+} AppPaths;
+
 typedef struct State
 {
     bool show_demo_window;
@@ -37,11 +43,21 @@ typedef struct State
 static bool guiBeforeUpdate(State *state);
 static void guiUpdate(State *state, f32 framerate);
 static void guiSetupStyle(f32 dpi);
-static void guiSetupFonts(ImFontAtlas *fonts, f32 dpi);
+static void guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path);
 
 //------------------------------------------------------------------------------
 // Main
 //------------------------------------------------------------------------------
+
+void
+appInitPaths(AppPaths *paths)
+{
+    char *p = SDL_GetBasePath();
+    SDL_utf8strlcpy(paths->base, p, 1024);
+    SDL_free(p);
+    usize wrote = SDL_utf8strlcpy(paths->data, paths->base, 1024);
+    SDL_utf8strlcpy(paths->data + wrote, "data/", 1024 - wrote);
+}
 
 int
 main(int argc, char **argv)
@@ -98,6 +114,10 @@ main(int argc, char **argv)
         return -2;
     }
 
+    // Initialize application paths
+    AppPaths paths;
+    appInitPaths(&paths);
+
     // Setup Dear ImGui context
     // IMGUI_CHECKVERSION();
     ImGuiContext *imgui = igCreateContext(NULL);
@@ -117,7 +137,7 @@ main(int argc, char **argv)
 
     // Setup Dear ImGui style
     guiSetupStyle(ddpi);
-    guiSetupFonts(io->Fonts, ddpi);
+    guiSetupFonts(io->Fonts, ddpi, paths.data);
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
@@ -495,14 +515,13 @@ guiScaleFontSize(f32 size, f32 dpi)
 }
 
 ImFont *
-guiLoadFont(ImFontAtlas *fonts, char const *path, char const *name, f32 font_size,
+guiLoadFont(ImFontAtlas *fonts, char const *data_path, char const *name, f32 font_size,
             ImWchar const *ranges)
 {
     char buffer[1024] = {0};
     size_t wrote = 0;
 
-    wrote += SDL_utf8strlcpy(buffer + wrote, path, 1024 - wrote);
-    wrote += SDL_utf8strlcpy(buffer + wrote, "data/", 1024 - wrote);
+    wrote += SDL_utf8strlcpy(buffer + wrote, data_path, 1024 - wrote);
     wrote += SDL_utf8strlcpy(buffer + wrote, name, 1024 - wrote);
     wrote += SDL_utf8strlcpy(buffer + wrote, ".ttf", 1024 - wrote);
 
@@ -510,7 +529,7 @@ guiLoadFont(ImFontAtlas *fonts, char const *path, char const *name, f32 font_siz
 }
 
 void
-guiSetupFonts(ImFontAtlas *fonts, f32 dpi)
+guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path)
 {
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can
@@ -528,16 +547,13 @@ guiSetupFonts(ImFontAtlas *fonts, f32 dpi)
     // - Remember that in C/C++ if you want to include a backslash \ in a string
     // literal you need to write a double backslash \\ !
     ImWchar const *ranges = ImFontAtlas_GetGlyphRangesDefault(fonts);
-    char *base = SDL_GetBasePath();
 
     f32 font_size = guiScaleFontSize(13.5, dpi);
 
-    if (!guiLoadFont(fonts, base, "NotoSans", font_size, ranges) &
-        !guiLoadFont(fonts, base, "OpenSans", font_size, ranges) &
-        !guiLoadFont(fonts, base, "SourceSansPro", font_size, ranges))
+    if (!guiLoadFont(fonts, data_path, "NotoSans", font_size, ranges) &
+        !guiLoadFont(fonts, data_path, "OpenSans", font_size, ranges) &
+        !guiLoadFont(fonts, data_path, "SourceSansPro", font_size, ranges))
     {
         ImFontAtlas_AddFontDefault(fonts, NULL);
     }
-
-    SDL_free(base);
 }
