@@ -33,5 +33,7 @@ struct cfAllocator
 
 #define CF_DEALLOCATE(a, memory, size) a->reallocate(a->state, memory, size, 0)
 
+#define CF_ALLOC_STATS(a) a->stats(a->state)
+
 #define CF_ALLOCATOR_H
 #endif

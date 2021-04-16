@@ -1,3 +1,4 @@
+#include "foundation/allocator.h"
 #include "foundation/common.h"
 #include "foundation/maths.h"
 
@@ -31,17 +32,27 @@ typedef struct AppPaths
     char data[1024];
 } AppPaths;
 
-typedef struct State
+typedef struct AppState
 {
+    cfAllocator *alloc;
+
+    FontOptions font_opts;
+    bool rebuild_fonts;
+
     bool show_demo_window;
     bool show_another_window;
     ImVec4 clear_color;
-    FontOptions font_opts;
-    bool rebuild_fonts;
-} State;
 
-static bool guiBeforeUpdate(State *state);
-static void guiUpdate(State *state, f32 framerate);
+} AppState;
+
+static CF_ALLOCATOR_FUNC(appRealloc);
+static CF_ALLOC_STATS_FUNC(appAllocStats);
+static void appInitPaths(AppPaths *paths);
+
+static void *guiAlloc(usize size, void *state);
+static void guiFree(void *mem, void *state);
+static bool guiBeforeUpdate(AppState *state);
+static void guiUpdate(AppState *state, f32 framerate);
 static void guiSetupStyle(f32 dpi);
 static void guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path);
 
@@ -49,23 +60,11 @@ static void guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path);
 // Main
 //------------------------------------------------------------------------------
 
-void
-appInitPaths(AppPaths *paths)
-{
-    char *p = SDL_GetBasePath();
-    SDL_utf8strlcpy(paths->base, p, 1024);
-    SDL_free(p);
-    usize wrote = SDL_utf8strlcpy(paths->data, paths->base, 1024);
-    SDL_utf8strlcpy(paths->data + wrote, "data/", 1024 - wrote);
-}
-
 int
 main(int argc, char **argv)
 {
     CF_UNUSED(argc);
     CF_UNUSED(argv);
-
-    // TODO (Matteo): Define allocator and give memory access functions to SDL and IMGUI
 
     // Setup SDL
     // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a
@@ -118,6 +117,12 @@ main(int argc, char **argv)
     AppPaths paths;
     appInitPaths(&paths);
 
+    // Setup memory management
+    // TODO (Matteo): make allocation not dependent to SDL
+    cfAllocatorStats alloc_stats = {0};
+    cfAllocator alloc = {.state = &alloc_stats, .reallocate = appRealloc, .stats = appAllocStats};
+    igSetAllocatorFunctions(guiAlloc, guiFree, &alloc);
+
     // Setup Dear ImGui context
     // IMGUI_CHECKVERSION();
     ImGuiContext *imgui = igCreateContext(NULL);
@@ -164,14 +169,18 @@ main(int argc, char **argv)
     // NULL, io.Fonts->GetGlyphRangesJapanese()); IM_ASSERT(font != NULL);
 
     // Our state
-    State state = {.show_demo_window = true,
-                   .show_another_window = false,
-                   .clear_color = {0.45f, 0.55f, 0.60f, 1.00f},
-                   .font_opts = {.freetype_enabled = true,
-                                 .freetype_flags = 0,
-                                 .oversample_h = 1,
-                                 .oversample_v = 1,
-                                 .rasterizer_multiply = 1.0f}};
+    AppState state = {
+        .alloc = &alloc,
+        .rebuild_fonts = true,
+        .font_opts = {.freetype_enabled = true,
+                      .freetype_flags = 0,
+                      .oversample_h = 1,
+                      .oversample_v = 1,
+                      .rasterizer_multiply = 1.0f},
+        .show_demo_window = true,
+        .show_another_window = false,
+        .clear_color = {0.45f, 0.55f, 0.60f, 1.00f},
+    };
 
     // Main loop
     bool done = false;
@@ -253,8 +262,123 @@ main(int argc, char **argv)
 // Local functions
 //------------------------------------------------------------------------------
 
+CF_ALLOCATOR_FUNC(appRealloc)
+{
+    cfAllocatorStats *stats = state;
+
+    if (new_size)
+    {
+        if (memory && old_size)
+        {
+            stats->size += new_size - old_size;
+        }
+        else
+        {
+            stats->count++;
+            stats->size += new_size;
+        }
+
+        return SDL_realloc(memory, new_size);
+    }
+
+    if (memory)
+    {
+        stats->count -= 1;
+        stats->size -= old_size;
+        SDL_free(memory);
+    }
+
+    return NULL;
+}
+
+CF_ALLOC_STATS_FUNC(appAllocStats)
+{
+    cfAllocatorStats *stats = state;
+    return *stats;
+}
+
+void
+appInitPaths(AppPaths *paths)
+{
+    char *p = SDL_GetBasePath();
+    SDL_utf8strlcpy(paths->base, p, 1024);
+    SDL_free(p);
+    usize wrote = SDL_utf8strlcpy(paths->data, paths->base, 1024);
+    SDL_utf8strlcpy(paths->data + wrote, "data/", 1024 - wrote);
+}
+
+//------------------------------------------------------------------------------
+// Local functions
+//------------------------------------------------------------------------------
+
+void *
+guiAlloc(usize size, void *state)
+{
+    cfAllocator *alloc = state;
+    usize *mem = CF_ALLOCATE(alloc, size + sizeof(usize));
+    if (mem)
+    {
+        *mem = size;
+        ++mem;
+    }
+    return mem;
+}
+
+void
+guiFree(void *mem, void *state)
+{
+    if (mem)
+    {
+        cfAllocator *alloc = state;
+        usize *buf = mem;
+        buf--;
+        CF_DEALLOCATE(alloc, buf, *buf);
+    }
+}
+
+bool
+guiBeforeUpdate(AppState *state)
+{
+    if (!state->rebuild_fonts) return false;
+
+    ImGuiIO *io = igGetIO();
+    ImFontAtlas *fonts = io->Fonts;
+    FontOptions *font_opts = &state->font_opts;
+
+    for (i32 i = 0; i < fonts->ConfigData.Size; ++i)
+    {
+        fonts->ConfigData.Data[i].RasterizerMultiply = font_opts->rasterizer_multiply;
+        fonts->ConfigData.Data[i].OversampleH = font_opts->oversample_h;
+        fonts->ConfigData.Data[i].OversampleV = font_opts->oversample_v;
+    }
+
+    if (font_opts->freetype_enabled)
+    {
+        fonts->FontBuilderIO = ImGuiFreeType_GetBuilderForFreeType();
+        fonts->FontBuilderFlags = (u32)font_opts->freetype_flags;
+    }
+    else
+    {
+        fonts->FontBuilderIO = igImFontAtlasGetBuilderForStbTruetype();
+    }
+
+    ImFontAtlas_Build(fonts);
+    state->rebuild_fonts = false;
+
+    return true;
+}
+
+static void
+guiShowAllocStats(cfAllocatorStats const *stats)
+{
+    igBegin("Allocation stats", NULL, 0);
+    igLabelText("# of allocations", "%zu", stats->count);
+    igLabelText("Size of allocations", "%zu", stats->size);
+    igEnd();
+}
+
 static bool
-show_font_options(FontOptions *state, bool *p_open)
+guiShowFontOptions(FontOptions *state, bool *p_open)
 {
     ImFontAtlas *atlas = igGetIO()->Fonts;
     bool rebuild_fonts = false;
@@ -315,40 +439,8 @@ show_font_options(FontOptions *state, bool *p_open)
     return rebuild_fonts;
 }
 
-bool
-guiBeforeUpdate(State *state)
-{
-    if (!state->rebuild_fonts) return false;
-
-    ImGuiIO *io = igGetIO();
-    ImFontAtlas *fonts = io->Fonts;
-    FontOptions *font_opts = &state->font_opts;
-
-    for (i32 i = 0; i < fonts->ConfigData.Size; ++i)
-    {
-        fonts->ConfigData.Data[i].RasterizerMultiply = font_opts->rasterizer_multiply;
-        fonts->ConfigData.Data[i].OversampleH = font_opts->oversample_h;
-        fonts->ConfigData.Data[i].OversampleV = font_opts->oversample_v;
-    }
-
-    if (font_opts->freetype_enabled)
-    {
-        fonts->FontBuilderIO = ImGuiFreeType_GetBuilderForFreeType();
-        fonts->FontBuilderFlags = (u32)font_opts->freetype_flags;
-    }
-    else
-    {
-        fonts->FontBuilderIO = igImFontAtlasGetBuilderForStbTruetype();
-    }
-
-    ImFontAtlas_Build(fonts);
-    state->rebuild_fonts = false;
-
-    return true;
-}
-
 static void
-guiUpdate(State *state, f32 framerate)
+guiUpdate(AppState *state, f32 framerate)
 {
     ImVec2 const button_size = {0};
 
@@ -398,7 +490,10 @@ guiUpdate(State *state, f32 framerate)
         igEnd();
     }
 
-    state->rebuild_fonts = show_font_options(&state->font_opts, NULL);
+    state->rebuild_fonts = guiShowFontOptions(&state->font_opts, NULL);
+
+    cfAllocatorStats stats = CF_ALLOC_STATS(state->alloc);
+    guiShowAllocStats(&stats);
 }
 
 static void
