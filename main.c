@@ -1,4 +1,5 @@
 #include "foundation/common.h"
+#include "foundation/maths.h"
 
 #define IMGUI_IMPL_OPENGL_LOADER_GL3W
 #include "imgui_decl.h"
@@ -16,7 +17,6 @@
 typedef struct FontOptions
 {
     f32 rasterizer_multiply;
-
     // Freetype only
     bool freetype_enabled;
     ImGuiFreeTypeBuilderFlags freetype_flags;
@@ -34,9 +34,10 @@ typedef struct State
     bool rebuild_fonts;
 } State;
 
-static bool before_frame(State *state);
+static bool guiBeforeUpdate(State *state);
 static void guiUpdate(State *state, f32 framerate);
-static void guiSetCustomStyle(ImGuiStyle *style);
+static void guiSetupStyle(f32 dpi);
+static void guiSetupFonts(ImFontAtlas *fonts, f32 dpi);
 
 //------------------------------------------------------------------------------
 // Main
@@ -47,6 +48,8 @@ main(int argc, char **argv)
 {
     CF_UNUSED(argc);
     CF_UNUSED(argv);
+
+    // TODO (Matteo): Define allocator and give memory access functions to SDL and IMGUI
 
     // Setup SDL
     // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a
@@ -92,7 +95,7 @@ main(int argc, char **argv)
     if (opengl_loader_init())
     {
         fprintf(stderr, "Failed to initialize OpenGL loader!\n");
-        return 1;
+        return -2;
     }
 
     // Setup Dear ImGui context
@@ -104,20 +107,17 @@ main(int argc, char **argv)
     io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
     io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
 
-    // Setup Dear ImGui style
-    igStyleColorsDark(NULL);
-    // igStyleColorsClassic();
-
-    // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look
-    // identical to regular ones.
-    ImGuiStyle *style = igGetStyle();
-    if (io->ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    // Setup DPI handling
+    f32 ddpi, hdpi, vdpi;
+    if (SDL_GetDisplayDPI(0, &ddpi, &hdpi, &vdpi) != 0)
     {
-        style->WindowRounding = 0.0f;
-        style->Colors[ImGuiCol_WindowBg].w = 1.0f;
+        fprintf(stderr, "Failed to obtain DPI information for display 0: %s\n", SDL_GetError());
+        return -3;
     }
 
-    guiSetCustomStyle(style);
+    // Setup Dear ImGui style
+    guiSetupStyle(ddpi);
+    guiSetupFonts(io->Fonts, ddpi);
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
@@ -176,7 +176,7 @@ main(int argc, char **argv)
                 done = true;
         }
 
-        if (before_frame(&state))
+        if (guiBeforeUpdate(&state))
         {
             // Re-upload font texture on the GPU
             ImGui_ImplOpenGL3_DestroyDeviceObjects();
@@ -296,7 +296,7 @@ show_font_options(FontOptions *state, bool *p_open)
 }
 
 bool
-before_frame(State *state)
+guiBeforeUpdate(State *state)
 {
     if (!state->rebuild_fonts) return false;
 
@@ -382,7 +382,31 @@ guiUpdate(State *state, f32 framerate)
 }
 
 static void
-guiSetCustomStyle(ImGuiStyle *style)
+guiSetupStyleSizes(ImGuiStyle *style)
+{
+    // Main
+    // **DEFAULT**
+    // Borders
+    style->WindowBorderSize = 1.0f;
+    style->ChildBorderSize = 1.0f;
+    style->PopupBorderSize = 1.0f;
+    style->FrameBorderSize = 1.0f;
+    style->TabBorderSize = 1.0f;
+    // Rounding
+    style->WindowRounding = 0.0f;
+    style->ChildRounding = 0.0f;
+    style->FrameRounding = 2.0f;
+    style->PopupRounding = 2.0f;
+    style->ScrollbarRounding = 4.0f;
+    style->GrabRounding = style->FrameRounding;
+    style->LogSliderDeadzone = 3.0f;
+    style->TabRounding = 4.0f;
+    // Alignment
+    // **DEFAULT**
+}
+
+static void
+guiSetupStyleColors(ImGuiStyle *style)
 {
     ImVec4 *colors = style->Colors;
 
@@ -441,4 +465,79 @@ guiSetCustomStyle(ImGuiStyle *style)
     colors[ImGuiCol_NavWindowingHighlight] = (ImVec4){1.00f, 1.00f, 1.00f, 0.70f};
     colors[ImGuiCol_NavWindowingDimBg] = (ImVec4){0.80f, 0.80f, 0.80f, 0.20f};
     colors[ImGuiCol_ModalWindowDimBg] = (ImVec4){0.80f, 0.80f, 0.80f, 0.35f};
+}
+
+void
+guiSetupStyle(f32 dpi)
+{
+    igStyleColorsClassic(NULL);
+
+    // When viewports are enabled we tweak WindowRounding/WindowBg so platform
+    // windows can look identical to regular ones.
+    ImGuiStyle *style = igGetStyle();
+
+    if (igGetIO()->ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        style->WindowRounding = 0.0f;
+        style->Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+
+    guiSetupStyleSizes(style);
+    guiSetupStyleColors(style);
+
+    ImGuiStyle_ScaleAllSizes(style, dpi / 96.0f);
+}
+
+static f32
+guiScaleFontSize(f32 size, f32 dpi)
+{
+    return round(size * dpi / 72.0f);
+}
+
+ImFont *
+guiLoadFont(ImFontAtlas *fonts, char const *path, char const *name, f32 font_size,
+            ImWchar const *ranges)
+{
+    char buffer[1024] = {0};
+    size_t wrote = 0;
+
+    wrote += SDL_utf8strlcpy(buffer + wrote, path, 1024 - wrote);
+    wrote += SDL_utf8strlcpy(buffer + wrote, "data/", 1024 - wrote);
+    wrote += SDL_utf8strlcpy(buffer + wrote, name, 1024 - wrote);
+    wrote += SDL_utf8strlcpy(buffer + wrote, ".ttf", 1024 - wrote);
+
+    return ImFontAtlas_AddFontFromFileTTF(fonts, buffer, font_size, NULL, ranges);
+}
+
+void
+guiSetupFonts(ImFontAtlas *fonts, f32 dpi)
+{
+    // Load Fonts
+    // - If no fonts are loaded, dear imgui will use the default font. You can
+    // also load multiple fonts and use igPushFont()/PopFont() to select them.
+    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you
+    // need to select the font among multiple.
+    // - If the file cannot be loaded, the function will return NULL. Please
+    // handle those errors in your application (e.g. use an assertion, or
+    // display an error and quit).
+    // - The fonts will be rasterized at a given size (w/ oversampling) and
+    // stored into a texture when calling
+    // ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame
+    // below will call.
+    // - Read 'docs/FONTS.md' for more instructions and details.
+    // - Remember that in C/C++ if you want to include a backslash \ in a string
+    // literal you need to write a double backslash \\ !
+    ImWchar const *ranges = ImFontAtlas_GetGlyphRangesDefault(fonts);
+    char *base = SDL_GetBasePath();
+
+    f32 font_size = guiScaleFontSize(13.5, dpi);
+
+    if (!guiLoadFont(fonts, base, "NotoSans", font_size, ranges) &
+        !guiLoadFont(fonts, base, "OpenSans", font_size, ranges) &
+        !guiLoadFont(fonts, base, "SourceSansPro", font_size, ranges))
+    {
+        ImFontAtlas_AddFontDefault(fonts, NULL);
+    }
+
+    SDL_free(base);
 }
