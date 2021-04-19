@@ -18,8 +18,6 @@ typedef struct cfArrayParams
     usize capacity;
 } cfArrayParams;
 
-typedef struct cfArrayHeader cfArrayHeader;
-
 // Use it to explicitly declare an array (e.g. cfArray(i32) ints;)
 #define cfArray(Type) Type *
 
@@ -28,82 +26,81 @@ typedef struct cfArrayHeader cfArrayHeader;
 // -----------------------------------------------------------------------------
 
 /// Initialize a dynamic array with the given allocator and optional capacity
-#define cf_array_init(array, allocator, ...)                                \
-    (array = cfinternal__array_init(array, &(cfArrayParams){                \
-                                               .alloc = (allocator),        \
-                                               .item_size = sizeof(*array), \
-                                               __VA_ARGS__,                 \
-                                           }))
+#define cf_array_init(array, allocator, ...)                       \
+    (array = cf__arrayInit(array, &(cfArrayParams){                \
+                                      .alloc = (allocator),        \
+                                      .item_size = sizeof(*array), \
+                                      __VA_ARGS__,                 \
+                                  }))
 
 /// Free the dynamic array
-#define cf_array_free(array) cfinternal__array_free(array, sizeof(*array))
+#define cfArrayFree(array) cf__arrayFree(array, sizeof(*array))
 
 /// Capacity of the array (number of elements that can be stored before the
 /// array grows)
-usize cf_array_capacity(void *array);
+usize cfArrayCapacity(void *array);
 /// Size of the array (number of stored items)
-usize cf_array_size(void *array);
+usize cfArraySize(void *array);
 /// Size of the stored items in bytes (useful for 'memcpy' and the like)
-#define cf_array_bytes(array) cf_array_size(array) * sizeof(*array))
+#define cfArrayBytes(array) cfArraySize(array) * sizeof(*array))
 
-#define cf_array_is_full(array) (cf_array_size(array) == cf_array_capacity(array))
-#define cf_array_is_empty(array) !cf_array_size(array)
+#define cfArrayFull(array) (cfArraySize(array) == cfArrayCapacity(array))
+#define cfArrayEmpty(array) !cfArraySize(array)
 
 /// Pointer to the first element of the array
-#define cf_array_first(array) array
+#define cfArrayFirst(array) array
 /// Pointer to the last element of the array
-#define cf_array_last(array) (cf_array_end(array) - 1)
+#define cfArrayLast(array) (cfArrayEnd(array) - 1)
 /// Pointer to one past the last element of the array
-#define cf_array_end(array) (array + cf_array_size(array))
+#define cfArrayEnd(array) (array + cfArraySize(array))
 
 /// Grow the array capacity to store at least the given room
 /// Growth is geometrical
-#define cf_array_grow(array, room) (array = cfinternal__array_grow(array, room, sizeof(*array)))
+#define cfArrayGrow(array, room) (array = cf__arrayGrow(array, room, sizeof(*array)))
 
 /// Ensure the array has the given capacity by growing if necessary
-#define cf_array_ensure(array, capacity) (cfinternal__array_ensure(array, capacity, sizeof(*array)))
+#define cfArrayEnsure(array, capacity) (cf__arrayEnsure(array, capacity, sizeof(*array)))
 
 /// Push the given item at the end of the array
-#define cf_array_push(array, item) \
-    (array = cfinternal__array_extend(array, 1, sizeof(*array)), *cf_array_last(array) = item)
+#define cfArrayPush(array, item) \
+    (array = cf__arrayExtend(array, 1, sizeof(*array)), *cfArrayLast(array) = item)
 
 /// Push the given items at the end of the array
-#define cf_array_push_range(array, items, count)                       \
-    do                                                                 \
-    {                                                                  \
-        array = cfinternal_array_extend(array, count, sizeof(*array)); \
-        cfMemCopy(items, array, count * sizeof(*items));               \
+#define cfArrayPushRange(array, items, count)                  \
+    do                                                         \
+    {                                                          \
+        array = cf__arrayExtend(array, count, sizeof(*array)); \
+        cfMemCopy(items, array, count * sizeof(*items));       \
     } while (0)
 
 /// Pop and return the last element of the array
-#define cf_array_pop(array) (array = cfinternal__array_shrink(array, 1), *cf_array_end(array))
+#define cfArrayPop(array) (array = cf__arrayShrink(array, 1), *cfArrayEnd(array))
 
 /// Insert the given item at the given position in the array
-#define cf_array_insert(array, item, pos) \
-    (array = cfinternal__array_insert(array, pos, 1, sizeof(*array)), (array)[pos] = item)
+#define cfArrayInsert(array, item, pos) \
+    (array = cf__arrayInsert(array, pos, 1, sizeof(*array)), (array)[pos] = item)
 
 /// Insert the given items at the given position in the array
-#define cf_array_insert_range(array, items, count, pos)                      \
-    do                                                                       \
-    {                                                                        \
-        array = cfinternal__array_insert(array, pos, count, sizeof(*array)); \
-        cfMemCopy(items, array + pos, count *sizeof(*items) ;                \
+#define cfArrayInsertRange(array, items, count, pos)                \
+    do                                                              \
+    {                                                               \
+        array = cf__arrayInsert(array, pos, count, sizeof(*array)); \
+        cfMemCopy(items, array + pos, count *sizeof(*items) ;       \
     } while (0)
 
 /// Remove the item at the given position in the array
 /// The items after the removed item are relocated
-#define cf_array_remove(array, pos) \
-    (array = cfinternal__array_remove(array, pos, 1, sizeof(*array)))
+#define cfArrayRemove(array, pos) (array = cf__arrayRemove(array, pos, 1, sizeof(*array)))
 
 /// Remove the items at the given position in the array
 /// The items after the removed items are relocated
-#define cf_array_remove_range(array, count, pos) \
-    (array = cfinternal__array_remove(array, pos, count, sizeof(*array)))
+#define cfArrayRemoveRange(array, count, pos) \
+    (array = cf__arrayRemove(array, pos, count, sizeof(*array)))
 
 /// Remove the item at the given position in the array, without relocation (the
 /// last element of the array takes the place of the removed item)
-#define cf_array_swap_remove(array, pos) \
-    (array = cfinternal__array_shrink(array, 1), (array)[pos] = *cf_array_end(array))
+#define cfArraySwapRemove(array, pos) \
+    (array = cf__arrayShrink(array, 1), (array)[pos] = *cfArrayEnd(array))
 
 // TODO
 // cf_array_shrink(array)
@@ -115,16 +112,16 @@ usize cf_array_size(void *array);
 // Internals
 // -----------------------------------------------------------------------------
 
-void *cfinternal__array_init(void *array, cfArrayParams const *params);
-void cfinternal__array_free(void *array, usize item_size);
+void *cf__arrayInit(void *array, cfArrayParams const *params);
+void cf__arrayFree(void *array, usize item_size);
 
-void *cfinternal__array_grow(void *array, usize room, usize item_size);
-void *cfinternal__array_ensure(void *array, usize capacity, usize item_size);
-void *cfinternal__array_extend(void *array, usize room, usize item_size);
-void *cfinternal__array_shrink(void *array, usize room);
+void *cf__arrayGrow(void *array, usize room, usize item_size);
+void *cf__arrayEnsure(void *array, usize capacity, usize item_size);
+void *cf__arrayExtend(void *array, usize room, usize item_size);
+void *cf__arrayShrink(void *array, usize room);
 
-void *cfinternal__array_insert(void *array, usize pos, usize item_count, usize item_size);
-void *cfinternal__array_remove(void *array, usize pos, usize item_count, usize item_size);
+void *cf__arrayInsert(void *array, usize pos, usize item_count, usize item_size);
+void *cf__arrayRemove(void *array, usize pos, usize item_count, usize item_size);
 
 // -----------------------------------------------------------------------------
 #define CF_ARRAY_H
