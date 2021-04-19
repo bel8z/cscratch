@@ -62,7 +62,7 @@ VM_RESERVE_FUNC(win32_vm_reserve)
 
 VM_COMMIT_FUNC(win32_vm_commit)
 {
-    void *committed = VirtualAlloc(memory, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    void *committed = VirtualAlloc(memory, size, MEM_COMMIT, PAGE_READWRITE);
     CF_ASSERT(committed, "Memory not previously reserved");
     return committed != NULL;
 }

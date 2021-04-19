@@ -1,4 +1,5 @@
 
+#include "foundation/platform.h"
 #include "foundation/vm_arena.h"
 
 #include <stdio.h>
@@ -6,9 +7,11 @@
 int
 main()
 {
+    cfPlatform p = cf_platform_create();
+
     VmArena arena;
 
-    if (!arena_init(&arena, 1024 * 1024 * 1024))
+    if (!arenaInit(&arena, &p.vm, 1024 * 1024 * 1024))
     {
         printf("Cannot init memory arena");
         return -1;

@@ -30,7 +30,7 @@ arenaInit(VmArena *arena, cfVirtualMemory *vm, u32 reserved_size)
 void
 arenaFree(VmArena *arena)
 {
-    arena->vm->release(arena->memory, arena->reserved);
+    cfVmRelease(arena->vm, arena->memory, arena->reserved);
     // Make the arena unusable
     *arena = (VmArena){0};
 }
@@ -40,7 +40,8 @@ arenaShrink(VmArena *arena)
 {
     if (arena->allocated < arena->committed)
     {
-        arena->vm->revert(arena->memory + arena->allocated, arena->committed - arena->allocated);
+        cfVmRevert(arena->vm, arena->memory + arena->allocated,
+                   arena->committed - arena->allocated);
     }
 }
 
@@ -56,7 +57,7 @@ arenaPushSize(VmArena *arena, u32 size)
     if (arena->allocated > arena->committed)
     {
         u32 commit_size = round_up(arena->allocated, arena->vm->page_size);
-        arena->vm->commit(arena->memory + arena->committed, commit_size);
+        cfVmCommit(arena->vm, arena->memory + arena->committed, commit_size);
         arena->committed += commit_size;
     }
     else

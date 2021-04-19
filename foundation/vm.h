@@ -20,5 +20,10 @@ typedef struct cfVirtualMemory
     usize page_size;
 } cfVirtualMemory;
 
+#define cfVmReserve(vm, size) vm->reserve(size)
+#define cfVmRelease(vm, mem, size) vm->release(mem, size)
+#define cfVmCommit(vm, mem, size) vm->commit(mem, size)
+#define cfVmRevert(vm, mem, size) vm->revert(mem, size)
+
 #define CF_VM_H
 #endif
