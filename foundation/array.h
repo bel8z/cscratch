@@ -72,7 +72,7 @@ usize cf_array_size(void *array);
     do                                                                 \
     {                                                                  \
         array = cfinternal_array_extend(array, count, sizeof(*array)); \
-        cf_copy_memory(items, array, count * sizeof(*items));          \
+        cfMemCopy(items, array, count * sizeof(*items));               \
     } while (0)
 
 /// Pop and return the last element of the array
@@ -87,7 +87,7 @@ usize cf_array_size(void *array);
     do                                                                       \
     {                                                                        \
         array = cfinternal__array_insert(array, pos, count, sizeof(*array)); \
-        cf_copy_memory(items, array + pos, count *sizeof(*items) ;           \
+        cfMemCopy(items, array + pos, count *sizeof(*items) ;                \
     } while (0)
 
 /// Remove the item at the given position in the array

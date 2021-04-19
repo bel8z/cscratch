@@ -64,7 +64,7 @@ arenaPushSize(VmArena *arena, u32 size)
         // VM is cleared to 0 by the OS; here we are reusing already committed
         // memory so it is our responsibility to clean up
         u32 dirty = arena->committed - arena->allocated;
-        cf_write_memory(result + size - dirty, 0, dirty);
+        cfMemWrite(result + size - dirty, 0, dirty);
     }
 
     return result;

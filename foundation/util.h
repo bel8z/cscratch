@@ -6,19 +6,19 @@
 #include <string.h>
 
 static inline void
-cf_clear_memory(u8 *mem, usize count)
+cfMemClear(u8 *mem, usize count)
 {
     memset(mem, 0, count); // NOLINT
 }
 
 static inline void
-cf_write_memory(u8 *mem, u8 value, usize count)
+cfMemWrite(u8 *mem, u8 value, usize count)
 {
     memset(mem, value, count); // NOLINT
 }
 
 static inline void
-cf_copy_memory(u8 const *from, u8 *to, usize count)
+cfMemCopy(u8 const *from, u8 *to, usize count)
 {
     memmove_s(to, count, from, count);
 }
@@ -32,9 +32,9 @@ cf_copy_memory(u8 const *from, u8 *to, usize count)
 static inline void
 cfSwapBuf(void *l, void *r, u8 *buf, usize size)
 {
-    cf_copy_memory(l, buf, size);
-    cf_copy_memory(r, l, size);
-    cf_copy_memory(buf, r, size);
+    cfMemCopy(l, buf, size);
+    cfMemCopy(r, l, size);
+    cfMemCopy(buf, r, size);
 }
 
 // Swap elements byte per byte

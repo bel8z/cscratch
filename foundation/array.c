@@ -119,7 +119,7 @@ cfinternal__array_remove(void *array, usize pos, usize item_count, usize item_si
     usize const bytes = items * item_size;
     u8 *dst = (u8 *)(header + 1) + pos * item_size;
 
-    cf_copy_memory(dst + item_size * item_count, dst, bytes);
+    cfMemCopy(dst + item_size * item_count, dst, bytes);
 
     --header->len;
 
@@ -138,7 +138,7 @@ cfinternal__array_insert(void *array, usize pos, usize item_count, usize item_si
 
     u8 *src = (u8 *)(header + 1) + pos * item_size;
 
-    cf_copy_memory(src, src + item_size * item_count, bytes);
+    cfMemCopy(src, src + item_size * item_count, bytes);
 
     ++header->len;
 
