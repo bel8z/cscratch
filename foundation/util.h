@@ -62,7 +62,12 @@ cfSwapBlock(void *array, usize l, usize r, usize count, usize item_size)
     }
 }
 
-#define cfSwapItem(a, b) cfSwapBuf(&(a), &(b), (u8[sizeof *(1 ? &(a) : &(b))]){0}, sizeof(a))
+// Defines a temporary buffer object that can hold either a or b, ensuring
+// they have the same size.
+#define CF_TEMP_SWAP_BUF(a, b) \
+    (u8[sizeof(*(1 ? &(a) : &(b)))]) { 0 }
+
+#define cfSwapItem(a, b) cfSwapBuf(&(a), &(b), CF_TEMP_SWAP_BUF(a, b), sizeof(a))
 
 //------------------------------------------------------------------------------
 // Array reversal
