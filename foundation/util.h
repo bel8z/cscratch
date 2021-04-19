@@ -54,11 +54,12 @@ cfSwapBytes(void *l, void *r, usize size)
 static inline void
 cfSwapBlock(void *array, usize l, usize r, usize count, usize item_size)
 {
-    u8 *buf = array;
+    u8 *lbuf = (u8 *)array + l * item_size;
+    u8 *rbuf = (u8 *)array + r * item_size;
 
-    for (usize i = 0; i < count; ++i)
+    for (usize i = 0; i < count; ++i, lbuf += item_size, rbuf += item_size)
     {
-        cfSwapBytes(buf + item_size * (l + i), buf + item_size * (r + i), item_size);
+        cfSwapBytes(lbuf, rbuf, item_size);
     }
 }
 
@@ -74,13 +75,16 @@ cfSwapBlock(void *array, usize l, usize r, usize count, usize item_size)
 //------------------------------------------------------------------------------
 
 static inline void
-cfReverse(i32 *array, usize size)
+cfReverseBuf(void *array, usize size, u8 *swap_buf, usize swap_size)
 {
+    u8 *buf = array;
     for (usize i = 0; i < size / 2; ++i)
     {
-        cfSwapItem(array[i], array[size - i - 1]);
+        cfSwapBuf(buf + i * swap_size, buf + (size - i - 1) * swap_size, swap_buf, swap_size);
     }
 }
+
+#define cfReverse(array, size) cfReverseBuf(array, size, (u8[sizeof(*array)]){0}, sizeof(*array))
 
 //------------------------------------------------------------------------------
 // Array rotation
