@@ -4,6 +4,20 @@
 
 #include "imgui_decl.h"
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsign-conversion"
+#pragma clang diagnostic ignored "-Wsign-compare"
+#pragma clang diagnostic ignored "-Wimplicit-int-conversion"
+#endif
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "ext/stb/stb_image.h"
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 #include <GL/gl3w.h> // Initialize with gl3wInit()
 
 #define SDL_MAIN_HANDLED
@@ -26,6 +40,12 @@ typedef struct FontOptions
     i32 oversample_v;
 } FontOptions;
 
+typedef struct Image
+{
+    GLuint texture;
+    ImVec2 size;
+} Image;
+
 typedef struct AppPaths
 {
     char base[1024];
@@ -43,7 +63,48 @@ typedef struct AppState
     bool show_another_window;
     ImVec4 clear_color;
 
+    Image image;
+    ImVec2 uv0;
+    ImVec2 uv1;
+
 } AppState;
+
+// Simple helper function to load an image into a OpenGL texture with common settings
+bool
+imageLoadFromFile(Image *image, const char *filename)
+{
+    // Load from file
+    i32 image_width = 0;
+    i32 image_height = 0;
+    u8 *image_data = stbi_load(filename, &image_width, &image_height, NULL, 4);
+    if (!image_data) return false;
+
+    // Create a OpenGL texture identifier
+    GLuint image_texture;
+    glGenTextures(1, &image_texture);
+    glBindTexture(GL_TEXTURE_2D, image_texture);
+
+    // Setup filtering parameters for display
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                    GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
+
+    // Upload pixels into texture
+#if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 image_data);
+    stbi_image_free(image_data);
+
+    image->texture = image_texture;
+    image->size.x = (f32)image_width;
+    image->size.y = (f32)image_height;
+
+    return true;
+}
 
 static CF_ALLOCATOR_FUNC(appRealloc);
 static CF_ALLOC_STATS_FUNC(appAllocStats);
@@ -179,7 +240,13 @@ main(int argc, char **argv)
         .show_demo_window = true,
         .show_another_window = false,
         .clear_color = {0.45f, 0.55f, 0.60f, 1.00f},
+        .uv0 = (ImVec2){0, 0},
+        .uv1 = (ImVec2){1, 1},
     };
+
+    char buffer[1024];
+    snprintf(buffer, 1024, "%sOpaque.png", paths.data);
+    imageLoadFromFile(&state.image, buffer);
 
     // Main loop
     bool done = false;
@@ -471,6 +538,18 @@ guiUpdate(AppState *state, f32 framerate)
         igText("counter = %d", counter);
 
         igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / framerate, framerate);
+
+        ImVec4 tint_color = {1, 1, 1, 1};
+        ImVec4 border_color = {1, 1, 1, 1};
+
+        igImage((void *)(iptr)state->image.texture, state->image.size, state->uv0, state->uv1,
+                tint_color, border_color);
+
+        igSliderFloat("uv0.x", &state->uv0.x, 0.0f, 1.0f, "%.3f", 0);
+        igSliderFloat("uv0.y", &state->uv0.y, 0.0f, 1.0f, "%.3f", 0);
+        igSliderFloat("uv1.x", &state->uv1.x, 0.0f, 1.0f, "%.3f", 0);
+        igSliderFloat("uv1.y", &state->uv1.y, 0.0f, 1.0f, "%.3f", 0);
+
         igEnd();
     }
 
