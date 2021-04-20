@@ -60,7 +60,6 @@ typedef struct AppState
     bool rebuild_fonts;
 
     bool show_demo_window;
-    bool show_another_window;
     ImVec4 clear_color;
 
     Image image;
@@ -238,7 +237,6 @@ main(int argc, char **argv)
                       .oversample_v = 1,
                       .rasterizer_multiply = 1.0f},
         .show_demo_window = true,
-        .show_another_window = false,
         .clear_color = {0.45f, 0.55f, 0.60f, 1.00f},
         .uv0 = (ImVec2){0, 0},
         .uv1 = (ImVec2){1, 1},
@@ -517,13 +515,13 @@ guiUpdate(AppState *state, f32 framerate)
         static i32 counter = 0;
 
         // Create a window called "Hello, world!" and append into it.
-        igBegin("Hello, world!", NULL, 0);
+        igBegin("Test window", NULL, 0);
 
         // Display some text (you can use a format strings  too)
         igText("This is some useful text.");
+
         // Edit bools storing our window open/close state
         igCheckbox("Demo Window", &state->show_demo_window);
-        igCheckbox("Another Window", &state->show_another_window);
 
         // Edit 1 float using a slider from 0.0f to 1.0f
         igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
@@ -550,17 +548,6 @@ guiUpdate(AppState *state, f32 framerate)
         igSliderFloat("uv1.x", &state->uv1.x, 0.0f, 1.0f, "%.3f", 0);
         igSliderFloat("uv1.y", &state->uv1.y, 0.0f, 1.0f, "%.3f", 0);
 
-        igEnd();
-    }
-
-    // 3. Show another simple window.
-    if (state->show_another_window)
-    {
-        // Pass a pointer to our bool variable (the window will have
-        // a closing button that will clear the bool when clicked)
-        igBegin("Another Window", &state->show_another_window, 0);
-        igText("Hello from another window!");
-        if (guiButton("Close Me")) state->show_another_window = false;
         igEnd();
     }
 
