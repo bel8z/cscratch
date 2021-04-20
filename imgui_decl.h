@@ -1,22 +1,26 @@
-#ifndef GUI_H
+#ifndef IMGUI_DECL_H
 
-#ifdef __clang__
+#if defined(_MSC_VER)
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wlanguage-extension-token"
-#elif defined(_MSC_VER)
+#else
 #pragma warning(push)
 #pragma warning(disable : 4201)
 #pragma warning(disable : 4214)
-#endif
+#endif // defined(__clang__)
+#endif // defined(_MSC_VER)
 
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include "ext/cimgui/cimgui.h"
 
-#ifdef __clang__
+#if defined(_MSC_VER)
+#if defined(__clang__)
 #pragma clang diagnostic pop
-#elif defined(_MSC_VER)
+#else
 #pragma warning(pop)
-#endif
+#endif // defined(__clang__)
+#endif // defined(_MSC_VER)
 
-#define GUI_H
+#define IMGUI_DECL_H
 #endif

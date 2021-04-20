@@ -9,6 +9,8 @@
 
 #define sqrt(X) _Generic((X), default : sqrt, f32 : sqrtf)(X)
 
+#define ceil(X) _Generic((X), default : ceil, f32 : ceilf)(X)
+#define floor(X) _Generic((X), default : floor, f32 : floorf)(X)
 #define round(X) _Generic((X), default : round, f32 : roundf)(X)
 
 #define fmod(X, Y) _Generic((X, Y), default : fmod, f32 : fmodf)(X, Y)

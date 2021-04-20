@@ -2,9 +2,10 @@
 #include "foundation/common.h"
 #include "foundation/maths.h"
 
-#define IMGUI_IMPL_OPENGL_LOADER_GL3W
 #include "imgui_decl.h"
 #include "imgui_impl.h"
+
+#include <GL/gl3w.h> // Initialize with gl3wInit()
 
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
@@ -67,12 +68,9 @@ main(int argc, char **argv)
     CF_UNUSED(argv);
 
     // Setup SDL
-    // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a
-    // minority of Windows systems, depending on whether SDL_INIT_GAMECONTROLLER is enabled or
-    // disabled.. updating to latest version of SDL is recommended!)
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
     {
-        printf("Error: %s\n", SDL_GetError());
+        fprintf(stderr, "Failed to initialize SDL: %s\n", SDL_GetError());
         return -1;
     }
 
@@ -100,14 +98,14 @@ main(int argc, char **argv)
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     u32 window_flags =
         (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    SDL_Window *window = SDL_CreateWindow("Dear ImGui SDL2+OpenGL3 example", SDL_WINDOWPOS_CENTERED,
+    SDL_Window *window = SDL_CreateWindow("Dear ImGui template", SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
     // Initialize OpenGL loader
-    if (opengl_loader_init())
+    if (gl3wInit() != 0)
     {
         fprintf(stderr, "Failed to initialize OpenGL loader!\n");
         return -2;
@@ -148,27 +146,7 @@ main(int argc, char **argv)
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can also load
-    // multiple fonts and use igPushFont()/PopFont() to select them.
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select
-    // the font among multiple.
-    // - If the file cannot be loaded, the function will return NULL. Please handle those errors
-    // in your application (e.g. use an assertion, or display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a
-    // texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which
-    // ImGui_ImplXXXX_NewFrame below will call.
-    // - Read 'docs/FONTS.md' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you
-    // need to write a double backslash \\ ! io.Fonts->AddFontDefault();
-    // io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-    // io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-    // io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    // io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
-    // ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f,
-    // NULL, io.Fonts->GetGlyphRangesJapanese()); IM_ASSERT(font != NULL);
-
-    // Our state
+    // Setup application state
     AppState state = {
         .alloc = &alloc,
         .rebuild_fonts = true,
@@ -186,7 +164,6 @@ main(int argc, char **argv)
     bool done = false;
     while (!done)
     {
-
         // Poll and handle events (inputs, window resize, etc.)
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear
         // imgui wants to use your inputs.
@@ -231,9 +208,7 @@ main(int argc, char **argv)
 
         // Update and Render additional Platform Windows
         // (Platform functions may change the current OpenGL context, so we save/restore it to
-        // make it easier to paste this code elsewhere.
-        //  For this specific demo app we could also call glfwMakeContextCurrent(window)
-        //  directly)
+        // make it easier to paste this code elsewhere.)
         if (io->ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
             SDL_Window *backup_current_window = SDL_GL_GetCurrentWindow();
@@ -643,11 +618,9 @@ guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path)
     // literal you need to write a double backslash \\ !
     ImWchar const *ranges = ImFontAtlas_GetGlyphRangesDefault(fonts);
 
-    f32 font_size = guiScaleFontSize(13.5, dpi);
-
-    if (!guiLoadFont(fonts, data_path, "NotoSans", font_size, ranges) &
-        !guiLoadFont(fonts, data_path, "OpenSans", font_size, ranges) &
-        !guiLoadFont(fonts, data_path, "SourceSansPro", font_size, ranges))
+    if (!guiLoadFont(fonts, data_path, "NotoSans", guiScaleFontSize(13, dpi), ranges) &
+        !guiLoadFont(fonts, data_path, "OpenSans", guiScaleFontSize(13.5, dpi), ranges) &
+        !guiLoadFont(fonts, data_path, "SourceSansPro", guiScaleFontSize(13.5, dpi), ranges))
     {
         ImFontAtlas_AddFontDefault(fonts, NULL);
     }
