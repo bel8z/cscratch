@@ -3,7 +3,6 @@
 #include "foundation/maths.h"
 
 #include "imgui_decl.h"
-#include "imgui_impl.h"
 
 #include <GL/gl3w.h> // Initialize with gl3wInit()
 
@@ -56,6 +55,31 @@ static bool guiBeforeUpdate(AppState *state);
 static void guiUpdate(AppState *state, f32 framerate);
 static void guiSetupStyle(f32 dpi);
 static void guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path);
+
+//------------------------------------------------------------------------------
+// SDL2 backend declarations
+//------------------------------------------------------------------------------
+
+extern bool ImGui_ImplSDL2_InitForOpenGL(SDL_Window *window, void *sdl_gl_context);
+extern bool ImGui_ImplSDL2_InitForVulkan(SDL_Window *window);
+extern bool ImGui_ImplSDL2_InitForD3D(SDL_Window *window);
+extern bool ImGui_ImplSDL2_InitForMetal(SDL_Window *window);
+extern void ImGui_ImplSDL2_Shutdown();
+extern void ImGui_ImplSDL2_NewFrame(SDL_Window *window);
+extern bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event *event);
+
+//------------------------------------------------------------------------------
+// OpenGL3 backend declarations
+//------------------------------------------------------------------------------
+
+extern bool ImGui_ImplOpenGL3_Init(const char *glsl_version);
+extern void ImGui_ImplOpenGL3_Shutdown();
+extern void ImGui_ImplOpenGL3_NewFrame();
+extern void ImGui_ImplOpenGL3_RenderDrawData(ImDrawData *draw_data);
+extern bool ImGui_ImplOpenGL3_CreateFontsTexture();
+extern void ImGui_ImplOpenGL3_DestroyFontsTexture();
+extern bool ImGui_ImplOpenGL3_CreateDeviceObjects();
+extern void ImGui_ImplOpenGL3_DestroyDeviceObjects();
 
 //------------------------------------------------------------------------------
 // Main
@@ -366,7 +390,7 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
         state->freetype_enabled = true;
         rebuild_fonts = true;
     }
-    igSameLine(0.0f, -1.0f);
+    guiSameLine();
     if (igRadioButton_Bool("Stb (Default)", !state->freetype_enabled))
     {
         state->freetype_enabled = false;
@@ -414,11 +438,9 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
     return rebuild_fonts;
 }
 
-static void
+void
 guiUpdate(AppState *state, f32 framerate)
 {
-    ImVec2 const button_size = {0};
-
     // 1. Show the big demo window (Most of the sample code is in igShowDemoWindow()! You
     // can browse its code to learn more about Dear ImGui!).
     if (state->show_demo_window) igShowDemoWindow(&state->show_demo_window);
@@ -445,9 +467,9 @@ guiUpdate(AppState *state, f32 framerate)
 
         // Buttons return true when clicked (most widgets return true
         // when edited/activated)
-        if (igButton("Button", button_size)) counter++;
+        if (guiButton("Button")) counter++;
 
-        igSameLine(0.0f, -1.0f);
+        guiSameLine();
         igText("counter = %d", counter);
 
         igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / framerate, framerate);
@@ -461,7 +483,7 @@ guiUpdate(AppState *state, f32 framerate)
         // a closing button that will clear the bool when clicked)
         igBegin("Another Window", &state->show_another_window, 0);
         igText("Hello from another window!");
-        if (igButton("Close Me", button_size)) state->show_another_window = false;
+        if (guiButton("Close Me")) state->show_another_window = false;
         igEnd();
     }
 
