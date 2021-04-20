@@ -90,36 +90,23 @@ cfReverseBuf(void *array, usize size, u8 *swap_buf, usize swap_size)
 // Array rotation
 //------------------------------------------------------------------------------
 
-// Rotate array using Gries-Mills block swap algorith
-// Implementation detail for cfRotateLeft/cfRotateLeft
+// Rotate array using reversal method (from John Bentley's "Programming Pearls")
 static inline void
-cfBlockSwapRotate(void *array, usize size, usize pos, usize item_size)
+cf__rotateReversal(void *array, usize size, usize pos, u8 *swap_buf, usize swap_size)
 {
-    if (pos == 0 || pos == size) return;
-
-    usize i = pos;
-    usize j = size - pos;
-
-    while (i != j)
-    {
-        if (i < j)
-        {
-            cfSwapBlock(array, pos - i, pos - i + j, i, item_size);
-            j -= i;
-        }
-        else
-        {
-            cfSwapBlock(array, pos - i, pos, j, item_size);
-            i -= j;
-        }
-    }
-
-    cfSwapBlock(array, pos - i, pos, i, item_size);
+    u8 *buf = array;
+    usize rest = size - pos;
+    cfReverseBuf(buf, size, swap_buf, swap_size);
+    cfReverseBuf(buf, rest, swap_buf, swap_size);
+    cfReverseBuf(buf + rest * swap_size, pos, swap_buf, swap_size);
 }
 
+#define cfRotateReversal(array, size, pos) \
+    cf__rotateReversal(array, size, pos, (u8[sizeof(*array)]){0}, sizeof(*array))
+
 // Rotate array elements
-#define cfRotateLeft(array, size, pos) cfBlockSwapRotate(array, size, pos, sizeof(*array))
-#define cfRotateRight(array, size, pos) cfBlockSwapRotate(array, size, size - pos, sizeof(*array))
+#define cfRotateLeft(array, size, pos) cfRotateReversal(array, size, pos)
+#define cfRotateRight(array, size, pos) cfRotateReversal(array, size, size - pos)
 
 // Swap two adjacent chunks of the same array
 #define cfSwapChunkAdjacent(arr, beg, mid, end) \

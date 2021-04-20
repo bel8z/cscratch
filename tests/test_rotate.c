@@ -4,6 +4,41 @@
 
 #include "foundation/util.h"
 
+// Rotate array using Gries-Mills block swap algorith
+// Implementation detail for cfRotateLeft/cfRotateLeft
+static inline void
+rotateBlockSwap_(void *array, usize size, usize pos, usize item_size)
+{
+    if (pos == 0 || pos == size) return;
+
+    usize i = pos;
+    usize j = size - pos;
+
+    while (i != j)
+    {
+        if (i < j)
+        {
+            cfSwapBlock(array, pos - i, pos - i + j, i, item_size);
+            j -= i;
+        }
+        else
+        {
+            cfSwapBlock(array, pos - i, pos, j, item_size);
+            i -= j;
+        }
+    }
+
+    cfSwapBlock(array, pos - i, pos, i, item_size);
+}
+
+#define rotateBlockSwap(array, size, pos) rotateBlockSwap_(array, size, pos, sizeof(*array))
+
+enum
+{
+    COUNT = 268435456,
+    POS = COUNT / 4,
+};
+
 void
 arrayPrint(i32 const *array, usize count)
 {
@@ -14,25 +49,6 @@ arrayPrint(i32 const *array, usize count)
     }
     printf("}\n");
 }
-
-static inline void
-cfRotateReverseBuf(void *array, usize size, usize pos, u8 *swap_buf, usize swap_size)
-{
-    u8 *buf = array;
-    usize rest = size - pos;
-    cfReverseBuf(buf, size, swap_buf, swap_size);
-    cfReverseBuf(buf, rest, swap_buf, swap_size);
-    cfReverseBuf(buf + rest * swap_size, pos, swap_buf, swap_size);
-}
-
-#define cfRotateReverse(array, size, pos) \
-    cfRotateReverseBuf(array, size, pos, (u8[sizeof(*array)]){0}, sizeof(*array))
-
-enum
-{
-    COUNT = 268435456,
-    POS = COUNT / 4,
-};
 
 int
 main(void)
@@ -50,16 +66,16 @@ main(void)
     }
 
     QueryPerformanceCounter(&start);
-    cfRotateLeft(a, COUNT, POS);
+    rotateBlockSwap(a, COUNT, POS);
     QueryPerformanceCounter(&end);
     elapsed_us = ((end.QuadPart - start.QuadPart) * 1000000) / freq.QuadPart;
-    printf("cfRotateLeft: %zu us\n", elapsed_us);
+    printf("rotate block-swap: %zu us\n", elapsed_us);
 
     QueryPerformanceCounter(&start);
-    cfRotateReverse(b, COUNT, POS);
+    cfRotateReversal(b, COUNT, POS);
     QueryPerformanceCounter(&end);
     elapsed_us = ((end.QuadPart - start.QuadPart) * 1000000) / freq.QuadPart;
-    printf("cfRotateReverse: %zu us\n", elapsed_us);
+    printf("rotate reversal: %zu us\n", elapsed_us);
 
     for (i32 i = 0; i < COUNT; ++i)
     {
