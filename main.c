@@ -61,9 +61,6 @@ static void guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path);
 //------------------------------------------------------------------------------
 
 extern bool ImGui_ImplSDL2_InitForOpenGL(SDL_Window *window, void *sdl_gl_context);
-extern bool ImGui_ImplSDL2_InitForVulkan(SDL_Window *window);
-extern bool ImGui_ImplSDL2_InitForD3D(SDL_Window *window);
-extern bool ImGui_ImplSDL2_InitForMetal(SDL_Window *window);
 extern void ImGui_ImplSDL2_Shutdown();
 extern void ImGui_ImplSDL2_NewFrame(SDL_Window *window);
 extern bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event *event);
@@ -300,10 +297,11 @@ void
 appInitPaths(AppPaths *paths)
 {
     char *p = SDL_GetBasePath();
-    SDL_utf8strlcpy(paths->base, p, 1024);
+
+    snprintf(paths->base, 1024, "%s", p);
+    snprintf(paths->data, 1024, "%sdata/", p);
+
     SDL_free(p);
-    usize wrote = SDL_utf8strlcpy(paths->data, paths->base, 1024);
-    SDL_utf8strlcpy(paths->data + wrote, "data/", 1024 - wrote);
 }
 
 //------------------------------------------------------------------------------
@@ -611,11 +609,8 @@ guiLoadFont(ImFontAtlas *fonts, char const *data_path, char const *name, f32 fon
             ImWchar const *ranges)
 {
     char buffer[1024] = {0};
-    size_t wrote = 0;
 
-    wrote += SDL_utf8strlcpy(buffer + wrote, data_path, 1024 - wrote);
-    wrote += SDL_utf8strlcpy(buffer + wrote, name, 1024 - wrote);
-    wrote += SDL_utf8strlcpy(buffer + wrote, ".ttf", 1024 - wrote);
+    snprintf(buffer, 1024, "%s%s.ttf", data_path, name);
 
     return ImFontAtlas_AddFontFromFileTTF(fonts, buffer, font_size, NULL, ranges);
 }

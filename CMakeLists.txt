@@ -97,5 +97,8 @@ target_link_libraries(${PROJECT_NAME}
     foundation
     backend)
 
+#-----------------------
+# Resource files
+#-----------------------
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data DESTINATION .)
