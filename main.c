@@ -1,6 +1,7 @@
 #include "foundation/allocator.h"
 #include "foundation/common.h"
 #include "foundation/maths.h"
+#include "foundation/util.h"
 
 #include "imgui_decl.h"
 
@@ -65,6 +66,8 @@ typedef struct AppWindows
 typedef struct AppState
 {
     cfAllocator *alloc;
+
+    AppPaths paths;
 
     FontOptions font_opts;
     bool rebuild_fonts;
@@ -167,40 +170,11 @@ main(int argc, char **argv)
         return -2;
     }
 
-    // Initialize application paths
-    AppPaths paths;
-    appInitPaths(&paths);
-
     // Setup memory management
     // TODO (Matteo): make allocation not dependent to SDL
     cfAllocatorStats alloc_stats = {0};
     cfAllocator alloc = {.state = &alloc_stats, .reallocate = appRealloc, .stats = appAllocStats};
     igSetAllocatorFunctions(guiAlloc, guiFree, &alloc);
-
-    // Setup Dear ImGui context
-    // IMGUI_CHECKVERSION();
-    ImGuiContext *imgui = igCreateContext(NULL);
-    ImGuiIO *io = igGetIO();
-
-    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
-    io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
-
-    // Setup DPI handling
-    f32 ddpi, hdpi, vdpi;
-    if (SDL_GetDisplayDPI(0, &ddpi, &hdpi, &vdpi) != 0)
-    {
-        fprintf(stderr, "Failed to obtain DPI information for display 0: %s\n", SDL_GetError());
-        return -3;
-    }
-
-    // Setup Dear ImGui style
-    guiSetupStyle(ddpi);
-    guiSetupFonts(io->Fonts, ddpi, paths.data);
-
-    // Setup Platform/Renderer backends
-    ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-    ImGui_ImplOpenGL3_Init(glsl_version);
 
     // Setup application state
     AppState state = {
@@ -223,9 +197,36 @@ main(int argc, char **argv)
         .zoom = 1.0f,
     };
 
+    appInitPaths(&state.paths);
+
     char buffer[1024];
-    snprintf(buffer, 1024, "%sOpaque.png", paths.data);
+    snprintf(buffer, 1024, "%sOpaque.png", state.paths.data);
     imageLoadFromFile(&state.image, buffer);
+
+    // Setup Dear ImGui context
+    // IMGUI_CHECKVERSION();
+    ImGuiContext *imgui = igCreateContext(NULL);
+    ImGuiIO *io = igGetIO();
+
+    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
+    io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
+
+    // Setup DPI handling
+    f32 ddpi, hdpi, vdpi;
+    if (SDL_GetDisplayDPI(0, &ddpi, &hdpi, &vdpi) != 0)
+    {
+        fprintf(stderr, "Failed to obtain DPI information for display 0: %s\n", SDL_GetError());
+        return -3;
+    }
+
+    // Setup Dear ImGui style
+    guiSetupStyle(ddpi);
+    guiSetupFonts(io->Fonts, ddpi, state.paths.data);
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
+    ImGui_ImplOpenGL3_Init(glsl_version);
 
     // Main loop
     bool done = false;
@@ -482,6 +483,28 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
     return rebuild_fonts;
 }
 
+static void
+guiImageView(Image const *image, f32 *zoom)
+{
+    ImVec4 tint_color = {1, 1, 1, 1};
+    ImVec4 border_color = {1, 1, 1, 1};
+
+    f32 z = 0.5f * (1 - 1 / *zoom);
+    ImVec2 uv0 = {z, z};
+    ImVec2 uv1 = {1 - z, 1 - z};
+
+    igImage((void *)(iptr)image->texture, image->size, uv0, uv1, tint_color, border_color);
+
+    ImGuiIO *io = igGetIO();
+
+    if (igIsItemHovered(0) && io->KeyCtrl)
+    {
+        *zoom = cfClamp(*zoom + io->MouseWheel, 1.0, 10.0);
+    }
+
+    igSliderFloat("zoom", zoom, 1.0f, 10.0f, "%.3f", 0);
+}
+
 void
 guiUpdate(AppState *state, f32 framerate)
 {
@@ -518,17 +541,7 @@ guiUpdate(AppState *state, f32 framerate)
 
         igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / framerate, framerate);
 
-        ImVec4 tint_color = {1, 1, 1, 1};
-        ImVec4 border_color = {1, 1, 1, 1};
-
-        f32 z = 0.5f * (1 - 1 / state->zoom);
-        ImVec2 uv0 = {z, z};
-        ImVec2 uv1 = {1 - z, 1 - z};
-
-        igImage((void *)(iptr)state->image.texture, state->image.size, uv0, uv1, tint_color,
-                border_color);
-
-        igSliderFloat("zoom", &state->zoom, 1.0f, 10.0f, "%.3f", 0);
+        guiImageView(&state->image, &state->zoom);
 
         igEnd();
     }

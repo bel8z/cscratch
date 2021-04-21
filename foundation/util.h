@@ -122,5 +122,8 @@ cf__rotateReversal(void *array, usize size, usize pos, u8 *swap_buf, usize swap_
 
 //------------------------------------------------------------------------------
 
+#define cfClamp(val, min_val, max_val) \
+    ((val) < (min_val) ? (min_val) : (val) > (max_val) ? (max_val) : (val))
+
 #define UTIL_H
 #endif
