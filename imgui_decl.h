@@ -16,7 +16,7 @@
 #endif // defined(_MSC_VER)
 
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
-#include "ext/cimgui/cimgui.h"
+#include "cimgui.h"
 
 #if defined(_MSC_VER)
 #if defined(__clang__)

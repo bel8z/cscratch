@@ -21,7 +21,7 @@ include(CPack)
 #-------------------
 
 set(EXT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext)
-set(IMGUI_DIR ${EXT_DIR}/cimgui)
+set(IMGUI_DIR ${EXT_DIR}/cimgui-1.82dock)
 set(BACKEND_DIR ${IMGUI_DIR}/imgui/backends)
 set(GL3W_DIR ${IMGUI_DIR}/imgui/examples/libs/gl3w)
 set(SDL2_DIR ${EXT_DIR}/SDL2-2.0.14)
