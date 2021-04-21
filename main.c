@@ -52,6 +52,16 @@ typedef struct AppPaths
     char data[1024];
 } AppPaths;
 
+typedef struct AppWindows
+{
+    bool demo;
+    bool metrics;
+    bool stats;
+    bool fonts;
+    bool style;
+
+} AppWindows;
+
 typedef struct AppState
 {
     cfAllocator *alloc;
@@ -59,7 +69,7 @@ typedef struct AppState
     FontOptions font_opts;
     bool rebuild_fonts;
 
-    bool show_demo_window;
+    AppWindows windows;
     ImVec4 clear_color;
 
     Image image;
@@ -67,43 +77,6 @@ typedef struct AppState
     ImVec2 uv1;
 
 } AppState;
-
-// Simple helper function to load an image into a OpenGL texture with common settings
-bool
-imageLoadFromFile(Image *image, const char *filename)
-{
-    // Load from file
-    i32 image_width = 0;
-    i32 image_height = 0;
-    u8 *image_data = stbi_load(filename, &image_width, &image_height, NULL, 4);
-    if (!image_data) return false;
-
-    // Create a OpenGL texture identifier
-    GLuint image_texture;
-    glGenTextures(1, &image_texture);
-    glBindTexture(GL_TEXTURE_2D, image_texture);
-
-    // Setup filtering parameters for display
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                    GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
-
-    // Upload pixels into texture
-#if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-#endif
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
-                 image_data);
-    stbi_image_free(image_data);
-
-    image->texture = image_texture;
-    image->size.x = (f32)image_width;
-    image->size.y = (f32)image_height;
-
-    return true;
-}
 
 static CF_ALLOCATOR_FUNC(appRealloc);
 static CF_ALLOC_STATS_FUNC(appAllocStats);
@@ -115,6 +88,9 @@ static bool guiBeforeUpdate(AppState *state);
 static void guiUpdate(AppState *state, f32 framerate);
 static void guiSetupStyle(f32 dpi);
 static void guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path);
+
+// Simple helper function to load an image into a OpenGL texture with common settings
+static bool imageLoadFromFile(Image *image, const char *filename);
 
 //------------------------------------------------------------------------------
 // SDL2 backend declarations
@@ -236,7 +212,14 @@ main(int argc, char **argv)
                       .oversample_h = 1,
                       .oversample_v = 1,
                       .rasterizer_multiply = 1.0f},
-        .show_demo_window = true,
+        .windows =
+            {
+                .demo = false,
+                .fonts = false,
+                .metrics = false,
+                .stats = false,
+                .style = false,
+            },
         .clear_color = {0.45f, 0.55f, 0.60f, 1.00f},
         .uv0 = (ImVec2){0, 0},
         .uv1 = (ImVec2){1, 1},
@@ -431,9 +414,9 @@ guiBeforeUpdate(AppState *state)
 }
 
 static void
-guiShowAllocStats(cfAllocatorStats const *stats)
+guiShowAllocStats(cfAllocatorStats const *stats, bool *p_open)
 {
-    igBegin("Allocation stats", NULL, 0);
+    igBegin("Allocation stats", p_open, 0);
     igLabelText("# of allocations", "%zu", stats->count);
     igLabelText("Size of allocations", "%zu", stats->size);
     igEnd();
@@ -506,7 +489,7 @@ guiUpdate(AppState *state, f32 framerate)
 {
     // 1. Show the big demo window (Most of the sample code is in igShowDemoWindow()! You
     // can browse its code to learn more about Dear ImGui!).
-    if (state->show_demo_window) igShowDemoWindow(&state->show_demo_window);
+    if (state->windows.demo) igShowDemoWindow(&state->windows.demo);
 
     // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created
     // a named window.
@@ -521,7 +504,7 @@ guiUpdate(AppState *state, f32 framerate)
         igText("This is some useful text.");
 
         // Edit bools storing our window open/close state
-        igCheckbox("Demo Window", &state->show_demo_window);
+        igCheckbox("Demo Window", &state->windows.demo);
 
         // Edit 1 float using a slider from 0.0f to 1.0f
         igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
@@ -551,10 +534,47 @@ guiUpdate(AppState *state, f32 framerate)
         igEnd();
     }
 
-    state->rebuild_fonts = guiShowFontOptions(&state->font_opts, NULL);
+    if (state->windows.fonts)
+    {
+        state->rebuild_fonts = guiShowFontOptions(&state->font_opts, &state->windows.fonts);
+    }
 
-    cfAllocatorStats stats = CF_ALLOC_STATS(state->alloc);
-    guiShowAllocStats(&stats);
+    if (state->windows.stats)
+    {
+        cfAllocatorStats stats = CF_ALLOC_STATS(state->alloc);
+        guiShowAllocStats(&stats, &state->windows.stats);
+    }
+
+    if (state->windows.style)
+    {
+        igBegin("Style Editor", &state->windows.style, 0);
+        igShowStyleEditor(igGetStyle());
+        igEnd();
+    }
+
+    if (state->windows.metrics)
+    {
+        igShowMetricsWindow(&state->windows.metrics);
+    }
+
+    if (igBeginMainMenuBar())
+    {
+        if (igBeginMenu("File", true)) igEndMenu();
+
+        if (igBeginMenu("Windows", true))
+        {
+            igMenuItemBoolPtr("Style editor", NULL, &state->windows.style, true);
+            igMenuItemBoolPtr("Font options", NULL, &state->windows.fonts, true);
+            igSeparator();
+            igMenuItemBoolPtr("Stats", NULL, &state->windows.stats, true);
+            igMenuItemBoolPtr("Metrics", NULL, &state->windows.metrics, true);
+            igSeparator();
+            igMenuItemBoolPtr("Demo window", NULL, &state->windows.demo, true);
+            igEndMenu();
+        }
+
+        igEndMainMenuBar();
+    }
 }
 
 static void
@@ -707,4 +727,39 @@ guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path)
     {
         ImFontAtlas_AddFontDefault(fonts, NULL);
     }
+}
+
+bool
+imageLoadFromFile(Image *image, const char *filename)
+{
+    // Load from file
+    i32 width = 0;
+    i32 height = 0;
+    u8 *data = stbi_load(filename, &width, &height, NULL, 4);
+    if (!data) return false;
+
+    // Create a OpenGL texture identifier
+    GLuint image_texture;
+    glGenTextures(1, &image_texture);
+    glBindTexture(GL_TEXTURE_2D, image_texture);
+
+    // Setup filtering parameters for display
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // These are required on WebGL for non power-of-two textures
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Upload pixels into texture
+#if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    stbi_image_free(data);
+
+    image->texture = image_texture;
+    image->size.x = (f32)width;
+    image->size.y = (f32)height;
+
+    return true;
 }
