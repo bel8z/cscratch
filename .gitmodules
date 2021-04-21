@@ -1,4 +1,0 @@
-[submodule "ext/cimgui"]
-	path = ext/cimgui
-	url = https://github.com/cimgui/cimgui.git
-	branch = docking_inter
