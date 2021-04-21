@@ -73,8 +73,7 @@ typedef struct AppState
     ImVec4 clear_color;
 
     Image image;
-    ImVec2 uv0;
-    ImVec2 uv1;
+    f32 zoom;
 
 } AppState;
 
@@ -221,8 +220,7 @@ main(int argc, char **argv)
                 .style = false,
             },
         .clear_color = {0.45f, 0.55f, 0.60f, 1.00f},
-        .uv0 = (ImVec2){0, 0},
-        .uv1 = (ImVec2){1, 1},
+        .zoom = 1.0f,
     };
 
     char buffer[1024];
@@ -523,13 +521,14 @@ guiUpdate(AppState *state, f32 framerate)
         ImVec4 tint_color = {1, 1, 1, 1};
         ImVec4 border_color = {1, 1, 1, 1};
 
-        igImage((void *)(iptr)state->image.texture, state->image.size, state->uv0, state->uv1,
-                tint_color, border_color);
+        f32 z = 0.5f * (1 - 1 / state->zoom);
+        ImVec2 uv0 = {z, z};
+        ImVec2 uv1 = {1 - z, 1 - z};
 
-        igSliderFloat("uv0.x", &state->uv0.x, 0.0f, 1.0f, "%.3f", 0);
-        igSliderFloat("uv0.y", &state->uv0.y, 0.0f, 1.0f, "%.3f", 0);
-        igSliderFloat("uv1.x", &state->uv1.x, 0.0f, 1.0f, "%.3f", 0);
-        igSliderFloat("uv1.y", &state->uv1.y, 0.0f, 1.0f, "%.3f", 0);
+        igImage((void *)(iptr)state->image.texture, state->image.size, uv0, uv1, tint_color,
+                border_color);
+
+        igSliderFloat("zoom", &state->zoom, 1.0f, 10.0f, "%.3f", 0);
 
         igEnd();
     }
