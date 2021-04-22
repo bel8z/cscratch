@@ -35,7 +35,7 @@ typedef struct FontOptions
     f32 rasterizer_multiply;
     // Freetype only
     bool freetype_enabled;
-    ImGuiFreeTypeBuilderFlags freetype_flags;
+    u32 freetype_flags;
     // Stb only
     i32 oversample_h;
     i32 oversample_v;
@@ -453,22 +453,22 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
     if (state->freetype_enabled)
     {
 
-        rebuild_fonts |= igCheckboxFlagsIntPtr("NoHinting", &state->freetype_flags,
-                                               ImGuiFreeTypeBuilderFlags_NoHinting);
-        rebuild_fonts |= igCheckboxFlagsIntPtr("NoAutoHint", &state->freetype_flags,
-                                               ImGuiFreeTypeBuilderFlags_NoAutoHint);
-        rebuild_fonts |= igCheckboxFlagsIntPtr("ForceAutoHint", &state->freetype_flags,
-                                               ImGuiFreeTypeBuilderFlags_ForceAutoHint);
-        rebuild_fonts |= igCheckboxFlagsIntPtr("LightHinting", &state->freetype_flags,
-                                               ImGuiFreeTypeBuilderFlags_LightHinting);
-        rebuild_fonts |= igCheckboxFlagsIntPtr("MonoHinting", &state->freetype_flags,
-                                               ImGuiFreeTypeBuilderFlags_MonoHinting);
+        rebuild_fonts |= igCheckboxFlagsUintPtr("NoHinting", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_NoHinting);
+        rebuild_fonts |= igCheckboxFlagsUintPtr("NoAutoHint", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_NoAutoHint);
+        rebuild_fonts |= igCheckboxFlagsUintPtr("ForceAutoHint", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_ForceAutoHint);
+        rebuild_fonts |= igCheckboxFlagsUintPtr("LightHinting", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_LightHinting);
+        rebuild_fonts |= igCheckboxFlagsUintPtr("MonoHinting", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_MonoHinting);
         rebuild_fonts |=
-            igCheckboxFlagsIntPtr("Bold", &state->freetype_flags, ImGuiFreeTypeBuilderFlags_Bold);
-        rebuild_fonts |= igCheckboxFlagsIntPtr("Oblique", &state->freetype_flags,
-                                               ImGuiFreeTypeBuilderFlags_Oblique);
-        rebuild_fonts |= igCheckboxFlagsIntPtr("Monochrome", &state->freetype_flags,
-                                               ImGuiFreeTypeBuilderFlags_Monochrome);
+            igCheckboxFlagsUintPtr("Bold", &state->freetype_flags, ImGuiFreeTypeBuilderFlags_Bold);
+        rebuild_fonts |= igCheckboxFlagsUintPtr("Oblique", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_Oblique);
+        rebuild_fonts |= igCheckboxFlagsUintPtr("Monochrome", &state->freetype_flags,
+                                                ImGuiFreeTypeBuilderFlags_Monochrome);
     }
     else
     {
