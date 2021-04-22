@@ -194,7 +194,7 @@ main(int argc, char **argv)
                 .style = false,
             },
         .clear_color = {0.45f, 0.55f, 0.60f, 1.00f},
-        .zoom = 1.0f,
+        .zoom = 1.0,
     };
 
     appInitPaths(&state.paths);
@@ -486,12 +486,20 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
 static void
 guiImageView(Image const *image, f32 *zoom)
 {
-    ImVec4 tint_color = {1, 1, 1, 1};
-    ImVec4 border_color = {1, 1, 1, 1};
+    f32 const min_zoom = 1.0f;
+    f32 const max_zoom = 10.0f;
 
-    f32 z = 0.5f * (1 - 1 / *zoom);
-    ImVec2 uv0 = {z, z};
-    ImVec2 uv1 = {1 - z, 1 - z};
+    ImVec4 const tint_color = {1, 1, 1, 1};
+    ImVec4 const border_color = {1, 1, 1, 1};
+
+    // NOTE (Matteo): in case of more precision required
+    // i32 v = (i32)(1000 / *zoom);
+    // i32 d = (1000 - v) / 2;
+    // f32 uv = (f32)d * 0.001f;
+
+    f32 uv = 0.5f * (1 - 1 / *zoom);
+    ImVec2 uv0 = {uv, uv};
+    ImVec2 uv1 = {1 - uv, 1 - uv};
 
     igImage((void *)(iptr)image->texture, image->size, uv0, uv1, tint_color, border_color);
 
@@ -499,10 +507,10 @@ guiImageView(Image const *image, f32 *zoom)
 
     if (igIsItemHovered(0) && io->KeyCtrl)
     {
-        *zoom = cfClamp(*zoom + io->MouseWheel, 1.0, 10.0);
+        *zoom = cfClamp(*zoom + io->MouseWheel, min_zoom, max_zoom);
     }
 
-    igSliderFloat("zoom", zoom, 1.0f, 10.0f, "%.3f", 0);
+    igSliderFloat("zoom", zoom, min_zoom, max_zoom, "%.3f", 0);
 }
 
 void
