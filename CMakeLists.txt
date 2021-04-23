@@ -65,7 +65,7 @@ add_library(backend STATIC ${BACKEND_SOURCES})
 
 target_compile_definitions(backend PRIVATE IMGUI_IMPL_OPENGL_LOADER_GL3W)
 
-target_include_directories(backend PRIVATE 
+target_include_directories(backend PUBLIC 
     ${IMGUI_DIR}/imgui
     ${GL3W_DIR})
 
@@ -90,7 +90,7 @@ target_compile_features(${PROJECT_NAME} PUBLIC c_std_11)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${IMGUI_DIR} ${GL3W_DIR})
 
-target_link_libraries(${PROJECT_NAME} 
+target_link_libraries(${PROJECT_NAME} PUBLIC
     foundation
     backend)
 
