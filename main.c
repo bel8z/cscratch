@@ -21,10 +21,17 @@
 
 #include <GL/gl3w.h> // Initialize with gl3wInit()
 
+#define SDL_BACKEND 0
+
+#if SDL_BACKEND
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
+#else
+#include <GLFW/glfw3.h>
+#endif
 
 #include <stdio.h>
+#include <stdlib.h>
 
 //------------------------------------------------------------------------------
 // Local data & functions
@@ -94,6 +101,7 @@ static void guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path);
 // Simple helper function to load an image into a OpenGL texture with common settings
 static bool imageLoadFromFile(Image *image, const char *filename);
 
+#if SDL_BACKEND
 //------------------------------------------------------------------------------
 // SDL2 backend declarations
 //------------------------------------------------------------------------------
@@ -102,6 +110,28 @@ extern bool ImGui_ImplSDL2_InitForOpenGL(SDL_Window *window, void *sdl_gl_contex
 extern void ImGui_ImplSDL2_Shutdown();
 extern void ImGui_ImplSDL2_NewFrame(SDL_Window *window);
 extern bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event *event);
+#else
+//------------------------------------------------------------------------------
+// GLFW backend declarations
+//------------------------------------------------------------------------------
+
+extern bool ImGui_ImplGlfw_InitForOpenGL(GLFWwindow *window, bool install_callbacks);
+extern void ImGui_ImplGlfw_Shutdown();
+extern void ImGui_ImplGlfw_NewFrame();
+extern void ImGui_ImplGlfw_MouseButtonCallback(GLFWwindow *window, int button, int action,
+                                               int mods);
+extern void ImGui_ImplGlfw_ScrollCallback(GLFWwindow *window, double xoffset, double yoffset);
+extern void ImGui_ImplGlfw_KeyCallback(GLFWwindow *window, int key, int scancode, int action,
+                                       int mods);
+extern void ImGui_ImplGlfw_CharCallback(GLFWwindow *window, unsigned int c);
+extern void ImGui_ImplGlfw_MonitorCallback(GLFWmonitor *monitor, int event);
+
+static void
+glfw_error_callback(int error, const char *description)
+{
+    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+}
+#endif
 
 //------------------------------------------------------------------------------
 // OpenGL3 backend declarations
@@ -126,6 +156,7 @@ main(int argc, char **argv)
     CF_UNUSED(argc);
     CF_UNUSED(argv);
 
+#if SDL_BACKEND
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
     {
@@ -162,6 +193,35 @@ main(int argc, char **argv)
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
+
+#else
+    // Setup window
+    glfwSetErrorCallback(glfw_error_callback);
+    if (!glfwInit()) return 1;
+
+        // Decide GL+GLSL versions
+#ifdef __APPLE__
+    // GL 3.2 + GLSL 150
+    const char *glsl_version = "#version 150";
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // 3.2+ only
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);           // Required on Mac
+#else
+    // GL 3.0 + GLSL 130
+    const char *glsl_version = "#version 130";
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
+    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
+#endif
+
+    // Create window with graphics context
+    GLFWwindow *window = glfwCreateWindow(1280, 720, "Dear ImGui template", NULL, NULL);
+    if (window == NULL) return 1;
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(1); // Enable vsync
+#endif
 
     // Initialize OpenGL loader
     if (gl3wInit() != 0)
@@ -213,19 +273,30 @@ main(int argc, char **argv)
     io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
 
     // Setup DPI handling
+#if SDL_BACKEND
     f32 ddpi, hdpi, vdpi;
     if (SDL_GetDisplayDPI(0, &ddpi, &hdpi, &vdpi) != 0)
     {
         fprintf(stderr, "Failed to obtain DPI information for display 0: %s\n", SDL_GetError());
         return -3;
     }
+#else
+    f32 win_x_scale, win_y_scale;
+    glfwGetWindowContentScale(window, &win_x_scale, &win_y_scale);
+    // HACK How do I get the platform base DPI?
+    f32 ddpi = 96.0f * win_x_scale;
+#endif
 
     // Setup Dear ImGui style
     guiSetupStyle(ddpi);
     guiSetupFonts(io->Fonts, ddpi, state.paths.data);
 
-    // Setup Platform/Renderer backends
+// Setup Platform/Renderer backends
+#if SDL_BACKEND
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
+#else
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+#endif
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     // Main loop
@@ -240,6 +311,8 @@ main(int argc, char **argv)
         // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your
         // main application. Generally you may always pass all inputs to dear imgui, and hide
         // them from your application based on those two flags.
+
+#if SDL_BACKEND
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
@@ -249,6 +322,10 @@ main(int argc, char **argv)
                 event.window.windowID == SDL_GetWindowID(window))
                 done = true;
         }
+#else
+        done = glfwWindowShouldClose(window);
+        glfwPollEvents();
+#endif
 
         if (guiBeforeUpdate(&state))
         {
@@ -259,7 +336,12 @@ main(int argc, char **argv)
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
+#if SDL_BACKEND
         ImGui_ImplSDL2_NewFrame(window);
+#else
+        ImGui_ImplGlfw_NewFrame();
+
+#endif
         igNewFrame();
 
         // Application frame update
@@ -267,7 +349,16 @@ main(int argc, char **argv)
 
         // Rendering
         igRender();
+
+#if SDL_BACKEND
         glViewport(0, 0, (i32)io->DisplaySize.x, (i32)io->DisplaySize.y);
+#else
+        int display_w, display_h;
+        glfwGetFramebufferSize(window, &display_w, &display_h);
+        glViewport(0, 0, display_w, display_h);
+
+#endif
+
         glClearColor(state.clear_color.x * state.clear_color.w,
                      state.clear_color.y * state.clear_color.w,
                      state.clear_color.z * state.clear_color.w, state.clear_color.w);
@@ -279,24 +370,46 @@ main(int argc, char **argv)
         // make it easier to paste this code elsewhere.)
         if (io->ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
+#if SDL_BACKEND
             SDL_Window *backup_current_window = SDL_GL_GetCurrentWindow();
             SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
             igUpdatePlatformWindows();
             igRenderPlatformWindowsDefault(NULL, NULL);
             SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
+
+#else
+            GLFWwindow *backup_current_context = glfwGetCurrentContext();
+            igUpdatePlatformWindows();
+            igRenderPlatformWindowsDefault(NULL, NULL);
+            glfwMakeContextCurrent(backup_current_context);
+
+#endif
         }
 
+#if SDL_BACKEND
         SDL_GL_SwapWindow(window);
+#else
+        glfwSwapBuffers(window);
+#endif
     }
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
+#if SDL_BACKEND
     ImGui_ImplSDL2_Shutdown();
+#else
+    ImGui_ImplGlfw_Shutdown();
+#endif
     igDestroyContext(imgui);
 
+#if SDL_BACKEND
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();
+#else
+    glfwDestroyWindow(window);
+    glfwTerminate();
+#endif
 
     return 0;
 }
@@ -321,14 +434,14 @@ CF_ALLOCATOR_FUNC(appRealloc)
             stats->size += new_size;
         }
 
-        return SDL_realloc(memory, new_size);
+        return realloc(memory, new_size);
     }
 
     if (memory)
     {
         stats->count -= 1;
         stats->size -= old_size;
-        SDL_free(memory);
+        free(memory);
     }
 
     return NULL;
@@ -343,12 +456,12 @@ CF_ALLOC_STATS_FUNC(appAllocStats)
 void
 appInitPaths(AppPaths *paths)
 {
-    char *p = SDL_GetBasePath();
+    char *p = "./"; // SDL_GetBasePath();
 
     snprintf(paths->base, 1024, "%s", p);
     snprintf(paths->data, 1024, "%sdata/", p);
 
-    SDL_free(p);
+    // SDL_free(p);
 }
 
 //------------------------------------------------------------------------------

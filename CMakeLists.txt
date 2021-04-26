@@ -26,6 +26,7 @@ set(BACKEND_DIR ${IMGUI_DIR}/imgui/backends)
 set(GL3W_DIR ${IMGUI_DIR}/imgui/examples/libs/gl3w)
 set(SDL2_DIR ${EXT_DIR}/SDL2-2.0.14)
 set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
+set(GLFW_DIR ${EXT_DIR}/glfw-3)
 
 #-------------------
 
@@ -47,6 +48,9 @@ set(IMGUI_FREETYPE "yes" CACHE STRING "Build with freetype library" FORCE)
 set(FREETYPE_PATH ${FREETYPE_DIR})
 add_subdirectory(${IMGUI_DIR})
 
+
+add_subdirectory(${GLFW_DIR})
+
 add_subdirectory(foundation)
 
 find_package(OpenGL REQUIRED)
@@ -58,6 +62,7 @@ find_package(SDL2 REQUIRED PATHS ${SDL2_DIR})
 
 set(BACKEND_SOURCES 
     ${BACKEND_DIR}/imgui_impl_sdl.cpp
+    ${BACKEND_DIR}/imgui_impl_glfw.cpp
     ${BACKEND_DIR}/imgui_impl_opengl3.cpp
     ${GL3W_DIR}/GL/gl3w.c)
 
@@ -72,6 +77,7 @@ target_include_directories(backend PUBLIC
 target_link_libraries(backend PUBLIC 
     cimgui 
     SDL2::SDL2-static
+    glfw
     ${OPENGL_gl_LIBRARY})
 
 #-----------------------
