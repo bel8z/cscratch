@@ -21,8 +21,6 @@
 
 #include <GL/gl3w.h> // Initialize with gl3wInit()
 
-#define SDL_BACKEND 0
-
 #if SDL_BACKEND
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
@@ -89,7 +87,7 @@ typedef struct AppState
 
 static CF_ALLOCATOR_FUNC(appRealloc);
 static CF_ALLOC_STATS_FUNC(appAllocStats);
-static void appInitPaths(AppPaths *paths);
+static void appInitPaths(AppPaths *paths, char *cmd_line);
 
 static void *guiAlloc(usize size, void *state);
 static void guiFree(void *mem, void *state);
@@ -257,7 +255,7 @@ main(int argc, char **argv)
         .zoom = 1.0,
     };
 
-    appInitPaths(&state.paths);
+    appInitPaths(&state.paths, argv[0]);
 
     char buffer[1024];
     snprintf(buffer, 1024, "%sOpaque.png", state.paths.data);
@@ -454,14 +452,25 @@ CF_ALLOC_STATS_FUNC(appAllocStats)
 }
 
 void
-appInitPaths(AppPaths *paths)
+appInitPaths(AppPaths *paths, char *cmd_line)
 {
-    char *p = "./"; // SDL_GetBasePath();
+    CF_UNUSED(cmd_line);
+
+#if SDL_BACKEND
+    char *p = SDL_GetBasePath();
 
     snprintf(paths->base, 1024, "%s", p);
     snprintf(paths->data, 1024, "%sdata/", p);
 
-    // SDL_free(p);
+    SDL_free(p);
+
+#else
+    // TODO (Matteo): Use the command line or a platform specific function to
+    // retrieve the executable path
+    char *p = "./";
+    snprintf(paths->base, 1024, "%s", p);
+    snprintf(paths->data, 1024, "%sdata/", p);
+#endif
 }
 
 //------------------------------------------------------------------------------

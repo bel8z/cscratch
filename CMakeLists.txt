@@ -30,6 +30,8 @@ set(GLFW_DIR ${EXT_DIR}/glfw-3)
 
 #-------------------
 
+option(BACKEND_SDL OFF)
+
 if (WIN32)
     add_definitions("-DIMGUI_IMPL_API=extern \"C\" __declspec\(dllexport\)")
 else(WIN32)
@@ -48,23 +50,25 @@ set(IMGUI_FREETYPE "yes" CACHE STRING "Build with freetype library" FORCE)
 set(FREETYPE_PATH ${FREETYPE_DIR})
 add_subdirectory(${IMGUI_DIR})
 
-
 add_subdirectory(${GLFW_DIR})
 
 add_subdirectory(foundation)
 
 find_package(OpenGL REQUIRED)
-find_package(SDL2 REQUIRED PATHS ${SDL2_DIR})
 
 #-----------------------
 # IMGUI backend library
 #-----------------------
 
 set(BACKEND_SOURCES 
-    ${BACKEND_DIR}/imgui_impl_sdl.cpp
-    ${BACKEND_DIR}/imgui_impl_glfw.cpp
     ${BACKEND_DIR}/imgui_impl_opengl3.cpp
     ${GL3W_DIR}/GL/gl3w.c)
+
+if (BACKEND_SDL)
+    list(APPEND BACKEND_SOURCES ${BACKEND_DIR}/imgui_impl_sdl.cpp)
+else()
+    list(APPEND BACKEND_SOURCES ${BACKEND_DIR}/imgui_impl_glfw.cpp)
+endif()
 
 add_library(backend STATIC ${BACKEND_SOURCES})
 
@@ -76,9 +80,15 @@ target_include_directories(backend PUBLIC
 
 target_link_libraries(backend PUBLIC 
     cimgui 
-    SDL2::SDL2-static
-    glfw
     ${OPENGL_gl_LIBRARY})
+
+if(BACKEND_SDL)
+    find_package(SDL2 REQUIRED PATHS ${SDL2_DIR})
+    target_link_libraries(backend PUBLIC SDL2::SDL2-static)
+else()
+    target_link_libraries(backend PUBLIC glfw)
+endif()
+
 
 #-----------------------
 # Main executable
@@ -87,7 +97,14 @@ target_link_libraries(backend PUBLIC
 set(SOURCES main.c)
 set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
 
-add_executable( ${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+if(BACKEND_SDL)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC "SDL_BACKEND=1")
+else()
+    target_compile_definitions(${PROJECT_NAME} PUBLIC "SDL_BACKEND=0")
+endif()
+
 
 include(cmake/CompileFlags.cmake)
 set_c_compile_flags(${PROJECT_NAME})
