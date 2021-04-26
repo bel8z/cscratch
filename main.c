@@ -298,6 +298,7 @@ main(int argc, char **argv)
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     // Main loop
+#if SDL_BACKEND
     bool done = false;
     while (!done)
     {
@@ -310,7 +311,6 @@ main(int argc, char **argv)
         // main application. Generally you may always pass all inputs to dear imgui, and hide
         // them from your application based on those two flags.
 
-#if SDL_BACKEND
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
@@ -321,7 +321,8 @@ main(int argc, char **argv)
                 done = true;
         }
 #else
-        done = glfwWindowShouldClose(window);
+    while (!glfwWindowShouldClose(window))
+    {
         glfwPollEvents();
 #endif
 
@@ -338,7 +339,6 @@ main(int argc, char **argv)
         ImGui_ImplSDL2_NewFrame(window);
 #else
         ImGui_ImplGlfw_NewFrame();
-
 #endif
         igNewFrame();
 
@@ -354,13 +354,13 @@ main(int argc, char **argv)
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-
 #endif
 
         glClearColor(state.clear_color.x * state.clear_color.w,
                      state.clear_color.y * state.clear_color.w,
                      state.clear_color.z * state.clear_color.w, state.clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
+
         ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
 
         // Update and Render additional Platform Windows
@@ -380,7 +380,6 @@ main(int argc, char **argv)
             igUpdatePlatformWindows();
             igRenderPlatformWindowsDefault(NULL, NULL);
             glfwMakeContextCurrent(backup_current_context);
-
 #endif
         }
 
@@ -463,7 +462,6 @@ appInitPaths(AppPaths *paths, char *cmd_line)
     snprintf(paths->data, 1024, "%sdata/", p);
 
     SDL_free(p);
-
 #else
     // TODO (Matteo): Use the command line or a platform specific function to
     // retrieve the executable path
@@ -509,7 +507,7 @@ guiBeforeUpdate(AppState *state)
 
     ImGuiIO *io = igGetIO();
     ImFontAtlas *fonts = io->Fonts;
-    FontOptions *font_opts = &state->font_opts;
+    FontOptions const *font_opts = &state->font_opts;
 
     for (i32 i = 0; i < fonts->ConfigData.Size; ++i)
     {
