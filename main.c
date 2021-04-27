@@ -421,13 +421,11 @@ void *
 guiAlloc(usize size, void *state)
 {
     cfAllocator *alloc = state;
-    usize *mem = CF_ALLOCATE(alloc, size + sizeof(usize));
-    if (mem)
-    {
-        *mem = size;
-        ++mem;
-    }
-    return mem;
+    usize *buf = CF_ALLOCATE(alloc, size + sizeof(*buf));
+
+    if (buf) *(buf++) = size;
+
+    return buf;
 }
 
 void
@@ -438,7 +436,7 @@ guiFree(void *mem, void *state)
         cfAllocator *alloc = state;
         usize *buf = mem;
         buf--;
-        CF_DEALLOCATE(alloc, buf, *buf);
+        CF_DEALLOCATE(alloc, buf, *buf + sizeof(*buf));
     }
 }
 

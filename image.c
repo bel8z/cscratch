@@ -116,13 +116,9 @@ stbiRealloc(void *mem, usize size)
     }
 
     usize new_size = size + sizeof(*old_buf);
-    usize *new_buf = g_alloc->reallocate(g_alloc->state, old_buf, old_size, new_size);
+    usize *new_buf = CF_REALLOCATE(g_alloc, old_buf, old_size, new_size);
 
-    if (new_buf)
-    {
-        *new_buf = size;
-        ++new_buf;
-    }
+    if (new_buf) *(new_buf++) = size;
 
     return new_buf;
 }
@@ -134,7 +130,7 @@ stbiFree(void *mem)
     {
         usize *buf = mem;
         --buf;
-        CF_DEALLOCATE(g_alloc, buf, *buf);
+        CF_DEALLOCATE(g_alloc, buf, *buf + sizeof(*buf));
     }
 }
 
