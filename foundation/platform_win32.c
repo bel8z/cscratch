@@ -58,7 +58,7 @@ cfPlatformShutdown(cfPlatform *platform)
     CF_ASSERT(heap_stats->count == 0, "Potential memory leak");
 
     // TODO (Matteo): Check allocation size tracking
-    // CF_ASSERT(heap_stats->size == 0, "Potential memory leak");
+    CF_ASSERT(heap_stats->size == 0, "Potential memory leak");
 
     HeapFree(GetProcessHeap(), 0, heap_stats);
 }
@@ -91,24 +91,38 @@ VM_RELEASE_FUNC(win32VmRelease)
 
 CF_ALLOCATOR_FUNC(win32Alloc)
 {
+    // TODO (Matteo): New memory should be cleared by default?
+
     cfAllocatorStats *stats = state;
 
     if (new_size)
     {
-        if (memory && old_size)
+        void *new_memory = NULL;
+
+        if (memory)
         {
-            stats->size += new_size - old_size;
-            return HeapReAlloc(GetProcessHeap(), 0, memory, new_size);
+            CF_ASSERT(old_size > 0, "Reallocating memory but old size not given");
+            new_memory = HeapReAlloc(GetProcessHeap(), 0, memory, new_size);
+        }
+        else
+        {
+            CF_ASSERT(old_size == 0, "Allocating new memory but old size given");
+            new_memory = HeapAlloc(GetProcessHeap(), 0, new_size);
         }
 
-        stats->count++;
-        stats->size += new_size;
+        if (new_memory)
+        {
+            stats->size += new_size - old_size;
+            stats->count += (old_size == 0);
+        }
 
-        return HeapAlloc(GetProcessHeap(), 0, new_size);
+        return new_memory;
     }
 
     if (memory)
     {
+        CF_ASSERT(old_size > 0, "Freeing memory but size not given");
+
         stats->count -= 1;
         stats->size -= old_size;
         HeapFree(GetProcessHeap(), 0, memory);
