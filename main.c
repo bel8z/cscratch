@@ -5,19 +5,7 @@
 
 #include "imgui_decl.h"
 
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wsign-conversion"
-#pragma clang diagnostic ignored "-Wsign-compare"
-#pragma clang diagnostic ignored "-Wimplicit-int-conversion"
-#endif
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "ext/stb/stb_image.h"
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
+#include "image.h"
 
 #include <GL/gl3w.h> // Initialize with gl3wInit()
 
@@ -45,12 +33,6 @@ typedef struct FontOptions
     i32 oversample_h;
     i32 oversample_v;
 } FontOptions;
-
-typedef struct Image
-{
-    GLuint texture;
-    ImVec2 size;
-} Image;
 
 typedef struct AppPaths
 {
@@ -95,9 +77,6 @@ static bool guiBeforeUpdate(AppState *state);
 static void guiUpdate(AppState *state, f32 framerate);
 static void guiSetupStyle(f32 dpi);
 static void guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path);
-
-// Simple helper function to load an image into a OpenGL texture with common settings
-static bool imageLoadFromFile(Image *image, const char *filename);
 
 #if SDL_BACKEND
 //------------------------------------------------------------------------------
@@ -259,7 +238,7 @@ main(int argc, char **argv)
 
     char buffer[1024];
     snprintf(buffer, 1024, "%sOpaque.png", state.paths.data);
-    imageLoadFromFile(&state.image, buffer);
+    imageLoadFromFile(&state.image, buffer, state.alloc);
 
     // Setup Dear ImGui context
     // IMGUI_CHECKVERSION();
@@ -620,8 +599,9 @@ guiImageView(Image const *image, f32 *zoom)
     f32 uv = 0.5f * (1 - 1 / *zoom);
     ImVec2 uv0 = {uv, uv};
     ImVec2 uv1 = {1 - uv, 1 - uv};
+    ImVec2 size = {(f32)image->width, (f32)image->height};
 
-    igImage((void *)(iptr)image->texture, image->size, uv0, uv1, tint_color, border_color);
+    igImage((void *)(iptr)image->texture, size, uv0, uv1, tint_color, border_color);
 
     ImGuiIO *io = igGetIO();
 
@@ -867,39 +847,4 @@ guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path)
     {
         ImFontAtlas_AddFontDefault(fonts, NULL);
     }
-}
-
-bool
-imageLoadFromFile(Image *image, const char *filename)
-{
-    // Load from file
-    i32 width = 0;
-    i32 height = 0;
-    u8 *data = stbi_load(filename, &width, &height, NULL, 4);
-    if (!data) return false;
-
-    // Create a OpenGL texture identifier
-    GLuint image_texture;
-    glGenTextures(1, &image_texture);
-    glBindTexture(GL_TEXTURE_2D, image_texture);
-
-    // Setup filtering parameters for display
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // These are required on WebGL for non power-of-two textures
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    // Upload pixels into texture
-#if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-#endif
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    stbi_image_free(data);
-
-    image->texture = image_texture;
-    image->size.x = (f32)width;
-    image->size.y = (f32)height;
-
-    return true;
 }
