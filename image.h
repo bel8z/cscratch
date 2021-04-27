@@ -9,15 +9,24 @@
 // * Implement a file queue for browsing
 // * Implement image rotation
 
+typedef enum ImageFilter
+{
+    ImageFilter_Nearest,
+    ImageFilter_Linear,
+} ImageFilter;
+
 typedef struct Image
 {
     u32 texture;
     i32 width;
     i32 height;
+    ImageFilter filter;
 } Image;
 
 // Simple helper function to load an image into a OpenGL texture with common settings
 bool imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc);
+
+void imageSetFilter(Image *image, ImageFilter filter);
 
 #define IMAGE_H
 #endif

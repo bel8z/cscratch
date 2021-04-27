@@ -584,7 +584,7 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
 }
 
 static void
-guiImageView(Image const *image, f32 *zoom)
+guiImageView(Image *image, f32 *zoom)
 {
     f32 const min_zoom = 1.0f;
     f32 const max_zoom = 10.0f;
@@ -612,6 +612,12 @@ guiImageView(Image const *image, f32 *zoom)
     }
 
     igSliderFloat("zoom", zoom, min_zoom, max_zoom, "%.3f", 0);
+
+    // TODO (Matteo): Maybe this can get cleaner?
+    ImageFilter filter = image->filter;
+    igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
+    igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
+    imageSetFilter(image, filter);
 }
 
 void

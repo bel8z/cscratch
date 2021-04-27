@@ -59,8 +59,8 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
     // TODO (Matteo): Separate texture parameterization from loading
 
     // Setup filtering parameters for display
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     // These are required on WebGL for non power-of-two textures
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -75,8 +75,27 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
     image->texture = image_texture;
     image->width = width;
     image->height = height;
+    image->filter = ImageFilter_Nearest;
 
     return true;
+}
+
+void
+imageSetFilter(Image *image, ImageFilter filter)
+{
+    CF_ASSERT_NOT_NULL(image);
+
+    if (filter != image->filter)
+    {
+        glBindTexture(GL_TEXTURE_2D, image->texture);
+
+        i32 value = (filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
+
+        image->filter = filter;
+    }
 }
 
 //------------------------------------------------------------------------------
