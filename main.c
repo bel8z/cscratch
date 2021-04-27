@@ -66,8 +66,6 @@ typedef struct AppState
     ImVec4 clear_color;
 
     Image image;
-    f32 zoom;
-
 } AppState;
 
 static CF_ALLOCATOR_FUNC(appRealloc);
@@ -227,7 +225,7 @@ main(int argc, char **argv)
                 .style = false,
             },
         .clear_color = {0.45f, 0.55f, 0.60f, 1.00f},
-        .zoom = 1.0,
+        .image = {.zoom = 1.0},
     };
 
     appInitPaths(&state.paths, argv[0]);
@@ -584,7 +582,7 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
 }
 
 static void
-guiImageView(Image *image, f32 *zoom)
+guiImageView(Image *image)
 {
     f32 const min_zoom = 1.0f;
     f32 const max_zoom = 10.0f;
@@ -597,7 +595,7 @@ guiImageView(Image *image, f32 *zoom)
     // i32 d = (1000 - v) / 2;
     // f32 uv = (f32)d * 0.001f;
 
-    f32 uv = 0.5f * (1 - 1 / *zoom);
+    f32 uv = 0.5f * (1 - 1 / image->zoom);
     ImVec2 uv0 = {uv, uv};
     ImVec2 uv1 = {1 - uv, 1 - uv};
     ImVec2 size = {(f32)image->width, (f32)image->height};
@@ -608,10 +606,10 @@ guiImageView(Image *image, f32 *zoom)
 
     if (igIsItemHovered(0) && io->KeyCtrl)
     {
-        *zoom = cfClamp(*zoom + io->MouseWheel, min_zoom, max_zoom);
+        image->zoom = cfClamp(image->zoom + io->MouseWheel, min_zoom, max_zoom);
     }
 
-    igSliderFloat("zoom", zoom, min_zoom, max_zoom, "%.3f", 0);
+    igSliderFloat("zoom", &image->zoom, min_zoom, max_zoom, "%.3f", 0);
 
     // TODO (Matteo): Maybe this can get cleaner?
     ImageFilter filter = image->filter;
@@ -656,7 +654,7 @@ guiUpdate(AppState *state, f32 framerate)
 
         igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / framerate, framerate);
 
-        guiImageView(&state->image, &state->zoom);
+        guiImageView(&state->image);
 
         igEnd();
     }
