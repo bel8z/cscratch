@@ -1,5 +1,7 @@
 #include "image.h"
 
+#include <GL/gl3w.h>
+
 //------------------------------------------------------------------------------
 // Custom memory management for stbi
 static cfAllocator *g_alloc = NULL;
@@ -50,9 +52,11 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
     if (!data) return false;
 
     // Create a OpenGL texture identifier
-    GLuint image_texture;
+    u32 image_texture;
     glGenTextures(1, &image_texture);
     glBindTexture(GL_TEXTURE_2D, image_texture);
+
+    // TODO (Matteo): Separate texture parameterization from loading
 
     // Setup filtering parameters for display
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

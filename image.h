@@ -3,12 +3,15 @@
 #include "foundation/allocator.h"
 #include "foundation/common.h"
 
-#include <GL/gl3w.h>
+// TODO (Matteo):
+// * Keep image bits around (for querying/manipulation)?
+// * Implement image view navigation (scale/offset)
+// * Implement a file queue for browsing
+// * Implement image rotation
 
 typedef struct Image
 {
-
-    GLuint texture;
+    u32 texture;
     i32 width;
     i32 height;
 } Image;
