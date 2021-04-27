@@ -11,7 +11,8 @@ typedef struct cfPlatform
     cfAllocator heap;
 } cfPlatform;
 
-cfPlatform cf_platform_create();
+cfPlatform cfPlatformCreate();
+void cfPlatformShutdown(cfPlatform *platform);
 
 #define CF_PLATFORM_H
 #endif

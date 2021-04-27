@@ -7,77 +7,89 @@
 #pragma warning(push)
 #pragma warning(disable : 5105)
 
-#include <Windows.h>
+#include <windows.h>
 
 // -----------------------------------------------------------------------------
 // Internal function declarations
 // -----------------------------------------------------------------------------
 
 // VM functions
-static VM_RESERVE_FUNC(win32_vm_reserve);
-static VM_COMMIT_FUNC(win32_vm_commit);
-static VM_REVERT_FUNC(win32_vm_decommit);
-static VM_RELEASE_FUNC(win32_vm_release);
+static VM_RESERVE_FUNC(win32VmReserve);
+static VM_COMMIT_FUNC(win32VmCommit);
+static VM_REVERT_FUNC(win32VmDecommit);
+static VM_RELEASE_FUNC(win32VmRelease);
 
 // Heap allocation functions
-static CF_ALLOCATOR_FUNC(win32_alloc_func);
-static CF_ALLOC_STATS_FUNC(win32_alloc_stats);
-
-// -----------------------------------------------------------------------------
-// Internal globals
-// -----------------------------------------------------------------------------
-
-static cfAllocatorStats win32_heap_alloc = {0};
+static CF_ALLOCATOR_FUNC(win32Alloc);
+static CF_ALLOC_STATS_FUNC(win32AllocStats);
 
 // -----------------------------------------------------------------------------
 // Main API
 // -----------------------------------------------------------------------------
 
 cfPlatform
-cf_platform_create()
+cfPlatformCreate()
 {
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
 
-    cfPlatform plat = {.vm = {.reserve = win32_vm_reserve,
-                              .release = win32_vm_release,
-                              .commit = win32_vm_commit,
-                              .revert = win32_vm_decommit,
-                              .page_size = sysinfo.dwPageSize},
-                       .heap = {.state = &win32_heap_alloc,
-                                .reallocate = win32_alloc_func,
-                                .stats = win32_alloc_stats}};
+    cfAllocatorStats *heap_stats =
+        HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*heap_stats));
+
+    cfPlatform plat = {
+        .vm = {.reserve = win32VmReserve,
+               .release = win32VmRelease,
+               .commit = win32VmCommit,
+               .revert = win32VmDecommit,
+               .page_size = sysinfo.dwPageSize},
+        .heap = {.state = heap_stats, .reallocate = win32Alloc, .stats = win32AllocStats}};
 
     return plat;
+}
+
+void
+cfPlatformShutdown(cfPlatform *platform)
+{
+    CF_ASSERT_NOT_NULL(platform);
+
+    cfAllocatorStats *heap_stats = platform->heap.state;
+
+    CF_ASSERT_NOT_NULL(heap_stats);
+    CF_ASSERT(heap_stats->count == 0, "Potential memory leak");
+
+    // TODO (Matteo): Check allocation size tracking
+    // CF_ASSERT(heap_stats->size == 0, "Potential memory leak");
+
+    HeapFree(GetProcessHeap(), 0, heap_stats);
 }
 
 // -----------------------------------------------------------------------------
 // Internal functions
 // -----------------------------------------------------------------------------
 
-VM_RESERVE_FUNC(win32_vm_reserve)
+VM_RESERVE_FUNC(win32VmReserve)
 {
     return VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_NOACCESS);
 }
 
-VM_COMMIT_FUNC(win32_vm_commit)
+VM_COMMIT_FUNC(win32VmCommit)
 {
     void *committed = VirtualAlloc(memory, size, MEM_COMMIT, PAGE_READWRITE);
     CF_ASSERT(committed, "Memory not previously reserved");
     return committed != NULL;
 }
 
-VM_REVERT_FUNC(win32_vm_decommit)
+VM_REVERT_FUNC(win32VmDecommit)
 {
     VirtualFree(memory, size, MEM_DECOMMIT);
 }
 
-VM_RELEASE_FUNC(win32_vm_release)
+VM_RELEASE_FUNC(win32VmRelease)
 {
     VirtualFree(memory, size, MEM_RELEASE);
 }
 
-CF_ALLOCATOR_FUNC(win32_alloc_func)
+CF_ALLOCATOR_FUNC(win32Alloc)
 {
     cfAllocatorStats *stats = state;
 
@@ -86,12 +98,11 @@ CF_ALLOCATOR_FUNC(win32_alloc_func)
         if (memory && old_size)
         {
             stats->size += new_size - old_size;
+            return HeapReAlloc(GetProcessHeap(), 0, memory, new_size);
         }
-        else
-        {
-            stats->count++;
-            stats->size += new_size;
-        }
+
+        stats->count++;
+        stats->size += new_size;
 
         return HeapAlloc(GetProcessHeap(), 0, new_size);
     }
@@ -106,7 +117,7 @@ CF_ALLOCATOR_FUNC(win32_alloc_func)
     return NULL;
 }
 
-static CF_ALLOC_STATS_FUNC(win32_alloc_stats)
+CF_ALLOC_STATS_FUNC(win32AllocStats)
 {
     cfAllocatorStats *stats = state;
     return *stats;

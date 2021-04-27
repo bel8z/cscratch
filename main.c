@@ -1,6 +1,7 @@
 #include "foundation/allocator.h"
 #include "foundation/common.h"
 #include "foundation/maths.h"
+#include "foundation/platform.h"
 #include "foundation/util.h"
 
 #include "imgui_decl.h"
@@ -17,7 +18,6 @@
 #endif
 
 #include <stdio.h>
-#include <stdlib.h>
 
 //------------------------------------------------------------------------------
 // Local data & functions
@@ -68,8 +68,6 @@ typedef struct AppState
     Image image;
 } AppState;
 
-static CF_ALLOCATOR_FUNC(appRealloc);
-static CF_ALLOC_STATS_FUNC(appAllocStats);
 static void appInitPaths(AppPaths *paths, char *cmd_line);
 
 static void *guiAlloc(usize size, void *state);
@@ -204,12 +202,11 @@ main(int argc, char **argv)
     }
 
     // Setup memory management
-    cfAllocatorStats alloc_stats = {0};
-    cfAllocator alloc = {.state = &alloc_stats, .reallocate = appRealloc, .stats = appAllocStats};
+    cfPlatform plat = cfPlatformCreate();
 
     // Setup application state
     AppState state = {
-        .alloc = &alloc,
+        .alloc = &plat.heap,
         .rebuild_fonts = true,
         .font_opts = {.freetype_enabled = true,
                       .freetype_flags = 0,
@@ -386,47 +383,14 @@ main(int argc, char **argv)
     glfwTerminate();
 #endif
 
+    cfPlatformShutdown(&plat);
+
     return 0;
 }
 
 //------------------------------------------------------------------------------
 // Local functions
 //------------------------------------------------------------------------------
-
-CF_ALLOCATOR_FUNC(appRealloc)
-{
-    cfAllocatorStats *stats = state;
-
-    if (new_size)
-    {
-        if (memory && old_size)
-        {
-            stats->size += new_size - old_size;
-        }
-        else
-        {
-            stats->count++;
-            stats->size += new_size;
-        }
-
-        return realloc(memory, new_size);
-    }
-
-    if (memory)
-    {
-        stats->count -= 1;
-        stats->size -= old_size;
-        free(memory);
-    }
-
-    return NULL;
-}
-
-CF_ALLOC_STATS_FUNC(appAllocStats)
-{
-    cfAllocatorStats *stats = state;
-    return *stats;
-}
 
 void
 appInitPaths(AppPaths *paths, char *cmd_line)
@@ -842,9 +806,9 @@ guiSetupFonts(ImFontAtlas *fonts, f32 dpi_scale, char const *data_path)
 
     f32 const scale = dpi_scale * PLATFORM_DPI / TRUETYPE_DPI;
 
-    if (!guiLoadFont(fonts, data_path, "NotoSans", round(13.0f * scale), ranges) &
-        !guiLoadFont(fonts, data_path, "OpenSans", round(13.5f * scale), ranges) &
-        !guiLoadFont(fonts, data_path, "SourceSansPro", round(13.5f * scale), ranges))
+    if (!guiLoadFont(fonts, data_path, "NotoSans", cfRound(13.0f * scale), ranges) &
+        !guiLoadFont(fonts, data_path, "OpenSans", cfRound(13.5f * scale), ranges) &
+        !guiLoadFont(fonts, data_path, "SourceSansPro", cfRound(13.5f * scale), ranges))
     {
         ImFontAtlas_AddFontDefault(fonts, NULL);
     }

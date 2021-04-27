@@ -7,7 +7,7 @@
 int
 main()
 {
-    cfPlatform p = cf_platform_create();
+    cfPlatform p = cfPlatformCreate();
 
     VmArena arena;
 
