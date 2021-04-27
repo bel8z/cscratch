@@ -23,6 +23,9 @@
 // Local data & functions
 //------------------------------------------------------------------------------
 
+#define PLATFORM_DPI 96.0f
+#define TRUETYPE_DPI 72.0f
+
 typedef struct FontOptions
 {
     f32 rasterizer_multiply;
@@ -87,6 +90,7 @@ extern bool ImGui_ImplSDL2_InitForOpenGL(SDL_Window *window, void *sdl_gl_contex
 extern void ImGui_ImplSDL2_Shutdown();
 extern void ImGui_ImplSDL2_NewFrame(SDL_Window *window);
 extern bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event *event);
+
 #else
 //------------------------------------------------------------------------------
 // GLFW backend declarations
@@ -95,19 +99,13 @@ extern bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event *event);
 extern bool ImGui_ImplGlfw_InitForOpenGL(GLFWwindow *window, bool install_callbacks);
 extern void ImGui_ImplGlfw_Shutdown();
 extern void ImGui_ImplGlfw_NewFrame();
-extern void ImGui_ImplGlfw_MouseButtonCallback(GLFWwindow *window, int button, int action,
-                                               int mods);
-extern void ImGui_ImplGlfw_ScrollCallback(GLFWwindow *window, double xoffset, double yoffset);
-extern void ImGui_ImplGlfw_KeyCallback(GLFWwindow *window, int key, int scancode, int action,
-                                       int mods);
-extern void ImGui_ImplGlfw_CharCallback(GLFWwindow *window, unsigned int c);
-extern void ImGui_ImplGlfw_MonitorCallback(GLFWmonitor *monitor, int event);
 
 static void
 glfw_error_callback(int error, const char *description)
 {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
+
 #endif
 
 //------------------------------------------------------------------------------
@@ -208,10 +206,8 @@ main(int argc, char **argv)
     }
 
     // Setup memory management
-    // TODO (Matteo): make allocation not dependent to SDL
     cfAllocatorStats alloc_stats = {0};
     cfAllocator alloc = {.state = &alloc_stats, .reallocate = appRealloc, .stats = appAllocStats};
-    igSetAllocatorFunctions(guiAlloc, guiFree, &alloc);
 
     // Setup application state
     AppState state = {
@@ -242,6 +238,7 @@ main(int argc, char **argv)
 
     // Setup Dear ImGui context
     // IMGUI_CHECKVERSION();
+    igSetAllocatorFunctions(guiAlloc, guiFree, state.alloc);
     ImGuiContext *imgui = igCreateContext(NULL);
     ImGuiIO *io = igGetIO();
 
@@ -250,6 +247,8 @@ main(int argc, char **argv)
     io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
 
     // Setup DPI handling
+    f32 dpi_scale = 1.0f;
+
 #if SDL_BACKEND
     f32 ddpi, hdpi, vdpi;
     if (SDL_GetDisplayDPI(0, &ddpi, &hdpi, &vdpi) != 0)
@@ -257,16 +256,18 @@ main(int argc, char **argv)
         fprintf(stderr, "Failed to obtain DPI information for display 0: %s\n", SDL_GetError());
         return -3;
     }
+    dpi_scale = ddpi / PLATFORM_DPI;
+
 #else
     f32 win_x_scale, win_y_scale;
     glfwGetWindowContentScale(window, &win_x_scale, &win_y_scale);
     // HACK How do I get the platform base DPI?
-    f32 ddpi = 96.0f * win_x_scale;
+    dpi_scale = win_x_scale > win_y_scale ? win_y_scale : win_x_scale;
 #endif
 
     // Setup Dear ImGui style
-    guiSetupStyle(ddpi);
-    guiSetupFonts(io->Fonts, ddpi, state.paths.data);
+    guiSetupStyle(dpi_scale);
+    guiSetupFonts(io->Fonts, dpi_scale, state.paths.data);
 
 // Setup Platform/Renderer backends
 #if SDL_BACKEND
@@ -784,7 +785,7 @@ guiSetupStyleColors(ImGuiStyle *style)
 }
 
 void
-guiSetupStyle(f32 dpi)
+guiSetupStyle(f32 dpi_scale)
 {
     igStyleColorsClassic(NULL);
 
@@ -801,13 +802,7 @@ guiSetupStyle(f32 dpi)
     guiSetupStyleSizes(style);
     guiSetupStyleColors(style);
 
-    ImGuiStyle_ScaleAllSizes(style, dpi / 96.0f);
-}
-
-static f32
-guiScaleFontSize(f32 size, f32 dpi)
-{
-    return round(size * dpi / 72.0f);
+    ImGuiStyle_ScaleAllSizes(style, dpi_scale);
 }
 
 ImFont *
@@ -822,7 +817,7 @@ guiLoadFont(ImFontAtlas *fonts, char const *data_path, char const *name, f32 fon
 }
 
 void
-guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path)
+guiSetupFonts(ImFontAtlas *fonts, f32 dpi_scale, char const *data_path)
 {
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can
@@ -841,9 +836,11 @@ guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path)
     // literal you need to write a double backslash \\ !
     ImWchar const *ranges = ImFontAtlas_GetGlyphRangesDefault(fonts);
 
-    if (!guiLoadFont(fonts, data_path, "NotoSans", guiScaleFontSize(13, dpi), ranges) &
-        !guiLoadFont(fonts, data_path, "OpenSans", guiScaleFontSize(13.5, dpi), ranges) &
-        !guiLoadFont(fonts, data_path, "SourceSansPro", guiScaleFontSize(13.5, dpi), ranges))
+    f32 const scale = dpi_scale * PLATFORM_DPI / TRUETYPE_DPI;
+
+    if (!guiLoadFont(fonts, data_path, "NotoSans", round(13.0f * scale), ranges) &
+        !guiLoadFont(fonts, data_path, "OpenSans", round(13.5f * scale), ranges) &
+        !guiLoadFont(fonts, data_path, "SourceSansPro", round(13.5f * scale), ranges))
     {
         ImFontAtlas_AddFontDefault(fonts, NULL);
     }
