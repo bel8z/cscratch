@@ -3,6 +3,10 @@
 
 #include "common.h"
 
+//------------------------------------------------------------------------------
+// Memory utilities (clear, write, copy)
+//------------------------------------------------------------------------------
+
 #include <string.h>
 
 static inline void
@@ -121,9 +125,52 @@ cf__rotateReversal(void *array, usize size, usize pos, u8 *swap_buf, usize swap_
     } while (0)
 
 //------------------------------------------------------------------------------
+// Math utilities
+//------------------------------------------------------------------------------
+
+#include <math.h>
 
 #define cfClamp(val, min_val, max_val) \
     ((val) < (min_val) ? (min_val) : (val) > (max_val) ? (max_val) : (val))
+
+#define cfMin(l, r) ((l) < (r) ? (l) : (r))
+#define cfMax(l, r) ((l) > (r) ? (l) : (r))
+
+#define cfCeil(X) _Generic((X), default : ceil, f32 : ceilf)(X)
+#define cfFloor(X) _Generic((X), default : floor, f32 : floorf)(X)
+#define cfRound(X) _Generic((X), default : round, f32 : roundf)(X)
+
+#define cfCos(X) _Generic((X), default : cos, f32 : cosf)(X)
+#define cfSin(X) _Generic((X), default : sin, f32 : sinf)(X)
+#define cfTan(X) _Generic((X), default : tan, f32 : tanf)(X)
+
+#define cfCosH(X) _Generic((X), default : cosh, f32 : coshf)(X)
+#define cfSinH(X) _Generic((X), default : sinh, f32 : sinhf)(X)
+#define cfTanH(X) _Generic((X), default : tanh, f32 : tanhf)(X)
+
+#define cfSqrt(X) _Generic((X), default : sqrt, f32 : sqrtf)(X)
+#define cfPow(base, xp) _Generic((base, xp), default : pow, f32 : powf)(base, xp)
+#define cfSquare(x) ((x) * (x))
+#define cfCube(x) ((x) * (x) * (x))
+#define cfExp(x) _Generic((x), default : exp, f32 : expf)(base, xp)
+
+#define cfFmod(X, Y) _Generic((X, Y), default : fmod, f32 : fmodf)(X, Y)
+
+#define cfLerp(x, y, t) _Generic((x, y, t), default : cf__Lerp64, f32 : cf__Lerp32)(x, y, t)
+
+static inline f32
+cf__Lerp32(f32 x, f32 y, f32 t)
+{
+    return x * (1 - t) + y * t;
+}
+
+static inline f64
+cf__Lerp64(f64 x, f64 y, f64 t)
+{
+    return x * (1 - t) + y * t;
+}
+
+//------------------------------------------------------------------------------
 
 #define UTIL_H
 #endif
