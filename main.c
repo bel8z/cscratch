@@ -232,7 +232,8 @@ main(int argc, char **argv)
     imageLoadFromFile(&state.image, buffer, state.alloc);
 
     // Setup Dear ImGui context
-    // IMGUI_CHECKVERSION();
+    igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
+                                     sizeof(ImVec4), sizeof(ImDrawVert), sizeof(ImDrawIdx));
     igSetAllocatorFunctions(guiAlloc, guiFree, state.alloc);
     ImGuiContext *imgui = igCreateContext(NULL);
     ImGuiIO *io = igGetIO();
@@ -583,8 +584,6 @@ guiImageView(Image *image)
     // 3. Draw the image properly scaled to fit the view
     // TODO (Matteo): Fix zoom behavior
 
-    ImVec4 const tint_color = {1, 1, 1, 1};
-
     // NOTE (Matteo): in case of more precision required
     // i32 v = (i32)(1000 / *zoom);
     // i32 d = (1000 - v) / 2;
@@ -612,11 +611,16 @@ guiImageView(Image *image)
 
     ImVec2 image_tl = {view_tl.x + 0.5f * (view_size.x - image_size.x),
                        view_tl.y + 0.5f * (view_size.y - image_size.y)};
-    ImVec2 image_br = {image_tl.x + image_size.x, image_tl.y + image_size.y};
+    ImVec2 image_br = guiV2Add(image_tl, image_size);
 
     ImDrawList *dl = igGetWindowDrawList();
     ImDrawList_AddImage(dl, (void *)(iptr)image->texture, image_tl, image_br, uv0, uv1,
-                        igGetColorU32Vec4(tint_color));
+                        igGetColorU32Vec4((ImVec4){1, 1, 1, 1}));
+
+    // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
+    ImU32 debug_color = igGetColorU32Vec4((ImVec4){1, 0, 1, 1});
+    ImDrawList_AddRect(dl, image_tl, image_br, debug_color, 0.0f, 0, 1.0f);
+    ImDrawList_AddRect(dl, view_tl, guiV2Add(view_tl, view_size), debug_color, 0.0f, 0, 1.0f);
 }
 
 static void

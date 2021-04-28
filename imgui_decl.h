@@ -42,6 +42,18 @@ guiSameLine()
     igSameLine(0.0f, -1.0f);
 }
 
+static inline ImVec2
+guiV2Add(ImVec2 a, ImVec2 b)
+{
+    return (ImVec2){.x = a.x + b.x, .y = a.y + b.y};
+}
+
+static inline ImVec2
+guiV2Sub(ImVec2 a, ImVec2 b)
+{
+    return (ImVec2){.x = a.x - b.x, .y = a.y - b.y};
+}
+
 //------------------------------------------------------------------------------
 
 #define IMGUI_DECL_H
