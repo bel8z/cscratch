@@ -22,6 +22,8 @@ static void stbiFree(void *mem);
 #pragma clang diagnostic ignored "-Wsign-conversion"
 #pragma clang diagnostic ignored "-Wsign-compare"
 #pragma clang diagnostic ignored "-Wimplicit-int-conversion"
+#pragma clang diagnostic ignored "-Wdouble-promotion"
+#pragma clang diagnostic ignored "-Wcast-align"
 #endif
 
 #define STB_IMAGE_IMPLEMENTATION

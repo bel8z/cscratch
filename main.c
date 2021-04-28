@@ -72,7 +72,7 @@ static void appInitPaths(AppPaths *paths, char *cmd_line);
 static void *guiAlloc(usize size, void *state);
 static void guiFree(void *mem, void *state);
 static bool guiBeforeUpdate(AppState *state);
-static void guiUpdate(AppState *state, f32 framerate);
+static void guiUpdate(AppState *state);
 static void guiSetupStyle(f32 dpi);
 static void guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path);
 
@@ -323,7 +323,7 @@ main(int argc, char **argv)
         igNewFrame();
 
         // Application frame update
-        guiUpdate(&state, io->Framerate);
+        guiUpdate(&state);
 
         // Rendering
         igRender();
@@ -623,7 +623,7 @@ guiImageView(Image *image)
 }
 
 static void
-guiTestWindow(AppState *state, f32 framerate)
+guiTestWindow(AppState *state)
 {
     static f32 f = 0.0f;
     static i32 counter = 0;
@@ -649,7 +649,8 @@ guiTestWindow(AppState *state, f32 framerate)
     guiSameLine();
     igText("counter = %d", counter);
 
-    igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / framerate, framerate);
+    f64 framerate = (f64)igGetIO()->Framerate;
+    igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
 
     guiImageView(&state->image);
 
@@ -657,7 +658,7 @@ guiTestWindow(AppState *state, f32 framerate)
 }
 
 void
-guiUpdate(AppState *state, f32 framerate)
+guiUpdate(AppState *state)
 {
     if (igBeginMainMenuBar())
     {
@@ -678,7 +679,7 @@ guiUpdate(AppState *state, f32 framerate)
         igEndMainMenuBar();
     }
 
-    guiTestWindow(state, framerate);
+    guiTestWindow(state);
 
     if (state->windows.demo) igShowDemoWindow(&state->windows.demo);
 
