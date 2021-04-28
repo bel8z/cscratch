@@ -27,7 +27,7 @@ arrayHeaderGrow(cfArrayHeader *header, usize room, usize item_size)
         usize const old_size = sizeof(*header) + header->cap * item_size;
         usize const new_size = sizeof(*header) + new_cap * item_size;
 
-        header = CF_REALLOCATE(header->alloc, header, old_size, new_size);
+        header = cfRealloc(header->alloc, header, old_size, new_size);
         header->cap = new_cap;
     }
 
@@ -54,7 +54,7 @@ cf__arrayInit(void *array, cfArrayParams const *params)
     cfAllocator *alloc = params->alloc;
     usize bytes = params->capacity * params->item_size;
 
-    cfArrayHeader *header = CF_ALLOCATE(alloc, sizeof(*header) + bytes);
+    cfArrayHeader *header = cfAlloc(alloc, sizeof(*header) + bytes);
 
     header->alloc = alloc;
     header->cap = params->capacity;
@@ -67,7 +67,7 @@ void
 cf__arrayFree(void *array, usize item_size)
 {
     cfArrayHeader *header = arrayHeader(array);
-    CF_DEALLOCATE(header->alloc, header, sizeof(*header) + header->cap * item_size);
+    cfFree(header->alloc, header, sizeof(*header) + header->cap * item_size);
 }
 
 void *

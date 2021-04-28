@@ -426,7 +426,7 @@ void *
 guiAlloc(usize size, void *state)
 {
     cfAllocator *alloc = state;
-    usize *buf = CF_ALLOCATE(alloc, size + sizeof(*buf));
+    usize *buf = cfAlloc(alloc, size + sizeof(*buf));
 
     if (buf) *(buf++) = size;
 
@@ -441,7 +441,7 @@ guiFree(void *mem, void *state)
         cfAllocator *alloc = state;
         usize *buf = mem;
         buf--;
-        CF_DEALLOCATE(alloc, buf, *buf + sizeof(*buf));
+        cfFree(alloc, buf, *buf + sizeof(*buf));
     }
 }
 
@@ -689,7 +689,7 @@ guiUpdate(AppState *state, f32 framerate)
 
     if (state->windows.stats)
     {
-        cfAllocatorStats stats = CF_ALLOC_STATS(state->alloc);
+        cfAllocatorStats stats = cfAllocStats(state->alloc);
         guiShowAllocStats(&stats, &state->windows.stats);
     }
 
