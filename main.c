@@ -237,9 +237,14 @@ main(int argc, char **argv)
     ImGuiContext *imgui = igCreateContext(NULL);
     ImGuiIO *io = igGetIO();
 
-    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
-    io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
+    // Enable Keyboard Controls
+    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    // Enable Docking
+    io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    // Enable Multi-Viewport / Platform Windows
+    io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    // Reduce visual noise while docking, also has a benefit for out-of-sync viewport rendering
+    io->ConfigDockingTransparentPayload = true;
 
     // Setup DPI handling
     f32 dpi_scale = 1.0f;
@@ -580,46 +585,65 @@ guiImageView(Image *image)
     imageSetFilter(image, filter);
 }
 
+static void
+guiTestWindow(AppState *state, f32 framerate)
+{
+    static f32 f = 0.0f;
+    static i32 counter = 0;
+
+    // Create a window called "Hello, world!" and append into it.
+    igBegin("Test window", NULL, 0);
+
+    // Display some text (you can use a format strings  too)
+    igText("This is some useful text.");
+
+    // Edit bools storing our window open/close state
+    igCheckbox("Demo Window", &state->windows.demo);
+
+    // Edit 1 float using a slider from 0.0f to 1.0f
+    igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
+    // Edit 3 floats representing a color
+    igColorEdit3("clear color", (float *)&state->clear_color, 0);
+
+    // Buttons return true when clicked (most widgets return true
+    // when edited/activated)
+    if (guiButton("Button")) counter++;
+
+    guiSameLine();
+    igText("counter = %d", counter);
+
+    igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / framerate, framerate);
+
+    guiImageView(&state->image);
+
+    igEnd();
+}
+
 void
 guiUpdate(AppState *state, f32 framerate)
 {
-    // 1. Show the big demo window (Most of the sample code is in igShowDemoWindow()! You
-    // can browse its code to learn more about Dear ImGui!).
-    if (state->windows.demo) igShowDemoWindow(&state->windows.demo);
-
-    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created
-    // a named window.
+    if (igBeginMainMenuBar())
     {
-        static f32 f = 0.0f;
-        static i32 counter = 0;
+        if (igBeginMenu("File", true)) igEndMenu();
 
-        // Create a window called "Hello, world!" and append into it.
-        igBegin("Test window", NULL, 0);
+        if (igBeginMenu("Windows", true))
+        {
+            igMenuItemBoolPtr("Style editor", NULL, &state->windows.style, true);
+            igMenuItemBoolPtr("Font options", NULL, &state->windows.fonts, true);
+            igSeparator();
+            igMenuItemBoolPtr("Stats", NULL, &state->windows.stats, true);
+            igMenuItemBoolPtr("Metrics", NULL, &state->windows.metrics, true);
+            igSeparator();
+            igMenuItemBoolPtr("Demo window", NULL, &state->windows.demo, true);
+            igEndMenu();
+        }
 
-        // Display some text (you can use a format strings  too)
-        igText("This is some useful text.");
-
-        // Edit bools storing our window open/close state
-        igCheckbox("Demo Window", &state->windows.demo);
-
-        // Edit 1 float using a slider from 0.0f to 1.0f
-        igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
-        // Edit 3 floats representing a color
-        igColorEdit3("clear color", (float *)&state->clear_color, 0);
-
-        // Buttons return true when clicked (most widgets return true
-        // when edited/activated)
-        if (guiButton("Button")) counter++;
-
-        guiSameLine();
-        igText("counter = %d", counter);
-
-        igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / framerate, framerate);
-
-        guiImageView(&state->image);
-
-        igEnd();
+        igEndMainMenuBar();
     }
+
+    guiTestWindow(state, framerate);
+
+    if (state->windows.demo) igShowDemoWindow(&state->windows.demo);
 
     if (state->windows.fonts)
     {
@@ -642,25 +666,6 @@ guiUpdate(AppState *state, f32 framerate)
     if (state->windows.metrics)
     {
         igShowMetricsWindow(&state->windows.metrics);
-    }
-
-    if (igBeginMainMenuBar())
-    {
-        if (igBeginMenu("File", true)) igEndMenu();
-
-        if (igBeginMenu("Windows", true))
-        {
-            igMenuItemBoolPtr("Style editor", NULL, &state->windows.style, true);
-            igMenuItemBoolPtr("Font options", NULL, &state->windows.fonts, true);
-            igSeparator();
-            igMenuItemBoolPtr("Stats", NULL, &state->windows.stats, true);
-            igMenuItemBoolPtr("Metrics", NULL, &state->windows.metrics, true);
-            igSeparator();
-            igMenuItemBoolPtr("Demo window", NULL, &state->windows.demo, true);
-            igEndMenu();
-        }
-
-        igEndMainMenuBar();
     }
 }
 
