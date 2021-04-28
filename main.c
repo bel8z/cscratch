@@ -551,11 +551,39 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
 static void
 guiImageView(Image *image)
 {
+
     f32 const min_zoom = 1.0f;
     f32 const max_zoom = 10.0f;
 
+    // 1. Image scaling settings
+
+    // TODO (Matteo): Maybe this can get cleaner?
+    ImageFilter filter = image->filter;
+    igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
+    igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
+    imageSetFilter(image, filter);
+
+    igSliderFloat("zoom", &image->zoom, min_zoom, max_zoom, "%.3f", 0);
+
+    // 2. Use the available content area as the image view; an invisible button
+    // is used in order to catch input.
+
+    ImVec2 view_size, view_tl;
+    igGetContentRegionAvail(&view_size);
+    igInvisibleButton("Image view", view_size, 0);
+    igGetItemRectMin(&view_tl);
+
+    ImGuiIO *io = igGetIO();
+
+    if (igIsItemHovered(0) && io->KeyCtrl)
+    {
+        image->zoom = cfClamp(image->zoom + io->MouseWheel, min_zoom, max_zoom);
+    }
+
+    // 3. Draw the image properly scaled to fit the view
+    // TODO (Matteo): Fix zoom behavior
+
     ImVec4 const tint_color = {1, 1, 1, 1};
-    ImVec4 const border_color = {1, 1, 1, 1};
 
     // NOTE (Matteo): in case of more precision required
     // i32 v = (i32)(1000 / *zoom);
@@ -565,24 +593,30 @@ guiImageView(Image *image)
     f32 uv = 0.5f * (1 - 1 / image->zoom);
     ImVec2 uv0 = {uv, uv};
     ImVec2 uv1 = {1 - uv, 1 - uv};
-    ImVec2 size = {(f32)image->width, (f32)image->height};
 
-    igImage((void *)(iptr)image->texture, size, uv0, uv1, tint_color, border_color);
+    ImVec2 image_size = {(f32)image->width * image->zoom, (f32)image->height * image->zoom};
 
-    ImGuiIO *io = igGetIO();
+    f32 image_aspect = image_size.x / image_size.y;
 
-    if (igIsItemHovered(0) && io->KeyCtrl)
+    if (image_size.x > view_size.x)
     {
-        image->zoom = cfClamp(image->zoom + io->MouseWheel, min_zoom, max_zoom);
+        image_size.x = view_size.x;
+        image_size.y = image_size.x / image_aspect;
     }
 
-    igSliderFloat("zoom", &image->zoom, min_zoom, max_zoom, "%.3f", 0);
+    if (image_size.y > view_size.y)
+    {
+        image_size.y = view_size.y;
+        image_size.x = image_size.y * image_aspect;
+    }
 
-    // TODO (Matteo): Maybe this can get cleaner?
-    ImageFilter filter = image->filter;
-    igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
-    igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
-    imageSetFilter(image, filter);
+    ImVec2 image_tl = {view_tl.x + 0.5f * (view_size.x - image_size.x),
+                       view_tl.y + 0.5f * (view_size.y - image_size.y)};
+    ImVec2 image_br = {image_tl.x + image_size.x, image_tl.y + image_size.y};
+
+    ImDrawList *dl = igGetWindowDrawList();
+    ImDrawList_AddImage(dl, (void *)(iptr)image->texture, image_tl, image_br, uv0, uv1,
+                        igGetColorU32Vec4(tint_color));
 }
 
 static void
