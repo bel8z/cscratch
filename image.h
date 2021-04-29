@@ -29,5 +29,7 @@ bool imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc);
 
 void imageSetFilter(Image *image, ImageFilter filter);
 
+void imageUnload(Image *image);
+
 #define IMAGE_H
 #endif

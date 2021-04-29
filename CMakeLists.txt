@@ -94,7 +94,10 @@ endif()
 # Main executable
 #-----------------------
 
-set(SOURCES main.c image.c)
+set(SOURCES 
+    main.c 
+    app.c 
+    image.c)
 set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
 
 add_executable(${PROJECT_NAME} ${SOURCES})

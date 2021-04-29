@@ -100,6 +100,12 @@ imageSetFilter(Image *image, ImageFilter filter)
     }
 }
 
+void
+imageUnload(Image *image)
+{
+    glDeleteTextures(1, &image->texture);
+}
+
 //------------------------------------------------------------------------------
 // stbi memory management
 

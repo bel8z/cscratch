@@ -1,4 +1,4 @@
-#ifndef IMGUI_DECL_H
+#ifndef GUI_H
 
 //------------------------------------------------------------------------------
 // Safely include cimgui.h with C declarations
@@ -70,5 +70,5 @@ guiToV4(ImVec4 v)
 
 //------------------------------------------------------------------------------
 
-#define IMGUI_DECL_H
+#define GUI_H
 #endif
