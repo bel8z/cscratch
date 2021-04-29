@@ -1,5 +1,7 @@
+#ifndef FOUNDATION_VEC_H
 
-#include "maths.h"
+#include "common.h"
+#include "util.h"
 
 typedef union Vec2 Vec2;
 typedef union Vec3 Vec3;
@@ -51,7 +53,7 @@ struct Mat4
 };
 
 static inline void
-vec_add(f32 const *a, f32 const *b, size_t len, f32 *out)
+vecAdd(f32 const *a, f32 const *b, size_t len, f32 *out)
 {
     for (f32 const *end = out + len; out != end; ++a, ++b, ++out)
     {
@@ -60,7 +62,7 @@ vec_add(f32 const *a, f32 const *b, size_t len, f32 *out)
 }
 
 static inline void
-vec_sub(f32 const *a, f32 const *b, size_t len, f32 *out)
+vecSub(f32 const *a, f32 const *b, size_t len, f32 *out)
 {
     for (f32 const *end = out + len; out != end; ++a, ++b, ++out)
     {
@@ -69,7 +71,7 @@ vec_sub(f32 const *a, f32 const *b, size_t len, f32 *out)
 }
 
 static inline void
-vec_mul(f32 const *a, f32 b, size_t len, f32 *out)
+vecMul(f32 const *a, f32 b, size_t len, f32 *out)
 {
     for (f32 const *end = out + len; out != end; ++a, ++out)
     {
@@ -78,7 +80,7 @@ vec_mul(f32 const *a, f32 b, size_t len, f32 *out)
 }
 
 static inline void
-vec_div(f32 const *a, f32 b, size_t len, f32 *out)
+vecDiv(f32 const *a, f32 b, size_t len, f32 *out)
 {
     for (f32 const *end = out + len; out != end; ++a, ++out)
     {
@@ -87,7 +89,7 @@ vec_div(f32 const *a, f32 b, size_t len, f32 *out)
 }
 
 static inline void
-vec_negate(f32 const *a, size_t len, f32 *out)
+vecNegate(f32 const *a, size_t len, f32 *out)
 {
     for (f32 const *end = out + len; out != end; ++a, ++out)
     {
@@ -96,7 +98,7 @@ vec_negate(f32 const *a, size_t len, f32 *out)
 }
 
 static inline f32
-vec_dot(f32 const *a, f32 const *b, size_t len)
+vecDot(f32 const *a, f32 const *b, size_t len)
 {
     f32 out = 0;
 
@@ -109,19 +111,19 @@ vec_dot(f32 const *a, f32 const *b, size_t len)
 }
 
 static inline f32
-vec_norm_squared(f32 const *a, size_t len)
+vecNormSquared(f32 const *a, size_t len)
 {
-    return vec_dot(a, a, len);
+    return vecDot(a, a, len);
 }
 
 static inline f32
-vec_norm(f32 const *a, size_t len)
+vecNorm(f32 const *a, size_t len)
 {
-    return sqrt(vec_norm_squared(a, len));
+    return cfSqrt(vecNormSquared(a, len));
 }
 
 static inline f32
-vec_distance_squared(f32 const *a, f32 const *b, size_t len)
+vecDistanceSquared(f32 const *a, f32 const *b, size_t len)
 {
     f32 out = 0;
 
@@ -135,15 +137,15 @@ vec_distance_squared(f32 const *a, f32 const *b, size_t len)
 }
 
 static inline f32
-vec_distance(f32 const *a, f32 const *b, size_t len)
+vecDistance(f32 const *a, f32 const *b, size_t len)
 {
-    return sqrt(vec_distance_squared(a, b, len));
+    return cfSqrt(vecDistanceSquared(a, b, len));
 }
 
 static inline void
-vec_lerp(f32 const *a, f32 const *b, size_t len, f32 t, f32 *out)
+vecLerp(f32 const *a, f32 const *b, size_t len, f32 t, f32 *out)
 {
-    f32 t1 = 1.0 - t;
+    f32 t1 = 1.0f - t;
 
     for (f32 const *end = out + len; out != end; ++a, ++b, ++out)
     {
@@ -152,73 +154,78 @@ vec_lerp(f32 const *a, f32 const *b, size_t len, f32 t, f32 *out)
 }
 
 static inline f32
-vec2_dotperp(Vec2 a, Vec2 b)
+vec2DotPerp(Vec2 a, Vec2 b)
 {
     return a.x * b.y - a.y * b.x;
 }
 
 static inline Vec3
-vec3_cross(Vec3 a, Vec3 b)
+vec3Cross(Vec3 a, Vec3 b)
 {
     return (Vec3){
         .x = a.y * b.z - a.z + b.y, .y = a.z * b.x - a.x * b.z, .z = a.x * b.y - a.y * b.x};
 }
 
-#define VEC_OPS(N)                                                                            \
-    static inline Vec##N vec##N##_add(Vec##N a, Vec##N b)                                     \
-    {                                                                                         \
-        Vec##N out = {0};                                                                     \
-        vec_add(a.elem, b.elem, N, out.elem);                                                 \
-        return out;                                                                           \
-    }                                                                                         \
-                                                                                              \
-    static inline Vec##N vec##N##_sub(Vec##N a, Vec##N b)                                     \
-    {                                                                                         \
-        Vec##N out = {0};                                                                     \
-        vec_sub(a.elem, b.elem, N, out.elem);                                                 \
-        return out;                                                                           \
-    }                                                                                         \
-                                                                                              \
-    static inline Vec##N vec##N##_mul(Vec##N a, f32 b)                                        \
-    {                                                                                         \
-        Vec##N out = {0};                                                                     \
-        vec_mul(a.elem, b, N, out.elem);                                                      \
-        return out;                                                                           \
-    }                                                                                         \
-                                                                                              \
-    static inline Vec##N vec##N##_div(Vec##N a, f32 b)                                        \
-    {                                                                                         \
-        Vec##N out = {0};                                                                     \
-        vec_div(a.elem, b, N, out.elem);                                                      \
-        return out;                                                                           \
-    }                                                                                         \
-                                                                                              \
-    static inline f32 vec##N##_dot(Vec##N a, Vec##N b) { return vec_dot(a.elem, b.elem, N); } \
-                                                                                              \
-    static inline f32 vec##N##_norm_squared(Vec##N a) { return vec_norm_squared(a.elem, N); } \
-                                                                                              \
-    static inline f32 vec##N##_norm(Vec##N a) { return vec_norm(a.elem, N); }                 \
-                                                                                              \
-    static inline f32 vec##N##_distance_squared(Vec##N a, Vec##N b)                           \
-    {                                                                                         \
-        return vec_distance_squared(a.elem, b.elem, N);                                       \
-    }                                                                                         \
-                                                                                              \
-    static inline f32 vec##N##_distance(Vec##N a, Vec##N b)                                   \
-    {                                                                                         \
-        return vec_distance(a.elem, b.elem, N);                                               \
-    }                                                                                         \
-                                                                                              \
-    static inline Vec##N vec##N##_lerp(Vec##N a, Vec##N b, f32 t)                             \
-    {                                                                                         \
-        Vec##N out = {0};                                                                     \
-        vec_lerp(a.elem, b.elem, N, t, out.elem);                                             \
-        return out;                                                                           \
+#define VEC_OPS(N)                                                                          \
+    static inline Vec##N vec##N##Add(Vec##N a, Vec##N b)                                    \
+    {                                                                                       \
+        Vec##N out = {0};                                                                   \
+        vecAdd(a.elem, b.elem, N, out.elem);                                                \
+        return out;                                                                         \
+    }                                                                                       \
+                                                                                            \
+    static inline Vec##N vec##N##Sub(Vec##N a, Vec##N b)                                    \
+    {                                                                                       \
+        Vec##N out = {0};                                                                   \
+        vecSub(a.elem, b.elem, N, out.elem);                                                \
+        return out;                                                                         \
+    }                                                                                       \
+                                                                                            \
+    static inline Vec##N vec##N##Mul(Vec##N a, f32 b)                                       \
+    {                                                                                       \
+        Vec##N out = {0};                                                                   \
+        vecMul(a.elem, b, N, out.elem);                                                     \
+        return out;                                                                         \
+    }                                                                                       \
+                                                                                            \
+    static inline Vec##N vec##N##Div(Vec##N a, f32 b)                                       \
+    {                                                                                       \
+        Vec##N out = {0};                                                                   \
+        vecDiv(a.elem, b, N, out.elem);                                                     \
+        return out;                                                                         \
+    }                                                                                       \
+                                                                                            \
+    static inline f32 vec##N##Dot(Vec##N a, Vec##N b) { return vecDot(a.elem, b.elem, N); } \
+                                                                                            \
+    static inline f32 vec##N##NormSquared(Vec##N a) { return vecNormSquared(a.elem, N); }   \
+                                                                                            \
+    static inline f32 vec##N##Norm(Vec##N a) { return vecNorm(a.elem, N); }                 \
+                                                                                            \
+    static inline f32 vec##N##DistanceSquared(Vec##N a, Vec##N b)                           \
+    {                                                                                       \
+        return vecDistanceSquared(a.elem, b.elem, N);                                       \
+    }                                                                                       \
+                                                                                            \
+    static inline f32 vec##N##Distance(Vec##N a, Vec##N b)                                  \
+    {                                                                                       \
+        return vecDistance(a.elem, b.elem, N);                                              \
+    }                                                                                       \
+                                                                                            \
+    static inline Vec##N vec##N##Lerp(Vec##N a, Vec##N b, f32 t)                            \
+    {                                                                                       \
+        Vec##N out = {0};                                                                   \
+        vecLerp(a.elem, b.elem, N, t, out.elem);                                            \
+        return out;                                                                         \
     }
 
 VEC_OPS(2)
 VEC_OPS(3)
 VEC_OPS(4)
 
+#undef VEC_OPS
+
 // Mat 4
 // TODO
+
+#define FOUNDATION_VEC_H
+#endif
