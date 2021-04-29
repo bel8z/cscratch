@@ -1,13 +1,10 @@
+// Hosted application interface
 #include "app.h"
 
+// Gui library
 #include "gui.h"
 
-#include "foundation/allocator.h"
-#include "foundation/common.h"
-#include "foundation/platform.h"
-#include "foundation/util.h"
-#include "foundation/vec.h"
-
+// Backend libraries
 #include <GL/gl3w.h> // Initialize with gl3wInit()
 
 #if SDL_BACKEND
@@ -17,6 +14,14 @@
 #include <GLFW/glfw3.h>
 #endif
 
+// Foundation library
+#include "foundation/allocator.h"
+#include "foundation/common.h"
+#include "foundation/platform.h"
+#include "foundation/util.h"
+#include "foundation/vec.h"
+
+// Standard library
 #include <stdio.h>
 
 //------------------------------------------------------------------------------
@@ -341,16 +346,16 @@ appInitPaths(AppPaths *paths, char *cmd_line)
 #if SDL_BACKEND
     char *p = SDL_GetBasePath();
 
-    snprintf(paths->base, 1024, "%s", p);
-    snprintf(paths->data, 1024, "%sdata/", p);
+    snprintf(paths->base, AppPaths_Length, "%s", p);
+    snprintf(paths->data, AppPaths_Length, "%sdata/", p);
 
     SDL_free(p);
 #else
     // TODO (Matteo): Use the command line or a platform specific function to
     // retrieve the executable path
     char *p = "./";
-    snprintf(paths->base, 1024, "%s", p);
-    snprintf(paths->data, 1024, "%sdata/", p);
+    snprintf(paths->base, AppPaths_Length, "%s", p);
+    snprintf(paths->data, AppPaths_Length, "%sdata/", p);
 #endif
 }
 

@@ -96,8 +96,8 @@ endif()
 
 set(SOURCES 
     main.c 
-    app.c 
-    image.c)
+    image/app.c 
+    image/image.c)
 set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
 
 add_executable(${PROJECT_NAME} ${SOURCES})

@@ -2,10 +2,15 @@
 
 #include "foundation/platform.h"
 
+enum
+{
+    AppPaths_Length = 256,
+};
+
 typedef struct AppPaths
 {
-    char base[1024];
-    char data[1024];
+    char base[AppPaths_Length];
+    char data[AppPaths_Length];
 } AppPaths;
 
 typedef struct AppState AppState;
