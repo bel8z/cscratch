@@ -13,8 +13,8 @@ main(void)
 {
     Vec2 a = {{1, 1}};
     Vec2 b = {{-3, -5}};
-    Vec2 c = vec2Add(a, b);
-    Vec2 d = vec2Div(c, 2.0);
+    Vec2 c = vecAdd(a, b);
+    Vec2 d = vecDiv(c, 2.0);
 
     print_vec(a);
     print_vec(b);
