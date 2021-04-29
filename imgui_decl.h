@@ -26,6 +26,8 @@
 #endif // defined(__clang__)
 #endif // defined(_MSC_VER)
 
+#include "foundation/vec.h"
+
 //------------------------------------------------------------------------------
 // Some common gui extensions
 //------------------------------------------------------------------------------
@@ -40,6 +42,30 @@ static inline void
 guiSameLine()
 {
     igSameLine(0.0f, -1.0f);
+}
+
+static inline ImVec2
+guiFromV2(Vec2 v)
+{
+    return (ImVec2){.x = v.x, .y = v.y};
+}
+
+static inline Vec2
+guiToV2(ImVec2 v)
+{
+    return (Vec2){.x = v.x, .y = v.y};
+}
+
+static inline ImVec4
+guiFromV4(Vec4 v)
+{
+    return (ImVec4){.x = v.x, .y = v.y, .z = v.z, .w = v.w};
+}
+
+static inline Vec4
+guiToV4(ImVec4 v)
+{
+    return (Vec4){.x = v.x, .y = v.y, .z = v.z, .w = v.w};
 }
 
 //------------------------------------------------------------------------------
