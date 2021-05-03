@@ -1,3 +1,4 @@
+#include "fs.h"
 #include "platform.h"
 
 #if !defined(_WIN32)
@@ -8,6 +9,8 @@
 #pragma warning(disable : 5105)
 
 #include <windows.h>
+
+#include <stdio.h>
 
 // -----------------------------------------------------------------------------
 // Internal function declarations
@@ -89,6 +92,8 @@ VM_RELEASE_FUNC(win32VmRelease)
     VirtualFree(memory, size, MEM_RELEASE);
 }
 
+// -----------------------------------------------------------------------------
+
 CF_ALLOCATOR_FUNC(win32Alloc)
 {
     // TODO (Matteo): New memory should be cleared by default?
@@ -136,5 +141,88 @@ CF_ALLOC_STATS_FUNC(win32AllocStats)
     cfAllocatorStats *stats = state;
     return *stats;
 }
+
+// -----------------------------------------------------------------------------
+
+typedef enum Win32DirIterState
+{
+    Win32DirIterState_Null = 0,
+    Win32DirIterState_Start,
+    Win32DirIterState_Next,
+} Win32DirIterState;
+
+typedef struct Win32DirIter
+{
+    HANDLE finder;
+    char buffer[MAX_PATH];
+    u8 state;
+} Win32DirIter;
+
+CF_STATIC_ASSERT(sizeof(DirIter) >= sizeof(Win32DirIter), "Invalid opaque DirIter size");
+
+bool
+dirIterStart(DirIter *iter, char const *dir)
+{
+    Win32DirIter *self = (void *)iter->opaque;
+
+    snprintf(self->buffer, MAX_PATH, "%s/*", dir);
+
+    WIN32_FIND_DATAA data = {0};
+
+    self->finder = FindFirstFileA(self->buffer, &data);
+
+    if (self->finder != INVALID_HANDLE_VALUE)
+    {
+        strncpy_s(self->buffer, MAX_PATH, data.cFileName, MAX_PATH);
+        self->state = Win32DirIterState_Start;
+        return true;
+    }
+
+    self->state = Win32DirIterState_Null;
+    return false;
+}
+
+char const *
+dirIterNext(DirIter *iter)
+{
+    Win32DirIter *self = (void *)iter->opaque;
+
+    switch (self->state)
+    {
+        case Win32DirIterState_Null: return NULL;
+        case Win32DirIterState_Start:
+        {
+            self->state = Win32DirIterState_Next;
+            break;
+        }
+        case Win32DirIterState_Next:
+        {
+            WIN32_FIND_DATAA data = {0};
+            if (!FindNextFileA(self->finder, &data))
+            {
+                self->state = Win32DirIterState_Null;
+                return NULL;
+            }
+            strncpy_s(self->buffer, MAX_PATH, data.cFileName, MAX_PATH);
+        }
+    }
+
+    return self->buffer;
+}
+
+void
+dirIterClose(DirIter *iter)
+{
+    Win32DirIter *self = (void *)iter->opaque;
+
+    self->state = Win32DirIterState_Null;
+
+    if (self->finder != INVALID_HANDLE_VALUE)
+    {
+        FindClose(self->finder);
+    }
+}
+
+// -----------------------------------------------------------------------------
 
 #pragma warning(pop)

@@ -1,4 +1,5 @@
 #include "foundation/common.h"
+#include "foundation/fs.h"
 
 #include <windows.h>
 
@@ -10,7 +11,7 @@ main(void)
 {
     printf("Splitting paths:\n");
 
-    char const *filename = "c:\\Temp/IOT\\2021_02_25/*";
+    char const *filename = "c:\\Temp/IOT\\2021_02_25/";
     // char const *filename = "//srvfile/AreaComune/Utenti/Matteo.Belotti/Lavori/Generatore/!Src/"
     //                        "EyeGoal-COREStation.zip";
     char const *delims = "\\/";
@@ -26,19 +27,17 @@ main(void)
 
     printf("Browsing dir:\n");
 
-    WIN32_FIND_DATAA data;
-    HANDLE finder = FindFirstFileA(filename, &data);
+    DirIter iter = {0};
 
-    if (finder != INVALID_HANDLE_VALUE)
+    if (dirIterStart(&iter, filename))
     {
-        printf("%s\n", data.cFileName);
-
-        while (FindNextFileA(finder, &data))
+        char const *f = NULL;
+        while ((f = dirIterNext(&iter)))
         {
-            printf("%s\n", data.cFileName);
+            printf("%s\n", f);
         }
 
-        FindClose(finder);
+        dirIterClose(&iter);
     }
 
     return 0;
