@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "util.h"
+#include "vm.h"
 
 static inline u32
 round_up(u32 block_size, u32 page_size)

@@ -1,9 +1,10 @@
 #ifndef CF_ARRAY_H
 // -----------------------------------------------------------------------------
 
-#include "allocator.h"
 #include "common.h"
 #include "util.h"
+
+typedef struct cfAllocator cfAllocator;
 
 // -----------------------------------------------------------------------------
 // Data types

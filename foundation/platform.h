@@ -1,7 +1,9 @@
 #ifndef CF_PLATFORM_H
 
-#include "allocator.h"
 #include "common.h"
+
+#include "allocator.h"
+#include "fs.h"
 #include "vm.h"
 
 // Basic platform API
@@ -9,6 +11,7 @@ typedef struct cfPlatform
 {
     cfVirtualMemory vm;
     cfAllocator heap;
+    cfFileSystem fs;
 } cfPlatform;
 
 cfPlatform cfPlatformCreate();

@@ -1,7 +1,9 @@
 #ifndef VM_ARENA_H
 
+// Dependencies
 #include "common.h"
-#include "vm.h"
+
+typedef struct cfVirtualMemory cfVirtualMemory;
 
 /// Linear arena allocator based on a block of virtual memory
 typedef struct VmArena

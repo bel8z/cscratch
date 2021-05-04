@@ -1,5 +1,7 @@
 #include "array.h"
 
+#include "allocator.h"
+
 typedef struct cfArrayHeader
 {
     cfAllocator *alloc;

@@ -1,4 +1,3 @@
-#include "fs.h"
 #include "platform.h"
 
 #if !defined(_WIN32)
@@ -26,6 +25,11 @@ static VM_RELEASE_FUNC(win32VmRelease);
 static CF_ALLOCATOR_FUNC(win32Alloc);
 static CF_ALLOC_STATS_FUNC(win32AllocStats);
 
+// File system functions
+static DirIter *win32DirIterStart(char const *dir, cfAllocator *alloc);
+static char const *win32DirIterNext(DirIter *self);
+static void win32DirIterClose(DirIter *self);
+
 // -----------------------------------------------------------------------------
 // Main API
 // -----------------------------------------------------------------------------
@@ -39,13 +43,22 @@ cfPlatformCreate()
     cfAllocatorStats *heap_stats =
         HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*heap_stats));
 
-    cfPlatform plat = {
-        .vm = {.reserve = win32VmReserve,
-               .release = win32VmRelease,
-               .commit = win32VmCommit,
-               .revert = win32VmDecommit,
-               .page_size = sysinfo.dwPageSize},
-        .heap = {.state = heap_stats, .reallocate = win32Alloc, .stats = win32AllocStats}};
+    cfPlatform plat = {.vm = {.reserve = win32VmReserve,
+                              .release = win32VmRelease,
+                              .commit = win32VmCommit,
+                              .revert = win32VmDecommit,
+                              .page_size = sysinfo.dwPageSize},
+                       .heap =
+                           {
+                               .state = heap_stats,
+                               .reallocate = win32Alloc,
+                               .stats = win32AllocStats,
+                           },
+                       .fs = {
+                           .dir_iter_start = win32DirIterStart,
+                           .dir_iter_next = win32DirIterNext,
+                           .dir_iter_close = win32DirIterClose,
+                       }};
 
     return plat;
 }
@@ -151,19 +164,19 @@ typedef enum Win32DirIterState
     Win32DirIterState_Next,
 } Win32DirIterState;
 
-typedef struct Win32DirIter
+struct DirIter
 {
     HANDLE finder;
     char buffer[MAX_PATH];
     u8 state;
-} Win32DirIter;
+    cfAllocator *alloc;
+};
 
-CF_STATIC_ASSERT(sizeof(DirIter) >= sizeof(Win32DirIter), "Invalid opaque DirIter size");
-
-bool
-dirIterStart(DirIter *iter, char const *dir)
+DirIter *
+win32DirIterStart(char const *dir, cfAllocator *alloc)
 {
-    Win32DirIter *self = (void *)iter->opaque;
+    DirIter *self = cfAlloc(alloc, sizeof(*self));
+    if (!self) return NULL;
 
     snprintf(self->buffer, MAX_PATH, "%s/*", dir);
 
@@ -175,17 +188,18 @@ dirIterStart(DirIter *iter, char const *dir)
     {
         strncpy_s(self->buffer, MAX_PATH, data.cFileName, MAX_PATH);
         self->state = Win32DirIterState_Start;
-        return true;
+        self->alloc = alloc;
+        return self;
     }
 
-    self->state = Win32DirIterState_Null;
-    return false;
+    cfFree(alloc, self, sizeof(*self));
+    return NULL;
 }
 
 char const *
-dirIterNext(DirIter *iter)
+win32DirIterNext(DirIter *self)
 {
-    Win32DirIter *self = (void *)iter->opaque;
+    CF_ASSERT_NOT_NULL(self);
 
     switch (self->state)
     {
@@ -211,16 +225,16 @@ dirIterNext(DirIter *iter)
 }
 
 void
-dirIterClose(DirIter *iter)
+win32DirIterClose(DirIter *self)
 {
-    Win32DirIter *self = (void *)iter->opaque;
-
-    self->state = Win32DirIterState_Null;
+    CF_ASSERT_NOT_NULL(self);
 
     if (self->finder != INVALID_HANDLE_VALUE)
     {
         FindClose(self->finder);
     }
+
+    cfFree(self->alloc, self, sizeof(*self));
 }
 
 // -----------------------------------------------------------------------------

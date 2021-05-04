@@ -1,5 +1,6 @@
 #include "foundation/common.h"
 #include "foundation/fs.h"
+#include "foundation/platform.h"
 
 #include <windows.h>
 
@@ -27,17 +28,18 @@ main(void)
 
     printf("Browsing dir:\n");
 
-    DirIter iter = {0};
+    cfPlatform plat = cfPlatformCreate();
+    DirIter *iter = plat.fs.dir_iter_start(filename, &plat.heap);
 
-    if (dirIterStart(&iter, filename))
+    if (iter)
     {
         char const *f = NULL;
-        while ((f = dirIterNext(&iter)))
+        while ((f = plat.fs.dir_iter_next(iter)))
         {
             printf("%s\n", f);
         }
 
-        dirIterClose(&iter);
+        plat.fs.dir_iter_close(iter);
     }
 
     return 0;
