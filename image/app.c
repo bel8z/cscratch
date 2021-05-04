@@ -125,15 +125,6 @@ appPrepareUpdate(AppState *state)
     return true;
 }
 
-static void
-guiShowAllocStats(cfAllocatorStats const *stats, bool *p_open)
-{
-    igBegin("Allocation stats", p_open, 0);
-    igLabelText("# of allocations", "%zu", stats->count);
-    igLabelText("Size of allocations", "%zu", stats->size);
-    igEnd();
-}
-
 static bool
 guiShowFontOptions(FontOptions *state, bool *p_open)
 {
@@ -197,8 +188,10 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
 }
 
 static void
-guiImageView(AppState *state)
+guiTestWindow(AppState *state)
 {
+    igBegin("Test window", NULL, ImGuiWindowFlags_MenuBar);
+
     Image *image = &state->image;
 
     f32 const min_zoom = 1.0f;
@@ -237,11 +230,14 @@ guiImageView(AppState *state)
     if (state->image_adv)
     {
         ImageFilter filter = image->filter;
-        igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
-        igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
-        imageSetFilter(image, filter);
 
+        igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
+        guiSameLine();
+        igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
+        guiSameLine();
         igSliderFloat("zoom", &image->zoom, min_zoom, max_zoom, "%.3f", 0);
+
+        imageSetFilter(image, filter);
     }
 
     // 2. Use the available content area as the image view; an invisible button
@@ -301,41 +297,15 @@ guiImageView(AppState *state)
     ImU32 debug_color = igGetColorU32Vec4((ImVec4){1, 0, 1, 1});
     ImDrawList_AddRect(dl, image_min, image_max, debug_color, 0.0f, 0, 1.0f);
     ImDrawList_AddRect(dl, view_min, view_max, debug_color, 0.0f, 0, 1.0f);
-}
-
-static void
-guiTestWindow(AppState *state)
-{
-    static f32 f = 0.0f;
-    static i32 counter = 0;
-
-    // Create a window called "Hello, world!" and append into it.
-    igBegin("Test window", NULL, ImGuiWindowFlags_MenuBar);
-
-    // Display some text (you can use a format strings  too)
-    igText("This is some useful text.");
-
-    // Edit bools storing our window open/close state
-    igCheckbox("Demo Window", &state->windows.demo);
-
-    // Edit 1 float using a slider from 0.0f to 1.0f
-    igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
-    // Edit 3 floats representing a color
-    igColorEdit3("clear color", (float *)&state->clear_color, 0);
-
-    // Buttons return true when clicked (most widgets return true
-    // when edited/activated)
-    if (guiButton("Button")) counter++;
-
-    guiSameLine();
-    igText("counter = %d", counter);
-
-    f64 framerate = (f64)igGetIO()->Framerate;
-    igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
-
-    guiImageView(state);
 
     igEnd();
+
+    // // Edit bools storing our window open/close state
+    // igCheckbox("Demo Window", &state->windows.demo);
+    // // Edit 1 float using a slider from 0.0f to 1.0f
+    // igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
+    // // Edit 3 floats representing a color
+    // igColorEdit3("clear color", (float *)&state->clear_color, 0);
 }
 
 void
@@ -372,7 +342,12 @@ appUpdate(AppState *state)
     if (state->windows.stats)
     {
         cfAllocatorStats stats = cfAllocStats(state->alloc);
-        guiShowAllocStats(&stats, &state->windows.stats);
+        f64 framerate = (f64)igGetIO()->Framerate;
+
+        igBegin("Application stats stats", &state->windows.stats, 0);
+        igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
+        igText("Allocated %.3fkb in %zu blocks", (f64)stats.size / 1024, stats.count);
+        igEnd();
     }
 
     if (state->windows.style)
