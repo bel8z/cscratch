@@ -45,6 +45,7 @@ struct AppState
     ImVec4 clear_color;
 
     Image image;
+    bool image_adv;
 };
 
 AppState *
@@ -74,6 +75,7 @@ appCreate(cfPlatform *plat, AppPaths paths)
 
     app->clear_color = (ImVec4){0.45f, 0.55f, 0.60f, 1.00f};
     app->image = (Image){.zoom = 1.0};
+    app->image_adv = false;
 
     app->paths = paths;
 
@@ -195,21 +197,52 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
 }
 
 static void
-guiImageView(Image *image)
+guiImageView(AppState *state)
 {
+    Image *image = &state->image;
 
     f32 const min_zoom = 1.0f;
     f32 const max_zoom = 10.0f;
 
+    if (igBeginMenuBar())
+    {
+        if (igBeginMenu("File", true))
+        {
+            if (igMenuItemBool("Open", NULL, false, true))
+            {
+                u32 size;
+                char *filename = state->plat->fs.open_file_dlg(NULL, NULL, state->alloc, &size);
+                if (filename)
+                {
+                    imageUnload(image);
+                    imageLoadFromFile(image, filename, state->alloc);
+                    cfFree(state->alloc, filename, size);
+                }
+            }
+            igEndMenu();
+        }
+
+        if (igBeginMenu("View", true))
+        {
+            igMenuItemBoolPtr("Advanced", NULL, &state->image_adv, true);
+            igEndMenu();
+        }
+
+        igEndMenuBar();
+    }
+
     // 1. Image scaling settings
 
     // TODO (Matteo): Maybe this can get cleaner?
-    ImageFilter filter = image->filter;
-    igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
-    igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
-    imageSetFilter(image, filter);
+    if (state->image_adv)
+    {
+        ImageFilter filter = image->filter;
+        igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
+        igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
+        imageSetFilter(image, filter);
 
-    igSliderFloat("zoom", &image->zoom, min_zoom, max_zoom, "%.3f", 0);
+        igSliderFloat("zoom", &image->zoom, min_zoom, max_zoom, "%.3f", 0);
+    }
 
     // 2. Use the available content area as the image view; an invisible button
     // is used in order to catch input.
@@ -277,7 +310,7 @@ guiTestWindow(AppState *state)
     static i32 counter = 0;
 
     // Create a window called "Hello, world!" and append into it.
-    igBegin("Test window", NULL, 0);
+    igBegin("Test window", NULL, ImGuiWindowFlags_MenuBar);
 
     // Display some text (you can use a format strings  too)
     igText("This is some useful text.");
@@ -300,7 +333,7 @@ guiTestWindow(AppState *state)
     f64 framerate = (f64)igGetIO()->Framerate;
     igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
 
-    guiImageView(&state->image);
+    guiImageView(state);
 
     igEnd();
 }

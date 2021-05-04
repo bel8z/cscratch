@@ -83,9 +83,8 @@ cfPlatformShutdown(cfPlatform *platform)
     cfAllocatorStats *heap_stats = platform->heap.state;
 
     CF_ASSERT_NOT_NULL(heap_stats);
-    CF_ASSERT(heap_stats->count == 0, "Potential memory leak");
-
     // TODO (Matteo): Check allocation size tracking
+    CF_ASSERT(heap_stats->count == 0, "Potential memory leak");
     CF_ASSERT(heap_stats->size == 0, "Potential memory leak");
 
     HeapFree(GetProcessHeap(), 0, heap_stats);
