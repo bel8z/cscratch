@@ -1,5 +1,7 @@
 #include "platform.h"
 
+#include "util.h"
+
 #if !defined(_WIN32)
 #error "Win32 platform not supported"
 #endif // defined(_WIN32)
@@ -30,6 +32,15 @@ static DirIter *win32DirIterStart(char const *dir, cfAllocator *alloc);
 static char const *win32DirIterNext(DirIter *self);
 static void win32DirIterClose(DirIter *self);
 
+static char *win32OpenFileDlg(char const *filename_hint, char const *filter, cfAllocator *alloc,
+                              u32 *out_size);
+
+// Unicode helpers
+static u32 utf8to16Size(char const *str);
+static u32 utf16to8Size(WCHAR const *str);
+static WCHAR *utf8to16(char const *str, cfAllocator *alloc, u32 *out_size);
+static char *utf16to8(WCHAR const *str, cfAllocator *alloc, u32 *out_size);
+
 // -----------------------------------------------------------------------------
 // Main API
 // -----------------------------------------------------------------------------
@@ -58,6 +69,7 @@ cfPlatformCreate()
                            .dir_iter_start = win32DirIterStart,
                            .dir_iter_next = win32DirIterNext,
                            .dir_iter_close = win32DirIterClose,
+                           .open_file_dlg = win32OpenFileDlg,
                        }};
 
     return plat;
@@ -235,6 +247,96 @@ win32DirIterClose(DirIter *self)
     }
 
     cfFree(self->alloc, self, sizeof(*self));
+}
+
+// -----------------------------------------------------------------------------
+
+u32
+utf8to16Size(char const *str)
+{
+    return MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str, -1, NULL, 0);
+}
+
+u32
+utf16to8Size(WCHAR const *str)
+{
+    return WideCharToMultiByte(CP_UTF8, 0, str, -1, NULL, 0, 0, false);
+}
+
+WCHAR *
+utf8to16(char const *str, cfAllocator *alloc, u32 *out_size)
+{
+    u32 size = utf8to16Size(str);
+    WCHAR *buf = cfAlloc(alloc, size);
+
+    if (buf)
+    {
+        if (out_size) *out_size = size;
+        MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str, -1, buf, size);
+    }
+
+    return buf;
+}
+
+char *
+utf16to8(WCHAR const *str, cfAllocator *alloc, u32 *out_size)
+{
+    u32 size = utf16to8Size(str);
+    char *buf = cfAlloc(alloc, size);
+
+    if (buf)
+    {
+        if (out_size) *out_size = size;
+        WideCharToMultiByte(CP_UTF8, 0, str, -1, buf, size, 0, false);
+    }
+
+    return buf;
+}
+
+char *
+win32OpenFileDlg(char const *filename_hint, char const *filter, cfAllocator *alloc, u32 *out_size)
+{
+
+    u32 name_size = 0;
+    WCHAR *name = NULL;
+    if (filename_hint)
+    {
+        utf8to16(filename_hint, alloc, &name_size);
+    }
+    else
+    {
+        name_size = MAX_PATH;
+        name = cfAlloc(alloc, name_size);
+        cfMemClear((u8 *)name, name_size);
+    }
+
+    u32 filt_size = 0;
+    WCHAR *filt = NULL;
+    if (filter) utf8to16(filter, alloc, &filt_size);
+
+    OPENFILENAMEW ofn = {0};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = name;
+    ofn.nMaxFile = name_size;
+    ofn.lpstrFilter = filt; // _T("All\0*.*\0Text\0*.TXT\0");
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+    char *result = NULL;
+
+    if (GetOpenFileNameW(&ofn))
+    {
+        result = utf16to8(ofn.lpstrFile, alloc, out_size);
+    }
+
+    cfFree(alloc, name, name_size);
+    cfFree(alloc, filt, filt_size);
+
+    return result;
 }
 
 // -----------------------------------------------------------------------------

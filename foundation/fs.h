@@ -19,6 +19,9 @@ typedef struct cfFileSystem
     // Shutdown the iteration
     void (*dir_iter_close)(DirIter *iter);
 
+    char *(*open_file_dlg)(char const *filename_hint, char const *filter, cfAllocator *alloc,
+                           u32 *out_size);
+
 } cfFileSystem;
 
 //------------------------------------------------------------------------------

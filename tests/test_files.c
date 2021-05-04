@@ -59,5 +59,16 @@ main(void)
         plat.fs.dir_iter_close(iter);
     }
 
+    u32 sz = 0;
+    char *f = plat.fs.open_file_dlg(NULL, NULL, &plat.heap, &sz);
+    printf("Opened file: %s \n", f);
+    cfFree(&plat.heap, f, sz);
+
+    cfAllocatorStats s = cfAllocStats(&plat.heap);
+    CF_ASSERT(s.count == 0, "LEAK!");
+    CF_ASSERT(s.size == 0, "LEAK!");
+
+    cfPlatformShutdown(&plat);
+
     return 0;
 }
