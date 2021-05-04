@@ -1,35 +1,52 @@
 #include "foundation/common.h"
 #include "foundation/fs.h"
+#include "foundation/path.h"
 #include "foundation/platform.h"
 
 #include <windows.h>
 
 #include <stdio.h>
-#include <string.h>
 
 int
 main(void)
 {
     printf("Splitting paths:\n");
 
-    char const *filename = "c:\\Temp/IOT\\2021_02_25/";
-    // char const *filename = "//srvfile/AreaComune/Utenti/Matteo.Belotti/Lavori/Generatore/!Src/"
-    //                        "EyeGoal-COREStation.zip";
-    char const *delims = "\\/";
+    char const *p = NULL;
 
-    for (char const *cursor = filename; *cursor;)
+    p = pathSplitName("c:\\Temp/IOT\\2021_02_25/");
+    if (p) printf("%s\n", p);
+
+    p = pathSplitName("//srvfile/AreaComune/Utenti/Matteo.Belotti/Lavori/Generatore/!Src/"
+                      "EyeGoal-COREStation.zip");
+    if (p) printf("%s\n", p);
+
+    p = pathSplitName("Gianni Morandi");
+    if (p) printf("%s\n", p);
+
+    char const *dirname = "c:\\Temp/IOT\\2021_02_25/";
+    char const *filename = "//srvfile/AreaComune/Utenti/Matteo.Belotti/Lavori/Generatore/!Src/"
+                           "EyeGoal-COREStation.zip";
+
+    PathSplitIter pi = {0};
+    pathSplitStart(&pi, dirname);
+
+    while (pathSplitNext(&pi))
     {
-        // cursor += strspn(cursor, delims);
-        size_t len = strcspn(cursor, delims);
-        len += strspn(cursor + len, delims);
-        printf("%.*s\n", (int)len, cursor);
-        cursor += len;
+        printf("%.*s\n", (int)pi.len, pi.cur);
+    }
+
+    pathSplitStart(&pi, filename);
+
+    while (pathSplitNext(&pi))
+    {
+        printf("%.*s\n", (int)pi.len, pi.cur);
     }
 
     printf("Browsing dir:\n");
 
     cfPlatform plat = cfPlatformCreate();
-    DirIter *iter = plat.fs.dir_iter_start(filename, &plat.heap);
+    DirIter *iter = plat.fs.dir_iter_start(dirname, &plat.heap);
 
     if (iter)
     {

@@ -89,6 +89,10 @@ typedef double f64;
 #define F64_EPS DBL_EPSILON
 
 //------------------------------------------------------------------------------
+// Macro for declaring a dynamic array (e.g. cfArray(i32) ints;) - see array.h
+#define cfArray(Type) Type *
+
+//------------------------------------------------------------------------------
 // Assertion macros
 
 // Ensure assertion in release mode

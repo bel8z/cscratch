@@ -19,9 +19,6 @@ typedef struct cfArrayParams
     usize capacity;
 } cfArrayParams;
 
-// Use it to explicitly declare an array (e.g. cfArray(i32) ints;)
-#define cfArray(Type) Type *
-
 // -----------------------------------------------------------------------------
 // Operations
 // -----------------------------------------------------------------------------
