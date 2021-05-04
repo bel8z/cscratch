@@ -33,6 +33,7 @@ typedef struct AppWindows
 
 struct AppState
 {
+    cfPlatform *plat;
     cfAllocator *alloc;
 
     AppPaths paths;
@@ -51,13 +52,17 @@ appCreate(cfPlatform *plat, AppPaths paths)
 {
     AppState *app = cfAlloc(&plat->heap, sizeof(*app));
 
+    app->plat = plat;
     app->alloc = &plat->heap;
+
     app->rebuild_fonts = true;
-    app->font_opts = (FontOptions){.freetype_enabled = true,
-                                   .freetype_flags = 0,
-                                   .oversample_h = 1,
-                                   .oversample_v = 1,
-                                   .rasterizer_multiply = 1.0f};
+    app->font_opts = (FontOptions){
+        .freetype_enabled = true,
+        .freetype_flags = 0,
+        .oversample_h = 1,
+        .oversample_v = 1,
+        .rasterizer_multiply = 1.0f,
+    };
 
     app->windows = (AppWindows){
         .demo = false,
