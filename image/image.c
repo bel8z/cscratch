@@ -48,7 +48,6 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
 
     // Setup allocator for stbi
     g_alloc = alloc;
-    g_alloc_count = 0;
 
     // Load from file
     i32 width = 0;
