@@ -1,6 +1,5 @@
 #ifndef IMAGE_H
 
-#include "foundation/allocator.h"
 #include "foundation/common.h"
 
 // TODO (Matteo):
@@ -20,8 +19,8 @@ typedef struct Image
     u32 texture;
     i32 width;
     i32 height;
-    ImageFilter filter;
     f32 zoom;
+    ImageFilter filter;
 } Image;
 
 // Simple helper function to load an image into a OpenGL texture with common settings

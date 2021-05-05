@@ -1,5 +1,7 @@
 #include "image.h"
 
+#include "foundation/allocator.h"
+
 #include <GL/gl3w.h>
 
 //------------------------------------------------------------------------------

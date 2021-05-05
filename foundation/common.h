@@ -89,8 +89,14 @@ typedef double f64;
 #define F64_EPS DBL_EPSILON
 
 //------------------------------------------------------------------------------
+// Forward declare commonly used foundation types so that they can appear in
+// headers as pointers
+
 // Macro for declaring a dynamic array (e.g. cfArray(i32) ints;) - see array.h
 #define cfArray(Type) Type *
+
+// Allocator abstract interface
+typedef struct cfAllocator cfAllocator;
 
 //------------------------------------------------------------------------------
 // Assertion macros

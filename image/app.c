@@ -188,7 +188,7 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
 }
 
 static void
-guiTestWindow(AppState *state)
+guiImageViewer(AppState *state)
 {
     igBegin("Test window", NULL, ImGuiWindowFlags_MenuBar);
 
@@ -330,7 +330,7 @@ appUpdate(AppState *state)
         igEndMainMenuBar();
     }
 
-    guiTestWindow(state);
+    guiImageViewer(state);
 
     if (state->windows.demo) igShowDemoWindow(&state->windows.demo);
 

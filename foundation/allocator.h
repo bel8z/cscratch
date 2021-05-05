@@ -2,7 +2,6 @@
 
 #include "common.h"
 
-typedef struct cfAllocator cfAllocator;
 typedef struct cfAllocatorStats cfAllocatorStats;
 
 #define CF_ALLOCATOR_FUNC(name) \

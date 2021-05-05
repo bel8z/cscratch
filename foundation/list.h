@@ -78,14 +78,14 @@ static inline void
 cf_list_push_head(cfList *list, cfList *node)
 {
     cf_list_insert(node, list, list->next);
-    assert(list->next == node);
+    CF_ASSERT(list->next == node, "");
 }
 
 static inline void
 cf_list_push_tail(cfList *list, cfList *node)
 {
     cf_list_insert(node, list->prev, list);
-    assert(list->prev == node);
+    CF_ASSERT(list->prev == node, "");
 }
 
 static inline cfList *

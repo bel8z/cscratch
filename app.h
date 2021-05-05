@@ -1,6 +1,8 @@
 #ifndef APP_H
 
-#include "foundation/platform.h"
+#include "foundation/common.h"
+
+typedef struct cfPlatform cfPlatform;
 
 enum
 {

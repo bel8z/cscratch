@@ -1,9 +1,6 @@
 #ifndef FOUNDATION_FS_H
 
-// Dependencies
 #include "common.h"
-
-typedef struct cfAllocator cfAllocator;
 
 // Iterates over directory entries
 typedef struct DirIter DirIter;
