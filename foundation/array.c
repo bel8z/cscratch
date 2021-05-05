@@ -48,6 +48,12 @@ cfArraySize(void *array)
     return arrayHeader(array)->len;
 }
 
+void
+cfArrayClear(void *array)
+{
+    arrayHeader(array)->len = 0;
+}
+
 void *
 cf__arrayInit(void *array, cfArrayParams const *params)
 {

@@ -22,12 +22,9 @@ typedef struct cfArrayParams
 // -----------------------------------------------------------------------------
 
 /// Initialize a dynamic array with the given allocator and optional capacity
-#define cf_array_init(array, allocator, ...)                       \
-    (array = cf__arrayInit(array, &(cfArrayParams){                \
-                                      .alloc = (allocator),        \
-                                      .item_size = sizeof(*array), \
-                                      __VA_ARGS__,                 \
-                                  }))
+#define cfArrayInit(array, allocator, ...) \
+    (array = cf__arrayInit(                \
+         array, &(cfArrayParams){.alloc = (allocator), .item_size = sizeof(*array), __VA_ARGS__}))
 
 /// Free the dynamic array
 #define cfArrayFree(array) cf__arrayFree(array, sizeof(*array))
@@ -49,6 +46,8 @@ usize cfArraySize(void *array);
 #define cfArrayLast(array) (cfArrayEnd(array) - 1)
 /// Pointer to one past the last element of the array
 #define cfArrayEnd(array) (array + cfArraySize(array))
+
+void cfArrayClear(void *array);
 
 /// Grow the array capacity to store at least the given room
 /// Growth is geometrical

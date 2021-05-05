@@ -30,16 +30,19 @@ function(set_c_compile_flags project_name)
     set(CLANG_WARNINGS
         -Wall
         -Wextra # reasonable and standard
+        -Wpedantic # warn if non-standard C is used       
         -Wshadow # warn the user if a variable declaration shadows one from a parent context
-        -Wold-style-cast # warn for c-style casts
         -Wunused # warn on anything being unused
-        -Wpedantic # warn if non-standard C++ is used
+        -Wnull-dereference # warn if a null dereference is detected
         -Wconversion # warn on type conversions that may lose data
         -Wsign-conversion # warn on sign conversions
-        -Wnull-dereference # warn if a null dereference is detected
-        -Wformat=2 # warn on security issues around functions that format output (ie printf)
-        -Wdouble-promotion # warn if float is implicit promoted to double
+        -Wold-style-cast # warn for c-style casts
         -Wcast-align # warn for potential performance problem casts
+        -Wdouble-promotion # warn if float is implicit promoted to double
+        -Wformat=2 # warn on security issues around functions that format output (ie printf)
+
+        # Allow variadic macros to be called without an argument in place of the ellipsis
+        -Wno-gnu-zero-variadic-macro-arguments
     )
 
     set(CLANG_WARNINGS ${CLANG_WARNINGS} -Werror)
