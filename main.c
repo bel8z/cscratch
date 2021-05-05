@@ -329,6 +329,7 @@ main(int argc, char **argv)
     glfwTerminate();
 #endif
 
+    appDestroy(app);
     cfPlatformShutdown(&plat);
 
     return 0;

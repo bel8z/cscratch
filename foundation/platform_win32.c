@@ -122,42 +122,42 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 {
     // TODO (Matteo): New memory should be cleared by default?
 
-    cfAllocatorStats *stats = state;
+    HANDLE heap = GetProcessHeap();
+    void *old_mem = memory;
+    void *new_mem = NULL;
 
     if (new_size)
     {
-        void *new_memory = NULL;
-
-        if (memory)
+        if (old_mem)
         {
-            CF_ASSERT(old_size > 0, "Reallocating memory but old size not given");
-            new_memory = HeapReAlloc(GetProcessHeap(), 0, memory, new_size);
+            new_mem = HeapReAlloc(heap, 0, old_mem, new_size);
         }
         else
         {
-            CF_ASSERT(old_size == 0, "Allocating new memory but old size given");
-            new_memory = HeapAlloc(GetProcessHeap(), 0, new_size);
+            new_mem = HeapAlloc(heap, 0, new_size);
         }
-
-        if (new_memory)
-        {
-            stats->size += new_size - old_size;
-            stats->count += (old_size == 0);
-        }
-
-        return new_memory;
     }
-
-    if (memory)
+    else
     {
-        CF_ASSERT(old_size > 0, "Freeing memory but size not given");
-
-        stats->count -= 1;
-        stats->size -= old_size;
-        HeapFree(GetProcessHeap(), 0, memory);
+        HeapFree(heap, 0, old_mem);
     }
 
-    return NULL;
+    cfAllocatorStats *stats = state;
+
+    if (old_mem)
+    {
+        CF_ASSERT(old_size > 0, "Freeing valid pointer but given size is 0");
+        stats->count--;
+        stats->size -= old_size;
+    }
+
+    if (new_mem)
+    {
+        stats->count++;
+        stats->size += new_size;
+    }
+
+    return new_mem;
 }
 
 CF_ALLOC_STATS_FUNC(win32AllocStats)
