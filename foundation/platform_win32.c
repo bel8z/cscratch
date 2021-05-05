@@ -296,28 +296,23 @@ char *
 win32OpenFileDlg(char const *filename_hint, char const *filter, cfAllocator *alloc, u32 *out_size)
 {
 
-    u32 name_size = 0;
-    WCHAR *name = NULL;
+    WCHAR name[MAX_PATH] = {0};
+
     if (filename_hint)
     {
-        utf8to16(filename_hint, alloc, &name_size);
-    }
-    else
-    {
-        name_size = MAX_PATH;
-        name = cfAlloc(alloc, name_size);
-        cfMemClear((u8 *)name, name_size);
+        u32 name_size = utf8to16Size(filename_hint);
+        if (name_size > MAX_PATH) return NULL;
+        MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, filename_hint, -1, name, name_size);
     }
 
     u32 filt_size = 0;
-    WCHAR *filt = NULL;
-    if (filter) utf8to16(filter, alloc, &filt_size);
+    WCHAR *filt = filter ? utf8to16(filter, alloc, &filt_size) : NULL;
 
     OPENFILENAMEW ofn = {0};
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = NULL;
     ofn.lpstrFile = name;
-    ofn.nMaxFile = name_size;
+    ofn.nMaxFile = MAX_PATH;
     ofn.lpstrFilter = filt; // _T("All\0*.*\0Text\0*.TXT\0");
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
@@ -332,7 +327,6 @@ win32OpenFileDlg(char const *filename_hint, char const *filter, cfAllocator *all
         result = utf16to8(ofn.lpstrFile, alloc, out_size);
     }
 
-    cfFree(alloc, name, name_size);
     cfFree(alloc, filt, filt_size);
 
     return result;
