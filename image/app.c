@@ -245,6 +245,9 @@ guiImageViewer(AppState *state)
 
     ImVec2 view_size, view_min, view_max;
     igGetContentRegionAvail(&view_size);
+    if (view_size.x < 50.0f) view_size.x = 50.0f;
+    if (view_size.y < 50.0f) view_size.y = 50.0f;
+
     igInvisibleButton("Image viewer##Area", view_size, 0);
     igGetItemRectMin(&view_min);
     igGetItemRectMax(&view_max);
