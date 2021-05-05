@@ -190,7 +190,7 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
 static void
 guiImageViewer(AppState *state)
 {
-    igBegin("Test window", NULL, ImGuiWindowFlags_MenuBar);
+    igBegin("Image viewer", NULL, ImGuiWindowFlags_MenuBar);
 
     Image *image = &state->image;
 
@@ -245,7 +245,7 @@ guiImageViewer(AppState *state)
 
     ImVec2 view_size, view_min, view_max;
     igGetContentRegionAvail(&view_size);
-    igInvisibleButton("Image view", view_size, 0);
+    igInvisibleButton("Image viewer##Area", view_size, 0);
     igGetItemRectMin(&view_min);
     igGetItemRectMax(&view_max);
 
