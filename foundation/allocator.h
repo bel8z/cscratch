@@ -28,9 +28,9 @@ struct cfAllocator
 #define cfAlloc(a, size) (a)->reallocate((a)->state, NULL, 0, size)
 
 #define cfRealloc(a, memory, old_size, new_size) \
-    (a)->reallocate((a)->state, memory, old_size, new_size)
+    (a)->reallocate((a)->state, (memory), (old_size), (new_size))
 
-#define cfFree(a, memory, size) (a)->reallocate((a)->state, memory, size, 0)
+#define cfFree(a, memory, size) (a)->reallocate((a)->state, (void *)(memory), (size), 0)
 
 #define cfAllocStats(a) (a)->stats((a)->state)
 
