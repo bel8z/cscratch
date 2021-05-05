@@ -2,6 +2,9 @@
 
 #include "common.h"
 
+// Generic allocator interface
+// The memory provided by this interface should already be cleared to 0
+
 typedef struct cfAllocatorStats cfAllocatorStats;
 
 #define CF_ALLOCATOR_FUNC(name) \

@@ -120,8 +120,6 @@ VM_RELEASE_FUNC(win32VmRelease)
 
 CF_ALLOCATOR_FUNC(win32Alloc)
 {
-    // TODO (Matteo): New memory should be cleared by default?
-
     HANDLE heap = GetProcessHeap();
     void *old_mem = memory;
     void *new_mem = NULL;
@@ -130,11 +128,11 @@ CF_ALLOCATOR_FUNC(win32Alloc)
     {
         if (old_mem)
         {
-            new_mem = HeapReAlloc(heap, 0, old_mem, new_size);
+            new_mem = HeapReAlloc(heap, HEAP_ZERO_MEMORY, old_mem, new_size);
         }
         else
         {
-            new_mem = HeapAlloc(heap, 0, new_size);
+            new_mem = HeapAlloc(heap, HEAP_ZERO_MEMORY, new_size);
         }
     }
     else

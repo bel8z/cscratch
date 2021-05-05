@@ -121,6 +121,8 @@ void *
 stbiRealloc(void *mem, usize size)
 {
     CF_ASSERT_NOT_NULL(g_alloc);
+    CF_ASSERT(size > 0, "stbi requested allocation of 0 bytes");
+    CF_ASSERT(size < USIZE_MAX - sizeof(usize), "stbi requested allocation is too big");
 
     usize *old_buf = mem;
     usize old_size = 0;
@@ -150,6 +152,7 @@ stbiFree(void *mem)
     {
         usize *buf = (usize *)mem - 1;
         usize old_size = *buf;
+        CF_ASSERT(old_size, "stbi freeing invalid block");
         cfFree(g_alloc, buf, old_size);
     }
 }
