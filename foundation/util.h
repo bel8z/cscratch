@@ -10,7 +10,7 @@
 #include <string.h>
 
 static inline void
-cfMemClear(u8 *mem, usize count)
+cfMemClear(void *mem, usize count)
 {
     memset(mem, 0, count); // NOLINT
 }
@@ -22,7 +22,7 @@ cfMemWrite(u8 *mem, u8 value, usize count)
 }
 
 static inline void
-cfMemCopy(u8 const *from, u8 *to, usize count)
+cfMemCopy(void const *from, void *to, usize count)
 {
     memmove_s(to, count, from, count);
 }

@@ -28,7 +28,6 @@ typedef struct AppWindows
     bool stats;
     bool fonts;
     bool style;
-
 } AppWindows;
 
 struct AppState

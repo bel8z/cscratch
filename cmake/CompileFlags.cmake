@@ -37,10 +37,11 @@ function(set_c_compile_flags project_name)
         -Wconversion # warn on type conversions that may lose data
         -Wsign-conversion # warn on sign conversions
         -Wold-style-cast # warn for c-style casts
-        -Wcast-align # warn for potential performance problem casts
         -Wdouble-promotion # warn if float is implicit promoted to double
         -Wformat=2 # warn on security issues around functions that format output (ie printf)
-
+        
+        #-Wcast-align # warn for potential performance problem casts
+        
         # Allow variadic macros to be called without an argument in place of the ellipsis
         -Wno-gnu-zero-variadic-macro-arguments
     )

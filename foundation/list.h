@@ -11,7 +11,7 @@ struct cfList
     cfList *prev, *next;
 };
 
-#define cfListItem(node, type, member) (type *)((u8 const *)(node)-offsetof(type, member))
+#define cfListItem(node, type, member) (type *)((u8 *)(node)-offsetof(type, member))
 #define cfListPrevItem(node, type, member) cfListItem((node)->prev, type, member)
 #define cfListNextItem(node, type, member) cfListItem((node)->next, type, member)
 
