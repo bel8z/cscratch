@@ -15,7 +15,7 @@ typedef struct StringList
 {
     cfAllocator *alloc;
 
-    void *buf;
+    u8 *buf;
     usize len;
     usize cap;
 

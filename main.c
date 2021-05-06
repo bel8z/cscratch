@@ -5,7 +5,7 @@
 #include "gui.h"
 
 // Backend libraries
-#include <GL/gl3w.h> // Initialize with gl3wInit()
+#include "gl3w.h"
 
 #if SDL_BACKEND
 #define SDL_MAIN_HANDLED

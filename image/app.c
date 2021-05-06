@@ -228,7 +228,7 @@ guiImageViewer(AppState *state)
     // TODO (Matteo): Maybe this can get cleaner?
     if (state->image_adv)
     {
-        ImageFilter filter = image->filter;
+        i32 filter = image->filter;
 
         igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
         guiSameLine();

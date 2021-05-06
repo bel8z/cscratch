@@ -2,7 +2,7 @@
 
 #include "foundation/allocator.h"
 
-#include <GL/gl3w.h>
+#include "gl3w.h"
 
 //------------------------------------------------------------------------------
 // Custom memory management for stbi
