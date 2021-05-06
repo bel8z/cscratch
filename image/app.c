@@ -290,16 +290,19 @@ guiImageViewer(AppState *state)
     ImVec2 image_min = {view_min.x + 0.5f * (view_size.x - image_size.x),
                         view_min.y + 0.5f * (view_size.y - image_size.y)};
     ImVec2 image_max;
-    vecAddN((const f32 *)&image_min, (const f32 *)&image_size, 2, (f32 *)&image_max);
+    vecAddN((f32 *)&image_min, (f32 *)&image_size, 2, (f32 *)&image_max);
 
     ImDrawList *dl = igGetWindowDrawList();
     ImDrawList_AddImage(dl, (void *)(iptr)image->texture, image_min, image_max, uv0, uv1,
                         igGetColorU32Vec4((ImVec4){1, 1, 1, 1}));
 
-    // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
-    ImU32 debug_color = igGetColorU32Vec4((ImVec4){1, 0, 1, 1});
-    ImDrawList_AddRect(dl, image_min, image_max, debug_color, 0.0f, 0, 1.0f);
-    ImDrawList_AddRect(dl, view_min, view_max, debug_color, 0.0f, 0, 1.0f);
+    if (state->image_adv)
+    {
+        // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
+        ImU32 debug_color = igGetColorU32Vec4((ImVec4){1, 0, 1, 1});
+        ImDrawList_AddRect(dl, image_min, image_max, debug_color, 0.0f, 0, 1.0f);
+        ImDrawList_AddRect(dl, view_min, view_max, debug_color, 0.0f, 0, 1.0f);
+    }
 
     igEnd();
 
