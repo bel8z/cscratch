@@ -111,6 +111,18 @@ slPop(StringList *sl)
     return true;
 }
 
+StringEntry *
+slFirst(StringList const *sl)
+{
+    return sl->len ? cfListItem(sl->list.next, StringEntry, node) : NULL;
+}
+
+StringEntry *
+slLast(StringList const *sl)
+{
+    return sl->len ? cfListItem(sl->list.prev, StringEntry, node) : NULL;
+}
+
 bool
 slIterNext(StringList const *sl, StringEntry **entry)
 {
@@ -128,6 +140,27 @@ slIterNext(StringList const *sl, StringEntry **entry)
     if (next == &sl->list) return false;
 
     *entry = cfListItem(next, StringEntry, node);
+
+    return true;
+}
+
+bool
+slIterPrev(StringList const *sl, StringEntry **entry)
+{
+    cfList const *prev = NULL;
+
+    if (*entry)
+    {
+        prev = (*entry)->node.prev;
+    }
+    else
+    {
+        prev = sl->list.prev;
+    }
+
+    if (prev == &sl->list) return false;
+
+    *entry = cfListItem(prev, StringEntry, node);
 
     return true;
 }

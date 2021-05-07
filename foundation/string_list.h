@@ -34,7 +34,11 @@ void slClear(StringList *sl);
 bool slPush(StringList *sl, char const *str);
 bool slPop(StringList *sl);
 
-bool slIterNext(StringList const *buff, StringEntry **entry);
+StringEntry *slFirst(StringList const *sl);
+StringEntry *slLast(StringList const *sl);
+
+bool slIterNext(StringList const *sl, StringEntry **entry);
+bool slIterPrev(StringList const *sl, StringEntry **entry);
 
 #define FOUNDATION_STRING_LIST_H
 #endif
