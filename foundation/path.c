@@ -30,8 +30,11 @@ pathSplitNameExt(char const *path, char const **ext)
         path = temp + strspn(temp, g_delimiters);
     }
 
-    // TODO (Matteo): Implement
-    if (ext) *ext = NULL;
+    if (ext && path)
+    {
+        // TODO (Matteo): Improve
+        *ext = strrchr(path, '.');
+    }
 
     return path;
 }
