@@ -48,8 +48,8 @@ cfListInsert(cfList *node, cfList *prev, cfList *next)
     node->prev = prev;
     node->next = next;
 
-    next->prev = node;
     prev->next = node;
+    next->prev = node;
 }
 
 void
@@ -89,18 +89,4 @@ cfListPopTail(cfList *list)
     cfList *tail = list->prev;
     cfListRemove(tail);
     return tail;
-}
-
-bool
-cfListIterNext(cfList const **cursor)
-{
-    *cursor = (*cursor)->next;
-    return (*cursor != (*cursor)->next);
-}
-
-bool
-cfListIterPrev(cfList const **cursor)
-{
-    *cursor = (*cursor)->prev;
-    return (*cursor != (*cursor)->prev);
 }
