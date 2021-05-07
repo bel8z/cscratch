@@ -4,29 +4,29 @@
 #include "util.h"
 
 void
-slInitAlloc(StringList *sl, cfAllocator *alloc)
+slInitBuffer(StringList *sl, u8 *buffer, usize size)
 {
-    CF_ASSERT_NOT_NULL(sl);
-    CF_ASSERT_NOT_NULL(alloc);
-
-    sl->alloc = alloc;
-    sl->buf = NULL;
-    sl->cap = 0;
+    sl->alloc = NULL;
+    sl->cap = size;
     sl->len = 0;
-    cfListInit(&sl->sentinel);
+    sl->buf = buffer;
+
+    sl->count = 0;
+
+    cfListInit(&sl->list);
 }
 
 void
-slInitBuffer(StringList *sl, void *buffer, usize size)
+slInitAlloc(StringList *sl, cfAllocator *alloc)
 {
-    CF_ASSERT_NOT_NULL(sl);
-    CF_ASSERT_NOT_NULL(buffer);
-
-    sl->alloc = NULL;
-    sl->buf = buffer;
-    sl->cap = size;
+    sl->alloc = alloc;
+    sl->cap = 0;
     sl->len = 0;
-    cfListInit(&sl->sentinel);
+    sl->buf = NULL;
+
+    sl->count = 0;
+
+    cfListInit(&sl->list);
 }
 
 void
@@ -36,54 +36,98 @@ slShutdown(StringList *sl)
     if (sl->alloc)
     {
         cfFree(sl->alloc, sl->buf, sl->cap);
-        sl->cap = 0;
-        sl->buf = NULL;
     }
 }
 
 void
 slClear(StringList *sl)
 {
-    cfListInit(&sl->sentinel);
+    sl->count = 0;
     sl->len = 0;
+    cfListInit(&sl->list);
 }
 
 bool
 slPush(StringList *sl, char const *str)
 {
-    usize size = 0;
-    do
+    // Compute size of the string, including terminator
+    usize size = 1;
+    while (str[size - 1])
     {
         size++;
-    } while (str[size]);
+    }
 
-    usize required = sizeof(StringEntry) + size;
+    StringEntry *entry = NULL;
     usize avail = sl->cap - sl->len;
+    usize required = sizeof(*entry) + size;
 
     if (required > avail)
     {
-        if (!sl->alloc) return false; // No way to grow
+        if (!sl->alloc) return false;
 
-        usize new_cap = cfMax(sl->cap ? sl->cap * 2 : 1, required);
-        void *new_buf = cfAlloc(sl->alloc, new_cap);
+        usize new_cap = cfMax(required, sl->cap ? sl->cap * 2 : 1);
+        u8 *new_buf = cfRealloc(sl->alloc, sl->buf, sl->cap, new_cap);
         if (!new_buf) return false;
 
         sl->cap = new_cap;
         sl->buf = new_buf;
     }
 
-    char *data = sl->buf + sl->len;
-
-    cfMemCopy(str, data, size);
-
-    sl->len += size;
-
-    StringEntry *entry = sl->buf + sl->len;
-
-    entry->data = data;
+    entry = (StringEntry *)(sl->buf + sl->len);
+    entry->data = (char *)(entry + 1);
     entry->size = size;
 
-    cfListPushTail(&sl->sentinel, &entry->node);
+    cfListPushTail(&sl->list, &entry->node);
+
+    CF_ASSERT(sl->list.prev == &entry->node, "");
+    CF_ASSERT(entry->node.next == &sl->list, "");
+
+    cfMemCopy(str, entry->data, size);
+
+    sl->len += required;
+    sl->count++;
+
+    return true;
+}
+
+bool
+slPop(StringList *sl)
+{
+    if (!sl->len) return false;
+
+    cfList *tail = cfListPopTail(&sl->list);
+
+    CF_ASSERT(tail != &sl->list, "Pop of list sentinel");
+
+    StringEntry *entry = cfListItem(tail, StringEntry, node);
+
+    usize block_size = sizeof(*entry) + entry->size;
+
+    CF_ASSERT(block_size <= sl->len, "Removing more than available");
+
+    sl->count--;
+    sl->len -= block_size;
+
+    return true;
+}
+
+bool
+slIterNext(StringList const *sl, StringEntry **entry)
+{
+    cfList const *next = NULL;
+
+    if (*entry)
+    {
+        next = (*entry)->node.next;
+    }
+    else
+    {
+        next = sl->list.next;
+    }
+
+    if (next == &sl->list) return false;
+
+    *entry = cfListItem(next, StringEntry, node);
 
     return true;
 }

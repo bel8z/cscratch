@@ -1,29 +1,42 @@
+#include "foundation/common.h"
 #include "foundation/string_list.h"
 
 #include <stdio.h>
 
-static u8 buffer[4096];
+static u8 g_buffer[4096];
 
 int
 main(void)
 {
-    StringList sl = {0};
-    slInitBuffer(&sl, buffer, 4096);
+    StringList buff = {0};
+
+    slInitBuffer(&buff, g_buffer, sizeof(g_buffer));
 
     usize i = 0;
 
-    while (slPush(&sl, __FILE__))
-    {
-        ++i;
-    }
+    if (slPush(&buff, "STR1")) ++i;
+    if (slPush(&buff, "STR2")) ++i;
+    if (slPush(&buff, "STR3")) ++i;
 
     printf("Pushed %zu strings\n", i);
 
-    cfList *cursor = sl.sentinel.next;
+    StringEntry *entry = NULL;
 
-    while (cursor != &sl.sentinel)
+    while (slIterNext(&buff, &entry))
     {
-        StringEntry *entry = cfListItem(cursor, StringEntry, node);
+        printf("Data: %s\n", entry->data);
+        printf("Size: %zu\n", entry->size);
+    }
+
+    CF_ASSERT(slPop(&buff), "");
+    CF_ASSERT(slPop(&buff), "");
+    CF_ASSERT(slPop(&buff), "");
+    CF_ASSERT(!slPop(&buff), "");
+
+    entry = NULL;
+
+    while (slIterNext(&buff, &entry))
+    {
         printf("Data: %s\n", entry->data);
         printf("Size: %zu\n", entry->size);
     }
