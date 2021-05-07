@@ -6,9 +6,15 @@
 
 #include "foundation/allocator.h"
 #include "foundation/common.h"
+#include "foundation/path.h"
 #include "foundation/platform.h"
+#include "foundation/string_list.h"
 #include "foundation/util.h"
 #include "foundation/vec.h"
+
+#define CF_ARRAY_SIZE(a) sizeof(a) / sizeof(a[0])
+
+static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png"};
 
 typedef struct FontOptions
 {
@@ -30,6 +36,11 @@ typedef struct AppWindows
     bool style;
 } AppWindows;
 
+enum
+{
+    CURR_DIR_SIZE = 256,
+};
+
 struct AppState
 {
     cfPlatform *plat;
@@ -45,7 +56,13 @@ struct AppState
 
     Image image;
     bool image_adv;
+
+    StringList filenames;
+    StringEntry *curr_file;
+    char curr_dir[CURR_DIR_SIZE];
 };
+
+//------------------------------------------------------------------------------
 
 AppState *
 appCreate(cfPlatform *plat, AppPaths paths)
@@ -78,6 +95,11 @@ appCreate(cfPlatform *plat, AppPaths paths)
 
     app->paths = paths;
 
+    // Init file list management
+    slInitAlloc(&app->filenames, app->alloc);
+    app->curr_file = NULL;
+    cfMemClear(app->curr_dir, CURR_DIR_SIZE);
+
     char buffer[1024];
     snprintf(buffer, 1024, "%sOpaque.png", paths.data);
     imageLoadFromFile(&app->image, buffer, app->alloc);
@@ -88,6 +110,7 @@ appCreate(cfPlatform *plat, AppPaths paths)
 void
 appDestroy(AppState *app)
 {
+    slShutdown(&app->filenames);
     imageUnload(&app->image);
     cfFree(app->alloc, app, sizeof(*app));
 }
@@ -123,6 +146,8 @@ appPrepareUpdate(AppState *state)
 
     return true;
 }
+
+//------------------------------------------------------------------------------
 
 static bool
 guiShowFontOptions(FontOptions *state, bool *p_open)
@@ -186,6 +211,78 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
     return rebuild_fonts;
 }
 
+static bool
+guiFileSupported(char const *path)
+{
+    char const *ext = pathSplitExt(path);
+    if (!ext) return false;
+
+    for (usize i = 0; i < CF_ARRAY_SIZE(g_supported_ext); ++i)
+    {
+        if (!strcmp(g_supported_ext[i], ext)) return true;
+    }
+
+    return false;
+}
+
+static void
+appLoadFromFile(AppState *state, char const *filename)
+{
+    cfFileSystem *fs = &state->plat->fs;
+
+    imageUnload(&state->image);
+
+    slClear(&state->filenames);
+    state->curr_file = NULL;
+
+    if (filename)
+    {
+        imageLoadFromFile(&state->image, filename, state->alloc);
+
+        char const *name = pathSplitName(filename);
+        isize dir_size = name - filename;
+
+        CF_ASSERT(0 <= dir_size && dir_size < CURR_DIR_SIZE, "Directory path too big");
+
+        cfMemCopy(filename, state->curr_dir, (usize)dir_size);
+
+        DirIter *it = fs->dir_iter_start(state->curr_dir, state->alloc);
+
+        if (it)
+        {
+            char const *path = NULL;
+
+            while ((path = fs->dir_iter_next(it)))
+            {
+                if (guiFileSupported(path))
+                {
+                    slPush(&state->filenames, path);
+                }
+            }
+        }
+
+        StringEntry *entry;
+        while (slIterNext(&state->filenames, &entry))
+        {
+            fprintf(stderr, "%s\n", entry->data);
+
+            if (!state->curr_file && !_strcmpi(name, entry->data))
+            {
+                state->curr_file = entry;
+            }
+        }
+
+        fflush(stderr);
+    }
+}
+
+static bool
+guiKeyPressed(ImGuiIO const *io, i32 key)
+{
+    i32 real_key = io->KeyMap[key];
+    return io->KeysDown[real_key];
+}
+
 static void
 guiImageViewer(AppState *state)
 {
@@ -204,12 +301,8 @@ guiImageViewer(AppState *state)
             {
                 u32 size;
                 char *filename = state->plat->fs.open_file_dlg(NULL, NULL, state->alloc, &size);
-                if (filename)
-                {
-                    imageUnload(image);
-                    imageLoadFromFile(image, filename, state->alloc);
-                    cfFree(state->alloc, filename, size);
-                }
+                appLoadFromFile(state, filename);
+                cfFree(state->alloc, filename, size);
             }
             igEndMenu();
         }
@@ -252,6 +345,35 @@ guiImageViewer(AppState *state)
     igGetItemRectMax(&view_max);
 
     ImGuiIO *io = igGetIO();
+
+    if (state->curr_file)
+    {
+        StringEntry *next = state->curr_file;
+
+        if (guiKeyPressed(io, ImGuiKey_LeftArrow))
+        {
+            if (!slIterPrev(&state->filenames, &next))
+            {
+                next = slLast(&state->filenames);
+            }
+        }
+
+        if (guiKeyPressed(io, ImGuiKey_RightArrow))
+        {
+            if (!slIterNext(&state->filenames, &next))
+            {
+                next = slFirst(&state->filenames);
+            }
+        }
+
+        if (state->curr_file != next)
+        {
+            CF_ASSERT_NOT_NULL(next);
+            state->curr_file = next;
+            imageUnload(image);
+            imageLoadFromFile(image, state->curr_file->data, state->alloc);
+        }
+    }
 
     if (igIsItemHovered(0) && io->KeyCtrl)
     {
