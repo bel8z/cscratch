@@ -123,21 +123,17 @@ slLast(StringList const *sl)
     return sl->len ? cfListItem(sl->list.prev, StringEntry, node) : NULL;
 }
 
-bool
-slIterNext(StringList const *sl, StringEntry **entry)
+static bool
+sl__IterMove(StringList const *sl, StringEntry **entry, bool forward)
 {
-    cfList const *next = NULL;
+    CF_ASSERT_NOT_NULL(sl);
+    CF_ASSERT_NOT_NULL(entry);
 
-    if (*entry)
-    {
-        next = (*entry)->node.next;
-    }
-    else
-    {
-        next = sl->list.next;
-    }
+    cfList const *list = &sl->list;
+    cfList const *curr = (*entry) ? &(*entry)->node : list;
+    cfList const *next = forward ? curr->next : curr->prev;
 
-    if (next == &sl->list) return false;
+    if (next == list) return false;
 
     *entry = cfListItem(next, StringEntry, node);
 
@@ -145,22 +141,13 @@ slIterNext(StringList const *sl, StringEntry **entry)
 }
 
 bool
+slIterNext(StringList const *sl, StringEntry **entry)
+{
+    return sl__IterMove(sl, entry, true);
+}
+
+bool
 slIterPrev(StringList const *sl, StringEntry **entry)
 {
-    cfList const *prev = NULL;
-
-    if (*entry)
-    {
-        prev = (*entry)->node.prev;
-    }
-    else
-    {
-        prev = sl->list.prev;
-    }
-
-    if (prev == &sl->list) return false;
-
-    *entry = cfListItem(prev, StringEntry, node);
-
-    return true;
+    return sl__IterMove(sl, entry, false);
 }
