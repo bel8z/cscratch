@@ -13,6 +13,8 @@
 
 #include <stdio.h>
 
+#define MEMORY_PROTECTION 1
+
 // -----------------------------------------------------------------------------
 // Internal function declarations
 // -----------------------------------------------------------------------------
@@ -118,6 +120,8 @@ VM_RELEASE_FUNC(win32VmRelease)
 
 // -----------------------------------------------------------------------------
 
+#if MEMORY_PROTECTION
+
 static void *
 win32AllocEop(usize size, cfAllocatorStats *stats)
 {
@@ -160,57 +164,72 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 {
     cfAllocatorStats *stats = state;
 
+    void *new_mem = NULL;
+
+    if (new_size)
+    {
+        new_mem = win32AllocEop(new_size, stats);
+    }
+
     if (memory)
     {
         CF_ASSERT(old_size > 0, "Freeing valid pointer but given size is 0");
+
+        if (new_mem)
+        {
+            cfMemCopy(memory, new_mem, old_size);
+        }
+
         win32FreeEop(memory, old_size, stats);
         memory = NULL;
     }
 
+    return new_mem;
+}
+
+#else
+
+CF_ALLOCATOR_FUNC(win32Alloc)
+{
+    HANDLE heap = GetProcessHeap();
+    void *old_mem = memory;
+    void *new_mem = NULL;
+
     if (new_size)
     {
-        memory = win32AllocEop(new_size, stats);
+        if (old_mem)
+        {
+            new_mem = HeapReAlloc(heap, HEAP_ZERO_MEMORY, old_mem, new_size);
+        }
+        else
+        {
+            new_mem = HeapAlloc(heap, HEAP_ZERO_MEMORY, new_size);
+        }
+    }
+    else
+    {
+        HeapFree(heap, 0, old_mem);
     }
 
-    return memory;
+    cfAllocatorStats *stats = state;
 
-    // HANDLE heap = GetProcessHeap();
-    // void *old_mem = memory;
-    // void *new_mem = NULL;
+    if (old_mem)
+    {
+        CF_ASSERT(old_size > 0, "Freeing valid pointer but given size is 0");
+        stats->count--;
+        stats->size -= old_size;
+    }
 
-    // if (new_size)
-    // {
-    //     if (old_mem)
-    //     {
-    //         new_mem = HeapReAlloc(heap, HEAP_ZERO_MEMORY, old_mem, new_size);
-    //     }
-    //     else
-    //     {
-    //         new_mem = HeapAlloc(heap, HEAP_ZERO_MEMORY, new_size);
-    //     }
-    // }
-    // else
-    // {
-    //     HeapFree(heap, 0, old_mem);
-    // }
+    if (new_mem)
+    {
+        stats->count++;
+        stats->size += new_size;
+    }
 
-    // cfAllocatorStats *stats = state;
-
-    // if (old_mem)
-    // {
-    //     CF_ASSERT(old_size > 0, "Freeing valid pointer but given size is 0");
-    //     stats->count--;
-    //     stats->size -= old_size;
-    // }
-
-    // if (new_mem)
-    // {
-    //     stats->count++;
-    //     stats->size += new_size;
-    // }
-
-    // return new_mem;
+    return new_mem;
 }
+
+#endif
 
 CF_ALLOC_STATS_FUNC(win32AllocStats)
 {
