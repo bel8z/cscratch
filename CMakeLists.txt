@@ -16,6 +16,13 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
+#---------------
+# Local scripts
+#---------------
+
+include(cmake/CompileFlags.cmake)
+include(cmake/Win32Runtime.cmake)
+
 #-------------------
 # Dependency paths
 #-------------------
@@ -49,6 +56,8 @@ set(IMGUI_STATIC "yes" CACHE STRING "Build as a static library" FORCE)
 set(IMGUI_FREETYPE "yes" CACHE STRING "Build with freetype library" FORCE)
 set(FREETYPE_PATH ${FREETYPE_DIR})
 add_subdirectory(${IMGUI_DIR})
+
+set_win32_runtime_static(cimgui)
 
 add_subdirectory(${GLFW_DIR})
 
@@ -89,6 +98,7 @@ else()
     target_link_libraries(backend PUBLIC glfw)
 endif()
 
+set_win32_runtime_static(backend)
 
 #-----------------------
 # Main executable
@@ -108,10 +118,6 @@ else()
     target_compile_definitions(${PROJECT_NAME} PUBLIC "SDL_BACKEND=0")
 endif()
 
-
-include(cmake/CompileFlags.cmake)
-set_c_compile_flags(${PROJECT_NAME})
-
 target_compile_features(${PROJECT_NAME} PUBLIC c_std_11)
 
 target_include_directories(${PROJECT_NAME} PUBLIC 
@@ -119,9 +125,17 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${IMGUI_DIR} 
     ${GL3W_DIR})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC
+target_link_libraries(${PROJECT_NAME} PRIVATE
     foundation
     backend)
+
+set_c_compile_flags(${PROJECT_NAME})
+
+# TODO (Matteo): Find the best way to compile everything linking
+# only once with the MSVC runtime.
+if (MSVC)
+    target_compile_options(${PROJECT_NAME} INTERFACE /NODEFAULTLIB)
+endif()
 
 #-----------------------
 # Resource files
