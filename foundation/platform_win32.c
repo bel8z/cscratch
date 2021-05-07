@@ -118,44 +118,98 @@ VM_RELEASE_FUNC(win32VmRelease)
 
 // -----------------------------------------------------------------------------
 
+static void *
+win32AllocEop(usize size, cfAllocatorStats *stats)
+{
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+
+    usize page_size = sysinfo.dwPageSize;
+    usize page_count = (size + page_size - 1) / page_size;
+    usize block_size = page_count * page_size;
+    u8 *base = VirtualAlloc(NULL, block_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    if (!base) return NULL;
+
+    stats->count++;
+    stats->size += block_size;
+
+    return base + block_size - size;
+}
+
+static void
+win32FreeEop(u8 *memory, usize size, cfAllocatorStats *stats)
+{
+    if (!memory) return;
+
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+
+    usize page_size = sysinfo.dwPageSize;
+    usize page_count = (size + page_size - 1) / page_size;
+    usize block_size = page_count * page_size;
+
+    u8 *base = memory + size - block_size;
+
+    VirtualFree(base, block_size, MEM_DECOMMIT);
+
+    stats->count--;
+    stats->size -= block_size;
+}
+
 CF_ALLOCATOR_FUNC(win32Alloc)
 {
-    HANDLE heap = GetProcessHeap();
-    void *old_mem = memory;
-    void *new_mem = NULL;
+    cfAllocatorStats *stats = state;
+
+    if (memory)
+    {
+        CF_ASSERT(old_size > 0, "Freeing valid pointer but given size is 0");
+        win32FreeEop(memory, old_size, stats);
+        memory = NULL;
+    }
 
     if (new_size)
     {
-        if (old_mem)
-        {
-            new_mem = HeapReAlloc(heap, HEAP_ZERO_MEMORY, old_mem, new_size);
-        }
-        else
-        {
-            new_mem = HeapAlloc(heap, HEAP_ZERO_MEMORY, new_size);
-        }
-    }
-    else
-    {
-        HeapFree(heap, 0, old_mem);
+        memory = win32AllocEop(new_size, stats);
     }
 
-    cfAllocatorStats *stats = state;
+    return memory;
 
-    if (old_mem)
-    {
-        CF_ASSERT(old_size > 0, "Freeing valid pointer but given size is 0");
-        stats->count--;
-        stats->size -= old_size;
-    }
+    // HANDLE heap = GetProcessHeap();
+    // void *old_mem = memory;
+    // void *new_mem = NULL;
 
-    if (new_mem)
-    {
-        stats->count++;
-        stats->size += new_size;
-    }
+    // if (new_size)
+    // {
+    //     if (old_mem)
+    //     {
+    //         new_mem = HeapReAlloc(heap, HEAP_ZERO_MEMORY, old_mem, new_size);
+    //     }
+    //     else
+    //     {
+    //         new_mem = HeapAlloc(heap, HEAP_ZERO_MEMORY, new_size);
+    //     }
+    // }
+    // else
+    // {
+    //     HeapFree(heap, 0, old_mem);
+    // }
 
-    return new_mem;
+    // cfAllocatorStats *stats = state;
+
+    // if (old_mem)
+    // {
+    //     CF_ASSERT(old_size > 0, "Freeing valid pointer but given size is 0");
+    //     stats->count--;
+    //     stats->size -= old_size;
+    // }
+
+    // if (new_mem)
+    // {
+    //     stats->count++;
+    //     stats->size += new_size;
+    // }
+
+    // return new_mem;
 }
 
 CF_ALLOC_STATS_FUNC(win32AllocStats)
