@@ -8,7 +8,6 @@
 #include "foundation/common.h"
 #include "foundation/path.h"
 #include "foundation/platform.h"
-#include "foundation/string_list.h"
 #include "foundation/util.h"
 #include "foundation/vec.h"
 
@@ -39,7 +38,62 @@ typedef struct AppWindows
 enum
 {
     CURR_DIR_SIZE = 256,
+    // TODO Organize properly
+    SB_MAX_COUNT = 256,
+    SB_BUF_SIZE = 256 * 1024,
 };
+
+typedef struct StringBuff
+{
+    u32 index[SB_MAX_COUNT];
+    char data[SB_BUF_SIZE];
+    u32 count;
+} StringBuff;
+
+void
+sbInit(StringBuff *sb)
+{
+    sb->index[0] = 0;
+    sb->index[1] = 0;
+    sb->count = 0;
+}
+
+void
+sbClear(StringBuff *sb)
+{
+    sb->count = 0;
+}
+
+bool
+sbPush(StringBuff *sb, char const *str)
+{
+    if (sb->count == SB_MAX_COUNT) return false;
+
+    // Compute size of the string, including terminator
+    u32 size = 1;
+    while (str[size - 1])
+    {
+        size++;
+    }
+
+    u32 offset = sb->index[sb->count];
+    u32 avail = SB_BUF_SIZE - offset;
+    if (size > avail) return false;
+
+    cfMemCopy(str, sb->data + offset, size);
+
+    sb->index[++sb->count] = offset + size;
+
+    return true;
+}
+
+char const *
+sbAt(StringBuff *sb, u32 index)
+{
+    CF_ASSERT_NOT_NULL(sb);
+    CF_ASSERT(index < sb->count, "Index out of range");
+    return sb->data + sb->index[index];
+}
 
 struct AppState
 {
@@ -57,8 +111,8 @@ struct AppState
     Image image;
     bool image_adv;
 
-    StringList filenames;
-    StringEntry *curr_file;
+    StringBuff filenames;
+    u32 curr_file;
     char curr_dir[CURR_DIR_SIZE];
 };
 
@@ -67,8 +121,7 @@ struct AppState
 AppState *
 appCreate(cfPlatform *plat, AppPaths paths)
 {
-    usize buff_size = 1024 * 1024;
-    AppState *app = cfAlloc(&plat->heap, sizeof(*app) + buff_size);
+    AppState *app = cfAlloc(&plat->heap, sizeof(*app));
 
     app->plat = plat;
     app->alloc = &plat->heap;
@@ -97,8 +150,8 @@ appCreate(cfPlatform *plat, AppPaths paths)
     app->paths = paths;
 
     // Init file list management
-    slInitBuffer(&app->filenames, (u8 *)(app + 1), buff_size);
-    app->curr_file = NULL;
+    sbInit(&app->filenames);
+    app->curr_file = SB_MAX_COUNT;
     cfMemClear(app->curr_dir, CURR_DIR_SIZE);
 
     char buffer[1024];
@@ -111,11 +164,8 @@ appCreate(cfPlatform *plat, AppPaths paths)
 void
 appDestroy(AppState *app)
 {
-    usize buff_size = 1024 * 1024;
-
-    slShutdown(&app->filenames);
     imageUnload(&app->image);
-    cfFree(app->alloc, app, sizeof(*app) + buff_size);
+    cfFree(app->alloc, app, sizeof(*app));
 }
 
 bool
@@ -235,8 +285,8 @@ appLoadFromFile(AppState *state, char const *filename)
 
     imageUnload(&state->image);
 
-    slClear(&state->filenames);
-    state->curr_file = NULL;
+    sbClear(&state->filenames);
+    state->curr_file = SB_MAX_COUNT;
 
     if (filename)
     {
@@ -258,25 +308,20 @@ appLoadFromFile(AppState *state, char const *filename)
             // NOTE (Matteo): Explicit test against NULL is required for compiling with /W4 on MSVC
             while ((path = fs->dir_iter_next(it)) != NULL)
             {
-                if (guiFileSupported(path))
-                {
-                    slPush(&state->filenames, path);
-                }
+                if (guiFileSupported(path)) sbPush(&state->filenames, path);
             }
+
+            fs->dir_iter_close(it);
         }
 
-        StringEntry *entry;
-        while (slIterNext(&state->filenames, &entry))
+        for (u32 index = 0; index < state->filenames.count; ++index)
         {
-            fprintf(stderr, "%s\n", entry->data);
-
-            if (!state->curr_file && !_strcmpi(name, entry->data))
+            if (!_strcmpi(name, sbAt(&state->filenames, index)))
             {
-                state->curr_file = entry;
+                state->curr_file = index;
+                break;
             }
         }
-
-        fflush(stderr);
     }
 }
 
@@ -350,32 +395,25 @@ guiImageViewer(AppState *state)
 
     ImGuiIO *io = igGetIO();
 
-    if (state->curr_file)
+    if (state->curr_file != SB_MAX_COUNT)
     {
-        StringEntry *next = state->curr_file;
+        u32 next = state->curr_file;
 
         if (guiKeyPressed(io, ImGuiKey_LeftArrow))
         {
-            if (!slIterPrev(&state->filenames, &next))
-            {
-                next = slLast(&state->filenames);
-            }
+            next = (next - 1) % state->filenames.count;
         }
 
         if (guiKeyPressed(io, ImGuiKey_RightArrow))
         {
-            if (!slIterNext(&state->filenames, &next))
-            {
-                next = slFirst(&state->filenames);
-            }
+            next = (next + 1) % state->filenames.count;
         }
 
         if (state->curr_file != next)
         {
-            CF_ASSERT_NOT_NULL(next);
             state->curr_file = next;
             imageUnload(image);
-            imageLoadFromFile(image, state->curr_file->data, state->alloc);
+            imageLoadFromFile(image, sbAt(&state->filenames, next), state->alloc);
         }
     }
 
