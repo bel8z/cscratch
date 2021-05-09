@@ -67,7 +67,8 @@ struct AppState
 AppState *
 appCreate(cfPlatform *plat, AppPaths paths)
 {
-    AppState *app = cfAlloc(&plat->heap, sizeof(*app));
+    usize buff_size = 1024 * 1024;
+    AppState *app = cfAlloc(&plat->heap, sizeof(*app) + buff_size);
 
     app->plat = plat;
     app->alloc = &plat->heap;
@@ -96,7 +97,7 @@ appCreate(cfPlatform *plat, AppPaths paths)
     app->paths = paths;
 
     // Init file list management
-    slInitAlloc(&app->filenames, app->alloc);
+    slInitBuffer(&app->filenames, (u8 *)(app + 1), buff_size);
     app->curr_file = NULL;
     cfMemClear(app->curr_dir, CURR_DIR_SIZE);
 
@@ -110,9 +111,11 @@ appCreate(cfPlatform *plat, AppPaths paths)
 void
 appDestroy(AppState *app)
 {
+    usize buff_size = 1024 * 1024;
+
     slShutdown(&app->filenames);
     imageUnload(&app->image);
-    cfFree(app->alloc, app, sizeof(*app));
+    cfFree(app->alloc, app, sizeof(*app) + buff_size);
 }
 
 bool
