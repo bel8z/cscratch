@@ -20,14 +20,14 @@ typedef struct StringList
     cfList list;
 
     // Internal memory management
-    cfAllocator *alloc;
+    // cfAllocator *alloc;
     usize cap;
     usize len;
     u8 *buf;
 } StringList;
 
 void slInitBuffer(StringList *sl, u8 *buffer, usize size);
-void slInitAlloc(StringList *sl, cfAllocator *alloc);
+// void slInitAlloc(StringList *sl, cfAllocator *alloc);
 void slShutdown(StringList *sl);
 
 void slClear(StringList *sl);

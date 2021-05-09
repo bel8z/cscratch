@@ -6,7 +6,7 @@
 void
 slInitBuffer(StringList *sl, u8 *buffer, usize size)
 {
-    sl->alloc = NULL;
+    // sl->alloc = NULL;
     sl->cap = size;
     sl->len = 0;
     sl->buf = buffer;
@@ -16,27 +16,27 @@ slInitBuffer(StringList *sl, u8 *buffer, usize size)
     cfListInit(&sl->list);
 }
 
-void
-slInitAlloc(StringList *sl, cfAllocator *alloc)
-{
-    sl->alloc = alloc;
-    sl->cap = 0;
-    sl->len = 0;
-    sl->buf = NULL;
+// void
+// slInitAlloc(StringList *sl, cfAllocator *alloc)
+// {
+//     sl->alloc = alloc;
+//     sl->cap = 0;
+//     sl->len = 0;
+//     sl->buf = NULL;
 
-    sl->count = 0;
+//     sl->count = 0;
 
-    cfListInit(&sl->list);
-}
+//     cfListInit(&sl->list);
+// }
 
 void
 slShutdown(StringList *sl)
 {
     slClear(sl);
-    if (sl->alloc)
-    {
-        cfFree(sl->alloc, sl->buf, sl->cap);
-    }
+    // if (sl->alloc)
+    // {
+    //     cfFree(sl->alloc, sl->buf, sl->cap);
+    // }
 }
 
 void
@@ -63,14 +63,16 @@ slPush(StringList *sl, char const *str)
 
     if (required > avail)
     {
-        if (!sl->alloc) return false;
+        return false;
 
-        usize new_cap = cfMax(required, sl->cap ? sl->cap * 2 : 1);
-        u8 *new_buf = cfRealloc(sl->alloc, sl->buf, sl->cap, new_cap);
-        if (!new_buf) return false;
+        // if (!sl->alloc) return false;
 
-        sl->cap = new_cap;
-        sl->buf = new_buf;
+        // usize new_cap = cfMax(required, sl->cap ? sl->cap * 2 : 1);
+        // u8 *new_buf = cfRealloc(sl->alloc, sl->buf, sl->cap, new_cap);
+        // if (!new_buf) return false;
+
+        // sl->cap = new_cap;
+        // sl->buf = new_buf;
     }
 
     entry = (StringEntry *)(sl->buf + sl->len);
