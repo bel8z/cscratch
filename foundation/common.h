@@ -113,7 +113,7 @@ typedef struct cfAllocator cfAllocator;
 
 #define CF_STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
 #define CF_ASSERT(expr, msg) (assert((expr) && (msg)))
-#define CF_ASSERT_NOT_NULL(array) CF_ASSERT(array, "Array is null")
+#define CF_ASSERT_NOT_NULL(ptr) CF_ASSERT(ptr, #ptr " is null")
 
 #define CF_NOT_IMPLEMENTED() CF_ASSERT(false, "Not implemented")
 
