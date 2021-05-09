@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15.0)
+cmake_minimum_required(VERSION 3.20.0)
 project(scratch VERSION 0.1.0)
 
 #-----------
@@ -46,6 +46,36 @@ else(WIN32)
 endif(WIN32)
 
 add_definitions("-DIMGUI_DISABLE_OBSOLETE_FUNCTIONS=1")
+
+#-----------------------
+# Resource files
+#-----------------------
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
+if (MSVC)
+    foreach(CONFIG_TYPE ${CMAKE_CONFIGURATION_TYPES})
+        set(OUT_DIR "${CMAKE_BINARY_DIR}/${CONFIG_TYPE}")
+
+        message(STATUS "Output directory (${CONFIG_TYPE}): ${OUT_DIR}")
+
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_TYPE} "${OUT_DIR}")
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${CONFIG_TYPE} "${OUT_DIR}")
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_TYPE} "${OUT_DIR}")
+
+        file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data DESTINATION "${OUT_DIR}")
+    endforeach()
+else()
+    set(OUT_DIR "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}")
+
+    message(STATUS "Output directory: ${OUT_DIR}")
+
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUT_DIR}")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUT_DIR}")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUT_DIR}")
+    
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data DESTINATION "${OUT_DIR}")
+endif()
 
 #-----------------------
 # Dependency libraries
@@ -136,9 +166,3 @@ set_c_compile_flags(${PROJECT_NAME})
 if (MSVC)
     target_compile_options(${PROJECT_NAME} INTERFACE /NODEFAULTLIB)
 endif()
-
-#-----------------------
-# Resource files
-#-----------------------
-
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data DESTINATION .)
