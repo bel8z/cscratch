@@ -255,7 +255,8 @@ appLoadFromFile(AppState *state, char const *filename)
         {
             char const *path = NULL;
 
-            while ((path = fs->dir_iter_next(it)))
+            // NOTE (Matteo): Explicit test against NULL is required for compiling with /W4 on MSVC
+            while ((path = fs->dir_iter_next(it)) != NULL)
             {
                 if (guiFileSupported(path))
                 {
