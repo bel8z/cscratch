@@ -57,6 +57,7 @@ struct AppState
     Image image;
     bool image_adv;
 
+    FileDlgFilter filter;
     StringBuff filenames;
     u32 curr_file;
     char curr_dir[CURR_DIR_SIZE];
@@ -88,6 +89,9 @@ appCreate(cfPlatform *plat, AppPaths paths)
     app->paths = paths;
 
     // Init file list management
+    app->filter.name = "Image files";
+    app->filter.extensions = g_supported_ext;
+    app->filter.num_extensions = CF_ARRAY_SIZE(g_supported_ext);
     app->curr_file = StringBuff_MaxCount;
     cfMemClear(app->curr_dir, CURR_DIR_SIZE);
 
@@ -269,34 +273,6 @@ guiKeyPressed(i32 key)
     return igIsKeyPressed(igGetIO()->KeyMap[key], true);
 }
 
-static FileFilter *
-guiBuildFileFilter(cfAllocator *alloc, usize *filter_size)
-{
-    // TODO (Matteo): Cleanup - this is kind of dirty
-
-    FileFilter *filter = NULL;
-
-    *filter_size = sizeof(*filter) + 1024;
-    filter = cfAlloc(alloc, *filter_size);
-
-    CF_ASSERT_NOT_NULL(filter);
-
-    char const name[] = "Image files";
-    filter->name = (char *)(filter + 1);
-    cfMemCopy(name, filter->name, CF_ARRAY_SIZE(name));
-    filter->extensions = filter->name + CF_ARRAY_SIZE(name);
-
-    char *ext = filter->extensions;
-    for (usize i = 0; i < CF_ARRAY_SIZE(g_supported_ext); ++i)
-    {
-        usize ext_size = cfStrSize(g_supported_ext[i]);
-        cfMemCopy(g_supported_ext[i], ext, ext_size);
-        ext += ext_size;
-    }
-
-    return filter;
-}
-
 static void
 guiImageViewer(AppState *state)
 {
@@ -313,14 +289,11 @@ guiImageViewer(AppState *state)
         {
             if (igMenuItemBool("Open", NULL, false, true))
             {
-                usize filter_size;
-                FileFilter *filter = guiBuildFileFilter(state->alloc, &filter_size);
                 u32 filename_size;
-                char *filename =
-                    state->plat->fs.open_file_dlg(NULL, filter, 1, state->alloc, &filename_size);
+                char *filename = state->plat->fs.open_file_dlg(NULL, &state->filter, 1,
+                                                               state->alloc, &filename_size);
                 appLoadFromFile(state, filename);
                 cfFree(state->alloc, filename, filename_size);
-                cfFree(state->alloc, filter, filter_size);
             }
             igEndMenu();
         }

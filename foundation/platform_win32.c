@@ -34,7 +34,7 @@ static DirIter *win32DirIterStart(char const *dir, cfAllocator *alloc);
 static char const *win32DirIterNext(DirIter *self);
 static void win32DirIterClose(DirIter *self);
 
-static char *win32OpenFileDlg(char const *filename_hint, FileFilter *filters, usize num_filters,
+static char *win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, usize num_filters,
                               cfAllocator *alloc, u32 *out_size);
 
 // Unicode helpers
@@ -347,7 +347,7 @@ win32GrowString(WCHAR *str, usize len, usize *cap, usize req, cfAllocator *alloc
 }
 
 static WCHAR *
-win32BuildFilterString(FileFilter *filters, usize num_filters, cfAllocator *alloc, u32 *out_size)
+win32BuildFilterString(FileDlgFilter *filters, usize num_filters, cfAllocator *alloc, u32 *out_size)
 {
     *out_size = 0;
     if (num_filters == 0) return NULL;
@@ -358,36 +358,31 @@ win32BuildFilterString(FileFilter *filters, usize num_filters, cfAllocator *allo
 
     if (!filt) return NULL;
 
-    for (usize i = 0; i < num_filters; ++i)
+    for (usize filter_no = 0; filter_no < num_filters; ++filter_no)
     {
-        usize name_size = win32Utf8To16(filters[i].name, -1, NULL, 0);
+        usize name_size = win32Utf8To16(filters[filter_no].name, -1, NULL, 0);
 
         filt = win32GrowString(filt, len, &cap, name_size, alloc);
         if (!filt) return NULL;
 
-        win32Utf8To16(filters[i].name, -1, filt + len, name_size);
+        win32Utf8To16(filters[filter_no].name, -1, filt + len, name_size);
         len += name_size;
 
-        char const *exts = filters[i].extensions;
-
-        while (true)
+        for (usize ext_no = 0; ext_no < filters[filter_no].num_extensions; ++ext_no)
         {
-            usize ext_size = cfStrSize(exts);
-            if (ext_size == 1) break;
+            char const *ext = filters[filter_no].extensions[ext_no];
 
             filt[len++] = L'*';
 
-            usize req_size = win32Utf8To16(exts, ext_size, NULL, 0);
+            usize req_size = win32Utf8To16(ext, -1, NULL, 0);
 
             filt = win32GrowString(filt, len, &cap, req_size + 1, alloc);
             if (!filt) return NULL;
 
-            win32Utf8To16(exts, ext_size, filt + len, req_size);
+            win32Utf8To16(ext, -1, filt + len, req_size);
             len += req_size;
 
             filt[len - 1] = L';';
-
-            exts += ext_size;
         }
 
         CF_ASSERT(cap - len >= 2, "Not enough space");
@@ -402,7 +397,7 @@ win32BuildFilterString(FileFilter *filters, usize num_filters, cfAllocator *allo
 }
 
 char *
-win32OpenFileDlg(char const *filename_hint, FileFilter *filters, usize num_filters,
+win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, usize num_filters,
                  cfAllocator *alloc, u32 *out_size)
 {
 
