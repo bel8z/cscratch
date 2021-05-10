@@ -34,6 +34,7 @@ typedef struct AppWindows
     bool stats;
     bool fonts;
     bool style;
+    bool unsupported;
 } AppWindows;
 
 enum
@@ -232,7 +233,11 @@ appLoadFromFile(AppState *state, char const *filename)
 
     if (filename)
     {
-        imageLoadFromFile(&state->image, filename, state->alloc);
+
+        if (!imageLoadFromFile(&state->image, filename, state->alloc))
+        {
+            state->windows.unsupported = true;
+        }
 
         char const *name = pathSplitName(filename);
         isize dir_size = name - filename;
@@ -471,5 +476,23 @@ appUpdate(AppState *state)
     if (state->windows.metrics)
     {
         igShowMetricsWindow(&state->windows.metrics);
+    }
+
+    if (state->windows.unsupported)
+    {
+        state->windows.unsupported = false;
+        igOpenPopup("Warning", 0);
+    }
+
+    if (igBeginPopupModal("Warning", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        igText("Unsupported file format");
+        // TODO (Matteo): Find a way to center button inside the popup window
+        if (guiButton("Ok"))
+        {
+            state->windows.unsupported = false;
+            igCloseCurrentPopup();
+        }
+        igEndPopup();
     }
 }
