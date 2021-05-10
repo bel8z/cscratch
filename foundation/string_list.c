@@ -51,11 +51,7 @@ bool
 slPush(StringList *sl, char const *str)
 {
     // Compute size of the string, including terminator
-    usize size = 1;
-    while (str[size - 1])
-    {
-        size++;
-    }
+    usize size = cfStrSize(str);
 
     StringEntry *entry = NULL;
     usize avail = sl->cap - sl->len;

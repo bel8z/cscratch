@@ -9,6 +9,8 @@ enum
     StringBuff_BuffSize = 256 * 1024,
 };
 
+// NOTE (Matteo): Zero initialization required
+
 typedef struct StringBuff
 {
     u32 index[StringBuff_MaxCount];
@@ -31,11 +33,7 @@ sbPush(StringBuff *sb, char const *str)
     if (sb->count == StringBuff_MaxCount) return false;
 
     // Compute size of the string, including terminator
-    u32 size = 1;
-    while (str[size - 1])
-    {
-        size++;
-    }
+    usize size = cfStrSize(str);
 
     u32 offset = sb->index[sb->count];
     u32 avail = StringBuff_BuffSize - offset;
@@ -43,7 +41,7 @@ sbPush(StringBuff *sb, char const *str)
 
     cfMemCopy(str, sb->data + offset, size);
 
-    sb->index[++sb->count] = offset + size;
+    sb->index[++sb->count] = offset + (u32)size;
 
     return true;
 }

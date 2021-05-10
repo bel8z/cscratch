@@ -91,6 +91,7 @@ appCreate(cfPlatform *plat, AppPaths paths)
     app->curr_file = StringBuff_MaxCount;
     cfMemClear(app->curr_dir, CURR_DIR_SIZE);
 
+    // TODO (Matteo): Remove - kind of demo, but should not be kept
     char buffer[1024];
     snprintf(buffer, 1024, "%sOpaque.png", paths.data);
     imageLoadFromFile(&app->image, buffer, app->alloc);

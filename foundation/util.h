@@ -171,6 +171,34 @@ cf__Lerp64(f64 x, f64 y, f64 t)
 }
 
 //------------------------------------------------------------------------------
+// String utilities
+//------------------------------------------------------------------------------
+
+// TODO (Matteo): Move to separate file?
+
+// Compute the size of the string buffer (including the null terminator)
+static inline usize
+cfStrSize(char const *str)
+{
+    CF_ASSERT_NOT_NULL(str);
+    u32 size = 1;
+
+    while (str[size - 1])
+    {
+        size++;
+    }
+
+    return size;
+}
+
+// Compute the length of the string (ignoring the null terminator)
+static inline usize
+cfStrLenght(char const *str)
+{
+    return cfStrSize(str) - 1;
+}
+
+//------------------------------------------------------------------------------
 
 #define UTIL_H
 #endif
