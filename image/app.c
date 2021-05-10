@@ -1,6 +1,7 @@
 #include "app.h"
 
 #include "image.h"
+#include "string_buff.h"
 
 #include "gui.h"
 
@@ -38,62 +39,7 @@ typedef struct AppWindows
 enum
 {
     CURR_DIR_SIZE = 256,
-    // TODO Organize properly
-    SB_MAX_COUNT = 256,
-    SB_BUF_SIZE = 256 * 1024,
 };
-
-typedef struct StringBuff
-{
-    u32 index[SB_MAX_COUNT];
-    char data[SB_BUF_SIZE];
-    u32 count;
-} StringBuff;
-
-void
-sbInit(StringBuff *sb)
-{
-    sb->index[0] = 0;
-    sb->index[1] = 0;
-    sb->count = 0;
-}
-
-void
-sbClear(StringBuff *sb)
-{
-    sb->count = 0;
-}
-
-bool
-sbPush(StringBuff *sb, char const *str)
-{
-    if (sb->count == SB_MAX_COUNT) return false;
-
-    // Compute size of the string, including terminator
-    u32 size = 1;
-    while (str[size - 1])
-    {
-        size++;
-    }
-
-    u32 offset = sb->index[sb->count];
-    u32 avail = SB_BUF_SIZE - offset;
-    if (size > avail) return false;
-
-    cfMemCopy(str, sb->data + offset, size);
-
-    sb->index[++sb->count] = offset + size;
-
-    return true;
-}
-
-char const *
-sbAt(StringBuff *sb, u32 index)
-{
-    CF_ASSERT_NOT_NULL(sb);
-    CF_ASSERT(index < sb->count, "Index out of range");
-    return sb->data + sb->index[index];
-}
 
 struct AppState
 {
@@ -121,6 +67,7 @@ struct AppState
 AppState *
 appCreate(cfPlatform *plat, AppPaths paths)
 {
+    // NOTE (Matteo): Memory comes cleared to 0
     AppState *app = cfAlloc(&plat->heap, sizeof(*app));
 
     app->plat = plat;
@@ -135,23 +82,13 @@ appCreate(cfPlatform *plat, AppPaths paths)
         .rasterizer_multiply = 1.0f,
     };
 
-    app->windows = (AppWindows){
-        .demo = false,
-        .fonts = false,
-        .metrics = false,
-        .stats = false,
-        .style = false,
-    };
-
     app->clear_color = (ImVec4){0.45f, 0.55f, 0.60f, 1.00f};
     app->image = (Image){.zoom = 1.0};
-    app->image_adv = false;
 
     app->paths = paths;
 
     // Init file list management
-    sbInit(&app->filenames);
-    app->curr_file = SB_MAX_COUNT;
+    app->curr_file = StringBuff_MaxCount;
     cfMemClear(app->curr_dir, CURR_DIR_SIZE);
 
     char buffer[1024];
@@ -286,7 +223,7 @@ appLoadFromFile(AppState *state, char const *filename)
     imageUnload(&state->image);
 
     sbClear(&state->filenames);
-    state->curr_file = SB_MAX_COUNT;
+    state->curr_file = StringBuff_MaxCount;
 
     if (filename)
     {
@@ -395,7 +332,7 @@ guiImageViewer(AppState *state)
 
     ImGuiIO *io = igGetIO();
 
-    if (state->curr_file != SB_MAX_COUNT)
+    if (state->curr_file != StringBuff_MaxCount)
     {
         u32 next = state->curr_file;
 
