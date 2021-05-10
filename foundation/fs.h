@@ -5,6 +5,14 @@
 // Iterates over directory entries
 typedef struct DirIter DirIter;
 
+typedef struct FileFilter
+{
+    // Display name of the filter
+    char *name;
+    // Supported extensions as a series of null terminated strings (ends with 2 null terminators)
+    char *extensions;
+} FileFilter;
+
 typedef struct cfFileSystem
 {
     // Create an iterator on the given directory contents (return NULL in case of failure)
@@ -16,8 +24,8 @@ typedef struct cfFileSystem
     // Shutdown the iteration
     void (*dir_iter_close)(DirIter *iter);
 
-    char *(*open_file_dlg)(char const *filename_hint, char const *filter, cfAllocator *alloc,
-                           u32 *out_size);
+    char *(*open_file_dlg)(char const *filename_hint, FileFilter *filters, usize num_filters,
+                           cfAllocator *alloc, u32 *out_size);
 
 } cfFileSystem;
 

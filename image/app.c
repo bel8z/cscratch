@@ -14,7 +14,7 @@
 
 #define CF_ARRAY_SIZE(a) sizeof(a) / sizeof(a[0])
 
-static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png"};
+static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
 
 typedef struct FontOptions
 {
@@ -269,6 +269,34 @@ guiKeyPressed(i32 key)
     return igIsKeyPressed(igGetIO()->KeyMap[key], true);
 }
 
+static FileFilter *
+guiBuildFileFilter(cfAllocator *alloc, usize *filter_size)
+{
+    // TODO (Matteo): Cleanup - this is kind of dirty
+
+    FileFilter *filter = NULL;
+
+    *filter_size = sizeof(*filter) + 1024;
+    filter = cfAlloc(alloc, *filter_size);
+
+    CF_ASSERT_NOT_NULL(filter);
+
+    char const name[] = "Image files";
+    filter->name = (char *)(filter + 1);
+    cfMemCopy(name, filter->name, CF_ARRAY_SIZE(name));
+    filter->extensions = filter->name + CF_ARRAY_SIZE(name);
+
+    char *ext = filter->extensions;
+    for (usize i = 0; i < CF_ARRAY_SIZE(g_supported_ext); ++i)
+    {
+        usize ext_size = cfStrSize(g_supported_ext[i]);
+        cfMemCopy(g_supported_ext[i], ext, ext_size);
+        ext += ext_size;
+    }
+
+    return filter;
+}
+
 static void
 guiImageViewer(AppState *state)
 {
@@ -285,10 +313,14 @@ guiImageViewer(AppState *state)
         {
             if (igMenuItemBool("Open", NULL, false, true))
             {
-                u32 size;
-                char *filename = state->plat->fs.open_file_dlg(NULL, NULL, state->alloc, &size);
+                usize filter_size;
+                FileFilter *filter = guiBuildFileFilter(state->alloc, &filter_size);
+                u32 filename_size;
+                char *filename =
+                    state->plat->fs.open_file_dlg(NULL, filter, 1, state->alloc, &filename_size);
                 appLoadFromFile(state, filename);
-                cfFree(state->alloc, filename, size);
+                cfFree(state->alloc, filename, filename_size);
+                cfFree(state->alloc, filter, filter_size);
             }
             igEndMenu();
         }
