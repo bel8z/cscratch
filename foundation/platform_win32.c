@@ -15,9 +15,9 @@
 
 #define MEMORY_PROTECTION 1
 
-// -----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Internal function declarations
-// -----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 // VM functions
 static VM_RESERVE_FUNC(win32VmReserve);
@@ -41,9 +41,9 @@ static char *win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters,
 static u32 win32Utf8To16(char const *str, i32 str_size, WCHAR *out, u32 out_size);
 static u32 win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size);
 
-// -----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Main API
-// -----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 cfPlatform
 cfPlatformCreate()
@@ -90,9 +90,9 @@ cfPlatformShutdown(cfPlatform *platform)
     HeapFree(GetProcessHeap(), 0, heap_stats);
 }
 
-// -----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Internal functions
-// -----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 VM_RESERVE_FUNC(win32VmReserve)
 {
@@ -116,7 +116,7 @@ VM_RELEASE_FUNC(win32VmRelease)
     VirtualFree(memory, size, MEM_RELEASE);
 }
 
-// -----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 #if MEMORY_PROTECTION
 
@@ -235,7 +235,7 @@ CF_ALLOC_STATS_FUNC(win32AllocStats)
     return *stats;
 }
 
-// -----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 typedef enum Win32DirIterState
 {
@@ -317,20 +317,6 @@ win32DirIterClose(DirIter *self)
     cfFree(self->alloc, self, sizeof(*self));
 }
 
-// -----------------------------------------------------------------------------
-
-static u32
-win32Utf8To16(char const *str, i32 str_size, WCHAR *out, u32 out_size)
-{
-    return MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str, str_size, out, out_size);
-}
-
-static u32
-win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size)
-{
-    return WideCharToMultiByte(CP_UTF8, 0, str, str_size, out, out_size, 0, false);
-}
-
 static WCHAR *
 win32GrowString(WCHAR *str, usize len, usize *cap, usize req, cfAllocator *alloc)
 {
@@ -354,46 +340,45 @@ win32BuildFilterString(FileDlgFilter *filters, usize num_filters, cfAllocator *a
 
     usize cap = 1024;
     usize len = 0;
-    WCHAR *filt = cfAlloc(alloc, cap);
+    WCHAR *out_filter = cfAlloc(alloc, cap);
 
-    if (!filt) return NULL;
+    if (!out_filter) return NULL;
 
     for (usize filter_no = 0; filter_no < num_filters; ++filter_no)
     {
         usize name_size = win32Utf8To16(filters[filter_no].name, -1, NULL, 0);
 
-        filt = win32GrowString(filt, len, &cap, name_size, alloc);
-        if (!filt) return NULL;
+        out_filter = win32GrowString(out_filter, len, &cap, name_size, alloc);
+        if (!out_filter) return NULL;
 
-        win32Utf8To16(filters[filter_no].name, -1, filt + len, name_size);
+        win32Utf8To16(filters[filter_no].name, -1, out_filter + len, name_size);
         len += name_size;
 
         for (usize ext_no = 0; ext_no < filters[filter_no].num_extensions; ++ext_no)
         {
             char const *ext = filters[filter_no].extensions[ext_no];
+            usize ext_size = win32Utf8To16(ext, -1, NULL, 0);
 
-            filt[len++] = L'*';
+            out_filter = win32GrowString(out_filter, len, &cap, ext_size + 1, alloc);
+            if (!out_filter) return NULL;
 
-            usize req_size = win32Utf8To16(ext, -1, NULL, 0);
+            out_filter[len++] = L'*';
+            win32Utf8To16(ext, -1, out_filter + len, ext_size);
+            len += ext_size;
 
-            filt = win32GrowString(filt, len, &cap, req_size + 1, alloc);
-            if (!filt) return NULL;
-
-            win32Utf8To16(ext, -1, filt + len, req_size);
-            len += req_size;
-
-            filt[len - 1] = L';';
+            out_filter[len - 1] = L';';
         }
 
-        CF_ASSERT(cap - len >= 2, "Not enough space");
+        out_filter = win32GrowString(out_filter, len, &cap, len + 2, alloc);
+        if (!out_filter) return NULL;
 
-        filt[len] = 0;
-        filt[len + 1] = 0;
+        out_filter[len] = 0;
+        out_filter[len + 1] = 0;
     }
 
     *out_size = cap;
 
-    return filt;
+    return out_filter;
 }
 
 char *
@@ -444,6 +429,20 @@ win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, usize num_fi
     return result;
 }
 
-// -----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+u32
+win32Utf8To16(char const *str, i32 str_size, WCHAR *out, u32 out_size)
+{
+    return MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str, str_size, out, out_size);
+}
+
+u32
+win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size)
+{
+    return WideCharToMultiByte(CP_UTF8, 0, str, str_size, out, out_size, 0, false);
+}
+
+//------------------------------------------------------------------------------
 
 #pragma warning(pop)
