@@ -262,11 +262,10 @@ appLoadFromFile(AppState *state, char const *filename)
     }
 }
 
-static bool
-guiKeyPressed(ImGuiIO const *io, i32 key)
+static inline bool
+guiKeyPressed(i32 key)
 {
-    i32 real_key = io->KeyMap[key];
-    return igIsKeyPressed(real_key, true);
+    return igIsKeyPressed(igGetIO()->KeyMap[key], true);
 }
 
 static void
@@ -330,18 +329,16 @@ guiImageViewer(AppState *state)
     igGetItemRectMin(&view_min);
     igGetItemRectMax(&view_max);
 
-    ImGuiIO *io = igGetIO();
-
     if (state->curr_file != StringBuff_MaxCount)
     {
         u32 next = state->curr_file;
 
-        if (guiKeyPressed(io, ImGuiKey_LeftArrow))
+        if (guiKeyPressed(ImGuiKey_LeftArrow))
         {
             next = (next - 1) % state->filenames.count;
         }
 
-        if (guiKeyPressed(io, ImGuiKey_RightArrow))
+        if (guiKeyPressed(ImGuiKey_RightArrow))
         {
             next = (next + 1) % state->filenames.count;
         }
@@ -353,6 +350,8 @@ guiImageViewer(AppState *state)
             imageLoadFromFile(image, sbAt(&state->filenames, next), state->alloc);
         }
     }
+
+    ImGuiIO *io = igGetIO();
 
     if (igIsItemHovered(0) && io->KeyCtrl)
     {
