@@ -17,7 +17,7 @@ typedef struct AppPaths
 
 typedef struct AppState AppState;
 
-AppState *appCreate(cfPlatform *plat, AppPaths paths);
+AppState *appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc);
 void appDestroy(AppState *app);
 bool appPrepareUpdate(AppState *app);
 void appUpdate(AppState *app);

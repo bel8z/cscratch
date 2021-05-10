@@ -169,7 +169,7 @@ main(int argc, char **argv)
     AppPaths paths = {0};
     appInitPaths(&paths, argv[0]);
 
-    AppState *app = appCreate(&plat, paths);
+    AppState *app = appCreate(&plat, paths, argv, argc);
 
     // Setup Dear ImGui context
     igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),

@@ -66,8 +66,10 @@ struct AppState
 
 //------------------------------------------------------------------------------
 
+static void appLoadFromFile(AppState *state, char const *filename);
+
 AppState *
-appCreate(cfPlatform *plat, AppPaths paths)
+appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
     AppState *app = cfAlloc(&plat->heap, sizeof(*app));
@@ -96,10 +98,17 @@ appCreate(cfPlatform *plat, AppPaths paths)
     app->curr_file = StringBuff_MaxCount;
     cfMemClear(app->curr_dir, CURR_DIR_SIZE);
 
-    // TODO (Matteo): Remove - kind of demo, but should not be kept
-    char buffer[1024];
-    snprintf(buffer, 1024, "%sOpaque.png", paths.data);
-    imageLoadFromFile(&app->image, buffer, app->alloc);
+    if (argc > 1)
+    {
+        appLoadFromFile(app, argv[1]);
+    }
+    else
+    {
+        // TODO (Matteo): Remove - kind of demo, but should not be kept
+        char buffer[1024];
+        snprintf(buffer, 1024, "%sOpaque.png", paths.data);
+        imageLoadFromFile(&app->image, buffer, app->alloc);
+    }
 
     return app;
 }
