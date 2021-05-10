@@ -266,7 +266,7 @@ static bool
 guiKeyPressed(ImGuiIO const *io, i32 key)
 {
     i32 real_key = io->KeyMap[key];
-    return io->KeysDown[real_key];
+    return igIsKeyPressed(real_key, true);
 }
 
 static void
