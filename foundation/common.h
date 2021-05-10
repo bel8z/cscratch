@@ -1,6 +1,7 @@
 #ifndef CF_COMMON_H
 
 #include <float.h>
+#include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
 
