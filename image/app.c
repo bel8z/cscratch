@@ -9,10 +9,9 @@
 #include "foundation/common.h"
 #include "foundation/path.h"
 #include "foundation/platform.h"
+#include "foundation/strings.h"
 #include "foundation/util.h"
 #include "foundation/vec.h"
-
-#define CF_ARRAY_SIZE(a) sizeof(a) / sizeof(a[0])
 
 static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
 

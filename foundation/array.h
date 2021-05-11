@@ -56,6 +56,11 @@ void cfArrayClear(void *array);
 /// Ensure the array has the given capacity by growing if necessary
 #define cfArrayEnsure(array, capacity) (cf__arrayEnsure(array, capacity, sizeof(*array)))
 
+#define cfArrayResize(array, size) \
+    (size > cfArraySize(array) ? cfArrayExtend(array, size - cfArraySize(array)) : 0)
+
+#define cfArrayExtend(array, room) (cf__arrayExtend(array, room, sizeof(*array)))
+
 /// Push the given item at the end of the array
 #define cfArrayPush(array, item) \
     (array = cf__arrayExtend(array, 1, sizeof(*array)), *cfArrayLast(array) = item)

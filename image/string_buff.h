@@ -1,6 +1,7 @@
 #ifndef STRING_BUFF_H
 
 #include "foundation/common.h"
+#include "foundation/strings.h"
 #include "foundation/util.h"
 
 enum
@@ -33,7 +34,7 @@ sbPush(StringBuff *sb, char const *str)
     if (sb->count == StringBuff_MaxCount) return false;
 
     // Compute size of the string, including terminator
-    usize size = cfStrSize(str);
+    usize size = strSize(str);
 
     u32 offset = sb->index[sb->count];
     u32 avail = StringBuff_BuffSize - offset;

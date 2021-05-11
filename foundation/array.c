@@ -102,7 +102,7 @@ void *
 cf__arrayExtend(void *array, usize room, usize item_size)
 {
     cfArrayHeader *header = arrayHeaderGrow(arrayHeader(array), room, item_size);
-    header->len++;
+    header->len += room;
     return (header + 1);
 }
 

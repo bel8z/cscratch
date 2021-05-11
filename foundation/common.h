@@ -1,13 +1,9 @@
-#ifndef CF_COMMON_H
+#ifndef FOUNDATION_COMMON_H
 
 #include <float.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
-
-#define CF_UNUSED(var) (void)(var)
-
-#define CF_MAX_ALIGN (sizeof(void *) * 2)
 
 // NOTE (Matteo): Memory protection is on by default, and can be disabled as a compilation flag
 #if !defined(CF_MEMORY_PROTECTION)
@@ -110,10 +106,10 @@ typedef struct cfAllocator cfAllocator;
 // Assertion macros
 
 // Ensure assertion in release mode
-#define RELEASE_ASSERTS 1
+#define CF_RELEASE_ASSERTS 1
 
-#if defined(RELEASE_ASSERTS) && defined(NDEBUG)
-#define RESTORE_NDEBUG
+#if defined(CF_RELEASE_ASSERTS) && defined(NDEBUG)
+#define CF__RESTORE_NDEBUG
 #undef NDEBUG
 #endif
 
@@ -129,9 +125,22 @@ typedef struct cfAllocator cfAllocator;
 
 #if defined(RESTORE_NDEBUG)
 #define NDEBUG 1
-#undef RESTORE_NDEBUG
+#undef CF__RESTORE_NDEBUG
 #endif
 //------------------------------------------------------------------------------
+// Misc
 
-#define CF_COMMON_H
+#define CF_UNUSED(var) (void)(var)
+
+#define CF_MAX_ALIGN (sizeof(void *) * 2)
+
+#define CF_ARRAY_SIZE(a) sizeof(a) / sizeof(a[0])
+
+#define CF_KB(x) ((u64)1024 * (x))
+#define CF_MB(x) ((u64)1024 * CF_KB(x))
+#define CF_GB(x) ((u64)1024 * CF_MB(x))
+
+//------------------------------------------------------------------------------
+
+#define FOUNDATION_COMMON_H
 #endif
