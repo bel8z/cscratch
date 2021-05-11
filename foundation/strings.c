@@ -1,5 +1,18 @@
 #include "strings.h"
 
+#include "allocator.h"
+#include "array.h"
+
+#include <stdarg.h>
+#include <stdio.h>
+
+#if defined(__clang__)
+#define CF_PRINTF_LIKE(fmt_argno, variadic_argno) \
+    __attribute__((__format__(__printf__, fmt_argno + 1, variadic_argno + 1)))
+#else
+#define CF_PRINTF_LIKE(fmt_argno, variadic_argno)
+#endif
+
 CF_PRINTF_LIKE(2, 3)
 char *
 strPrintfAlloc(cfAllocator *alloc, usize *out_size, char const *fmt, ...)
@@ -9,18 +22,25 @@ strPrintfAlloc(cfAllocator *alloc, usize *out_size, char const *fmt, ...)
     va_start(args, fmt);
     va_copy(args_copy, args);
 
-    i32 len = vsnprintf(NULL, 0, fmt, args_copy);
-    if (len < 0) return NULL;
+    i32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+
+    va_end(args_copy);
+
+    if (len < 0)
+    {
+        va_end(args);
+        return false;
+    };
 
     usize size = (usize)len + 1;
     char *buf = cfAlloc(alloc, size);
-    if (!buf) return NULL;
-
-    vsnprintf(buf, size, fmt, args);
+    if (buf)
+    {
+        vsnprintf(buf, size, fmt, args); // NOLINT
+        *out_size = size;
+    };
 
     va_end(args);
-
-    *out_size = size;
 
     return buf;
 }
@@ -34,15 +54,22 @@ strPrintfBuffer(cfArray(char) * array, char const *fmt, ...)
     va_start(args, fmt);
     va_copy(args_copy, args);
 
-    i32 len = vsnprintf(NULL, 0, fmt, args_copy);
-    if (len < 0) return false;
+    i32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+
+    va_end(args_copy);
+
+    if (len < 0)
+    {
+        va_end(args);
+        return false;
+    };
 
     usize req_size = (usize)len + 1;
     usize arr_size = cfArraySize(*array);
 
     cfArrayResize(*array, req_size);
 
-    vsnprintf(*array + arr_size, req_size, fmt, args);
+    vsnprintf(*array + arr_size, req_size, fmt, args); // NOLINT
 
     va_end(args);
 
@@ -58,13 +85,19 @@ strPrintf(char *buffer, usize buffer_size, char const *fmt, ...)
     va_start(args, fmt);
     va_copy(args_copy, args);
 
-    i32 len = vsnprintf(NULL, 0, fmt, args_copy);
-    if (len < 0) return false;
+    i32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+
+    va_end(args_copy);
 
     usize req_size = (usize)len + 1;
-    if (req_size < buffer_size) return false;
 
-    vsnprintf(buffer, req_size, fmt, args);
+    if (len < 0 || req_size > buffer_size)
+    {
+        va_end(args);
+        return false;
+    }
+
+    vsnprintf(buffer, req_size, fmt, args); // NOLINT
 
     va_end(args);
 

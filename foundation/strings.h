@@ -2,19 +2,6 @@
 
 #include "common.h"
 
-#include "allocator.h"
-#include "array.h"
-
-#include <stdarg.h>
-#include <stdio.h>
-
-#if defined(__clang__)
-#define CF_PRINTF_LIKE(fmt_argno, variadic_argno) \
-    __attribute__((__format__(__printf__, fmt_argno + 1, variadic_argno + 1)))
-#else
-CF_PRINTF_LIKE(fmt_argno, variadic_argno)
-#endif
-
 // Compute the size of the string buffer (including the null terminator)
 static inline usize
 strSize(char const *str)

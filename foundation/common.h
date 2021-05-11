@@ -1,9 +1,14 @@
 #ifndef FOUNDATION_COMMON_H
 
 #include <float.h>
-#include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#if defined(_MSC_VER)
+#define alignof _Alignof
+#else
+#include <stdalign.h>
+#endif
 
 // NOTE (Matteo): Memory protection is on by default, and can be disabled as a compilation flag
 #if !defined(CF_MEMORY_PROTECTION)
