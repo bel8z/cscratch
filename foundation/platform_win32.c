@@ -108,12 +108,28 @@ VM_COMMIT_FUNC(win32VmCommit)
 
 VM_REVERT_FUNC(win32VmDecommit)
 {
-    VirtualFree(memory, size, MEM_DECOMMIT);
+    bool result = VirtualFree(memory, size, MEM_DECOMMIT);
+    if (!result)
+    {
+        u32 err = GetLastError();
+        CF_UNUSED(err);
+        CF_ASSERT(false, "VM decommit failed");
+    }
 }
 
 VM_RELEASE_FUNC(win32VmRelease)
 {
-    VirtualFree(memory, size, MEM_RELEASE);
+    // NOTE (Matteo): VirtualFree(..., MEM_RELEASE) requires the base pointer
+    // returned by VirtualFree(..., MEM_RESERVE) and a size of 0 to succeed.
+    CF_UNUSED(size);
+
+    bool result = VirtualFree(memory, 0, MEM_RELEASE);
+    if (!result)
+    {
+        u32 err = GetLastError();
+        CF_UNUSED(err);
+        CF_ASSERT(false, "VM release failed");
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -141,8 +157,10 @@ CF_ALLOCATOR_FUNC(win32Alloc)
     if (new_size)
     {
         usize block_size = win32RoundSize(new_size, page_size);
-        u8 *base = VirtualAlloc(NULL, block_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        u8 *base = win32VmReserve(block_size);
         if (!base) return NULL;
+
+        win32VmCommit(base, block_size);
 
         stats->count++;
         stats->size += block_size;
@@ -156,13 +174,14 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 
         if (new_mem)
         {
-            cfMemCopy(memory, new_mem, old_size);
+            cfMemCopy(memory, new_mem, cfMin(old_size, new_size));
         }
 
         usize block_size = win32RoundSize(old_size, page_size);
         u8 *base = (u8 *)memory + old_size - block_size;
 
-        VirtualFree(base, block_size, MEM_DECOMMIT);
+        win32VmDecommit(base, block_size);
+        win32VmRelease(base, block_size);
 
         stats->count--;
         stats->size -= block_size;
