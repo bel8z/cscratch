@@ -7,6 +7,8 @@
 
 #define CF_UNUSED(var) (void)(var)
 
+#define CF_MAX_ALIGN (sizeof(void *) * 2)
+
 //------------------------------------------------------------------------------
 // Boolean type
 

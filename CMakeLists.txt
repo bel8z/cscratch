@@ -135,9 +135,11 @@ set_win32_runtime_static(backend)
 #-----------------------
 
 set(SOURCES 
-    main.c 
-    image/app.c 
-    image/image.c)
+    tests/test_arena.c)
+# set(SOURCES 
+#     main.c 
+#     image/app.c 
+#     image/image.c)
 set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
