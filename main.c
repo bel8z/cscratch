@@ -525,7 +525,8 @@ guiSetupFonts(ImFontAtlas *fonts, f32 dpi_scale, char const *data_path)
 
     if (!guiLoadFont(fonts, data_path, "NotoSans", cfRound(13.0f * scale), ranges) &
         !guiLoadFont(fonts, data_path, "OpenSans", cfRound(13.5f * scale), ranges) &
-        !guiLoadFont(fonts, data_path, "SourceSansPro", cfRound(13.5f * scale), ranges))
+        !guiLoadFont(fonts, data_path, "SourceSansPro", cfRound(13.5f * scale), ranges) &
+        !guiLoadFont(fonts, data_path, "DroidSans", cfRound(12.0f * scale), ranges))
     {
         ImFontAtlas_AddFontDefault(fonts, NULL);
     }
