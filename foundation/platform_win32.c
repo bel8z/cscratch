@@ -13,8 +13,6 @@
 
 #include <stdio.h>
 
-#define MEMORY_PROTECTION 1
-
 //------------------------------------------------------------------------------
 // Internal function declarations
 //------------------------------------------------------------------------------
@@ -134,7 +132,7 @@ VM_RELEASE_FUNC(win32VmRelease)
 
 //------------------------------------------------------------------------------
 
-#if MEMORY_PROTECTION
+#if CF_MEMORY_PROTECTION
 
 usize
 win32RoundSize(usize req_size, usize page_size)

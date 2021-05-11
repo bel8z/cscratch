@@ -15,6 +15,12 @@ typedef struct Arena
     cfVirtualMemory *vm;
 } Arena;
 
+typedef struct ArenaTempState
+{
+    Arena *arena;
+    u32 allocated;
+} ArenaTempState;
+
 /// Initialize the arena by reserving a block of virtual memory of the required size
 bool arenaInitVm(Arena *arena, cfVirtualMemory *vm, u32 reserved_size);
 
@@ -72,6 +78,12 @@ void arenaFree(Arena *arena, void const *memory, u32 size);
 
 /// Try freeing a block which fits the given array on top of the arena stack
 #define arenaFreeArray(arena, Type, count, ptr) arenaFree(arena, ptr, count * sizeof(Type))
+
+ArenaTempState arenaSave(Arena *arena);
+void arenaRestore(Arena *arena, ArenaTempState);
+
+#define ARENA_TEMP_BEGIN(arena) ArenaTempState ARENA_TEMP_END_NOT_CALLED = arenaSave(arena)
+#define ARENA_TEMP_END(arena) arenaRestore(arena, ARENA_TEMP_END_NOT_CALLED)
 
 #define VM_ARENA_H
 #endif

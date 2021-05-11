@@ -24,12 +24,16 @@ main()
         ints[i] = i;
     }
 
+    ARENA_TEMP_BEGIN(&arena);
+
     ints = arenaReallocArray(&arena, i32, ints, 1024, 2048);
 
     for (i32 i = 0; i < 1024; ++i)
     {
         assert(ints[i] == i);
     }
+
+    ARENA_TEMP_END(&arena);
 
     for (i32 i = 1024; i < 2048; ++i)
     {

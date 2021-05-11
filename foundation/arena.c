@@ -161,10 +161,42 @@ arenaFree(Arena *arena, void const *memory, u32 size)
     {
         // Memory management is LIFO, so only the last allocated block can be
         // released
-        if (block_end == alloc_end) arena->allocated -= size;
+        if (block_end == alloc_end)
+        {
+#if CF_MEMORY_PROTECTION
+            // NOTE (Matteo): Decommit unused memory to trigger access violations
+            if (arena->vm) cfVmRevert(arena->vm, arena->memory + arena->allocated, size);
+#endif
+            arena->allocated -= size;
+        }
     }
     else
     {
         CF_ASSERT(false, "Block is out of arena bounds");
     }
+}
+
+ArenaTempState
+arenaSave(Arena *arena)
+{
+    CF_ASSERT_NOT_NULL(arena);
+    return (ArenaTempState){.allocated = arena->allocated, .arena = arena};
+}
+
+void
+arenaRestore(Arena *arena, ArenaTempState state)
+{
+    CF_ASSERT_NOT_NULL(arena);
+    CF_ASSERT(arena == state.arena, "Restoring invalid state");
+    CF_ASSERT(arena->allocated >= state.allocated, "Restoring invalid state");
+
+#if CF_MEMORY_PROTECTION
+    // NOTE (Matteo): Decommit unused memory to trigger access violations
+    if (arena->vm)
+    {
+        cfVmRevert(arena->vm, arena->memory + arena->allocated, arena->allocated - state.allocated);
+    }
+#endif
+
+    arena->allocated = state.allocated;
 }

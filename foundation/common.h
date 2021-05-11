@@ -9,6 +9,11 @@
 
 #define CF_MAX_ALIGN (sizeof(void *) * 2)
 
+// NOTE (Matteo): Memory protection is on by default, and can be disabled as a compilation flag
+#if !defined(CF_MEMORY_PROTECTION)
+#define CF_MEMORY_PROTECTION 1
+#endif
+
 //------------------------------------------------------------------------------
 // Boolean type
 
