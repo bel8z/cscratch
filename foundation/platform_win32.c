@@ -120,53 +120,34 @@ VM_RELEASE_FUNC(win32VmRelease)
 
 #if MEMORY_PROTECTION
 
-static void *
-win32AllocEop(usize size, cfAllocatorStats *stats)
+usize
+win32RoundSize(usize req_size, usize page_size)
 {
-    SYSTEM_INFO sysinfo;
-    GetSystemInfo(&sysinfo);
-
-    usize page_size = sysinfo.dwPageSize;
-    usize page_count = (size + page_size - 1) / page_size;
-    usize block_size = page_count * page_size;
-    u8 *base = VirtualAlloc(NULL, block_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-    if (!base) return NULL;
-
-    stats->count++;
-    stats->size += block_size;
-
-    return base + block_size - size;
-}
-
-static void
-win32FreeEop(u8 *memory, usize size, cfAllocatorStats *stats)
-{
-    if (!memory) return;
-
-    SYSTEM_INFO sysinfo;
-    GetSystemInfo(&sysinfo);
-
-    usize page_size = sysinfo.dwPageSize;
-    usize page_count = (size + page_size - 1) / page_size;
-    usize block_size = page_count * page_size;
-
-    u8 *base = memory + size - block_size;
-
-    VirtualFree(base, block_size, MEM_DECOMMIT);
-
-    stats->count--;
-    stats->size -= block_size;
+    usize page_count = (req_size + page_size - 1) / page_size;
+    return page_count * page_size;
 }
 
 CF_ALLOCATOR_FUNC(win32Alloc)
 {
     cfAllocatorStats *stats = state;
 
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+
+    usize page_size = sysinfo.dwPageSize;
+
     void *new_mem = NULL;
 
     if (new_size)
     {
-        new_mem = win32AllocEop(new_size, stats);
+        usize block_size = win32RoundSize(new_size, page_size);
+        u8 *base = VirtualAlloc(NULL, block_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        if (!base) return NULL;
+
+        stats->count++;
+        stats->size += block_size;
+
+        new_mem = base + block_size - new_size;
     }
 
     if (memory)
@@ -178,7 +159,14 @@ CF_ALLOCATOR_FUNC(win32Alloc)
             cfMemCopy(memory, new_mem, old_size);
         }
 
-        win32FreeEop(memory, old_size, stats);
+        usize block_size = win32RoundSize(old_size, page_size);
+        u8 *base = (u8 *)memory + old_size - block_size;
+
+        VirtualFree(base, block_size, MEM_DECOMMIT);
+
+        stats->count--;
+        stats->size -= block_size;
+
         memory = NULL;
     }
 
