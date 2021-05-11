@@ -1,6 +1,7 @@
 #include "string_list.h"
 
 #include "allocator.h"
+#include "strings.h"
 #include "util.h"
 
 void
