@@ -4,15 +4,21 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#if defined(_MSC_VER)
-#define alignof _Alignof
-#else
-#include <stdalign.h>
-#endif
-
 // NOTE (Matteo): Memory protection is on by default, and can be disabled as a compilation flag
 #if !defined(CF_MEMORY_PROTECTION)
 #define CF_MEMORY_PROTECTION 1
+#endif
+
+//------------------------------------------------------------------------------
+// Alignment
+
+#define alignof _Alignof
+#define alignas _Alignas
+
+#if defined(_MSC_VER)
+#define CF_MAX_ALIGN (sizeof(void *) * 2)
+#else
+#define CF_MAX_ALIGN (alignof(max_align_t))
 #endif
 
 //------------------------------------------------------------------------------
@@ -136,8 +142,6 @@ typedef struct cfAllocator cfAllocator;
 // Misc
 
 #define CF_UNUSED(var) (void)(var)
-
-#define CF_MAX_ALIGN (sizeof(void *) * 2)
 
 #define CF_ARRAY_SIZE(a) sizeof(a) / sizeof(a[0])
 
