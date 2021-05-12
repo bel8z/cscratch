@@ -1,5 +1,4 @@
-#include "app.h"
-#include "platform.h"
+#include "api.h"
 
 #include "image.h"
 #include "string_buff.h"
@@ -14,17 +13,6 @@
 #include "foundation/vec.h"
 
 static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
-
-typedef struct FontOptions
-{
-    f32 rasterizer_multiply;
-    // Freetype only
-    bool freetype_enabled;
-    u32 freetype_flags;
-    // Stb only
-    i32 oversample_h;
-    i32 oversample_v;
-} FontOptions;
 
 typedef struct AppWindows
 {
@@ -47,9 +35,6 @@ struct AppState
     cfAllocator *alloc;
 
     AppPaths paths;
-
-    FontOptions font_opts;
-    bool rebuild_fonts;
 
     AppWindows windows;
     ImVec4 clear_color;
@@ -75,15 +60,6 @@ appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc)
 
     app->plat = plat;
     app->alloc = &plat->heap;
-
-    app->rebuild_fonts = true;
-    app->font_opts = (FontOptions){
-        .freetype_enabled = true,
-        .freetype_flags = 0,
-        .oversample_h = 1,
-        .oversample_v = 1,
-        .rasterizer_multiply = 1.0f,
-    };
 
     app->clear_color = (ImVec4){0.45f, 0.55f, 0.60f, 1.00f};
     app->image = (Image){.zoom = 1.0};
@@ -119,44 +95,11 @@ appDestroy(AppState *app)
     cfFree(app->alloc, app, sizeof(*app));
 }
 
-bool
-appPrepareUpdate(AppState *state)
-{
-    if (!state->rebuild_fonts) return false;
-
-    ImGuiIO *io = igGetIO();
-    ImFontAtlas *fonts = io->Fonts;
-    FontOptions const *font_opts = &state->font_opts;
-
-    for (i32 i = 0; i < fonts->ConfigData.Size; ++i)
-    {
-        fonts->ConfigData.Data[i].RasterizerMultiply = font_opts->rasterizer_multiply;
-        fonts->ConfigData.Data[i].OversampleH = font_opts->oversample_h;
-        fonts->ConfigData.Data[i].OversampleV = font_opts->oversample_v;
-    }
-
-    if (font_opts->freetype_enabled)
-    {
-        fonts->FontBuilderIO = ImGuiFreeType_GetBuilderForFreeType();
-        fonts->FontBuilderFlags = (u32)font_opts->freetype_flags;
-    }
-    else
-    {
-        fonts->FontBuilderIO = igImFontAtlasGetBuilderForStbTruetype();
-    }
-
-    ImFontAtlas_Build(fonts);
-    state->rebuild_fonts = false;
-
-    return true;
-}
-
 //------------------------------------------------------------------------------
 
 static bool
 guiShowFontOptions(FontOptions *state, bool *p_open)
 {
-    ImFontAtlas *atlas = igGetIO()->Fonts;
     bool rebuild_fonts = false;
 
     igBegin("Font Options", p_open, 0);
@@ -174,7 +117,7 @@ guiShowFontOptions(FontOptions *state, bool *p_open)
         rebuild_fonts = true;
     }
 
-    rebuild_fonts |= igDragInt("TexGlyphPadding", &atlas->TexGlyphPadding, 0.1f, 1, 16, NULL,
+    rebuild_fonts |= igDragInt("TexGlyphPadding", &state->tex_glyph_padding, 0.1f, 1, 16, NULL,
                                ImGuiSliderFlags_None);
 
     rebuild_fonts |= igDragFloat("RasterizerMultiply", &state->rasterizer_multiply, 0.001f, 0.0f,
@@ -432,9 +375,11 @@ guiImageViewer(AppState *state)
     // igColorEdit3("clear color", (float *)&state->clear_color, 0);
 }
 
-void
-appUpdate(AppState *state)
+AppUpdateFlags
+appUpdate(AppState *state, FontOptions *font_opts)
 {
+    AppUpdateFlags result = AppUpdateFlags_None;
+
     if (igBeginMainMenuBar())
     {
         if (igBeginMenu("File", true)) igEndMenu();
@@ -458,9 +403,9 @@ appUpdate(AppState *state)
 
     if (state->windows.demo) igShowDemoWindow(&state->windows.demo);
 
-    if (state->windows.fonts)
+    if (state->windows.fonts && guiShowFontOptions(font_opts, &state->windows.fonts))
     {
-        state->rebuild_fonts = guiShowFontOptions(&state->font_opts, &state->windows.fonts);
+        result |= AppUpdateFlags_RebuildFonts;
     }
 
     if (state->windows.stats)
@@ -503,4 +448,6 @@ appUpdate(AppState *state)
         }
         igEndPopup();
     }
+
+    return result;
 }

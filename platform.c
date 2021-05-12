@@ -1,8 +1,5 @@
-// Platform layer
-#include "platform.h"
-
-// Hosted application interface
-#include "app.h"
+// Interface between platform layer and hosted applicatiom
+#include "api.h"
 
 // Gui library
 #include "gui.h"
@@ -26,12 +23,20 @@
 // Standard library
 #include <stdio.h>
 
-//------------------------------------------------------------------------------
-// Local data & functions
-//------------------------------------------------------------------------------
-
+// Constants for DPI handling
 #define PLATFORM_DPI 96.0f
 #define TRUETYPE_DPI 72.0f
+
+//------------------------------------------------------------------------------
+// Platform layer implementation
+//------------------------------------------------------------------------------
+
+cfPlatform cfPlatformCreate();
+void cfPlatformShutdown(cfPlatform *platform);
+
+//------------------------------------------------------------------------------
+// Local function declarations
+//------------------------------------------------------------------------------
 
 static void appInitPaths(AppPaths *paths, char *cmd_line);
 
@@ -39,6 +44,7 @@ static void *guiAlloc(usize size, void *state);
 static void guiFree(void *mem, void *state);
 static void guiSetupStyle(f32 dpi);
 static void guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path);
+static void guiUpdateFonts(ImFontAtlas *fonts, FontOptions *font_opts);
 
 #if SDL_BACKEND
 //------------------------------------------------------------------------------
@@ -221,6 +227,16 @@ main(int argc, char **argv)
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     // Main loop
+    FontOptions font_opts = {
+        .freetype_enabled = true,
+        .oversample_h = 1,
+        .oversample_v = 1,
+        .rasterizer_multiply = 1.0f,
+    };
+
+    // NOTE (Matteo): Ensure font rebuild before first frame
+    AppUpdateFlags flags = AppUpdateFlags_RebuildFonts;
+
 #if SDL_BACKEND
     bool done = false;
     while (!done)
@@ -249,8 +265,10 @@ main(int argc, char **argv)
         glfwPollEvents();
 #endif
 
-        if (appPrepareUpdate(app))
+        // Rebuild font atlas if required
+        if (flags & AppUpdateFlags_RebuildFonts)
         {
+            guiUpdateFonts(io->Fonts, &font_opts);
             // Re-upload font texture on the GPU
             ImGui_ImplOpenGL3_DestroyDeviceObjects();
             ImGui_ImplOpenGL3_CreateDeviceObjects();
@@ -266,7 +284,7 @@ main(int argc, char **argv)
         igNewFrame();
 
         // Application frame update
-        appUpdate(app);
+        flags = appUpdate(app, &font_opts);
 
         // Rendering
         igRender();
@@ -532,4 +550,34 @@ guiSetupFonts(ImFontAtlas *fonts, f32 dpi_scale, char const *data_path)
     {
         ImFontAtlas_AddFontDefault(fonts, NULL);
     }
+}
+
+void
+guiUpdateFonts(ImFontAtlas *fonts, FontOptions *font_opts)
+{
+    if (font_opts->tex_glyph_padding != 0)
+    {
+        fonts->TexGlyphPadding = font_opts->tex_glyph_padding;
+    }
+
+    for (i32 i = 0; i < fonts->ConfigData.Size; ++i)
+    {
+        fonts->ConfigData.Data[i].RasterizerMultiply = font_opts->rasterizer_multiply;
+        fonts->ConfigData.Data[i].OversampleH = font_opts->oversample_h;
+        fonts->ConfigData.Data[i].OversampleV = font_opts->oversample_v;
+    }
+
+    if (font_opts->freetype_enabled)
+    {
+        fonts->FontBuilderIO = ImGuiFreeType_GetBuilderForFreeType();
+        fonts->FontBuilderFlags = (u32)font_opts->freetype_flags;
+    }
+    else
+    {
+        fonts->FontBuilderIO = igImFontAtlasGetBuilderForStbTruetype();
+    }
+
+    ImFontAtlas_Build(fonts);
+
+    font_opts->tex_glyph_padding = fonts->TexGlyphPadding;
 }
