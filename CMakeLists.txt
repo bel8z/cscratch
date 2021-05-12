@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.20.0)
-project(scratch VERSION 0.1.0)
 
 # Force linking against MSVC runtime static library for all targets
+cmake_policy(SET CMP0091 NEW)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+project(scratch VERSION 0.1.0)
 
 #-----------
 # Testing
