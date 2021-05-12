@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.20.0)
 project(scratch VERSION 0.1.0)
 
+# Force linking against MSVC runtime static library for all targets
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 #-----------
 # Testing
 #-----------
@@ -21,7 +24,6 @@ include(CPack)
 #---------------
 
 include(cmake/CompileFlags.cmake)
-include(cmake/Win32Runtime.cmake)
 
 #-------------------
 # Dependency paths
@@ -87,8 +89,6 @@ set(IMGUI_FREETYPE "yes" CACHE STRING "Build with freetype library" FORCE)
 set(FREETYPE_PATH ${FREETYPE_DIR})
 add_subdirectory(${IMGUI_DIR})
 
-set_win32_runtime_static(cimgui)
-
 add_subdirectory(${GLFW_DIR})
 
 add_subdirectory(foundation)
@@ -127,8 +127,6 @@ if(BACKEND_SDL)
 else()
     target_link_libraries(backend PUBLIC glfw)
 endif()
-
-set_win32_runtime_static(backend)
 
 #-----------------------
 # Main executable
