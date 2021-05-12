@@ -7,13 +7,6 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 project(scratch VERSION 0.1.0)
 
 #-----------
-# Testing
-#-----------
-
-include(CTest)
-enable_testing()
-
-#-----------
 # Packaging
 #-----------
 
@@ -92,3 +85,17 @@ target_link_libraries(image_viewer PRIVATE
     backend)
 
 set_c_compile_flags(image_viewer)
+
+#-----------
+# Testing
+#-----------
+
+include(CTest)
+enable_testing()
+
+add_executable(test_array tests/test_array.c)
+target_link_libraries(test_array PRIVATE foundation)
+target_include_directories(test_array PRIVATE  ".")
+set_c_compile_flags(test_array)
+
+add_test(test_array test_array)
