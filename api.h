@@ -6,36 +6,19 @@
 #include "foundation/fs.h"
 #include "foundation/vm.h"
 
-// Basic platform API
-typedef struct cfPlatform
+typedef struct cfPlatform cfPlatform;
+
+typedef struct AppState AppState;
+typedef struct AppPaths AppPaths;
+
+typedef struct FontOptions FontOptions;
+
+struct cfPlatform
 {
     cfVirtualMemory vm;
     cfAllocator heap;
     cfFileSystem fs;
-} cfPlatform;
-
-typedef struct FontOptions
-{
-    i32 tex_glyph_padding;
-    f32 rasterizer_multiply;
-    // Freetype only
-    bool freetype_enabled;
-    u32 freetype_flags;
-    // Stb only
-    i32 oversample_h;
-    i32 oversample_v;
-} FontOptions;
-
-enum
-{
-    AppPaths_Length = 256,
 };
-
-typedef struct AppPaths
-{
-    char base[AppPaths_Length];
-    char data[AppPaths_Length];
-} AppPaths;
 
 typedef enum AppUpdateFlags
 {
@@ -46,7 +29,16 @@ typedef enum AppUpdateFlags
     AppUpdateFlags_All = U32_MAX,
 } AppUpdateFlags;
 
-typedef struct AppState AppState;
+enum
+{
+    AppPaths_Length = 256,
+};
+
+struct AppPaths
+{
+    char base[AppPaths_Length];
+    char data[AppPaths_Length];
+};
 
 AppState *appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc);
 void appDestroy(AppState *app);
