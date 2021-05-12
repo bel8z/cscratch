@@ -14,6 +14,20 @@ typedef struct FileDlgFilter
     usize num_extensions;
 } FileDlgFilter;
 
+enum
+{
+    FileDlgResult_Ok,
+    FileDlgResult_Cancel,
+    FileDlgResult_Error,
+};
+
+typedef struct FileDlgResult
+{
+    u8 code;
+    char *filename;
+    usize filename_size;
+} FileDlgResult;
+
 typedef struct cfFileSystem
 {
     // Create an iterator on the given directory contents (return NULL in case of failure)
@@ -25,8 +39,8 @@ typedef struct cfFileSystem
     // Shutdown the iteration
     void (*dir_iter_close)(DirIter *iter);
 
-    char *(*open_file_dlg)(char const *filename_hint, FileDlgFilter *filters, usize num_filters,
-                           cfAllocator *alloc, u32 *out_size);
+    FileDlgResult (*open_file_dlg)(char const *filename_hint, FileDlgFilter *filters,
+                                   usize num_filters, cfAllocator *alloc);
 
 } cfFileSystem;
 

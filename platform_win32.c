@@ -37,8 +37,8 @@ static DirIter *win32DirIterStart(char const *dir, cfAllocator *alloc);
 static char const *win32DirIterNext(DirIter *self);
 static void win32DirIterClose(DirIter *self);
 
-static char *win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, usize num_filters,
-                              cfAllocator *alloc, u32 *out_size);
+static FileDlgResult win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters,
+                                      usize num_filters, cfAllocator *alloc);
 
 // Unicode helpers
 static u32 win32Utf8To16(char const *str, i32 str_size, WCHAR *out, u32 out_size);
@@ -397,17 +397,18 @@ win32BuildFilterString(FileDlgFilter *filters, usize num_filters, cfAllocator *a
     return out_filter;
 }
 
-char *
+FileDlgResult
 win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, usize num_filters,
-                 cfAllocator *alloc, u32 *out_size)
+                 cfAllocator *alloc)
 {
+    FileDlgResult result = {.code = FileDlgResult_Error};
 
     WCHAR name[MAX_PATH] = {0};
 
     if (filename_hint)
     {
         u32 name_size = win32Utf8To16(filename_hint, -1, NULL, 0);
-        if (name_size > MAX_PATH) return NULL;
+        if (name_size > MAX_PATH) return result;
         win32Utf8To16(filename_hint, -1, name, name_size);
     }
 
@@ -426,18 +427,21 @@ win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, usize num_fi
     ofn.lpstrInitialDir = NULL;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-    char *result = NULL;
-
     if (GetOpenFileNameW(&ofn))
     {
         u32 result_size = win32Utf16To8(ofn.lpstrFile, -1, NULL, 0);
-        result = cfAlloc(alloc, result_size);
+        result.filename = cfAlloc(alloc, result_size);
 
-        if (result)
+        if (result.filename)
         {
-            *out_size = result_size;
-            win32Utf16To8(ofn.lpstrFile, -1, result, result_size);
+            result.code = FileDlgResult_Ok;
+            result.filename_size = result_size;
+            win32Utf16To8(ofn.lpstrFile, -1, result.filename, result_size);
         }
+    }
+    else
+    {
+        result.code = FileDlgResult_Cancel;
     }
 
     cfFree(alloc, filt, filt_size);
