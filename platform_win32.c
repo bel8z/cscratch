@@ -265,10 +265,12 @@ struct DirIter
 DirIter *
 win32DirIterStart(char const *dir, cfAllocator *alloc)
 {
+    // TODO (Matteo): Handle UTF8 by converting to WCHAR string
+
     DirIter *self = cfAlloc(alloc, sizeof(*self));
     if (!self) return NULL;
 
-    snprintf(self->buffer, MAX_PATH, "%s/*", dir);
+    snprintf(self->buffer, MAX_PATH, "%s/*", dir); // NOLINT
 
     WIN32_FIND_DATAA data = {0};
 
@@ -354,31 +356,35 @@ win32BuildFilterString(FileDlgFilter *filters, usize num_filters, cfAllocator *a
 
     if (!out_filter) return NULL;
 
-    for (usize filter_no = 0; filter_no < num_filters; ++filter_no)
+    for (FileDlgFilter *filter = filters, *end = filter + num_filters; filter < end; ++filter)
     {
-        u32 name_size = win32Utf8To16(filters[filter_no].name, -1, NULL, 0);
+        u32 name_size = win32Utf8To16(filter->name, -1, NULL, 0);
 
         out_filter = win32GrowString(out_filter, len, &cap, name_size, alloc);
         if (!out_filter) return NULL;
 
-        win32Utf8To16(filters[filter_no].name, -1, out_filter + len, name_size);
+        win32Utf8To16(filter->name, -1, out_filter + len, name_size);
         len += name_size;
 
-        for (usize ext_no = 0; ext_no < filters[filter_no].num_extensions; ++ext_no)
+        for (usize ext_no = 0; ext_no < filter->num_extensions; ++ext_no)
         {
-            char const *ext = filters[filter_no].extensions[ext_no];
+            char const *ext = filter->extensions[ext_no];
             u32 ext_size = win32Utf8To16(ext, -1, NULL, 0);
 
             out_filter = win32GrowString(out_filter, len, &cap, ext_size + 1, alloc);
             if (!out_filter) return NULL;
 
+            // Prepend '*' to the extension - not documented but actually required
             out_filter[len++] = L'*';
             win32Utf8To16(ext, -1, out_filter + len, ext_size);
             len += ext_size;
 
+            // Replace null terminator with ';' to separate extensions
             out_filter[len - 1] = L';';
         }
 
+        // Append 2 null terminators (required since null terminators are used
+        // internally to separate filters)
         out_filter = win32GrowString(out_filter, len, &cap, len + 2, alloc);
         if (!out_filter) return NULL;
 
