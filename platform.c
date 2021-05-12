@@ -5,7 +5,7 @@
 #include "gui.h"
 
 // Backend libraries
-#include "gl3w.h"
+#include "gl/gload.h"
 
 #if SDL_BACKEND
 #define SDL_MAIN_HANDLED
@@ -164,7 +164,7 @@ main(int argc, char **argv)
 #endif
 
     // Initialize OpenGL loader
-    if (gl3wInit() != 0)
+    if (!gloadInit(NULL))
     {
         fprintf(stderr, "Failed to initialize OpenGL loader!\n");
         return -2;

@@ -10,7 +10,6 @@ message(STATUS "backend parent directory: ${PARENT_DIR}")
 set(EXT_DIR ${PARENT_DIR}/ext)
 set(IMGUI_DIR ${EXT_DIR}/cimgui-1.82dock)
 set(BACKEND_DIR ${IMGUI_DIR}/imgui/backends)
-set(GL3W_DIR ${IMGUI_DIR}/imgui/examples/libs/gl3w)
 set(SDL2_DIR ${EXT_DIR}/SDL2-2.0.14)
 set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
 set(GLFW_DIR ${EXT_DIR}/glfw-3)
@@ -50,7 +49,7 @@ find_package(OpenGL REQUIRED)
 
 set(BACKEND_SOURCES 
     ${BACKEND_DIR}/imgui_impl_opengl3.cpp
-    ${GL3W_DIR}/GL/gl3w.c)
+    ${PARENT_DIR}/gl/gload.c)
 
 if (BACKEND_SDL)
     list(APPEND BACKEND_SOURCES ${BACKEND_DIR}/imgui_impl_sdl.cpp)
@@ -60,11 +59,11 @@ endif()
 
 add_library(backend STATIC ${BACKEND_SOURCES})
 
-target_compile_definitions(backend PRIVATE IMGUI_IMPL_OPENGL_LOADER_GL3W)
+target_compile_definitions(backend PRIVATE IMGUI_IMPL_OPENGL_LOADER_CUSTOM=<gl/gload.h>)
 
 target_include_directories(backend PUBLIC 
     ${IMGUI_DIR}/imgui
-    ${GL3W_DIR})
+    ${PARENT_DIR})
 
 target_include_directories(backend INTERFACE ${IMGUI_DIR})
 
