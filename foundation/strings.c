@@ -29,7 +29,7 @@ strPrintfAlloc(cfAllocator *alloc, usize *out_size, char const *fmt, ...)
     if (len < 0)
     {
         va_end(args);
-        return false;
+        return NULL;
     };
 
     usize size = (usize)len + 1;
