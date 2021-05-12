@@ -2,16 +2,15 @@
 
 #include "foundation/common.h"
 
+//------------------------------------------------------------------------------
+// Platform interface
+//------------------------------------------------------------------------------
+
 #include "foundation/allocator.h"
 #include "foundation/fs.h"
 #include "foundation/vm.h"
 
 typedef struct cfPlatform cfPlatform;
-
-typedef struct AppState AppState;
-typedef struct AppPaths AppPaths;
-
-typedef struct FontOptions FontOptions;
 
 struct cfPlatform
 {
@@ -19,6 +18,15 @@ struct cfPlatform
     cfAllocator heap;
     cfFileSystem fs;
 };
+
+//------------------------------------------------------------------------------
+// Application interface
+//------------------------------------------------------------------------------
+
+typedef struct AppState AppState;
+typedef struct AppPaths AppPaths;
+
+typedef struct FontOptions FontOptions;
 
 typedef enum AppUpdateFlags
 {
