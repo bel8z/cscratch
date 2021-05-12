@@ -70,9 +70,9 @@ endif()
 add_subdirectory(foundation)
 add_subdirectory(backend)
 
-#-----------------------
-# Main executable
-#-----------------------
+#--------------------------
+# Image viewer application
+#--------------------------
 
 set(SOURCES 
     main.c 
@@ -80,14 +80,14 @@ set(SOURCES
     image/image.c)
 set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(image_viewer ${SOURCES})
 
-target_compile_features(${PROJECT_NAME} PUBLIC c_std_11)
+target_compile_features(image_viewer PUBLIC c_std_11)
 
-target_include_directories(${PROJECT_NAME} PUBLIC  ".")
+target_include_directories(image_viewer PUBLIC  ".")
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(image_viewer PRIVATE
     foundation
     backend)
 
-set_c_compile_flags(${PROJECT_NAME})
+set_c_compile_flags(image_viewer)
