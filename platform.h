@@ -1,10 +1,10 @@
 #ifndef CF_PLATFORM_H
 
-#include "common.h"
+#include "foundation/common.h"
 
-#include "allocator.h"
-#include "fs.h"
-#include "vm.h"
+#include "foundation/allocator.h"
+#include "foundation/fs.h"
+#include "foundation/vm.h"
 
 // Basic platform API
 typedef struct cfPlatform

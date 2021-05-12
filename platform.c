@@ -1,3 +1,6 @@
+// Platform layer
+#include "platform.h"
+
 // Hosted application interface
 #include "app.h"
 
@@ -17,7 +20,6 @@
 // Foundation library
 #include "foundation/allocator.h"
 #include "foundation/common.h"
-#include "foundation/platform.h"
 #include "foundation/util.h"
 #include "foundation/vec.h"
 

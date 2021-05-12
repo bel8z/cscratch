@@ -1,6 +1,6 @@
 #include "platform.h"
 
-#include "util.h"
+#include "foundation/util.h"
 
 #if !defined(_WIN32)
 #error "Win32 platform not supported"
@@ -323,13 +323,13 @@ win32DirIterClose(DirIter *self)
 }
 
 static WCHAR *
-win32GrowString(WCHAR *str, usize len, usize *cap, usize req, cfAllocator *alloc)
+win32GrowString(WCHAR *str, u32 len, u32 *cap, u32 req, cfAllocator *alloc)
 {
-    usize old_cap = *cap;
+    u32 old_cap = *cap;
 
     if (req > old_cap - len)
     {
-        usize new_cap = cfMax(req, old_cap * 2);
+        u32 new_cap = cfMax(req, old_cap * 2);
         str = cfRealloc(alloc, str, old_cap, new_cap);
         *cap = new_cap;
     }
@@ -343,15 +343,15 @@ win32BuildFilterString(FileDlgFilter *filters, usize num_filters, cfAllocator *a
     *out_size = 0;
     if (num_filters == 0) return NULL;
 
-    usize cap = 1024;
-    usize len = 0;
+    u32 cap = 1024;
+    u32 len = 0;
     WCHAR *out_filter = cfAlloc(alloc, cap);
 
     if (!out_filter) return NULL;
 
     for (usize filter_no = 0; filter_no < num_filters; ++filter_no)
     {
-        usize name_size = win32Utf8To16(filters[filter_no].name, -1, NULL, 0);
+        u32 name_size = win32Utf8To16(filters[filter_no].name, -1, NULL, 0);
 
         out_filter = win32GrowString(out_filter, len, &cap, name_size, alloc);
         if (!out_filter) return NULL;
@@ -362,7 +362,7 @@ win32BuildFilterString(FileDlgFilter *filters, usize num_filters, cfAllocator *a
         for (usize ext_no = 0; ext_no < filters[filter_no].num_extensions; ++ext_no)
         {
             char const *ext = filters[filter_no].extensions[ext_no];
-            usize ext_size = win32Utf8To16(ext, -1, NULL, 0);
+            u32 ext_size = win32Utf8To16(ext, -1, NULL, 0);
 
             out_filter = win32GrowString(out_filter, len, &cap, ext_size + 1, alloc);
             if (!out_filter) return NULL;

@@ -1,4 +1,5 @@
 #include "app.h"
+#include "platform.h"
 
 #include "image.h"
 #include "string_buff.h"
@@ -8,7 +9,6 @@
 #include "foundation/allocator.h"
 #include "foundation/common.h"
 #include "foundation/path.h"
-#include "foundation/platform.h"
 #include "foundation/strings.h"
 #include "foundation/util.h"
 #include "foundation/vec.h"

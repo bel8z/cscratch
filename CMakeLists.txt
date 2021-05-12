@@ -75,7 +75,8 @@ add_subdirectory(backend)
 #--------------------------
 
 set(SOURCES 
-    main.c 
+    platform.c
+    platform_win32.c
     image/app.c 
     image/image.c)
 set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
