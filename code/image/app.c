@@ -323,10 +323,10 @@ appImageViewer(AppState *state)
     igEnd();
 }
 
-AppUpdateFlags
+AppUpdateResult
 appUpdate(AppState *state, FontOptions *font_opts)
 {
-    AppUpdateFlags result = AppUpdateFlags_None;
+    AppUpdateResult result = {.flags = AppUpdateFlags_None};
 
     if (igBeginMainMenuBar())
     {
@@ -357,7 +357,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
 
         if (guiFontOptions(font_opts))
         {
-            result |= AppUpdateFlags_RebuildFonts;
+            result.flags |= AppUpdateFlags_RebuildFonts;
         }
 
         igEnd();

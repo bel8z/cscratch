@@ -3,6 +3,7 @@
 #include "gui.h"
 
 #include "foundation/allocator.h"
+#include "foundation/color.h"
 #include "foundation/common.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"
@@ -33,7 +34,7 @@ struct AppState
     AppPaths paths;
 
     AppWindows windows;
-    ImVec4 clear_color;
+    Rgba clear_color;
 };
 
 //------------------------------------------------------------------------------
@@ -52,7 +53,7 @@ appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc)
     app->plat = plat;
     app->alloc = &plat->heap;
 
-    app->clear_color = (ImVec4){0.45f, 0.55f, 0.60f, 1.00f};
+    app->clear_color = (Rgba){0.45f, 0.55f, 0.60f, 1.00f};
 
     app->paths = paths;
 
@@ -67,10 +68,10 @@ appDestroy(AppState *app)
 
 //------------------------------------------------------------------------------
 
-AppUpdateFlags
+AppUpdateResult
 appUpdate(AppState *state, FontOptions *font_opts)
 {
-    AppUpdateFlags result = AppUpdateFlags_None;
+    AppUpdateResult result = {.flags = AppUpdateFlags_None};
 
     if (igBeginMainMenuBar())
     {
@@ -99,7 +100,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
 
         if (guiFontOptions(font_opts))
         {
-            result |= AppUpdateFlags_RebuildFonts;
+            result.flags |= AppUpdateFlags_RebuildFonts;
         }
 
         igEnd();
@@ -132,14 +133,13 @@ appUpdate(AppState *state, FontOptions *font_opts)
 
     static f32 f = 0;
 
-    // Edit bools storing our window open/close state
     igCheckbox("Demo Window", &state->windows.demo);
-    // Edit 1 float using a slider from 0.0f to 1.0f
     igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
-    // Edit 3 floats representing a color
-    igColorEdit3("clear color", (float *)&state->clear_color, 0);
+    igColorEdit4("clear color", state->clear_color.channel, 0);
 
     igEnd();
+
+    result.back_color = state->clear_color;
 
     return result;
 }

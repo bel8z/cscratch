@@ -2,13 +2,14 @@
 
 #include "foundation/common.h"
 
+#include "foundation/allocator.h"
+#include "foundation/color.h"
+#include "foundation/fs.h"
+#include "foundation/vm.h"
+
 //------------------------------------------------------------------------------
 // Platform interface
 //------------------------------------------------------------------------------
-
-#include "foundation/allocator.h"
-#include "foundation/fs.h"
-#include "foundation/vm.h"
 
 typedef struct cfPlatform cfPlatform;
 
@@ -37,6 +38,12 @@ typedef enum AppUpdateFlags
     AppUpdateFlags_All = U32_MAX,
 } AppUpdateFlags;
 
+typedef struct AppUpdateResult
+{
+    AppUpdateFlags flags;
+    Rgba back_color;
+} AppUpdateResult;
+
 enum
 {
     AppPaths_Length = 256,
@@ -50,7 +57,7 @@ struct AppPaths
 
 AppState *appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc);
 void appDestroy(AppState *app);
-AppUpdateFlags appUpdate(AppState *app, FontOptions *opts);
+AppUpdateResult appUpdate(AppState *app, FontOptions *opts);
 
 #define APP_H
 #endif

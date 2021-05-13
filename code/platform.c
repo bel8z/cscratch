@@ -235,7 +235,7 @@ main(int argc, char **argv)
     };
 
     // NOTE (Matteo): Ensure font rebuild before first frame
-    AppUpdateFlags flags = AppUpdateFlags_RebuildFonts;
+    AppUpdateResult update_result = {.flags = AppUpdateFlags_RebuildFonts};
 
 #if SDL_BACKEND
     bool done = false;
@@ -266,7 +266,7 @@ main(int argc, char **argv)
 #endif
 
         // Rebuild font atlas if required
-        if (flags & AppUpdateFlags_RebuildFonts)
+        if (update_result.flags & AppUpdateFlags_RebuildFonts)
         {
             guiUpdateFonts(io->Fonts, &font_opts);
             // Re-upload font texture on the GPU
@@ -284,7 +284,7 @@ main(int argc, char **argv)
         igNewFrame();
 
         // Application frame update
-        flags = appUpdate(app, &font_opts);
+        update_result = appUpdate(app, &font_opts);
 
         // Rendering
         igRender();
@@ -297,9 +297,8 @@ main(int argc, char **argv)
         glViewport(0, 0, display_w, display_h);
 #endif
 
-        // glClearColor(state.clear_color.x * state.clear_color.w,
-        //              state.clear_color.y * state.clear_color.w,
-        //              state.clear_color.z * state.clear_color.w, state.clear_color.w);
+        Rgba clear_color = rgbaMultiplyAlpha(update_result.back_color);
+        glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
         glClear(GL_COLOR_BUFFER_BIT);
 
         ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
