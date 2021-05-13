@@ -25,6 +25,7 @@ include(cmake/CompileFlags.cmake)
 #-------------------
 
 set(EXT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext)
+set(CODE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/code)
 
 #-----------------------
 # Resource files
@@ -60,17 +61,17 @@ endif()
 # Dependency libraries
 #-----------------------
 
-add_subdirectory(foundation)
-add_subdirectory(backend)
+add_subdirectory(${CODE_DIR}/foundation)
+add_subdirectory(${CODE_DIR}/backend)
 
 #--------------------------
 # Demo application
 #--------------------------
 
 set(DEMO_SOURCES 
-    platform.c
-    platform_win32.c
-    demo/app.c)
+    ${CODE_DIR}/platform.c
+    ${CODE_DIR}/platform_win32.c
+    ${CODE_DIR}/demo/app.c)
 set_source_files_properties(${DEMO_SOURCES} PROPERTIES LANGUAGE C)
 
 add_executable(demo ${DEMO_SOURCES})
@@ -90,17 +91,19 @@ set_c_compile_flags(demo)
 #--------------------------
 
 set(IMAGE_SOURCES 
-    platform.c
-    platform_win32.c
-    image/app.c 
-    image/image.c)
+    ${CODE_DIR}/platform.c
+    ${CODE_DIR}/platform_win32.c
+    ${CODE_DIR}/image/app.c 
+    ${CODE_DIR}/image/image.c)
 set_source_files_properties(${IMAGE_SOURCES} PROPERTIES LANGUAGE C)
 
 add_executable(image_viewer ${IMAGE_SOURCES})
 
 target_compile_features(image_viewer PUBLIC c_std_11)
 
-target_include_directories(image_viewer PUBLIC  ".")
+target_include_directories(image_viewer PUBLIC 
+                            ${CODE_DIR}
+                            ${EXT_DIR}/stb)
 
 target_link_libraries(image_viewer PRIVATE
     foundation
@@ -117,7 +120,7 @@ enable_testing()
 
 add_executable(test_array tests/test_array.c)
 target_link_libraries(test_array PRIVATE foundation)
-target_include_directories(test_array PRIVATE  ".")
+target_include_directories(test_array PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_array)
 
 add_test(test_array test_array)

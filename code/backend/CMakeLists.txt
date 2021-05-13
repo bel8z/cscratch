@@ -1,12 +1,15 @@
 cmake_minimum_required(VERSION 3.20.0)
 
 get_directory_property(PARENT_DIR PARENT_DIRECTORY)
+
+
 message(STATUS "backend parent directory: ${PARENT_DIR}")
 
 #-------------------
 # Dependency paths
 #-------------------
 
+set(CODE_DIR ${PARENT_DIR}/code)
 set(EXT_DIR ${PARENT_DIR}/ext)
 set(IMGUI_DIR ${EXT_DIR}/cimgui-1.82dock)
 set(BACKEND_DIR ${IMGUI_DIR}/imgui/backends)
@@ -49,7 +52,7 @@ find_package(OpenGL REQUIRED)
 
 set(BACKEND_SOURCES 
     ${BACKEND_DIR}/imgui_impl_opengl3.cpp
-    ${PARENT_DIR}/gl/gload.c)
+    ${CODE_DIR}/gl/gload.c)
 
 if (BACKEND_SDL)
     list(APPEND BACKEND_SOURCES ${BACKEND_DIR}/imgui_impl_sdl.cpp)
@@ -63,7 +66,7 @@ target_compile_definitions(backend PRIVATE IMGUI_IMPL_OPENGL_LOADER_CUSTOM=<gl/g
 
 target_include_directories(backend PUBLIC 
     ${IMGUI_DIR}/imgui
-    ${PARENT_DIR})
+    ${CODE_DIR})
 
 target_include_directories(backend INTERFACE ${IMGUI_DIR})
 

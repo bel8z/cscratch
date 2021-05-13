@@ -30,7 +30,7 @@ static void stbiFree(void *mem);
 
 #define STB_IMAGE_IMPLEMENTATION
 
-#include "ext/stb/stb_image.h"
+#include <stb_image.h>
 
 #if defined(__clang__)
 #pragma clang diagnostic pop
