@@ -35,9 +35,7 @@ struct AppState
     cfAllocator *alloc;
 
     AppPaths paths;
-
     AppWindows windows;
-    ImVec4 clear_color;
 
     Image image;
     bool image_adv;
@@ -61,7 +59,6 @@ appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc)
     app->plat = plat;
     app->alloc = &plat->heap;
 
-    app->clear_color = (ImVec4){0.45f, 0.55f, 0.60f, 1.00f};
     app->image = (Image){.zoom = 1.0};
 
     app->paths = paths;
@@ -98,7 +95,7 @@ appDestroy(AppState *app)
 //------------------------------------------------------------------------------
 
 static bool
-guiFileSupported(char const *path)
+appIsFileSupported(char const *path)
 {
     char const *ext = pathSplitExt(path);
     if (!ext) return false;
@@ -145,7 +142,7 @@ appLoadFromFile(AppState *state, char const *filename)
             // NOTE (Matteo): Explicit test against NULL is required for compiling with /W4 on MSVC
             while ((path = fs->dir_iter_next(it)) != NULL)
             {
-                if (guiFileSupported(path)) sbPush(&state->filenames, path);
+                if (appIsFileSupported(path)) sbPush(&state->filenames, path);
             }
 
             fs->dir_iter_close(it);
@@ -162,14 +159,8 @@ appLoadFromFile(AppState *state, char const *filename)
     }
 }
 
-static inline bool
-guiKeyPressed(i32 key)
-{
-    return igIsKeyPressed(igGetIO()->KeyMap[key], true);
-}
-
 static void
-guiImageViewer(AppState *state)
+appImageViewer(AppState *state)
 {
     igBegin("Image viewer", NULL, ImGuiWindowFlags_MenuBar);
 
@@ -330,13 +321,6 @@ guiImageViewer(AppState *state)
     }
 
     igEnd();
-
-    // // Edit bools storing our window open/close state
-    // igCheckbox("Demo Window", &state->windows.demo);
-    // // Edit 1 float using a slider from 0.0f to 1.0f
-    // igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
-    // // Edit 3 floats representing a color
-    // igColorEdit3("clear color", (float *)&state->clear_color, 0);
 }
 
 AppUpdateFlags
@@ -363,7 +347,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igEndMainMenuBar();
     }
 
-    guiImageViewer(state);
+    appImageViewer(state);
 
     if (state->windows.demo) igShowDemoWindow(&state->windows.demo);
 

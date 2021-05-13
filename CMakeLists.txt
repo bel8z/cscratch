@@ -64,17 +64,39 @@ add_subdirectory(foundation)
 add_subdirectory(backend)
 
 #--------------------------
+# Demo application
+#--------------------------
+
+set(DEMO_SOURCES 
+    platform.c
+    platform_win32.c
+    demo/app.c)
+set_source_files_properties(${DEMO_SOURCES} PROPERTIES LANGUAGE C)
+
+add_executable(demo ${DEMO_SOURCES})
+
+target_compile_features(demo PUBLIC c_std_11)
+
+target_include_directories(demo PUBLIC  ".")
+
+target_link_libraries(demo PRIVATE
+    foundation
+    backend)
+
+set_c_compile_flags(demo)
+
+#--------------------------
 # Image viewer application
 #--------------------------
 
-set(SOURCES 
+set(IMAGE_SOURCES 
     platform.c
     platform_win32.c
     image/app.c 
     image/image.c)
-set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
+set_source_files_properties(${IMAGE_SOURCES} PROPERTIES LANGUAGE C)
 
-add_executable(image_viewer ${SOURCES})
+add_executable(image_viewer ${IMAGE_SOURCES})
 
 target_compile_features(image_viewer PUBLIC c_std_11)
 

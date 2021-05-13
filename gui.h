@@ -57,6 +57,12 @@ guiSameLine()
     igSameLine(0.0f, -1.0f);
 }
 
+static inline bool
+guiKeyPressed(ImGuiKey key)
+{
+    return igIsKeyPressed(igGetIO()->KeyMap[key], true);
+}
+
 static inline ImVec2
 guiFromV2(Vec2 v)
 {
