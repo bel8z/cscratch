@@ -139,7 +139,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
 
     igEnd();
 
-    result.back_color = state->clear_color;
+    result.back_color = rgbaPack32(state->clear_color);
 
     return result;
 }

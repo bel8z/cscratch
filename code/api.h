@@ -41,7 +41,7 @@ typedef enum AppUpdateFlags
 typedef struct AppUpdateResult
 {
     AppUpdateFlags flags;
-    Rgba back_color;
+    Rgba32 back_color;
 } AppUpdateResult;
 
 enum

@@ -62,5 +62,17 @@ rgbaMultiplyAlpha(Rgba col)
     return (Rgba){col.r * col.a, col.g * col.a, col.b * col.a, col.a};
 }
 
+static inline Rgba
+rgbaMultiplyAlpha32(Rgba32 col)
+{
+    Rgba rgba = rgbaUnpack32(col);
+
+    rgba.r *= rgba.a;
+    rgba.g *= rgba.a;
+    rgba.b *= rgba.a;
+
+    return rgba;
+}
+
 #define FOUNDATION_COLOR_H
 #endif

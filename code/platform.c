@@ -297,7 +297,7 @@ main(int argc, char **argv)
         glViewport(0, 0, display_w, display_h);
 #endif
 
-        Rgba clear_color = rgbaMultiplyAlpha(update_result.back_color);
+        Rgba clear_color = rgbaMultiplyAlpha32(update_result.back_color);
         glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
         glClear(GL_COLOR_BUFFER_BIT);
 

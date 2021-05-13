@@ -404,5 +404,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igEndPopup();
     }
 
+    result.back_color = igGetColorU32Col(ImGuiCol_WindowBg, 1.0f);
+
     return result;
 }
