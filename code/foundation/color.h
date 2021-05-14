@@ -34,6 +34,16 @@ typedef union Rgba
     f32 channel[4];
 } Rgba;
 
+typedef union Hsva
+{
+    struct
+    {
+        f32 h, s, v, a;
+    };
+
+    f32 elem[4];
+} Hsva;
+
 static inline Rgba
 rgbaUnpack32(Rgba32 in)
 {
@@ -59,13 +69,109 @@ rgbaPack32(Rgba in)
 static inline Rgba
 rgbaMultiplyAlpha(Rgba col)
 {
+    if (col.a >= 1.0f) return col;
     return (Rgba){col.r * col.a, col.g * col.a, col.b * col.a, col.a};
+}
+
+// Convert rgba floats to hsva floats  (components in the [0-1] range), from Foley & van Dam p592
+// Optimized http://lolengine.net/blog/2013/01/13/fast-rgb-to-hsv
+static inline Hsva
+rgbaToHsva(Rgba in)
+{
+    f32 K = 0.f;
+
+    if (in.g < in.b)
+    {
+        cfSwapItem(in.g, in.b);
+        K = -1.f;
+    }
+
+    if (in.r < in.g)
+    {
+        cfSwapItem(in.r, in.g);
+        K = -2.f / 6.f - K;
+    }
+
+    f32 const chroma = in.r - (in.g < in.b ? in.g : in.b);
+
+    return (Hsva){
+        .h = cfAbs(K + (in.g - in.b) / (6.f * chroma + 1e-20f)),
+        .s = chroma / (in.r + 1e-20f),
+        .v = in.r,
+        .a = in.a,
+    };
+}
+
+// Convert hsv floats to rgb floats (components in the [0-1] range), from Foley & van Dam p593 also
+// http://en.wikipedia.org/wiki/HSL_and_HSV
+static inline Rgba
+hsvaToRgba(Hsva in)
+{
+    Rgba out = {.a = in.a};
+
+    if (in.s == 0.0f)
+    {
+        // gray
+        out.r = out.g = out.b = in.v;
+    }
+    else
+    {
+        f32 h = cfFmod(in.h, 1.0f) / (60.0f / 360.0f);
+        i32 i = (i32)h;
+        f32 f = h - (f32)i;
+        f32 p = in.v * (1.0f - in.s);
+        f32 q = in.v * (1.0f - in.s * f);
+        f32 t = in.v * (1.0f - in.s * (1.0f - f));
+
+        switch (i)
+        {
+            case 0:
+                out.r = in.v;
+                out.g = t;
+                out.b = p;
+                break;
+            case 1:
+                out.r = q;
+                out.g = in.v;
+                out.b = p;
+                break;
+            case 2:
+                out.r = p;
+                out.g = in.v;
+                out.b = t;
+                break;
+            case 3:
+                out.r = p;
+                out.g = q;
+                out.b = in.v;
+                break;
+            case 4:
+                out.r = t;
+                out.g = p;
+                out.b = in.v;
+                break;
+            case 5:
+            default:
+                out.r = in.v;
+                out.g = p;
+                out.b = q;
+                break;
+        }
+    }
+
+    return out;
 }
 
 static inline Rgba
 rgbaMultiplyAlpha32(Rgba32 col)
 {
     Rgba rgba = rgbaUnpack32(col);
+
+    Hsva hsva = rgbaToHsva(rgba);
+    Rgba rgba2 = hsvaToRgba(hsva);
+    CF_UNUSED(rgba2);
+
+    CF_ASSERT(0.0f <= rgba.a && rgba.a <= 1.0f, "Alpha channel out of bounds");
 
     rgba.r *= rgba.a;
     rgba.g *= rgba.a;
