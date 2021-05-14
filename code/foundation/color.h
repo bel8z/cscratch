@@ -94,9 +94,10 @@ rgbaToHsva(Rgba in)
 
     f32 const chroma = in.r - (in.g < in.b ? in.g : in.b);
 
+    // NOTE (Matteo): F32_MIN is added below to avoid checking against divisions by 0
     return (Hsva){
-        .h = cfAbs(K + (in.g - in.b) / (6.f * chroma + 1e-20f)),
-        .s = chroma / (in.r + 1e-20f),
+        .h = cfAbs(K + (in.g - in.b) / (6.f * chroma + F32_MIN)),
+        .s = chroma / (in.r + F32_MIN),
         .v = in.r,
         .a = in.a,
     };
