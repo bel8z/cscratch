@@ -36,16 +36,16 @@ struct AppState
     cfPlatform *plat;
     cfAllocator *alloc;
 
-    AppPaths paths;
-    AppWindows windows;
-
-    Image image;
-    bool image_adv;
-
     FileDlgFilter filter;
     StringBuff filenames;
     u32 curr_file;
     char curr_dir[CURR_DIR_SIZE];
+
+    Image image;
+    bool image_adv;
+
+    AppPaths paths;
+    AppWindows windows;
 };
 
 //------------------------------------------------------------------------------

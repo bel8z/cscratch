@@ -268,10 +268,12 @@ typedef enum Win32DirIterState
 
 struct DirIter
 {
+    cfAllocator *alloc;
+
     HANDLE finder;
     char buffer[MAX_PATH];
+
     u8 state;
-    cfAllocator *alloc;
 };
 
 DirIter *

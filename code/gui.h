@@ -33,12 +33,12 @@ typedef struct FontOptions
 {
     i32 tex_glyph_padding;
     f32 rasterizer_multiply;
-    // Freetype only
-    bool freetype_enabled;
-    u32 freetype_flags;
     // Stb only
     i32 oversample_h;
     i32 oversample_v;
+    // Freetype only
+    u32 freetype_flags;
+    bool freetype_enabled;
 } FontOptions;
 
 //------------------------------------------------------------------------------

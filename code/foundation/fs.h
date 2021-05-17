@@ -23,9 +23,9 @@ enum
 
 typedef struct FileDlgResult
 {
-    u8 code;
-    char *filename;
     usize filename_size;
+    char *filename;
+    u8 code;
 } FileDlgResult;
 
 typedef struct cfFileSystem

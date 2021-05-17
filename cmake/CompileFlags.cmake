@@ -1,6 +1,9 @@
 function(set_c_compile_flags project_name)
     set(PROJECT_WARNINGS)
 
+    option(WARNINGS_AS_ERRORS ON)
+    option(CHECK_PADDING OFF)
+
     set(MSVC_WARNINGS
         /W4 # Baseline reasonable warnings
         /w14242 # 'identifier': conversion from 'type1' to 'type1', possible loss of data
@@ -46,8 +49,15 @@ function(set_c_compile_flags project_name)
         -Wno-gnu-zero-variadic-macro-arguments
     )
 
-    set(CLANG_WARNINGS ${CLANG_WARNINGS} -Werror)
-    set(MSVC_WARNINGS ${MSVC_WARNINGS} /WX)
+    # if (WARNINGS_AS_ERRORS)
+        set(CLANG_WARNINGS ${CLANG_WARNINGS} -Werror)
+        set(MSVC_WARNINGS ${MSVC_WARNINGS} /WX)
+    # endif()
+
+    if (CHECK_PADDING)
+        set(CLANG_WARNINGS ${CLANG_WARNINGS} -Wpadded)
+        set(MSVC_WARNINGS ${MSVC_WARNINGS} /we4820 /we4121)
+    endif()
 
     set(GCC_WARNINGS
         ${CLANG_WARNINGS}
@@ -85,6 +95,8 @@ function(set_cxx_compile_flags project_name)
         /w14287 # 'operator': unsigned/negative constant mismatch
         /we4289 # nonstandard extension used: 'variable': loop control variable declared in the for-loop is used outside
                 # the for-loop scope
+
+        /we4820
     )
 
     set(CLANG_WARNINGS
