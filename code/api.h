@@ -37,7 +37,7 @@ typedef enum AppUpdateFlags
 
     AppUpdateFlags_RebuildFonts = 1 << 1,
 
-    AppUpdateFlags_All = U32_MAX,
+    AppUpdateFlags_All = I32_MAX,
 } AppUpdateFlags;
 
 typedef struct AppUpdateResult

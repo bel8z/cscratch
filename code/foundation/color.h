@@ -48,7 +48,12 @@ static inline Rgba
 rgbaMultiplyAlpha(Rgba col)
 {
     if (col.a >= 1.0f) return col;
-    return (Rgba){col.r * col.a, col.g * col.a, col.b * col.a, col.a};
+    return (Rgba){
+        .r = col.r * col.a,
+        .g = col.g * col.a,
+        .b = col.b * col.a,
+        .a = col.a,
+    };
 }
 
 // Convert rgba floats to hsva floats  (components in the [0-1] range), from Foley & van Dam p592

@@ -31,7 +31,7 @@ main(int32_t argc, char **argv)
 
     for (usize i = 0; i < cfArraySize(array); ++i)
     {
-        CF_ASSERT(array[i] == i, "Array push FAILED");
+        CF_ASSERT(array[i] == (i32)i, "Array push FAILED");
     }
 
     CF_ASSERT(cfArrayPop(array) == 2, "Array pop FAILED");
@@ -48,7 +48,7 @@ main(int32_t argc, char **argv)
 
     for (usize i = 0; i < cfArraySize(array); ++i)
     {
-        CF_ASSERT(array[i] == i, "");
+        CF_ASSERT(array[i] == (i32)i, "");
     }
 
     cfArrayRemove(array, 1);

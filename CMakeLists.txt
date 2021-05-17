@@ -67,49 +67,58 @@ add_subdirectory(${CODE_DIR}/backend)
 #--------------------------
 # Demo application
 #--------------------------
+set(EXE_NAME demo)
+
+message(STATUS "Configuring ${EXE_NAME}")
 
 set(DEMO_SOURCES 
     ${CODE_DIR}/platform.c
     ${CODE_DIR}/platform_win32.c
+    ${CODE_DIR}/platform_win32.c
+    ${CODE_DIR}/gui.c
     ${CODE_DIR}/demo/app.c)
 set_source_files_properties(${DEMO_SOURCES} PROPERTIES LANGUAGE C)
 
-add_executable(demo ${DEMO_SOURCES})
+add_executable(${EXE_NAME} ${DEMO_SOURCES})
 
-target_compile_features(demo PUBLIC c_std_11)
+target_compile_features(${EXE_NAME} PUBLIC c_std_11)
 
-target_include_directories(demo PUBLIC  ".")
+target_include_directories(${EXE_NAME} PUBLIC  ".")
 
-target_link_libraries(demo PRIVATE
+target_link_libraries(${EXE_NAME} PRIVATE
     foundation
     backend)
 
-set_c_compile_flags(demo)
+set_c_compile_flags(${EXE_NAME})
 
 #--------------------------
 # Image viewer application
 #--------------------------
+set(EXE_NAME image_viewer)
+
+message(STATUS "Configuring ${EXE_NAME}")
 
 set(IMAGE_SOURCES 
     ${CODE_DIR}/platform.c
     ${CODE_DIR}/platform_win32.c
+    ${CODE_DIR}/gui.c
     ${CODE_DIR}/image/app.c 
     ${CODE_DIR}/image/image.c)
 set_source_files_properties(${IMAGE_SOURCES} PROPERTIES LANGUAGE C)
 
-add_executable(image_viewer ${IMAGE_SOURCES})
+add_executable(${EXE_NAME} ${IMAGE_SOURCES})
 
-target_compile_features(image_viewer PUBLIC c_std_11)
+target_compile_features(${EXE_NAME} PUBLIC c_std_11)
 
-target_include_directories(image_viewer PUBLIC 
+target_include_directories(${EXE_NAME} PUBLIC 
                             ${CODE_DIR}
                             ${EXT_DIR}/stb)
 
-target_link_libraries(image_viewer PRIVATE
+target_link_libraries(${EXE_NAME} PRIVATE
     foundation
     backend)
 
-set_c_compile_flags(image_viewer)
+set_c_compile_flags(${EXE_NAME})
 
 #-----------
 # Testing

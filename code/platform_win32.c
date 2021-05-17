@@ -90,7 +90,7 @@ cfPlatformInit(cfPlatform *platform)
     platform->vm = &win32_vm;
     platform->fs = &win32_fs;
     platform->heap = &win32_heap;
-};
+}
 
 void
 cfPlatformShutdown(cfPlatform *platform)
@@ -466,13 +466,17 @@ win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, usize num_fi
 u32
 win32Utf8To16(char const *str, i32 str_size, WCHAR *out, u32 out_size)
 {
-    return MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str, str_size, out, out_size);
+    i32 result = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str, str_size, out, (i32)out_size);
+    CF_ASSERT(result >= 0, "");
+    return (u32)result;
 }
 
 u32
 win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size)
 {
-    return WideCharToMultiByte(CP_UTF8, 0, str, str_size, out, out_size, 0, false);
+    i32 result = WideCharToMultiByte(CP_UTF8, 0, str, str_size, out, (i32)out_size, 0, false);
+    CF_ASSERT(result >= 0, "");
+    return (u32)result;
 }
 
 //------------------------------------------------------------------------------

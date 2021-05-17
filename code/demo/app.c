@@ -10,8 +10,6 @@
 #include "foundation/util.h"
 #include "foundation/vec.h"
 
-static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
-
 typedef struct AppWindows
 {
     bool demo;
@@ -39,8 +37,6 @@ struct AppState
 
 //------------------------------------------------------------------------------
 
-static void appLoadFromFile(AppState *state, char const *filename);
-
 AppState *
 appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc)
 {
@@ -53,7 +49,7 @@ appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc)
     app->plat = plat;
     app->alloc = plat->heap;
 
-    app->clear_color = (Rgba){0.45f, 0.55f, 0.60f, 1.00f};
+    app->clear_color = (Rgba){.r = 0.45f, .g = 0.55f, .b = 0.60f, .a = 1.00f};
 
     app->paths = paths;
 
