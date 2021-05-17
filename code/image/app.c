@@ -162,65 +162,14 @@ appLoadFromFile(AppState *state, char const *filename)
 }
 
 static void
-appImageViewer(AppState *state)
+appImageView(AppState *state)
 {
-    igBegin("Image viewer", NULL, ImGuiWindowFlags_MenuBar);
-
-    Image *image = &state->image;
-
     f32 const min_zoom = 1.0f;
     f32 const max_zoom = 10.0f;
 
-    bool open_file_error = false;
+    Image *image = &state->image;
 
-    if (igBeginMenuBar())
-    {
-        if (igBeginMenu("File", true))
-        {
-            if (igMenuItemBool("Open", NULL, false, true))
-            {
-                char const *hint = (state->curr_file != StringBuff_MaxCount
-                                        ? sbAt(&state->filenames, state->curr_file)
-                                        : NULL);
-
-                FileDlgResult dlg_result =
-                    state->plat->fs->open_file_dlg(hint, &state->filter, 1, state->alloc);
-
-                switch (dlg_result.code)
-                {
-                    case FileDlgResult_Ok: appLoadFromFile(state, dlg_result.filename); break;
-                    case FileDlgResult_Error: open_file_error = true; break;
-                    default: break;
-                }
-
-                cfFree(state->alloc, dlg_result.filename, dlg_result.filename_size);
-            }
-            igEndMenu();
-        }
-
-        if (igBeginMenu("View", true))
-        {
-            igMenuItemBoolPtr("Advanced", NULL, &state->image_adv, true);
-            igEndMenu();
-        }
-
-        igEndMenuBar();
-    }
-
-    if (open_file_error) igOpenPopup("Open file error", 0);
-
-    if (igBeginPopupModal("Open file error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-    {
-        igText("Error opening file");
-        // TODO (Matteo): Find a way to center button inside the popup window
-        if (guiButton("Ok"))
-        {
-            igCloseCurrentPopup();
-        }
-        igEndPopup();
-    }
-
-    // 1. Image scaling settings
+    // Image scaling settings
 
     // TODO (Matteo): Maybe this can get cleaner?
     if (state->image_adv)
@@ -236,7 +185,7 @@ appImageViewer(AppState *state)
         imageSetFilter(image, filter);
     }
 
-    // 2. Use the available content area as the image view; an invisible button
+    // Use the available content area as the image view; an invisible button
     // is used in order to catch input.
 
     ImVec2 view_size, view_min, view_max;
@@ -289,7 +238,10 @@ appImageViewer(AppState *state)
     ImVec2 uv0 = {uv, uv};
     ImVec2 uv1 = {1 - uv, 1 - uv};
 
-    ImVec2 image_size = {(f32)image->width * image->zoom, (f32)image->height * image->zoom};
+    ImVec2 image_size = {
+        (f32)image->width * image->zoom,
+        (f32)image->height * image->zoom,
+    };
 
     f32 image_aspect = image_size.x / image_size.y;
 
@@ -321,21 +273,43 @@ appImageViewer(AppState *state)
         ImDrawList_AddRect(dl, image_min, image_max, debug_color, 0.0f, 0, 1.0f);
         ImDrawList_AddRect(dl, view_min, view_max, debug_color, 0.0f, 0, 1.0f);
     }
-
-    igEnd();
 }
 
 AppUpdateResult
 appUpdate(AppState *state, FontOptions *font_opts)
 {
     AppUpdateResult result = {.flags = AppUpdateFlags_None};
+    bool open_file_error = false;
 
     if (igBeginMainMenuBar())
     {
-        if (igBeginMenu("File", true)) igEndMenu();
-
-        if (igBeginMenu("Windows", true))
+        if (igBeginMenu("File", true))
         {
+            if (igMenuItemBool("Open", NULL, false, true))
+            {
+                char const *hint = (state->curr_file != StringBuff_MaxCount
+                                        ? sbAt(&state->filenames, state->curr_file)
+                                        : NULL);
+
+                FileDlgResult dlg_result =
+                    state->plat->fs->open_file_dlg(hint, &state->filter, 1, state->alloc);
+
+                switch (dlg_result.code)
+                {
+                    case FileDlgResult_Ok: appLoadFromFile(state, dlg_result.filename); break;
+                    case FileDlgResult_Error: open_file_error = true; break;
+                    default: break;
+                }
+
+                cfFree(state->alloc, dlg_result.filename, dlg_result.filename_size);
+            }
+            igEndMenu();
+        }
+
+        if (igBeginMenu("View", true))
+        {
+            igMenuItemBoolPtr("Advanced", NULL, &state->image_adv, true);
+            igSeparator();
             igMenuItemBoolPtr("Style editor", NULL, &state->windows.style, true);
             igMenuItemBoolPtr("Font options", NULL, &state->windows.fonts, true);
             igSeparator();
@@ -349,7 +323,22 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igEndMainMenuBar();
     }
 
-    appImageViewer(state);
+    if (open_file_error) igOpenPopup("Open file error", 0);
+
+    if (igBeginPopupModal("Open file error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        igText("Error opening file");
+        // TODO (Matteo): Find a way to center button inside the popup window
+        if (guiButton("Ok"))
+        {
+            igCloseCurrentPopup();
+        }
+        igEndPopup();
+    }
+
+    guiBeginFullScreen("Main", false, false);
+    appImageView(state);
+    guiEndFullScreen();
 
     if (state->windows.demo) igShowDemoWindow(&state->windows.demo);
 

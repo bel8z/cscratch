@@ -57,3 +57,31 @@ guiFontOptions(FontOptions *state)
 
     return rebuild_fonts;
 }
+
+void
+guiBeginFullScreen(char *label, bool docking, bool menu_bar)
+{
+    ImGuiViewport const *viewport = igGetMainViewport();
+    igSetNextWindowPos(viewport->WorkPos, 0, (ImVec2){0, 0});
+    igSetNextWindowSize(viewport->WorkSize, 0);
+    igPushStyleVarFloat(ImGuiStyleVar_WindowRounding, 0.0f);
+    igPushStyleVarFloat(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    igPushStyleVarVec2(ImGuiStyleVar_WindowPadding, (ImVec2){0.0f, 0.0f});
+
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+                                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                                    ImGuiWindowFlags_NoBringToFrontOnFocus |
+                                    ImGuiWindowFlags_NoNavFocus;
+
+    if (!docking) window_flags |= ImGuiWindowFlags_NoDocking;
+    if (menu_bar) window_flags |= ImGuiWindowFlags_MenuBar;
+
+    igBegin(label, NULL, window_flags);
+    igPopStyleVar(3);
+}
+
+void
+guiEndFullScreen(void)
+{
+    igEnd();
+}

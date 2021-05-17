@@ -45,6 +45,9 @@ typedef struct FontOptions
 // Some common gui extensions
 //------------------------------------------------------------------------------
 
+void guiBeginFullScreen(char *label, bool docking, bool menu_bar);
+void guiEndFullScreen(void);
+
 bool guiFontOptions(FontOptions *state);
 
 static inline bool
