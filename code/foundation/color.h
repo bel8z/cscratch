@@ -3,8 +3,6 @@
 #include "common.h"
 #include "util.h"
 
-typedef u32 Rgba32;
-
 #define RGBA32_R_SHIFT 0
 #define RGBA32_G_SHIFT 8
 #define RGBA32_B_SHIFT 16
@@ -23,26 +21,6 @@ typedef u32 Rgba32;
 #define RGBA32_G(col) ((col >> RGBA32_G_SHIFT) & 0xFF)
 #define RGBA32_B(col) ((col >> RGBA32_B_SHIFT) & 0xFF)
 #define RGBA32_A(col) ((col >> RGBA32_A_SHIFT) & 0xFF)
-
-typedef union Rgba
-{
-    struct
-    {
-        f32 r, g, b, a;
-    };
-
-    f32 channel[4];
-} Rgba;
-
-typedef union Hsva
-{
-    struct
-    {
-        f32 h, s, v, a;
-    };
-
-    f32 elem[4];
-} Hsva;
 
 static inline Rgba
 rgbaUnpack32(Rgba32 in)

@@ -16,6 +16,7 @@
 
 // Foundation library
 #include "foundation/allocator.h"
+#include "foundation/color.h"
 #include "foundation/common.h"
 #include "foundation/util.h"
 #include "foundation/vec.h"

@@ -3,51 +3,6 @@
 #include "common.h"
 #include "util.h"
 
-typedef union Vec2 Vec2;
-typedef union Vec3 Vec3;
-typedef union Vec4 Vec4;
-
-typedef f32 Mat4[4][4];
-
-union Vec2
-{
-    struct
-    {
-        f32 x, y;
-    };
-    struct
-    {
-        f32 u, v;
-    };
-    f32 elem[2];
-};
-
-union Vec3
-{
-    struct
-    {
-        f32 x, y, z;
-    };
-    struct
-    {
-        f32 r, g, b;
-    };
-    f32 elem[3];
-};
-
-union Vec4
-{
-    struct
-    {
-        f32 x, y, z, w;
-    };
-    struct
-    {
-        f32 r, g, b, a;
-    };
-    f32 elem[4];
-};
-
 //------------------------------------------------------------------------------
 // N-dimension vector operations
 //------------------------------------------------------------------------------

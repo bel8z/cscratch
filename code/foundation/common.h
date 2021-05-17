@@ -114,6 +114,86 @@ typedef double f64;
 typedef struct cfAllocator cfAllocator;
 
 //------------------------------------------------------------------------------
+// Vector maths types
+
+typedef union Vec2 Vec2;
+typedef union Vec3 Vec3;
+typedef union Vec4 Vec4;
+
+typedef f32 Mat4[4][4];
+
+union Vec2
+{
+    struct
+    {
+        f32 x, y;
+    };
+    struct
+    {
+        f32 u, v;
+    };
+    f32 elem[2];
+};
+
+union Vec3
+{
+    struct
+    {
+        f32 x, y, z;
+    };
+    struct
+    {
+        f32 r, g, b;
+    };
+    f32 elem[3];
+};
+
+union Vec4
+{
+    struct
+    {
+        f32 x, y, z, w;
+    };
+    struct
+    {
+        f32 r, g, b, a;
+    };
+    f32 elem[4];
+};
+
+//------------------------------------------------------------------------------
+// Color space types
+
+// Represents a color in RGBA format as 4 floats in the [0,1] range
+typedef union Rgba Rgba;
+
+// Represents a color in HSV format, plus alpha channel, as 4 floats in the [0,1] range
+typedef union Hsva Hsva;
+
+// Packed RBGA representation
+typedef u32 Rgba32;
+
+union Rgba
+{
+    struct
+    {
+        f32 r, g, b, a;
+    };
+
+    f32 channel[4];
+};
+
+union Hsva
+{
+    struct
+    {
+        f32 h, s, v, a;
+    };
+
+    f32 elem[4];
+};
+
+//------------------------------------------------------------------------------
 // Assertion macros
 
 // Ensure assertion in release mode
