@@ -8,15 +8,20 @@
 // Platform interface
 //------------------------------------------------------------------------------
 
-typedef struct cfAllocator cfAllocator;
 typedef struct cfVirtualMemory cfVirtualMemory;
+typedef struct cfAllocator cfAllocator;
 typedef struct cfFileSystem cfFileSystem;
+
+typedef struct GlApi GlApi;
 
 typedef struct cfPlatform
 {
     cfVirtualMemory *vm;
     cfAllocator *heap;
     cfFileSystem *fs;
+
+    GlApi *gl;
+
 } cfPlatform;
 
 //------------------------------------------------------------------------------

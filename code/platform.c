@@ -172,8 +172,10 @@ main(int argc, char **argv)
         return -2;
     }
 
-    // Setup memory management
+    // Setup platform layer
     cfPlatformInit(&g_platform);
+    CF_ASSERT_NOT_NULL(gl);
+    g_platform.gl = gl;
 
     // Setup application state
     AppPaths paths = {0};

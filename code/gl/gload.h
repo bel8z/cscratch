@@ -24,11 +24,11 @@ extern "C"
     // GLoad API
     //-----------
 
-    typedef struct Gl Gl;
+    typedef struct GlApi GlApi;
 
-    extern Gl *gl;
+    extern GlApi *gl;
 
-    int gloadInit(Gl *gl_procs);
+    int gloadInit(GlApi *api);
     int gloadIsSupported(int major, int minor);
     void *gloadGetProc(const char *proc);
 
@@ -646,7 +646,7 @@ extern "C"
     // OpenGL functions struct
     //-------------------------
 
-    typedef struct Gl
+    typedef struct GlApi
     {
         PFNGLCULLFACEPROC CullFace;
         PFNGLFRONTFACEPROC FrontFace;
@@ -1253,7 +1253,7 @@ extern "C"
         PFNGLTEXSTORAGE3DMULTISAMPLEPROC TexStorage3DMultisample;
         PFNGLTEXTURESTORAGE2DMULTISAMPLEEXTPROC TextureStorage2DMultisampleEXT;
         PFNGLTEXTURESTORAGE3DMULTISAMPLEEXTPROC TextureStorage3DMultisampleEXT;
-    } Gl;
+    } GlApi;
 
 #if defined(__cplusplus)
 }

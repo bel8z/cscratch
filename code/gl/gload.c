@@ -1,30 +1,38 @@
 #include "gload.h"
 
-static struct
-{
-    int major, minor;
-} version;
+//------------------------------------------------------------------------------
+// Internal functions and data
+//------------------------------------------------------------------------------
 
 static int gl__ParseVersion(void);
 static void gl__OpenLib(void);
 static void gl__CloseLib(void);
 static void *gl__GetProc(const char *proc);
-static void gl__LoadProcs(Gl *gl);
+static void gl__LoadProcs(GlApi *gl);
 
-static Gl g_gl = {0};
+static GlApi g_api = {0};
 
-Gl *gl = &g_gl;
+static struct
+{
+    int major, minor;
+} version;
+
+//------------------------------------------------------------------------------
+// Api
+//------------------------------------------------------------------------------
+
+GlApi *gl = &g_api;
 
 int
-gloadInit(Gl *gl_procs)
+gloadInit(GlApi *api)
 {
-    if (gl_procs)
+    if (api)
     {
-        gl = gl_procs;
+        gl = api;
     }
     else
     {
-        gl = &g_gl;
+        gl = &g_api;
         gl__OpenLib();
         gl__LoadProcs(gl);
         gl__CloseLib();
@@ -47,6 +55,10 @@ gloadGetProc(const char *proc)
     return gl__GetProc(proc);
 }
 
+//------------------------------------------------------------------------------
+// Internal implementation
+//------------------------------------------------------------------------------
+
 static int
 gl__ParseVersion(void)
 {
@@ -61,7 +73,7 @@ gl__ParseVersion(void)
 }
 
 static void
-gl__LoadProcs(Gl *gl)
+gl__LoadProcs(GlApi *gl)
 {
     gl->CullFace = (PFNGLCULLFACEPROC)gl__GetProc("glCullFace");
     gl->FrontFace = (PFNGLFRONTFACEPROC)gl__GetProc("glFrontFace");
