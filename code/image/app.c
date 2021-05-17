@@ -7,6 +7,7 @@
 
 #include "foundation/allocator.h"
 #include "foundation/common.h"
+#include "foundation/fs.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"
 #include "foundation/util.h"
@@ -54,10 +55,10 @@ AppState *
 appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
-    AppState *app = cfAlloc(&plat->heap, sizeof(*app));
+    AppState *app = cfAlloc(plat->heap, sizeof(*app));
 
     app->plat = plat;
-    app->alloc = &plat->heap;
+    app->alloc = plat->heap;
 
     app->image = (Image){.zoom = 1.0};
 
@@ -111,7 +112,7 @@ appIsFileSupported(char const *path)
 static void
 appLoadFromFile(AppState *state, char const *filename)
 {
-    cfFileSystem *fs = &state->plat->fs;
+    cfFileSystem *fs = state->plat->fs;
 
     imageUnload(&state->image);
 
@@ -182,7 +183,7 @@ appImageViewer(AppState *state)
                                         : NULL);
 
                 FileDlgResult dlg_result =
-                    state->plat->fs.open_file_dlg(hint, &state->filter, 1, state->alloc);
+                    state->plat->fs->open_file_dlg(hint, &state->filter, 1, state->alloc);
 
                 switch (dlg_result.code)
                 {

@@ -1,6 +1,11 @@
 #include "api.h"
 
+#include "foundation/common.h"
+
+#include "foundation/allocator.h"
+#include "foundation/fs.h"
 #include "foundation/util.h"
+#include "foundation/vm.h"
 
 #if !defined(_WIN32)
 #error "Win32 platform not supported"
@@ -48,42 +53,54 @@ static u32 win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size
 // Main API
 //------------------------------------------------------------------------------
 
-cfPlatform
-cfPlatformCreate()
+static cfVirtualMemory win32_vm = {
+    .reserve = win32VmReserve,
+    .release = win32VmRelease,
+    .commit = win32VmCommit,
+    .revert = win32VmDecommit,
+};
+
+static cfAllocator win32_heap = {
+    .reallocate = win32Alloc,
+    .stats = win32AllocStats,
+};
+
+static cfFileSystem win32_fs = {
+    .dir_iter_start = win32DirIterStart,
+    .dir_iter_next = win32DirIterNext,
+    .dir_iter_close = win32DirIterClose,
+    .open_file_dlg = win32OpenFileDlg,
+};
+
+cfPlatform g_platform = {0};
+
+void
+cfPlatformInit(cfPlatform *platform)
 {
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
 
+    win32_vm.page_size = sysinfo.dwPageSize;
+
     cfAllocatorStats *heap_stats =
         HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*heap_stats));
 
-    cfPlatform plat = {.vm = {.reserve = win32VmReserve,
-                              .release = win32VmRelease,
-                              .commit = win32VmCommit,
-                              .revert = win32VmDecommit,
-                              .page_size = sysinfo.dwPageSize},
-                       .heap =
-                           {
-                               .state = heap_stats,
-                               .reallocate = win32Alloc,
-                               .stats = win32AllocStats,
-                           },
-                       .fs = {
-                           .dir_iter_start = win32DirIterStart,
-                           .dir_iter_next = win32DirIterNext,
-                           .dir_iter_close = win32DirIterClose,
-                           .open_file_dlg = win32OpenFileDlg,
-                       }};
+    win32_heap.state = heap_stats;
 
-    return plat;
-}
+    platform->vm = &win32_vm;
+    platform->fs = &win32_fs;
+    platform->heap = &win32_heap;
+};
 
 void
 cfPlatformShutdown(cfPlatform *platform)
 {
     CF_ASSERT_NOT_NULL(platform);
+    CF_ASSERT(platform->fs == &win32_fs, "Invalid platform pointer");
+    CF_ASSERT(platform->vm == &win32_vm, "Invalid platform pointer");
+    CF_ASSERT(platform->heap == &win32_heap, "Invalid platform pointer");
 
-    cfAllocatorStats *heap_stats = platform->heap.state;
+    cfAllocatorStats *heap_stats = platform->heap->state;
 
     CF_ASSERT_NOT_NULL(heap_stats);
     // TODO (Matteo): Check allocation size tracking
@@ -139,7 +156,7 @@ VM_RELEASE_FUNC(win32VmRelease)
 
 #if CF_MEMORY_PROTECTION
 
-usize
+static usize
 win32RoundSize(usize req_size, usize page_size)
 {
     usize page_count = (req_size + page_size - 1) / page_size;
@@ -150,16 +167,11 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 {
     cfAllocatorStats *stats = state;
 
-    SYSTEM_INFO sysinfo;
-    GetSystemInfo(&sysinfo);
-
-    usize page_size = sysinfo.dwPageSize;
-
     void *new_mem = NULL;
 
     if (new_size)
     {
-        usize block_size = win32RoundSize(new_size, page_size);
+        usize block_size = win32RoundSize(new_size, win32_vm.page_size);
         u8 *base = win32VmReserve(block_size);
         if (!base) return NULL;
 
@@ -180,7 +192,7 @@ CF_ALLOCATOR_FUNC(win32Alloc)
             cfMemCopy(memory, new_mem, cfMin(old_size, new_size));
         }
 
-        usize block_size = win32RoundSize(old_size, page_size);
+        usize block_size = win32RoundSize(old_size, win32_vm.page_size);
         u8 *base = (u8 *)memory + old_size - block_size;
 
         win32VmDecommit(base, block_size);

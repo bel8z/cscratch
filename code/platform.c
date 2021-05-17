@@ -31,7 +31,9 @@
 // Platform layer implementation
 //------------------------------------------------------------------------------
 
-cfPlatform cfPlatformCreate();
+extern cfPlatform g_platform;
+// TODO (Matteo): Get rid of those, platform shouldn't need initialization/shutdown
+void cfPlatformInit(cfPlatform *platform);
 void cfPlatformShutdown(cfPlatform *platform);
 
 //------------------------------------------------------------------------------
@@ -171,18 +173,18 @@ main(int argc, char **argv)
     }
 
     // Setup memory management
-    cfPlatform plat = cfPlatformCreate();
+    cfPlatformInit(&g_platform);
 
     // Setup application state
     AppPaths paths = {0};
     appInitPaths(&paths, argv[0]);
 
-    AppState *app = appCreate(&plat, paths, argv, argc);
+    AppState *app = appCreate(&g_platform, paths, argv, argc);
 
     // Setup Dear ImGui context
     igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
                                      sizeof(ImVec4), sizeof(ImDrawVert), sizeof(ImDrawIdx));
-    igSetAllocatorFunctions(guiAlloc, guiFree, &plat.heap);
+    igSetAllocatorFunctions(guiAlloc, guiFree, g_platform.heap);
     ImGuiContext *imgui = igCreateContext(NULL);
     ImGuiIO *io = igGetIO();
 
@@ -349,7 +351,7 @@ main(int argc, char **argv)
 #endif
 
     appDestroy(app);
-    cfPlatformShutdown(&plat);
+    cfPlatformShutdown(&g_platform);
 
     return 0;
 }

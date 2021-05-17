@@ -48,10 +48,10 @@ appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc)
     CF_UNUSED(argc);
 
     // NOTE (Matteo): Memory comes cleared to 0
-    AppState *app = cfAlloc(&plat->heap, sizeof(*app));
+    AppState *app = cfAlloc(plat->heap, sizeof(*app));
 
     app->plat = plat;
-    app->alloc = &plat->heap;
+    app->alloc = plat->heap;
 
     app->clear_color = (Rgba){0.45f, 0.55f, 0.60f, 1.00f};
 

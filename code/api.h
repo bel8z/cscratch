@@ -2,23 +2,22 @@
 
 #include "foundation/common.h"
 
-#include "foundation/allocator.h"
 #include "foundation/color.h"
-#include "foundation/fs.h"
-#include "foundation/vm.h"
 
 //------------------------------------------------------------------------------
 // Platform interface
 //------------------------------------------------------------------------------
 
-typedef struct cfPlatform cfPlatform;
+typedef struct cfAllocator cfAllocator;
+typedef struct cfVirtualMemory cfVirtualMemory;
+typedef struct cfFileSystem cfFileSystem;
 
-struct cfPlatform
+typedef struct cfPlatform
 {
-    cfVirtualMemory vm;
-    cfAllocator heap;
-    cfFileSystem fs;
-};
+    cfVirtualMemory *vm;
+    cfAllocator *heap;
+    cfFileSystem *fs;
+} cfPlatform;
 
 //------------------------------------------------------------------------------
 // Application interface
