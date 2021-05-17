@@ -1,8 +1,8 @@
 function(set_c_compile_flags project_name)
     set(PROJECT_WARNINGS)
 
-    option(WARNINGS_AS_ERRORS ON)
-    option(CHECK_PADDING OFF)
+    option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" TRUE)
+    option(CHECK_PADDING "Check extra padding in structs" FALSE)
 
     set(MSVC_WARNINGS
         /W4 # Baseline reasonable warnings
@@ -49,10 +49,10 @@ function(set_c_compile_flags project_name)
         -Wno-gnu-zero-variadic-macro-arguments
     )
 
-    # if (WARNINGS_AS_ERRORS)
+    if (WARNINGS_AS_ERRORS)
         set(CLANG_WARNINGS ${CLANG_WARNINGS} -Werror)
         set(MSVC_WARNINGS ${MSVC_WARNINGS} /WX)
-    # endif()
+    endif()
 
     if (CHECK_PADDING)
         set(CLANG_WARNINGS ${CLANG_WARNINGS} -Wpadded)
