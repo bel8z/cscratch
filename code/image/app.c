@@ -234,44 +234,45 @@ appImageView(AppState *state)
     // i32 d = (1000 - v) / 2;
     // f32 uv = (f32)d * 0.001f;
 
-    f32 uv = 0.5f * (1 - 1 / image->zoom);
-    ImVec2 uv0 = {uv, uv};
-    ImVec2 uv1 = {1 - uv, 1 - uv};
+    // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
+    // ratio at zoom level == 1; then zoom is applied
 
-    ImVec2 image_size = {
-        (f32)image->width * image->zoom,
-        (f32)image->height * image->zoom,
-    };
+    f32 image_w = (f32)image->width;
+    f32 image_h = (f32)image->height;
+    f32 image_aspect = image_w / image_h;
 
-    f32 image_aspect = image_size.x / image_size.y;
-
-    if (image_size.x > view_size.x)
+    if (image_w > view_size.x)
     {
-        image_size.x = view_size.x;
-        image_size.y = image_size.x / image_aspect;
+        image_w = view_size.x;
+        image_h = image_w / image_aspect;
     }
 
-    if (image_size.y > view_size.y)
+    if (image_h > view_size.y)
     {
-        image_size.y = view_size.y;
-        image_size.x = image_size.y * image_aspect;
+        image_h = view_size.y;
+        image_w = image_h * image_aspect;
     }
 
-    ImVec2 image_min = {view_min.x + 0.5f * (view_size.x - image_size.x),
-                        view_min.y + 0.5f * (view_size.y - image_size.y)};
-    ImVec2 image_max;
-    vecAddN((f32 *)&image_min, (f32 *)&image_size, 2, (f32 *)&image_max);
+    image_w *= image->zoom;
+    image_h *= image->zoom;
 
-    ImDrawList *dl = igGetWindowDrawList();
-    ImDrawList_AddImage(dl, (void *)(iptr)image->texture, image_min, image_max, uv0, uv1,
-                        igGetColorU32Vec4((ImVec4){1, 1, 1, 1}));
+    ImVec2 image_min = {view_min.x + 0.5f * (view_size.x - image_w),
+                        view_min.y + 0.5f * (view_size.y - image_h)};
+
+    ImVec2 image_max = {image_min.x + image_w, //
+                        image_min.y + image_h};
+
+    ImDrawList *draw_list = igGetWindowDrawList();
+    ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
+    ImDrawList_AddImage(draw_list, (void *)(iptr)image->texture, image_min, image_max,
+                        (ImVec2){0.0f, 0.0f}, (ImVec2){1.0f, 1.0f}, igGetColorU32U32(RGBA32_WHITE));
 
     if (state->image_adv)
     {
         // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
         ImU32 debug_color = igGetColorU32Vec4((ImVec4){1, 0, 1, 1});
-        ImDrawList_AddRect(dl, image_min, image_max, debug_color, 0.0f, 0, 1.0f);
-        ImDrawList_AddRect(dl, view_min, view_max, debug_color, 0.0f, 0, 1.0f);
+        ImDrawList_AddRect(draw_list, image_min, image_max, debug_color, 0.0f, 0, 1.0f);
+        ImDrawList_AddRect(draw_list, view_min, view_max, debug_color, 0.0f, 0, 1.0f);
     }
 }
 
