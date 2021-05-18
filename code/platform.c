@@ -18,6 +18,7 @@
 #include "foundation/allocator.h"
 #include "foundation/color.h"
 #include "foundation/common.h"
+#include "foundation/path.h"
 #include "foundation/util.h"
 #include "foundation/vec.h"
 
@@ -32,7 +33,7 @@
 // Local function declarations
 //------------------------------------------------------------------------------
 
-static void appInitPaths(AppPaths *paths, char *cmd_line);
+static void appInitPaths(AppPaths *paths, char const *cmd_line);
 
 static void *guiAlloc(usize size, void *state);
 static void guiFree(void *mem, void *state);
@@ -85,7 +86,7 @@ extern void ImGui_ImplOpenGL3_DestroyDeviceObjects();
 //------------------------------------------------------------------------------
 
 i32
-platform_main(i32 argc, char **argv, cfPlatform *g_platform)
+platform_main(i32 argc, char const *argv[], cfPlatform *g_platform)
 {
     CF_UNUSED(argc);
     CF_UNUSED(argv);
@@ -353,7 +354,7 @@ platform_main(i32 argc, char **argv, cfPlatform *g_platform)
 //------------------------------------------------------------------------------
 
 void
-appInitPaths(AppPaths *paths, char *cmd_line)
+appInitPaths(AppPaths *paths, char const *cmd_line)
 {
     CF_UNUSED(cmd_line);
 
@@ -367,9 +368,21 @@ appInitPaths(AppPaths *paths, char *cmd_line)
 #else
     // TODO (Matteo): Use the command line or a platform specific function to
     // retrieve the executable path
-    char *p = "./";
-    snprintf(paths->base, AppPaths_Length, "%s", p);
-    snprintf(paths->data, AppPaths_Length, "%sdata/", p);
+
+    char const *file_name = pathSplitName(cmd_line);
+    if (file_name)
+    {
+        usize root_len = file_name - cmd_line;
+        snprintf(paths->base, AppPaths_Length, "%.*s", (i32)root_len, cmd_line);
+        snprintf(paths->data, AppPaths_Length, "%.*sdata/", (i32)root_len, cmd_line);
+    }
+    else
+    {
+        char *p = "./";
+        snprintf(paths->base, AppPaths_Length, "%s", p);
+        snprintf(paths->data, AppPaths_Length, "%sdata/", p);
+    }
+
 #endif
 }
 

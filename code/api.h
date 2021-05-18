@@ -57,7 +57,7 @@ struct AppPaths
     char data[AppPaths_Length];
 };
 
-AppState *appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc);
+AppState *appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc);
 void appDestroy(AppState *app);
 AppUpdateResult appUpdate(AppState *app, FontOptions *opts);
 

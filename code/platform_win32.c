@@ -54,7 +54,7 @@ static u32 win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size
 // Main API
 //------------------------------------------------------------------------------
 
-i32 platform_main(i32 argc, char **argv, cfPlatform *plat);
+i32 platform_main(i32 argc, char const *argv[], cfPlatform *plat);
 
 static cfVirtualMemory win32_vm = {
     .reserve = win32VmReserve,
@@ -75,11 +75,35 @@ static cfFileSystem win32_fs = {
     .open_file_dlg = win32OpenFileDlg,
 };
 
-static cfPlatform g_platform = {0};
-
 //------------------------------------------------------------------------------
 // Entry point
 //------------------------------------------------------------------------------
+
+char **
+win32GetCommandLineArgs(cfAllocator *alloc, i32 *out_argc, usize *out_size)
+{
+    WCHAR *cmd_line = GetCommandLineW();
+    WCHAR **argv_utf16 = CommandLineToArgvW(cmd_line, out_argc);
+
+    char **argv = NULL;
+
+    *out_size = (usize)out_argc * sizeof(*argv) + CF_MB(1);
+
+    argv = cfAlloc(alloc, *out_size);
+    char *buf = (char *)(argv + 1);
+
+    for (i32 i = 0; i < *out_argc; ++i)
+    {
+        argv[i] = buf;
+        u32 size = win32Utf16To8(argv_utf16[i], -1, NULL, 0);
+        win32Utf16To8(argv_utf16[i], -1, argv[i], size);
+        buf += size;
+    }
+
+    LocalFree(argv_utf16);
+
+    return argv;
+}
 
 int WINAPI
 wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
@@ -94,42 +118,28 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     win32_vm.page_size = sysinfo.dwPageSize;
 
-    cfAllocatorStats *heap_stats =
-        HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*heap_stats));
+    cfAllocatorStats heap_stats = {0};
 
-    win32_heap.state = heap_stats;
+    win32_heap.state = &heap_stats;
 
-    g_platform.vm = &win32_vm;
-    g_platform.fs = &win32_fs;
-    g_platform.heap = &win32_heap;
+    cfPlatform platform = {
+        .vm = &win32_vm,
+        .fs = &win32_fs,
+        .heap = &win32_heap,
+    };
 
-    WCHAR *cmd_line = GetCommandLineW();
-    i32 argc = 0;
-    WCHAR **w_argv = CommandLineToArgvW(cmd_line, &argc);
+    // TODO (Matteo): Improve command line handling
 
-    char **argv = cfAlloc(&win32_heap, argc * sizeof(*argv) + CF_MB(1));
-    char *buf = (char *)(argv + 1);
+    usize alloc_size;
+    i32 argc;
+    char **argv = win32GetCommandLineArgs(platform.heap, &argc, &alloc_size);
 
-    for (i32 i = 0; i < argc; ++i)
-    {
-        argv[i] = buf;
-        u32 size = win32Utf16To8(w_argv[i], -1, NULL, 0);
-        win32Utf16To8(w_argv[i], -1, argv[i], size);
-        buf += size;
-    }
+    platform_main(argc, argv, &platform);
 
-    LocalFree(w_argv);
+    cfFree(&win32_heap, argv, alloc_size);
 
-    platform_main(argc, argv, &g_platform);
-
-    cfFree(&win32_heap, argv, argc * sizeof(*argv) + CF_MB(1));
-
-    CF_ASSERT_NOT_NULL(heap_stats);
-    // TODO (Matteo): Check allocation size tracking
-    CF_ASSERT(heap_stats->count == 0, "Potential memory leak");
-    CF_ASSERT(heap_stats->size == 0, "Potential memory leak");
-
-    HeapFree(GetProcessHeap(), 0, heap_stats);
+    CF_ASSERT(heap_stats.count == 0, "Potential memory leak");
+    CF_ASSERT(heap_stats.size == 0, "Potential memory leak");
 }
 
 //------------------------------------------------------------------------------

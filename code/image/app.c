@@ -53,7 +53,7 @@ struct AppState
 static void appLoadFromFile(AppState *state, char const *filename);
 
 AppState *
-appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc)
+appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
     AppState *app = cfAlloc(plat->heap, sizeof(*app));
@@ -363,6 +363,9 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igBegin("Application stats stats", &state->windows.stats, 0);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
         igText("Allocated %.3fkb in %zu blocks", (f64)stats.size / 1024, stats.count);
+        igSeparator();
+        igText("App base path:%s", state->paths.base);
+        igText("App data path:%s", state->paths.data);
         igEnd();
     }
 

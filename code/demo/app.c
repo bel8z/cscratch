@@ -38,7 +38,7 @@ struct AppState
 //------------------------------------------------------------------------------
 
 AppState *
-appCreate(cfPlatform *plat, AppPaths paths, char *argv[], i32 argc)
+appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
 {
     CF_UNUSED(argv);
     CF_UNUSED(argc);
