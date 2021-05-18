@@ -87,10 +87,10 @@ win32GetCommandLineArgs(cfAllocator *alloc, i32 *out_argc, usize *out_size)
 
     char **argv = NULL;
 
-    *out_size = (usize)out_argc * sizeof(*argv) + CF_MB(1);
+    *out_size = (usize)(*out_argc) * sizeof(*argv) + CF_MB(1);
 
     argv = cfAlloc(alloc, *out_size);
-    char *buf = (char *)(argv + 1);
+    char *buf = (char *)(argv + *out_argc);
 
     for (i32 i = 0; i < *out_argc; ++i)
     {
