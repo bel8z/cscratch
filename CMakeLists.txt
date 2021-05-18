@@ -79,7 +79,7 @@ set(DEMO_SOURCES
     ${CODE_DIR}/demo/app.c)
 set_source_files_properties(${DEMO_SOURCES} PROPERTIES LANGUAGE C)
 
-add_executable(${EXE_NAME} ${DEMO_SOURCES})
+add_executable(${EXE_NAME} WIN32 ${DEMO_SOURCES})
 
 target_compile_features(${EXE_NAME} PUBLIC c_std_11)
 
@@ -106,7 +106,7 @@ set(IMAGE_SOURCES
     ${CODE_DIR}/image/image.c)
 set_source_files_properties(${IMAGE_SOURCES} PROPERTIES LANGUAGE C)
 
-add_executable(${EXE_NAME} ${IMAGE_SOURCES})
+add_executable(${EXE_NAME} WIN32 ${IMAGE_SOURCES})
 
 target_compile_features(${EXE_NAME} PUBLIC c_std_11)
 

@@ -29,15 +29,6 @@
 #define TRUETYPE_DPI 72.0f
 
 //------------------------------------------------------------------------------
-// Platform layer implementation
-//------------------------------------------------------------------------------
-
-extern cfPlatform g_platform;
-// TODO (Matteo): Get rid of those, platform shouldn't need initialization/shutdown
-void cfPlatformInit(cfPlatform *platform);
-void cfPlatformShutdown(cfPlatform *platform);
-
-//------------------------------------------------------------------------------
 // Local function declarations
 //------------------------------------------------------------------------------
 
@@ -93,8 +84,8 @@ extern void ImGui_ImplOpenGL3_DestroyDeviceObjects();
 // Main
 //------------------------------------------------------------------------------
 
-int
-main(int argc, char **argv)
+i32
+platform_main(i32 argc, char **argv, cfPlatform *g_platform)
 {
     CF_UNUSED(argc);
     CF_UNUSED(argv);
@@ -174,20 +165,19 @@ main(int argc, char **argv)
     }
 
     // Setup platform layer
-    cfPlatformInit(&g_platform);
     CF_ASSERT_NOT_NULL(gl);
-    g_platform.gl = gl;
+    g_platform->gl = gl;
 
     // Setup application state
     AppPaths paths = {0};
     appInitPaths(&paths, argv[0]);
 
-    AppState *app = appCreate(&g_platform, paths, argv, argc);
+    AppState *app = appCreate(g_platform, paths, argv, argc);
 
     // Setup Dear ImGui context
     igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
                                      sizeof(ImVec4), sizeof(ImDrawVert), sizeof(ImDrawIdx));
-    igSetAllocatorFunctions(guiAlloc, guiFree, g_platform.heap);
+    igSetAllocatorFunctions(guiAlloc, guiFree, g_platform->heap);
     ImGuiContext *imgui = igCreateContext(NULL);
     ImGuiIO *io = igGetIO();
 
@@ -354,7 +344,6 @@ main(int argc, char **argv)
 #endif
 
     appDestroy(app);
-    cfPlatformShutdown(&g_platform);
 
     return 0;
 }

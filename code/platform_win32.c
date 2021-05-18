@@ -22,6 +22,7 @@
 #include <windows.h>
 // Must be included AFTER <windows.h>
 #include <commdlg.h>
+#include <shellapi.h>
 
 //------------------------------------------------------------------------------
 // Internal function declarations
@@ -53,6 +54,8 @@ static u32 win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size
 // Main API
 //------------------------------------------------------------------------------
 
+i32 platform_main(i32 argc, char **argv, cfPlatform *plat);
+
 static cfVirtualMemory win32_vm = {
     .reserve = win32VmReserve,
     .release = win32VmRelease,
@@ -72,11 +75,20 @@ static cfFileSystem win32_fs = {
     .open_file_dlg = win32OpenFileDlg,
 };
 
-cfPlatform g_platform = {0};
+static cfPlatform g_platform = {0};
 
-void
-cfPlatformInit(cfPlatform *platform)
+//------------------------------------------------------------------------------
+// Entry point
+//------------------------------------------------------------------------------
+
+int WINAPI
+wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
+    CF_UNUSED(hInstance);
+    CF_UNUSED(hPrevInstance);
+    CF_UNUSED(pCmdLine);
+    CF_UNUSED(nCmdShow);
+
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
 
@@ -87,20 +99,30 @@ cfPlatformInit(cfPlatform *platform)
 
     win32_heap.state = heap_stats;
 
-    platform->vm = &win32_vm;
-    platform->fs = &win32_fs;
-    platform->heap = &win32_heap;
-}
+    g_platform.vm = &win32_vm;
+    g_platform.fs = &win32_fs;
+    g_platform.heap = &win32_heap;
 
-void
-cfPlatformShutdown(cfPlatform *platform)
-{
-    CF_ASSERT_NOT_NULL(platform);
-    CF_ASSERT(platform->fs == &win32_fs, "Invalid platform pointer");
-    CF_ASSERT(platform->vm == &win32_vm, "Invalid platform pointer");
-    CF_ASSERT(platform->heap == &win32_heap, "Invalid platform pointer");
+    WCHAR *cmd_line = GetCommandLineW();
+    i32 argc = 0;
+    WCHAR **w_argv = CommandLineToArgvW(cmd_line, &argc);
 
-    cfAllocatorStats *heap_stats = platform->heap->state;
+    char **argv = cfAlloc(&win32_heap, argc * sizeof(*argv) + CF_MB(1));
+    char *buf = (char *)(argv + 1);
+
+    for (i32 i = 0; i < argc; ++i)
+    {
+        argv[i] = buf;
+        u32 size = win32Utf16To8(w_argv[i], -1, NULL, 0);
+        win32Utf16To8(w_argv[i], -1, argv[i], size);
+        buf += size;
+    }
+
+    LocalFree(w_argv);
+
+    platform_main(argc, argv, &g_platform);
+
+    cfFree(&win32_heap, argv, argc * sizeof(*argv) + CF_MB(1));
 
     CF_ASSERT_NOT_NULL(heap_stats);
     // TODO (Matteo): Check allocation size tracking
