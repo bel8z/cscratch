@@ -56,6 +56,8 @@ static void win32DirIterClose(DirIter *self);
 static FileDlgResult win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters,
                                       usize num_filters, cfAllocator *alloc);
 
+static FileContent win32ReadFile(char const *filename, cfAllocator *alloc);
+
 // UTF8<->UTF16 helpers
 static u32 win32Utf8To16(char const *str, i32 str_size, WCHAR *out, u32 out_size);
 static u32 win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size);
@@ -128,6 +130,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
         .dir_iter_next = win32DirIterNext,
         .dir_iter_close = win32DirIterClose,
         .open_file_dlg = win32OpenFileDlg,
+        .read_file = win32ReadFile,
     };
 
     cfPlatform platform = {
@@ -503,6 +506,55 @@ win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, usize num_fi
     }
 
     cfFree(alloc, filt, filt_size);
+
+    return result;
+}
+
+FileContent
+win32ReadFile(char const *filename, cfAllocator *alloc)
+{
+    FileContent result = {0};
+
+    WCHAR path[MAX_PATH] = {0};
+    u32 path_size = win32Utf8To16(filename, -1, NULL, 0);
+
+    if (path_size > MAX_PATH)
+    {
+        CF_ASSERT(false, "filename is too long");
+    }
+    else
+    {
+        win32Utf8To16(filename, -1, path, path_size);
+
+        HANDLE file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+                                  FILE_ATTRIBUTE_NORMAL, NULL);
+
+        if (file != INVALID_HANDLE_VALUE)
+        {
+            LARGE_INTEGER file_size;
+            GetFileSizeEx(file, &file_size);
+
+            CF_ASSERT(file_size.QuadPart <= ~(DWORD)(0), "File size is too big");
+
+            DWORD read_size = (DWORD)(file_size.QuadPart);
+            DWORD read;
+
+            result.data = cfAlloc(alloc, read_size);
+
+            if (result.data && ReadFile(file, result.data, read_size, &read, NULL) &&
+                read == read_size)
+            {
+                result.size = read_size;
+            }
+            else
+            {
+                cfFree(alloc, result.data, read_size);
+                result.data = NULL;
+            }
+
+            CloseHandle(file);
+        }
+    }
 
     return result;
 }

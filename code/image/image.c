@@ -39,6 +39,35 @@ static void stbiFree(void *mem);
 //------------------------------------------------------------------------------
 // Image API implementation
 
+static void
+image__processData(u8 *data, i32 width, i32 height, Image *image)
+{
+    // Create a OpenGL texture identifier
+    u32 image_texture;
+    glGenTextures(1, &image_texture);
+    glBindTexture(GL_TEXTURE_2D, image_texture);
+
+    // TODO (Matteo): Separate texture parameterization from loading
+
+    // Setup filtering parameters for display
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // These are required on WebGL for non power-of-two textures
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Upload pixels into texture
+#if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+    image->texture = image_texture;
+    image->width = width;
+    image->height = height;
+    image->filter = ImageFilter_Nearest;
+}
+
 bool
 imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
 {
@@ -57,32 +86,37 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
 
     if (data)
     {
-        // Create a OpenGL texture identifier
-        u32 image_texture;
-        glGenTextures(1, &image_texture);
-        glBindTexture(GL_TEXTURE_2D, image_texture);
-
-        // TODO (Matteo): Separate texture parameterization from loading
-
-        // Setup filtering parameters for display
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        // These are required on WebGL for non power-of-two textures
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-        // Upload pixels into texture
-#if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-#endif
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        stbi_image_free(data);
-
-        image->texture = image_texture;
-        image->width = width;
-        image->height = height;
-        image->filter = ImageFilter_Nearest;
         result = true;
+        image__processData(data, width, height, image);
+        stbi_image_free(data);
+    }
+
+    g_alloc = NULL;
+
+    return result;
+}
+
+bool
+imageLoadFromMemory(Image *image, u8 const *in_data, usize in_data_size, cfAllocator *alloc)
+{
+    CF_ASSERT_NOT_NULL(alloc);
+    CF_ASSERT_NOT_NULL(image);
+    CF_ASSERT_NOT_NULL(in_data);
+
+    // Setup allocator for stbi
+    g_alloc = alloc;
+
+    // Load from file
+    i32 width = 0;
+    i32 height = 0;
+    u8 *data = stbi_load_from_memory(in_data, (i32)in_data_size, &width, &height, NULL, 4);
+    bool result = false;
+
+    if (data)
+    {
+        result = true;
+        image__processData(data, width, height, image);
+        stbi_image_free(data);
     }
 
     g_alloc = NULL;

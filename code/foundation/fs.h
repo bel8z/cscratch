@@ -28,6 +28,12 @@ typedef struct FileDlgResult
     u8 code;
 } FileDlgResult;
 
+typedef struct FileContent
+{
+    u8 *data;
+    usize size;
+} FileContent;
+
 typedef struct cfFileSystem
 {
     // Create an iterator on the given directory contents (return NULL in case of failure)
@@ -41,6 +47,8 @@ typedef struct cfFileSystem
 
     FileDlgResult (*open_file_dlg)(char const *filename_hint, FileDlgFilter *filters,
                                    usize num_filters, cfAllocator *alloc);
+
+    FileContent (*read_file)(char const *filename, cfAllocator *alloc);
 
 } cfFileSystem;
 

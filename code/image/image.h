@@ -23,8 +23,9 @@ typedef struct Image
     ImageFilter filter;
 } Image;
 
-// Simple helper function to load an image into a OpenGL texture with common settings
+// Simple helper functions to load an image into a OpenGL texture with common settings
 bool imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc);
+bool imageLoadFromMemory(Image *image, u8 const *in_data, usize in_data_size, cfAllocator *alloc);
 
 void imageSetFilter(Image *image, ImageFilter filter);
 

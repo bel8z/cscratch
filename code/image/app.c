@@ -51,6 +51,7 @@ struct AppState
 //------------------------------------------------------------------------------
 
 static void appLoadFromFile(AppState *state, char const *filename);
+static bool appLoadImage(AppState *state, char const *filename);
 
 AppState *
 appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
@@ -81,7 +82,7 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
         // TODO (Matteo): Remove - kind of demo, but should not be kept
         char buffer[1024];
         snprintf(buffer, 1024, "%sOpaque.png", paths.data);
-        imageLoadFromFile(&app->image, buffer, app->alloc);
+        appLoadImage(app, buffer);
     }
 
     return app;
@@ -110,6 +111,21 @@ appIsFileSupported(char const *path)
     return false;
 }
 
+static bool
+appLoadImage(AppState *state, char const *filename)
+{
+    bool result = false;
+    FileContent fc = state->plat->fs->read_file(filename, state->alloc);
+
+    if (fc.data)
+    {
+        result = imageLoadFromMemory(&state->image, fc.data, fc.size, state->alloc);
+        cfFree(state->alloc, fc.data, fc.size);
+    }
+
+    return result;
+}
+
 static void
 appLoadFromFile(AppState *state, char const *filename)
 {
@@ -123,7 +139,7 @@ appLoadFromFile(AppState *state, char const *filename)
     if (filename)
     {
 
-        if (!imageLoadFromFile(&state->image, filename, state->alloc))
+        if (!appLoadImage(state, filename))
         {
             state->windows.unsupported = true;
         }
@@ -215,7 +231,7 @@ appImageView(AppState *state)
         {
             state->curr_file = next;
             imageUnload(image);
-            imageLoadFromFile(image, sbAt(&state->filenames, next), state->alloc);
+            appLoadImage(state, sbAt(&state->filenames, next));
         }
     }
 
