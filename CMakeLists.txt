@@ -106,7 +106,11 @@ set(IMAGE_SOURCES
     ${CODE_DIR}/image/image.c)
 set_source_files_properties(${IMAGE_SOURCES} PROPERTIES LANGUAGE C)
 
-add_executable(${EXE_NAME} WIN32 ${IMAGE_SOURCES})
+set(IMAGE_RESOURCES 
+    ${CODE_DIR}/image/version.rc)
+set_source_files_properties(${IMAGE_RESOURCES} PROPERTIES LANGUAGE RC)
+
+add_executable(${EXE_NAME} WIN32 ${IMAGE_SOURCES} ${IMAGE_RESOURCES})
 
 target_compile_features(${EXE_NAME} PUBLIC c_std_11)
 
