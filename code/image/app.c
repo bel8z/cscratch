@@ -231,7 +231,14 @@ appImageView(AppState *state)
         {
             state->curr_file = next;
             imageUnload(image);
-            appLoadImage(state, sbAt(&state->filenames, next));
+
+            char buffer[CURR_DIR_SIZE];
+            bool ok = strPrintf(buffer, CURR_DIR_SIZE, "%s/%s", state->curr_dir,
+                                sbAt(&state->filenames, next));
+
+            CF_ASSERT(ok, "path is too long!");
+
+            appLoadImage(state, buffer);
         }
     }
 
