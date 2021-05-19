@@ -4,6 +4,7 @@
 
 #include "foundation/allocator.h"
 #include "foundation/fs.h"
+#include "foundation/strings.h"
 #include "foundation/util.h"
 #include "foundation/vm.h"
 
@@ -24,21 +25,30 @@
 #include <commdlg.h>
 #include <shellapi.h>
 
+#pragma warning(pop)
+
 //------------------------------------------------------------------------------
-// Internal function declarations
+// Cross-platform entry point
 //------------------------------------------------------------------------------
 
-// VM functions
+i32 platform_main(cfPlatform *platform, char const *argv[], i32 argc);
+
+//------------------------------------------------------------------------------
+// Internal implementation
+//------------------------------------------------------------------------------
+
+// Virtual memory
+static usize g_vm_page_size = 0;
 static VM_RESERVE_FUNC(win32VmReserve);
 static VM_COMMIT_FUNC(win32VmCommit);
 static VM_REVERT_FUNC(win32VmDecommit);
 static VM_RELEASE_FUNC(win32VmRelease);
 
-// Heap allocation functions
+// Heap allocation
 static CF_ALLOCATOR_FUNC(win32Alloc);
 static CF_ALLOC_STATS_FUNC(win32AllocStats);
 
-// File system functions
+// File system
 static DirIter *win32DirIterStart(char const *dir, cfAllocator *alloc);
 static char const *win32DirIterNext(DirIter *self);
 static void win32DirIterClose(DirIter *self);
@@ -46,37 +56,12 @@ static void win32DirIterClose(DirIter *self);
 static FileDlgResult win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters,
                                       usize num_filters, cfAllocator *alloc);
 
-// Unicode helpers
+// UTF8<->UTF16 helpers
 static u32 win32Utf8To16(char const *str, i32 str_size, WCHAR *out, u32 out_size);
 static u32 win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size);
 
 //------------------------------------------------------------------------------
-// Main API
-//------------------------------------------------------------------------------
-
-i32 platform_main(i32 argc, char const *argv[], cfPlatform *plat);
-
-static cfVirtualMemory win32_vm = {
-    .reserve = win32VmReserve,
-    .release = win32VmRelease,
-    .commit = win32VmCommit,
-    .revert = win32VmDecommit,
-};
-
-static cfAllocator win32_heap = {
-    .reallocate = win32Alloc,
-    .stats = win32AllocStats,
-};
-
-static cfFileSystem win32_fs = {
-    .dir_iter_start = win32DirIterStart,
-    .dir_iter_next = win32DirIterNext,
-    .dir_iter_close = win32DirIterClose,
-    .open_file_dlg = win32OpenFileDlg,
-};
-
-//------------------------------------------------------------------------------
-// Entry point
+// Main entry point
 //------------------------------------------------------------------------------
 
 char **
@@ -105,9 +90,13 @@ win32GetCommandLineArgs(cfAllocator *alloc, i32 *out_argc, usize *out_size)
     return argv;
 }
 
+#pragma warning(push)
+#pragma warning(disable : 4221)
+
 int WINAPI
 wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
+
     CF_UNUSED(hInstance);
     CF_UNUSED(hPrevInstance);
     CF_UNUSED(pCmdLine);
@@ -116,34 +105,57 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
 
-    win32_vm.page_size = sysinfo.dwPageSize;
+    g_vm_page_size = sysinfo.dwPageSize;
+
+    cfVirtualMemory vm = {
+        .reserve = win32VmReserve,
+        .release = win32VmRelease,
+        .commit = win32VmCommit,
+        .revert = win32VmDecommit,
+        .page_size = g_vm_page_size,
+    };
 
     cfAllocatorStats heap_stats = {0};
 
-    win32_heap.state = &heap_stats;
+    cfAllocator heap = {
+        .reallocate = win32Alloc,
+        .stats = win32AllocStats,
+        .state = &heap_stats,
+    };
+
+    cfFileSystem fs = {
+        .dir_iter_start = win32DirIterStart,
+        .dir_iter_next = win32DirIterNext,
+        .dir_iter_close = win32DirIterClose,
+        .open_file_dlg = win32OpenFileDlg,
+    };
 
     cfPlatform platform = {
-        .vm = &win32_vm,
-        .fs = &win32_fs,
-        .heap = &win32_heap,
+        .vm = &vm,
+        .heap = &heap,
+        .fs = &fs,
     };
 
     // TODO (Matteo): Improve command line handling
 
-    usize alloc_size;
+    usize cmd_line_size;
     i32 argc;
-    char **argv = win32GetCommandLineArgs(platform.heap, &argc, &alloc_size);
+    char **argv = win32GetCommandLineArgs(platform.heap, &argc, &cmd_line_size);
 
-    platform_main(argc, argv, &platform);
+    i32 result = platform_main(&platform, (char const **)argv, argc);
 
-    cfFree(&win32_heap, argv, alloc_size);
+    cfFree(&heap, argv, cmd_line_size);
 
     CF_ASSERT(heap_stats.count == 0, "Potential memory leak");
     CF_ASSERT(heap_stats.size == 0, "Potential memory leak");
+
+    return result;
 }
 
+#pragma warning(pop)
+
 //------------------------------------------------------------------------------
-// Internal functions
+// Internal implementation
 //------------------------------------------------------------------------------
 
 VM_RESERVE_FUNC(win32VmReserve)
@@ -203,7 +215,7 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 
     if (new_size)
     {
-        usize block_size = win32RoundSize(new_size, win32_vm.page_size);
+        usize block_size = win32RoundSize(new_size, g_vm_page_size);
         u8 *base = win32VmReserve(block_size);
         if (!base) return NULL;
 
@@ -224,7 +236,7 @@ CF_ALLOCATOR_FUNC(win32Alloc)
             cfMemCopy(memory, new_mem, cfMin(old_size, new_size));
         }
 
-        usize block_size = win32RoundSize(old_size, win32_vm.page_size);
+        usize block_size = win32RoundSize(old_size, g_vm_page_size);
         u8 *base = (u8 *)memory + old_size - block_size;
 
         win32VmDecommit(base, block_size);
@@ -316,7 +328,7 @@ win32DirIterStart(char const *dir, cfAllocator *alloc)
     DirIter *self = cfAlloc(alloc, sizeof(*self));
     if (!self) return NULL;
 
-    snprintf(self->buffer, MAX_PATH, "%s/*", dir); // NOLINT
+    strPrintf(self->buffer, MAX_PATH, "%s/*", dir);
 
     WIN32_FIND_DATAA data = {0};
 
@@ -514,5 +526,3 @@ win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size)
 }
 
 //------------------------------------------------------------------------------
-
-#pragma warning(pop)

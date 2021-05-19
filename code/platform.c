@@ -19,6 +19,7 @@
 #include "foundation/color.h"
 #include "foundation/common.h"
 #include "foundation/path.h"
+#include "foundation/strings.h"
 #include "foundation/util.h"
 #include "foundation/vec.h"
 
@@ -32,8 +33,6 @@
 //------------------------------------------------------------------------------
 // Local function declarations
 //------------------------------------------------------------------------------
-
-static void appInitPaths(AppPaths *paths, char const *cmd_line);
 
 static void *guiAlloc(usize size, void *state);
 static void guiFree(void *mem, void *state);
@@ -86,7 +85,7 @@ extern void ImGui_ImplOpenGL3_DestroyDeviceObjects();
 //------------------------------------------------------------------------------
 
 i32
-platform_main(i32 argc, char const *argv[], cfPlatform *g_platform)
+platform_main(cfPlatform *platform, char const *argv[], i32 argc)
 {
     CF_UNUSED(argc);
     CF_UNUSED(argv);
@@ -167,20 +166,37 @@ platform_main(i32 argc, char const *argv[], cfPlatform *g_platform)
 
     // Setup platform layer
     CF_ASSERT_NOT_NULL(gl);
-    g_platform->gl = gl;
+    platform->gl = gl;
 
-    // Setup application state
+    // Setup application
+
+    // TODO (Matteo): Review application paths management - it's quite messy
+
     AppPaths paths = {0};
-    appInitPaths(&paths, argv[0]);
+    char gui_ini[AppPaths_Length] = {0};
+    char const *cmd_line = argv[0];
 
-    AppState *app = appCreate(g_platform, paths, argv, argc);
+    char const *ext;
+    char const *file_name = pathSplitNameExt(cmd_line, &ext);
+
+    CF_ASSERT_NOT_NULL(file_name);
+    CF_ASSERT_NOT_NULL(ext);
+
+    i32 root_len = (i32)(file_name - cmd_line);
+    strPrintf(paths.base, AppPaths_Length, "%.*s", root_len, cmd_line);
+    strPrintf(paths.data, AppPaths_Length, "%.*sdata/", root_len, cmd_line);
+    strPrintf(gui_ini, AppPaths_Length, "%.*s.gui", (i32)(ext - cmd_line), cmd_line);
+
+    AppState *app = appCreate(platform, paths, argv, argc);
 
     // Setup Dear ImGui context
     igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
                                      sizeof(ImVec4), sizeof(ImDrawVert), sizeof(ImDrawIdx));
-    igSetAllocatorFunctions(guiAlloc, guiFree, g_platform->heap);
+    igSetAllocatorFunctions(guiAlloc, guiFree, platform->heap);
     ImGuiContext *imgui = igCreateContext(NULL);
     ImGuiIO *io = igGetIO();
+
+    io->IniFilename = gui_ini;
 
     // Enable Keyboard Controls
     io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
@@ -260,6 +276,7 @@ platform_main(i32 argc, char const *argv[], cfPlatform *g_platform)
     {
         glfwPollEvents();
 #endif
+        // TODO (Matteo): Build a font atlas per-monitor (or DPI resolution)
 
         // Rebuild font atlas if required
         if (update_result.flags & AppUpdateFlags_RebuildFonts)
@@ -350,41 +367,8 @@ platform_main(i32 argc, char const *argv[], cfPlatform *g_platform)
 }
 
 //------------------------------------------------------------------------------
-// Local functions
+// Internal functions
 //------------------------------------------------------------------------------
-
-void
-appInitPaths(AppPaths *paths, char const *cmd_line)
-{
-    CF_UNUSED(cmd_line);
-
-#if SDL_BACKEND
-    char *p = SDL_GetBasePath();
-
-    snprintf(paths->base, AppPaths_Length, "%s", p);
-    snprintf(paths->data, AppPaths_Length, "%sdata/", p);
-
-    SDL_free(p);
-#else
-    // TODO (Matteo): Use the command line or a platform specific function to
-    // retrieve the executable path
-
-    char const *file_name = pathSplitName(cmd_line);
-    if (file_name)
-    {
-        usize root_len = file_name - cmd_line;
-        snprintf(paths->base, AppPaths_Length, "%.*s", (i32)root_len, cmd_line);
-        snprintf(paths->data, AppPaths_Length, "%.*sdata/", (i32)root_len, cmd_line);
-    }
-    else
-    {
-        char *p = "./";
-        snprintf(paths->base, AppPaths_Length, "%s", p);
-        snprintf(paths->data, AppPaths_Length, "%sdata/", p);
-    }
-
-#endif
-}
 
 void *
 guiAlloc(usize size, void *state)
