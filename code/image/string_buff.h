@@ -7,7 +7,7 @@
 enum
 {
     StringBuff_MaxCount = 256,
-    StringBuff_BuffSize = 256 * 1024,
+    StringBuff_BuffSize = StringBuff_MaxCount * 1024,
 };
 
 // NOTE (Matteo): Zero initialization required

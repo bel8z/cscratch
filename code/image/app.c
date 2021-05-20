@@ -81,7 +81,7 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
     {
         // TODO (Matteo): Remove - kind of demo, but should not be kept
         char buffer[1024];
-        snprintf(buffer, 1024, "%sOpaque.png", paths.data);
+        strPrintf(buffer, 1024, "%sOpaque.png", paths.data);
         appLoadImage(app, buffer);
     }
 
