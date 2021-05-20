@@ -57,6 +57,11 @@ static FileDlgResult win32OpenFileDlg(char const *filename_hint, FileDlgFilter *
 
 static FileContent win32ReadFile(char const *filename, cfAllocator *alloc);
 
+// Timing
+LARGE_INTEGER g_clock_freq;
+LARGE_INTEGER g_clock_start;
+static TimePoint win32Elapsed(void);
+
 // UTF8<->UTF16 helpers
 static u32 win32Utf8To16(char const *str, i32 str_size, WCHAR *out, u32 out_size);
 static u32 win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size);
@@ -108,6 +113,11 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     g_vm_page_size = sysinfo.dwPageSize;
 
+    QueryPerformanceFrequency(&g_clock_freq);
+    QueryPerformanceCounter(&g_clock_start);
+    CF_ASSERT(g_clock_freq.QuadPart > 0, "System monotonic clock is not available");
+    CF_ASSERT(g_clock_start.QuadPart > 0, "System monotonic clock is not available");
+
     cfVirtualMemory vm = {
         .reserve = win32VmReserve,
         .release = win32VmRelease,
@@ -126,10 +136,13 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
         .read_file = win32ReadFile,
     };
 
+    Time time = {.now = win32Elapsed};
+
     cfPlatform platform = {
         .vm = &vm,
         .heap = &heap,
         .fs = &fs,
+        .time = &time,
     };
 
     heap.state = &platform;
@@ -546,6 +559,18 @@ win32ReadFile(char const *filename, cfAllocator *alloc)
     }
 
     return result;
+}
+
+//------------------------------------------------------------------------------
+TimePoint
+win32Elapsed(void)
+{
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
+
+    CF_ASSERT(now.QuadPart > g_clock_start.QuadPart, "System clock is not monotonic!");
+
+    return (TimePoint){.opaque = ((u64)now.QuadPart - (u64)g_clock_start.QuadPart)};
 }
 
 //------------------------------------------------------------------------------

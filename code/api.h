@@ -12,6 +12,16 @@ typedef struct cfFileSystem cfFileSystem;
 
 typedef struct GlApi GlApi;
 
+typedef struct TimePoint
+{
+    u64 opaque;
+} TimePoint;
+
+typedef struct Time
+{
+    TimePoint (*now)(void);
+} Time;
+
 typedef struct cfPlatform
 {
     cfVirtualMemory *vm;
@@ -19,6 +29,8 @@ typedef struct cfPlatform
     cfFileSystem *fs;
 
     GlApi *gl;
+
+    Time *time;
 
     usize heap_blocks;
     usize heap_size;
