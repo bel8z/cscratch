@@ -20,6 +20,9 @@ typedef struct cfPlatform
 
     GlApi *gl;
 
+    usize heap_blocks;
+    usize heap_size;
+
 } cfPlatform;
 
 //------------------------------------------------------------------------------

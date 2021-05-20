@@ -380,12 +380,12 @@ appUpdate(AppState *state, FontOptions *font_opts)
 
     if (state->windows.stats)
     {
-        cfAllocatorStats stats = cfAllocStats(state->alloc);
+        cfPlatform *plat = state->plat;
         f64 framerate = (f64)igGetIO()->Framerate;
 
         igBegin("Application stats stats", &state->windows.stats, 0);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
-        igText("Allocated %.3fkb in %zu blocks", (f64)stats.size / 1024, stats.count);
+        igText("Allocated %.3fkb in %zu blocks", (f64)plat->heap_size / 1024, plat->heap_blocks);
         igSeparator();
         igText("App base path:%s", state->paths.base);
         igText("App data path:%s", state->paths.data);

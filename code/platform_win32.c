@@ -46,7 +46,6 @@ static VM_RELEASE_FUNC(win32VmRelease);
 
 // Heap allocation
 static CF_ALLOCATOR_FUNC(win32Alloc);
-static CF_ALLOC_STATS_FUNC(win32AllocStats);
 
 // File system
 static DirIter *win32DirIterStart(char const *dir, cfAllocator *alloc);
@@ -117,13 +116,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
         .page_size = g_vm_page_size,
     };
 
-    cfAllocatorStats heap_stats = {0};
-
-    cfAllocator heap = {
-        .reallocate = win32Alloc,
-        .stats = win32AllocStats,
-        .state = &heap_stats,
-    };
+    cfAllocator heap = {.reallocate = win32Alloc};
 
     cfFileSystem fs = {
         .dir_iter_start = win32DirIterStart,
@@ -139,6 +132,8 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
         .fs = &fs,
     };
 
+    heap.state = &platform;
+
     // TODO (Matteo): Improve command line handling
 
     usize cmd_line_size;
@@ -149,8 +144,8 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     cfFree(&heap, argv, cmd_line_size);
 
-    CF_ASSERT(heap_stats.count == 0, "Potential memory leak");
-    CF_ASSERT(heap_stats.size == 0, "Potential memory leak");
+    CF_ASSERT(platform.heap_blocks == 0, "Potential memory leak");
+    CF_ASSERT(platform.heap_size == 0, "Potential memory leak");
 
     return result;
 }
@@ -212,7 +207,7 @@ win32RoundSize(usize req_size, usize page_size)
 
 CF_ALLOCATOR_FUNC(win32Alloc)
 {
-    cfAllocatorStats *stats = state;
+    cfPlatform *plat = state;
 
     void *new_mem = NULL;
 
@@ -224,8 +219,8 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 
         win32VmCommit(base, block_size);
 
-        stats->count++;
-        stats->size += block_size;
+        plat->heap_blocks++;
+        plat->heap_size += block_size;
 
         new_mem = base + block_size - new_size;
     }
@@ -245,8 +240,8 @@ CF_ALLOCATOR_FUNC(win32Alloc)
         win32VmDecommit(base, block_size);
         win32VmRelease(base, block_size);
 
-        stats->count--;
-        stats->size -= block_size;
+        plat->heap_blocks--;
+        plat->heap_size -= block_size;
 
         memory = NULL;
     }
@@ -278,31 +273,25 @@ CF_ALLOCATOR_FUNC(win32Alloc)
         HeapFree(heap, 0, old_mem);
     }
 
-    cfAllocatorStats *stats = state;
+    cfPlatform *plat = state;
 
     if (old_mem)
     {
         CF_ASSERT(old_size > 0, "Freeing valid pointer but given size is 0");
-        stats->count--;
-        stats->size -= old_size;
+        plat->heap_blocks--;
+        plat->heap_size -= old_size;
     }
 
     if (new_mem)
     {
-        stats->count++;
-        stats->size += new_size;
+        plat->heap_blocks++;
+        plat->heap_size += new_size;
     }
 
     return new_mem;
 }
 
 #endif
-
-CF_ALLOC_STATS_FUNC(win32AllocStats)
-{
-    cfAllocatorStats *stats = state;
-    return *stats;
-}
 
 //------------------------------------------------------------------------------
 
