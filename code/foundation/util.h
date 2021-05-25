@@ -172,46 +172,55 @@ cf__Lerp64(f64 x, f64 y, f64 t)
     return x * (1 - t) + y * t;
 }
 
-static inline u64
-cfGcd(u64 a, u64 b)
-{
-    // GCD(0, b) == b,
-    // GCD(a, 0) == a,
-    // GCD(0, 0) == 0
-    if (a == 0) return b;
-    if (b == 0) return a;
-
-    // Find k, which is the greatest power of 2 that divides both a and b
-    u64 k = 0;
-    for (; !((a | b) & 1); ++k)
-    {
-        a = a >> 1;
-        b = b >> 1;
+#define CF__GCD(Type)                                                            \
+    static inline Type cf__Gcd_##Type(Type a, Type b)                            \
+    {                                                                            \
+        /* GCD(0, b) == b, */                                                    \
+        /* GCD(a, 0) == a, */                                                    \
+        /* GCD(0, 0) == 0  */                                                    \
+                                                                                 \
+        if (a == 0) return b;                                                    \
+        if (b == 0) return a;                                                    \
+                                                                                 \
+        /* Find k, which is the greatest power of 2 that divides both a and b */ \
+        Type k = 0;                                                              \
+        for (; !((a | b) & 1); ++k)                                              \
+        {                                                                        \
+            a = a >> 1;                                                          \
+            b = b >> 1;                                                          \
+        }                                                                        \
+                                                                                 \
+        /* Divide a by 2 until it becames odd */                                 \
+        while (!(a & 1)) a = a >> 1;                                             \
+                                                                                 \
+        do                                                                       \
+        {                                                                        \
+            /* Divide b by 2 until it becames odd */                             \
+            while (!(b & 1)) b = b >> 1;                                         \
+                                                                                 \
+            /* Now a and b are both odd. Swap in order to have a <= b, */        \
+            /* then set b = b - a (which is even). */                            \
+            if (a > b)                                                           \
+            {                                                                    \
+                Type t = a;                                                      \
+                a = b;                                                           \
+                b = t;                                                           \
+            }                                                                    \
+                                                                                 \
+            b = (b - a);                                                         \
+        } while (b);                                                             \
+                                                                                 \
+        /* Restore the common factor of 2 */                                     \
+        return (Type)(a << k);                                                   \
     }
 
-    // Divide a by 2 until it becames odd
-    while (!(a & 1)) a = a >> 1;
+CF__GCD(u8)
+CF__GCD(u16)
+CF__GCD(u32)
+CF__GCD(u64)
 
-    do
-    {
-        // Divide b by 2 until it becames odd
-        while (!(b & 1)) b = b >> 1;
-
-        // Now a and b are both odd. Swap in order to have a <= b,
-        // then set b = b - a (which is even).
-        if (a > b)
-        {
-            u64 t = a;
-            a = b;
-            b = t;
-        }
-
-        b = (b - a);
-    } while (b);
-
-    // Restore the common factor of 2
-    return a << k;
-}
+#define cfGcd(a, b) \
+    _Generic((a, b), u8 : cf__Gcd_u8, u16 : cf__Gcd_u16, u32 : cf__Gcd_u32, u64 : cf__Gcd_u64)(a, b)
 
 //------------------------------------------------------------------------------
 
