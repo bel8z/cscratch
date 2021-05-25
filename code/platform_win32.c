@@ -58,9 +58,15 @@ static FileDlgResult win32OpenFileDlg(char const *filename_hint, FileDlgFilter *
 static FileContent win32ReadFile(char const *filename, cfAllocator *alloc);
 
 // Timing
-LARGE_INTEGER g_clock_freq;
-LARGE_INTEGER g_clock_start;
-static TimePoint win32Elapsed(void);
+static struct
+{
+    u64 start_ticks;
+    u64 ratio_num;
+    u64 ratio_den;
+    u64 last_ns;
+} g_clock;
+
+static u64 win32Clock(void);
 
 // UTF8<->UTF16 helpers
 static u32 win32Utf8To16(char const *str, i32 str_size, WCHAR *out, u32 out_size);
@@ -113,10 +119,19 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     g_vm_page_size = sysinfo.dwPageSize;
 
-    QueryPerformanceFrequency(&g_clock_freq);
-    QueryPerformanceCounter(&g_clock_start);
-    CF_ASSERT(g_clock_freq.QuadPart > 0, "System monotonic clock is not available");
-    CF_ASSERT(g_clock_start.QuadPart > 0, "System monotonic clock is not available");
+    LARGE_INTEGER now, freq;
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&now);
+    CF_ASSERT(freq.QuadPart > 0, "System monotonic clock is not available");
+    CF_ASSERT(now.QuadPart > 0, "System monotonic clock is not available");
+
+    g_clock.last_ns = 0;
+    g_clock.start_ticks = (u64)now.QuadPart;
+    g_clock.ratio_num = (u64)1000000000;
+    g_clock.ratio_den = (u64)freq.QuadPart;
+    u64 gcd = cfGcd(g_clock.ratio_num, g_clock.ratio_den);
+    g_clock.ratio_num /= gcd;
+    g_clock.ratio_den /= gcd;
 
     cfVirtualMemory vm = {
         .reserve = win32VmReserve,
@@ -136,13 +151,11 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
         .read_file = win32ReadFile,
     };
 
-    Time time = {.now = win32Elapsed};
-
     cfPlatform platform = {
         .vm = &vm,
         .heap = &heap,
         .fs = &fs,
-        .time = &time,
+        .clock = win32Clock,
     };
 
     heap.state = &platform;
@@ -562,15 +575,21 @@ win32ReadFile(char const *filename, cfAllocator *alloc)
 }
 
 //------------------------------------------------------------------------------
-TimePoint
-win32Elapsed(void)
+u64
+win32Clock(void)
 {
     LARGE_INTEGER now;
     QueryPerformanceCounter(&now);
 
-    CF_ASSERT(now.QuadPart > g_clock_start.QuadPart, "System clock is not monotonic!");
+    CF_ASSERT((u64)now.QuadPart > g_clock.start_ticks, "Win32 clock is not monotonic!");
 
-    return (TimePoint){.opaque = ((u64)now.QuadPart - (u64)g_clock_start.QuadPart)};
+    u64 time_delta = (u64)now.QuadPart - g_clock.start_ticks;
+    u64 ns = (time_delta * g_clock.ratio_num) / g_clock.ratio_den;
+
+    CF_ASSERT(g_clock.last_ns < ns, "Win32 clock wrapped");
+    g_clock.last_ns = ns;
+
+    return ns;
 }
 
 //------------------------------------------------------------------------------

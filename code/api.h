@@ -12,28 +12,27 @@ typedef struct cfFileSystem cfFileSystem;
 
 typedef struct GlApi GlApi;
 
-typedef struct TimePoint
-{
-    u64 opaque;
-} TimePoint;
-
-typedef struct Time
-{
-    TimePoint (*now)(void);
-} Time;
-
 typedef struct cfPlatform
 {
+    /// Virtual memory services
     cfVirtualMemory *vm;
+
+    /// System heap allocator
     cfAllocator *heap;
+    /// Number of blocks allocated by the heap allocator
+    usize heap_blocks;
+    // Total size in bytes of the allocation provided by the heap
+    usize heap_size;
+
+    /// File system services
     cfFileSystem *fs;
 
+    /// OpenGL API
     GlApi *gl;
 
-    Time *time;
-
-    usize heap_blocks;
-    usize heap_size;
+    /// Return the amount of nanoseconds elapsed since the start of the application
+    /// Useful for performance measurement
+    u64 (*clock)(void);
 
 } cfPlatform;
 
