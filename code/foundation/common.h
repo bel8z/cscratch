@@ -176,10 +176,6 @@ union Vec3
     {
         f32 x, y, z;
     };
-    struct
-    {
-        f32 r, g, b;
-    };
     f32 elem[3];
 };
 
@@ -188,10 +184,6 @@ union Vec4
     struct
     {
         f32 x, y, z, w;
-    };
-    struct
-    {
-        f32 r, g, b, a;
     };
     f32 elem[4];
 };
