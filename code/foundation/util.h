@@ -142,6 +142,10 @@ cf__rotateReversal(void *array, usize size, usize pos, u8 *swap_buf, usize swap_
 #define cfFloor(X) _Generic((X), default : floor, f32 : floorf)(X)
 #define cfRound(X) _Generic((X), default : round, f32 : roundf)(X)
 
+//========
+//  Trig
+//========
+
 #define cfCos(X) _Generic((X), default : cos, f32 : cosf)(X)
 #define cfSin(X) _Generic((X), default : sin, f32 : sinf)(X)
 #define cfTan(X) _Generic((X), default : tan, f32 : tanf)(X)
@@ -150,13 +154,25 @@ cf__rotateReversal(void *array, usize size, usize pos, u8 *swap_buf, usize swap_
 #define cfSinH(X) _Generic((X), default : sinh, f32 : sinhf)(X)
 #define cfTanH(X) _Generic((X), default : tanh, f32 : tanhf)(X)
 
+//=================
+//  Powers / roots
+//=================
+
 #define cfSqrt(X) _Generic((X), default : sqrt, f32 : sqrtf)(X)
 #define cfPow(base, xp) _Generic((base, xp), default : pow, f32 : powf)(base, xp)
 #define cfSquare(x) ((x) * (x))
 #define cfCube(x) ((x) * (x) * (x))
 #define cfExp(x) _Generic((x), default : exp, f32 : expf)(base, xp)
 
+//==========
+//  Modulo
+//==========
+
 #define cfFmod(X, Y) _Generic((X, Y), default : fmod, f32 : fmodf)(X, Y)
+
+//========
+//  Lerp
+//========
 
 #define cfLerp(x, y, t) _Generic((x, y, t), default : cf__Lerp64, f32 : cf__Lerp32)(x, y, t)
 
@@ -171,6 +187,13 @@ cf__Lerp64(f64 x, f64 y, f64 t)
 {
     return x * (1 - t) + y * t;
 }
+
+//========
+//  GCD
+//========
+
+#define cfGcd(a, b) \
+    _Generic((a, b), u8 : cf__Gcd_u8, u16 : cf__Gcd_u16, u32 : cf__Gcd_u32, u64 : cf__Gcd_u64)(a, b)
 
 #define CF__GCD(Type)                                                            \
     static inline Type cf__Gcd_##Type(Type a, Type b)                            \
@@ -219,8 +242,7 @@ CF__GCD(u16)
 CF__GCD(u32)
 CF__GCD(u64)
 
-#define cfGcd(a, b) \
-    _Generic((a, b), u8 : cf__Gcd_u8, u16 : cf__Gcd_u16, u32 : cf__Gcd_u32, u64 : cf__Gcd_u64)(a, b)
+#undef CF__GCD
 
 //------------------------------------------------------------------------------
 
