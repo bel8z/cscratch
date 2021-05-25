@@ -110,6 +110,35 @@ typedef double f64;
 #define F64_EPS DBL_EPSILON
 
 //------------------------------------------------------------------------------
+// Macros to retrieve min/max values for basic types
+
+// TODO (Matteo): Find a better name
+
+// clang-format off
+#define T_MIN(Type)        \
+    _Generic((Type)(0),    \
+             i8 : I8_MIN,  \
+             i16: I16_MIN, \
+             i32: I32_MIN, \
+             i64: I64_MIN, \
+             f32: F32_MIN, \
+             f64: F64_MIN)
+
+#define T_MAX(Type)        \
+    _Generic((Type)(0),    \
+             u8 : U8_MAX,  \
+             u16: U16_MAX, \
+             u32: U32_MAX, \
+             u64: U64_MAX, \
+             i8 : I8_MAX,  \
+             i16: I16_MAX, \
+             i32: I32_MAX, \
+             i64: I64_MAX, \
+             f32: F32_MAX, \
+             f64: F64_MAX)
+// clang-format on
+
+//------------------------------------------------------------------------------
 // Forward declare commonly used foundation types so that they can appear in
 // headers as pointers
 
