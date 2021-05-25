@@ -1,5 +1,7 @@
 #include "version.h"
 
+#include <winres.h>
+
 #ifndef VER_COMPANYNAME_STR
 #define VER_COMPANYNAME_STR "bassfault\0"
 #endif
