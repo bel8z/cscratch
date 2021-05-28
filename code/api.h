@@ -9,6 +9,7 @@
 typedef struct cfVirtualMemory cfVirtualMemory;
 typedef struct cfAllocator cfAllocator;
 typedef struct cfFileSystem cfFileSystem;
+typedef struct Threading Threading;
 
 typedef struct GlApi GlApi;
 
@@ -26,6 +27,9 @@ typedef struct cfPlatform
 
     /// File system services
     cfFileSystem *fs;
+
+    /// Threading API
+    Threading *threading;
 
     /// OpenGL API
     GlApi *gl;

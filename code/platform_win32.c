@@ -5,6 +5,7 @@
 #include "foundation/allocator.h"
 #include "foundation/fs.h"
 #include "foundation/strings.h"
+#include "foundation/threading.h"
 #include "foundation/util.h"
 #include "foundation/vm.h"
 
@@ -23,6 +24,7 @@
 #include <windows.h>
 // Must be included AFTER <windows.h>
 #include <commdlg.h>
+#include <process.h>
 #include <shellapi.h>
 
 #pragma warning(pop)
@@ -56,6 +58,11 @@ static FileDlgResult win32OpenFileDlg(char const *filename_hint, FileDlgFilter *
                                       usize num_filters, cfAllocator *alloc);
 
 static FileContent win32ReadFile(char const *filename, cfAllocator *alloc);
+
+// Threading API
+static ThreadHandle win32ThreadCreate(ThreadParms const *parms);
+static void win32ThreadWait(ThreadHandle thread);
+static void win32Sleep(u32 ms);
 
 // Timing
 static struct
@@ -151,10 +158,17 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
         .read_file = win32ReadFile,
     };
 
+    Threading threading = {
+        .thread_create = win32ThreadCreate,
+        .thread_wait = win32ThreadWait,
+        .sleep = win32Sleep,
+    };
+
     cfPlatform platform = {
         .vm = &vm,
         .heap = &heap,
         .fs = &fs,
+        .threading = &threading,
         .clock = win32Clock,
     };
 
@@ -572,6 +586,43 @@ win32ReadFile(char const *filename, cfAllocator *alloc)
     }
 
     return result;
+}
+
+//------------------------------------------------------------------------------
+
+// Threading API
+ThreadHandle
+win32ThreadCreate(ThreadParms const *parms)
+{
+    ThreadHandle handle = 0;
+
+    CF_ASSERT_NOT_NULL(parms);
+    CF_ASSERT_NOT_NULL(parms->proc);
+    CF_ASSERT(parms->stack_size <= U32_MAX, "Thread stack size is too large");
+
+    uptr thread = _beginthread(parms->proc, (u32)parms->stack_size, parms->data);
+
+    if (thread != 0 && thread == (uptr)(-1))
+    {
+        handle = thread;
+    }
+
+    return handle;
+}
+
+void
+win32ThreadWait(ThreadHandle thread)
+{
+    if (thread)
+    {
+        WaitForSingleObject((HANDLE)thread, INFINITE);
+    }
+}
+
+void
+win32Sleep(u32 ms)
+{
+    Sleep(ms);
 }
 
 //------------------------------------------------------------------------------
