@@ -1,22 +1,13 @@
+#include "win32.h"
+
 #include "foundation/common.h"
 
 #include <stdio.h>
-
-#pragma warning(push)
-#pragma warning(disable : 5105)
-
-#define NOMINMAX 1
-#define VC_EXTRALEAN 1
-#define WIN32_LEAN_AND_MEAN 1
-#include <windows.h>
-// Must be included AFTER <windows.h>
-#include <commdlg.h>
-#include <process.h>
-#include <shellapi.h>
-
-#pragma warning(pop)
+#include <stdlib.h>
 
 //------------------------------------------------------------------------------
+
+#define TIMEOUT_INFINITE (u32)(-1)
 
 /// Thread handle
 typedef struct Thread
@@ -38,8 +29,8 @@ Thread threadCreate(ThreadParms *parms);
 void threadDestroy(Thread thread);
 void threadStart(Thread thread);
 bool threadIsRunning(Thread thread);
-bool threadWait(Thread thread, u32 ms);
-bool threadWaitAll(Thread *threads, usize num_threads, u32 ms);
+bool threadWait(Thread thread, u32 timeout_ms);
+bool threadWaitAll(Thread *threads, usize num_threads, u32 timeout_ms);
 
 //------------------------------------------------------------------------------
 
@@ -55,6 +46,7 @@ typedef struct Mutex
 } Mutex;
 
 void mutexInit(Mutex *mutex);
+void mutexShutdown(Mutex *mutex);
 void mutexAcquire(Mutex *mutex);
 void mutexRelease(Mutex *mutex);
 
@@ -68,7 +60,8 @@ typedef struct ConditionVariable
 } ConditionVariable;
 
 void cvInit(ConditionVariable *cv);
-void cvWait(ConditionVariable *cv, Mutex *mutex, u32 ms);
+void cvShutdown(ConditionVariable *cv);
+bool cvWait(ConditionVariable *cv, Mutex *mutex, u32 timeout_ms);
 void cvSignalOne(ConditionVariable *cv);
 void cvSignalAll(ConditionVariable *cv);
 
@@ -143,17 +136,18 @@ threadIsRunning(Thread thread)
 }
 
 bool
-threadWait(Thread thread, u32 ms)
+threadWait(Thread thread, u32 timeout_ms)
 {
-    return (thread.handle && WAIT_OBJECT_0 == WaitForSingleObject((HANDLE)thread.handle, ms));
+    return (thread.handle &&
+            WAIT_OBJECT_0 == WaitForSingleObject((HANDLE)thread.handle, timeout_ms));
 }
 
 bool
-threadWaitAll(Thread *threads, usize num_threads, u32 ms)
+threadWaitAll(Thread *threads, usize num_threads, u32 timeout_ms)
 {
     CF_ASSERT(num_threads <= U32_MAX, "Given number of threads is too large");
     DWORD count = (DWORD)num_threads;
-    DWORD code = WaitForMultipleObjects(count, (HANDLE *)threads, true, ms);
+    DWORD code = WaitForMultipleObjects(count, (HANDLE *)threads, true, timeout_ms);
     return (code < WAIT_OBJECT_0 + count);
 }
 
@@ -164,6 +158,13 @@ mutexInit(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
     InitializeSRWLock((SRWLOCK *)(mutex->data));
+}
+
+void
+mutexShutdown(Mutex *mutex)
+{
+    CF_ASSERT_NOT_NULL(mutex);
+    CF_ASSERT(mutex->internal == 0, "Shutting down an acquired mutex");
 }
 
 void
@@ -201,11 +202,18 @@ cvInit(ConditionVariable *cv)
 }
 
 void
-cvWait(ConditionVariable *cv, Mutex *mutex, u32 ms)
+cvShutdown(ConditionVariable *cv)
+{
+    CF_ASSERT_NOT_NULL(cv);
+}
+
+bool
+cvWait(ConditionVariable *cv, Mutex *mutex, u32 timeout_ms)
 {
     CF_ASSERT_NOT_NULL(cv);
     CF_ASSERT_NOT_NULL(mutex);
-    SleepConditionVariableSRW((CONDITION_VARIABLE *)(cv->data), (SRWLOCK *)(mutex->data), ms, 0);
+    return SleepConditionVariableSRW((CONDITION_VARIABLE *)(cv->data), (SRWLOCK *)(mutex->data),
+                                     timeout_ms, 0);
 }
 
 void
@@ -234,9 +242,11 @@ enum
 
 typedef struct Queue
 {
-    u32 buffer[QueueSize];
-    u32 pos;
+    i32 buffer[QueueSize];
+    u32 beg;
+    u32 len;
     Mutex lock;
+    ConditionVariable notify;
 } Queue;
 
 void
@@ -254,27 +264,91 @@ myThreadProc(void *parm)
     }
 }
 
+void
+producerProc(void *parm)
+{
+    Queue *queue = parm;
+
+    while (true)
+    {
+        Sleep(1000);
+        mutexAcquire(&queue->lock);
+
+        i32 value = rand();
+
+        fprintf(stdout, "Produced: %d", value);
+
+        queue->buffer[(queue->beg + queue->len) % QueueSize] = value;
+
+        if (queue->len == QueueSize)
+        {
+            // Full buffer, overwrite front
+            queue->beg = (queue->beg + 1) % QueueSize;
+            fprintf(stdout, "\tQueue full");
+        }
+        else
+        {
+            ++queue->len;
+        }
+
+        fprintf(stdout, "\n");
+        fflush(stdout);
+
+        cvSignalOne(&queue->notify);
+        mutexRelease(&queue->lock);
+    }
+}
+
+void
+consumerProc(void *parm)
+{
+    Queue *queue = parm;
+
+    while (true)
+    {
+        mutexAcquire(&queue->lock);
+        if (cvWait(&queue->notify, &queue->lock, 15))
+        {
+            i32 value = queue->buffer[queue->beg];
+
+            queue->beg = (queue->beg + 1) % QueueSize;
+            --queue->len;
+
+            fprintf(stdout, "Consumed: %d\n", value);
+            fflush(stdout);
+        }
+        mutexRelease(&queue->lock);
+    }
+}
+
+enum
+{
+    Consumer = 0,
+    Producer = 1,
+    Count,
+};
+
 int
 main(void)
 {
     Queue queue = {0};
     mutexInit(&queue.lock);
 
-    Thread thread =
-        threadCreate(&(ThreadParms){.proc = myThreadProc, .suspended = true, .args = &queue});
+    Thread threads[Count] = {[Producer] = threadCreate(&(ThreadParms){
+                                 .proc = producerProc,
+                                 .args = &queue,
+                                 .suspended = true,
+                             }),
+                             [Consumer] = threadCreate(&(ThreadParms){
+                                 .proc = consumerProc,
+                                 .args = &queue,
+                                 .suspended = true,
+                             })};
 
-    printf("\nThread created\n");
+    threadStart(threads[Consumer]);
+    threadStart(threads[Producer]);
 
-    threadStart(thread);
-
-    printf("\nThread started\n");
-
-    while (threadIsRunning(thread))
-    {
-        Sleep(15);
-    }
-
-    printf("\nThread terminated\n");
+    threadWaitAll(threads, Count, TIMEOUT_INFINITE);
 
     return 0;
 }
