@@ -7,6 +7,8 @@
 
 //------------------------------------------------------------------------------
 
+#define THREADING_DEBUG 1
+
 #define TIMEOUT_INFINITE (u32)(-1)
 
 /// Thread handle
@@ -21,15 +23,26 @@ typedef struct ThreadParms
 {
     ThreadProc proc;
     void *args;
+    char const *debug_name;
     usize stack_size;
-    bool suspended;
 } ThreadParms;
 
+/// Create a thread. The returned thread is not running, and must be explicitly started.
 Thread threadCreate(ThreadParms *parms);
+/// Create a running thread.
+Thread threadSpawn(ThreadParms *parms);
+/// Destroys the given thread handle. A running thread is not terminated by this call, but using the
+/// handle again is undefined behavior.
 void threadDestroy(Thread thread);
+/// Start a thread created with threadCreate
 void threadStart(Thread thread);
+/// Check if the given thread is running
 bool threadIsRunning(Thread thread);
+/// Wait the thread completion for the given amount of time; returns true if the thread terminates
+/// before the timeout occurs, false otherwise.
 bool threadWait(Thread thread, u32 timeout_ms);
+/// Wait the completion of the given threads for the given amount of time; returns true if all the
+/// threads terminate before the timeout occurs, false otherwise.
 bool threadWaitAll(Thread *threads, usize num_threads, u32 timeout_ms);
 
 //------------------------------------------------------------------------------
@@ -39,12 +52,14 @@ bool threadWaitAll(Thread *threads, usize num_threads, u32 timeout_ms);
 typedef struct Mutex
 {
     u8 data[sizeof(void *)];
-    // DEBUG
+#if THREADING_DEBUG
     u32 internal;
+#endif
 } Mutex;
 
 void mutexInit(Mutex *mutex);
 void mutexShutdown(Mutex *mutex);
+
 bool mutexTryAcquire(Mutex *mutex);
 void mutexAcquire(Mutex *mutex);
 void mutexRelease(Mutex *mutex);
@@ -57,13 +72,15 @@ void mutexRelease(Mutex *mutex);
 typedef struct RwLock
 {
     u8 data[sizeof(void *)];
-    // DEBUG
+#if THREADING_DEBUG
     u32 reserved0;
     u32 reserved1;
+#endif
 } RwLock;
 
 void rwInit(RwLock *lock);
 void rwShutdown(RwLock *lock);
+
 bool rwTryLockReader(RwLock *lock);
 bool rwTryLockWriter(RwLock *lock);
 void rwLockReader(RwLock *lock);
@@ -82,6 +99,7 @@ typedef struct ConditionVariable
 
 void cvInit(ConditionVariable *cv);
 void cvShutdown(ConditionVariable *cv);
+
 bool cvWaitMutex(ConditionVariable *cv, Mutex *mutex, u32 timeout_ms);
 bool cvWaitRwLock(ConditionVariable *cv, RwLock *lock, u32 timeout_ms);
 void cvSignalOne(ConditionVariable *cv);
@@ -91,11 +109,15 @@ void cvSignalAll(ConditionVariable *cv);
 
 CF_STATIC_ASSERT(sizeof(Thread) == sizeof(HANDLE), "Thread and HANDLE size must be equal");
 CF_STATIC_ASSERT(alignof(Thread) == alignof(HANDLE), "Thread must be aligned as HANDLE");
+
 CF_STATIC_ASSERT(sizeof(((Mutex *)0)->data) == sizeof(SRWLOCK), "Invalid Mutex internal size");
+
+CF_STATIC_ASSERT(sizeof(((RwLock *)0)->data) == sizeof(SRWLOCK), "Invalid RwLock internal size");
+
 CF_STATIC_ASSERT(sizeof(((ConditionVariable *)0)->data) == sizeof(CONDITION_VARIABLE),
                  "Invalid ConditionVariable internal size");
 
-u32 WINAPI
+static u32 WINAPI
 win32ThreadProc(void *data)
 {
     ThreadParms *parms = data;
@@ -112,10 +134,12 @@ win32ThreadProc(void *data)
     return 0;
 }
 
-Thread
-threadCreate(ThreadParms *parms)
+static Thread
+internalThreadCreate(ThreadParms *parms, bool suspended)
 {
     Thread thread = {0};
+
+    // TODO (Matteo): Use dedicated, lighter, data structure?
     ThreadParms *parms_copy = HeapAlloc(GetProcessHeap(), 0, sizeof(*parms_copy));
 
     if (parms_copy)
@@ -124,30 +148,44 @@ threadCreate(ThreadParms *parms)
 
         CF_ASSERT(parms_copy->stack_size <= U32_MAX, "Required stack size is too large");
 
-        u32 flags = parms_copy->suspended ? CREATE_SUSPENDED : 0;
+        u32 flags = suspended ? CREATE_SUSPENDED : 0;
         thread.handle = _beginthreadex(NULL, (u32)parms_copy->stack_size, win32ThreadProc,
                                        parms_copy, flags, NULL);
+    }
+
+    if (thread.handle && parms->debug_name)
+    {
+        WCHAR buffer[1024];
+        u32 size = MultiByteToWideChar(CP_UTF8, 0, parms->debug_name, -1, buffer, 1024);
+        CF_ASSERT(size > 0 || size < 1024, "Thread debug name is too long");
+        SetThreadDescription((HANDLE)thread.handle, buffer);
     }
 
     return thread;
 }
 
+Thread
+threadCreate(ThreadParms *parms)
+{
+    return internalThreadCreate(parms, true);
+}
+
+Thread
+threadSpawn(ThreadParms *parms)
+{
+    return internalThreadCreate(parms, false);
+}
+
 void
 threadDestroy(Thread thread)
 {
-    if (thread.handle)
-    {
-        CloseHandle((HANDLE)thread.handle);
-    }
+    if (thread.handle) CloseHandle((HANDLE)thread.handle);
 }
 
 void
 threadStart(Thread thread)
 {
-    if (thread.handle)
-    {
-        ResumeThread((HANDLE)thread.handle);
-    }
+    if (thread.handle) ResumeThread((HANDLE)thread.handle);
 }
 
 bool
@@ -176,6 +214,8 @@ threadWaitAll(Thread *threads, usize num_threads, u32 timeout_ms)
 //------------------------------------------------------------------------------
 
 // Internal implementation of exclusive locking, shared by Mutex and RwLock
+
+#if THREADING_DEBUG
 
 static bool
 internalTryLockExc(SRWLOCK *lock, u32 *owner_id)
@@ -219,6 +259,8 @@ internalUnlockExc(SRWLOCK *lock, u32 *owner_id)
     ReleaseSRWLockExclusive(lock);
 }
 
+#endif
+
 //------------------------------------------------------------------------------
 
 void
@@ -232,28 +274,42 @@ void
 mutexShutdown(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
+#if THREADING_DEBUG
     CF_ASSERT(mutex->internal == 0, "Shutting down an acquired mutex");
+#endif
 }
 
 bool
 mutexTryAcquire(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
+#if THREADING_DEBUG
     return internalTryLockExc((SRWLOCK *)(mutex->data), &mutex->internal);
+#else
+    return TryAcquireSRWLockExclusive((SRWLOCK *)(mutex->data));
+#endif
 }
 
 void
 mutexAcquire(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
+#if THREADING_DEBUG
     internalLockExc((SRWLOCK *)(mutex->data), &mutex->internal);
+#else
+    AcquireSRWLockExclusive((SRWLOCK *)(mutex->data));
+#endif
 }
 
 void
 mutexRelease(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
+#if THREADING_DEBUG
     internalUnlockExc((SRWLOCK *)(mutex->data), &mutex->internal);
+#else
+    ReleaseSRWLockExclusive((SRWLOCK *)(mutex->data));
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -268,8 +324,10 @@ void
 rwShutdown(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
+#if THREADING_DEBUG
     CF_ASSERT(lock->reserved0 == 0, "Shutting down an RwLock acquired for writing");
     CF_ASSERT(lock->reserved1 == 0, "Shutting down an RwLock acquired for reading");
+#endif
 }
 
 bool
@@ -278,7 +336,9 @@ rwTryLockReader(RwLock *lock)
     CF_ASSERT_NOT_NULL(lock);
     if (TryAcquireSRWLockShared((SRWLOCK *)(lock->data)))
     {
+#if THREADING_DEBUG
         ++lock->reserved1;
+#endif
         return true;
     }
     return false;
@@ -289,14 +349,18 @@ rwLockReader(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
     AcquireSRWLockShared((SRWLOCK *)(lock->data));
+#if THREADING_DEBUG
     ++lock->reserved1;
+#endif
 }
 
 void
 rwUnlockReader(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
+#if THREADING_DEBUG
     --lock->reserved1;
+#endif
     ReleaseSRWLockShared((SRWLOCK *)(lock->data));
 }
 
@@ -304,24 +368,43 @@ bool
 rwTryLockWriter(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
-    internalTryLockExc((SRWLOCK *)(lock->data), &lock->reserved0);
+#if THREADING_DEBUG
+    return internalTryLockExc((SRWLOCK *)(lock->data), &lock->reserved0);
+#else
+    return TryAcquireSRWLockExclusive((SRWLOCK *)(lock->data));
+#endif
 }
 
 void
 rwLockWriter(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
+#if THREADING_DEBUG
     internalLockExc((SRWLOCK *)(lock->data), &lock->reserved0);
+#else
+    AcquireSRWLockExclusive((SRWLOCK *)(lock->data));
+#endif
 }
 
 void
 rwUnlockWriter(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
+#if THREADING_DEBUG
     internalUnlockExc((SRWLOCK *)(lock->data), &lock->reserved0);
+#else
+    ReleaseSRWLockExclusive((SRWLOCK *)(lock->data));
+#endif
 }
 
 //------------------------------------------------------------------------------
+
+static inline bool
+cvWait(ConditionVariable *cv, SRWLOCK *lock, u32 timeout_ms)
+{
+    CF_ASSERT_NOT_NULL(cv);
+    return SleepConditionVariableSRW((CONDITION_VARIABLE *)(cv->data), lock, timeout_ms, 0);
+}
 
 void
 cvInit(ConditionVariable *cv)
@@ -339,19 +422,21 @@ cvShutdown(ConditionVariable *cv)
 bool
 cvWaitMutex(ConditionVariable *cv, Mutex *mutex, u32 timeout_ms)
 {
-    CF_ASSERT_NOT_NULL(cv);
     CF_ASSERT_NOT_NULL(mutex);
-    return SleepConditionVariableSRW((CONDITION_VARIABLE *)(cv->data), (SRWLOCK *)(mutex->data),
-                                     timeout_ms, 0);
+#if THREADING_DEBUG
+    CF_ASSERT(mutex->internal != 0, "Attemped wait on unlocked Mutex");
+#endif
+    return cvWait(cv, (SRWLOCK *)(mutex->data), timeout_ms);
 }
 
 bool
 cvWaitRwLock(ConditionVariable *cv, RwLock *lock, u32 timeout_ms)
 {
-    CF_ASSERT_NOT_NULL(cv);
     CF_ASSERT_NOT_NULL(lock);
-    return SleepConditionVariableSRW((CONDITION_VARIABLE *)(cv->data), (SRWLOCK *)(lock->data),
-                                     timeout_ms, 0);
+#if THREADING_DEBUG
+    CF_ASSERT(lock->reserved0 != 0 || lock->reserved1 != 0, "Attemped wait on unlocked RwLock");
+#endif
+    return cvWait(cv, (SRWLOCK *)(lock->data), timeout_ms);
 }
 
 void
@@ -475,12 +560,12 @@ main(void)
     Thread threads[Count] = {[Producer] = threadCreate(&(ThreadParms){
                                  .proc = producerProc,
                                  .args = &queue,
-                                 .suspended = true,
+                                 .debug_name = "Producer thread",
                              }),
                              [Consumer] = threadCreate(&(ThreadParms){
                                  .proc = consumerProc,
                                  .args = &queue,
-                                 .suspended = true,
+                                 .debug_name = "Consumer thread",
                              })};
 
     threadStart(threads[Consumer]);
