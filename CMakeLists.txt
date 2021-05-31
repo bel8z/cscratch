@@ -136,4 +136,10 @@ target_link_libraries(test_array PRIVATE foundation)
 target_include_directories(test_array PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_array)
 
+add_executable(test_win32_threads tests/test_win32_threads.c)
+target_link_libraries(test_win32_threads PRIVATE foundation)
+target_include_directories(test_win32_threads PRIVATE ${CODE_DIR})
+set_c_compile_flags(test_win32_threads)
+
 add_test(test_array test_array)
+add_test(test_win32_threads test_win32_threads)
