@@ -34,10 +34,8 @@ bool threadWaitAll(Thread *threads, usize num_threads, u32 timeout_ms);
 
 //------------------------------------------------------------------------------
 
-// TODO (Matteo): Maybe provide shared access for multiple readers?
-
-/// Lightweight syncronization primitive which offers exclusive access to a resource
-/// This mutex cannot be acquired recursively
+/// Lightweight syncronization primitive which offers exclusive access to a resource.
+/// This mutex cannot be acquired recursively.
 typedef struct Mutex
 {
     u8 data[sizeof(void *)];
@@ -47,8 +45,31 @@ typedef struct Mutex
 
 void mutexInit(Mutex *mutex);
 void mutexShutdown(Mutex *mutex);
+bool mutexTryAcquire(Mutex *mutex);
 void mutexAcquire(Mutex *mutex);
 void mutexRelease(Mutex *mutex);
+
+//------------------------------------------------------------------------------
+
+/// Lightweight syncronization primitive which offers shared access to readers and
+/// exclusive access to writers of a resource.
+/// The lock cannot be taken recursively, neither by readers nor writers.
+typedef struct RwLock
+{
+    u8 data[sizeof(void *)];
+    // DEBUG
+    u32 reserved0;
+    u32 reserved1;
+} RwLock;
+
+void rwInit(RwLock *lock);
+void rwShutdown(RwLock *lock);
+bool rwTryLockReader(RwLock *lock);
+bool rwTryLockWriter(RwLock *lock);
+void rwLockReader(RwLock *lock);
+void rwLockWriter(RwLock *lock);
+void rwUnlockReader(RwLock *lock);
+void rwUnlockWriter(RwLock *lock);
 
 //------------------------------------------------------------------------------
 
@@ -61,7 +82,8 @@ typedef struct ConditionVariable
 
 void cvInit(ConditionVariable *cv);
 void cvShutdown(ConditionVariable *cv);
-bool cvWait(ConditionVariable *cv, Mutex *mutex, u32 timeout_ms);
+bool cvWaitMutex(ConditionVariable *cv, Mutex *mutex, u32 timeout_ms);
+bool cvWaitRwLock(ConditionVariable *cv, RwLock *lock, u32 timeout_ms);
 void cvSignalOne(ConditionVariable *cv);
 void cvSignalAll(ConditionVariable *cv);
 
@@ -153,6 +175,52 @@ threadWaitAll(Thread *threads, usize num_threads, u32 timeout_ms)
 
 //------------------------------------------------------------------------------
 
+// Internal implementation of exclusive locking, shared by Mutex and RwLock
+
+static bool
+internalTryLockExc(SRWLOCK *lock, u32 *owner_id)
+{
+    CF_ASSERT_NOT_NULL(lock);
+    CF_ASSERT_NOT_NULL(owner_id);
+
+    // NOTE (Matteo): Naive check for recursive access
+    if (!TryAcquireSRWLockExclusive(lock))
+    {
+        CF_ASSERT(*owner_id != GetCurrentThreadId(), "Attempted to lock recursively");
+        return false;
+    }
+
+    *owner_id = GetCurrentThreadId();
+    return true;
+}
+
+static void
+internalLockExc(SRWLOCK *lock, u32 *owner_id)
+{
+    CF_ASSERT_NOT_NULL(lock);
+    CF_ASSERT_NOT_NULL(owner_id);
+
+    // NOTE (Matteo): Naive check for recursive access
+    if (!TryAcquireSRWLockExclusive(lock))
+    {
+        CF_ASSERT(*owner_id != GetCurrentThreadId(), "Attempted to lock recursively");
+        AcquireSRWLockExclusive(lock);
+    }
+
+    *owner_id = GetCurrentThreadId();
+}
+
+static void
+internalUnlockExc(SRWLOCK *lock, u32 *owner_id)
+{
+    CF_ASSERT_NOT_NULL(lock);
+    CF_ASSERT_NOT_NULL(owner_id);
+    *owner_id = 0;
+    ReleaseSRWLockExclusive(lock);
+}
+
+//------------------------------------------------------------------------------
+
 void
 mutexInit(Mutex *mutex)
 {
@@ -167,29 +235,90 @@ mutexShutdown(Mutex *mutex)
     CF_ASSERT(mutex->internal == 0, "Shutting down an acquired mutex");
 }
 
+bool
+mutexTryAcquire(Mutex *mutex)
+{
+    CF_ASSERT_NOT_NULL(mutex);
+    return internalTryLockExc((SRWLOCK *)(mutex->data), &mutex->internal);
+}
+
 void
 mutexAcquire(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
-
-    SRWLOCK *lock = (SRWLOCK *)(mutex->data);
-
-    // NOTE (Matteo): Naive check for recursive access
-    if (!TryAcquireSRWLockExclusive(lock))
-    {
-        CF_ASSERT(mutex->internal != GetCurrentThreadId(), "Attempted to lock Mutex recursively");
-        AcquireSRWLockExclusive(lock);
-    }
-
-    mutex->internal = GetCurrentThreadId();
+    internalLockExc((SRWLOCK *)(mutex->data), &mutex->internal);
 }
 
 void
 mutexRelease(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
-    mutex->internal = 0;
-    ReleaseSRWLockExclusive((SRWLOCK *)(mutex->data));
+    internalUnlockExc((SRWLOCK *)(mutex->data), &mutex->internal);
+}
+
+//------------------------------------------------------------------------------
+void
+rwInit(RwLock *lock)
+{
+    CF_ASSERT_NOT_NULL(lock);
+    InitializeSRWLock((SRWLOCK *)(lock->data));
+}
+
+void
+rwShutdown(RwLock *lock)
+{
+    CF_ASSERT_NOT_NULL(lock);
+    CF_ASSERT(lock->reserved0 == 0, "Shutting down an RwLock acquired for writing");
+    CF_ASSERT(lock->reserved1 == 0, "Shutting down an RwLock acquired for reading");
+}
+
+bool
+rwTryLockReader(RwLock *lock)
+{
+    CF_ASSERT_NOT_NULL(lock);
+    if (TryAcquireSRWLockShared((SRWLOCK *)(lock->data)))
+    {
+        ++lock->reserved1;
+        return true;
+    }
+    return false;
+}
+
+void
+rwLockReader(RwLock *lock)
+{
+    CF_ASSERT_NOT_NULL(lock);
+    AcquireSRWLockShared((SRWLOCK *)(lock->data));
+    ++lock->reserved1;
+}
+
+void
+rwUnlockReader(RwLock *lock)
+{
+    CF_ASSERT_NOT_NULL(lock);
+    --lock->reserved1;
+    ReleaseSRWLockShared((SRWLOCK *)(lock->data));
+}
+
+bool
+rwTryLockWriter(RwLock *lock)
+{
+    CF_ASSERT_NOT_NULL(lock);
+    internalTryLockExc((SRWLOCK *)(lock->data), &lock->reserved0);
+}
+
+void
+rwLockWriter(RwLock *lock)
+{
+    CF_ASSERT_NOT_NULL(lock);
+    internalLockExc((SRWLOCK *)(lock->data), &lock->reserved0);
+}
+
+void
+rwUnlockWriter(RwLock *lock)
+{
+    CF_ASSERT_NOT_NULL(lock);
+    internalUnlockExc((SRWLOCK *)(lock->data), &lock->reserved0);
 }
 
 //------------------------------------------------------------------------------
@@ -208,11 +337,20 @@ cvShutdown(ConditionVariable *cv)
 }
 
 bool
-cvWait(ConditionVariable *cv, Mutex *mutex, u32 timeout_ms)
+cvWaitMutex(ConditionVariable *cv, Mutex *mutex, u32 timeout_ms)
 {
     CF_ASSERT_NOT_NULL(cv);
     CF_ASSERT_NOT_NULL(mutex);
     return SleepConditionVariableSRW((CONDITION_VARIABLE *)(cv->data), (SRWLOCK *)(mutex->data),
+                                     timeout_ms, 0);
+}
+
+bool
+cvWaitRwLock(ConditionVariable *cv, RwLock *lock, u32 timeout_ms)
+{
+    CF_ASSERT_NOT_NULL(cv);
+    CF_ASSERT_NOT_NULL(lock);
+    return SleepConditionVariableSRW((CONDITION_VARIABLE *)(cv->data), (SRWLOCK *)(lock->data),
                                      timeout_ms, 0);
 }
 
@@ -307,7 +445,7 @@ consumerProc(void *parm)
     while (true)
     {
         mutexAcquire(&queue->lock);
-        if (cvWait(&queue->notify, &queue->lock, 15))
+        if (cvWaitMutex(&queue->notify, &queue->lock, 15))
         {
             i32 value = queue->buffer[queue->beg];
 
