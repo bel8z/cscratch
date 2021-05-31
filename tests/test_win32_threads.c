@@ -18,17 +18,7 @@
 
 //------------------------------------------------------------------------------
 
-typedef struct Mutex
-{
-    u8 data[sizeof(void *)];
-} Mutex;
-
-void mutexInit(Mutex *mutex);
-void mutexAcquire(Mutex *mutex);
-void mutexRelease(Mutex *mutex);
-
-//------------------------------------------------------------------------------
-
+/// Thread handle
 typedef struct Thread
 {
     uptr handle;
@@ -53,9 +43,42 @@ bool threadWaitAll(Thread *threads, usize num_threads, u32 ms);
 
 //------------------------------------------------------------------------------
 
+// TODO (Matteo): Maybe provide shared access for multiple readers?
+
+/// Lightweight syncronization primitive which offers exclusive access to a resource
+/// This mutex cannot be acquired recursively
+typedef struct Mutex
+{
+    u8 data[sizeof(void *)];
+    // DEBUG
+    u32 internal;
+} Mutex;
+
+void mutexInit(Mutex *mutex);
+void mutexAcquire(Mutex *mutex);
+void mutexRelease(Mutex *mutex);
+
+//------------------------------------------------------------------------------
+
+/// Condition variables are synchronization primitives that enable threads to wait until a
+/// particular condition occurs.
+typedef struct ConditionVariable
+{
+    u8 data[sizeof(void *)];
+} ConditionVariable;
+
+void cvInit(ConditionVariable *cv);
+void cvWait(ConditionVariable *cv, Mutex *mutex, u32 ms);
+void cvSignalOne(ConditionVariable *cv);
+void cvSignalAll(ConditionVariable *cv);
+
+//------------------------------------------------------------------------------
+
 CF_STATIC_ASSERT(sizeof(Thread) == sizeof(HANDLE), "Thread and HANDLE size must be equal");
 CF_STATIC_ASSERT(alignof(Thread) == alignof(HANDLE), "Thread must be aligned as HANDLE");
-CF_STATIC_ASSERT(sizeof(((Mutex *)0)->data) == sizeof(SRWLOCK), "Invalid mutex internal size");
+CF_STATIC_ASSERT(sizeof(((Mutex *)0)->data) == sizeof(SRWLOCK), "Invalid Mutex internal size");
+CF_STATIC_ASSERT(sizeof(((ConditionVariable *)0)->data) == sizeof(CONDITION_VARIABLE),
+                 "Invalid ConditionVariable internal size");
 
 u32 WINAPI
 win32ThreadProc(void *data)
@@ -147,22 +170,81 @@ void
 mutexAcquire(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
-    AcquireSRWLockExclusive((SRWLOCK *)(mutex->data));
+
+    SRWLOCK *lock = (SRWLOCK *)(mutex->data);
+
+    // NOTE (Matteo): Naive check for recursive access
+    if (!TryAcquireSRWLockExclusive(lock))
+    {
+        CF_ASSERT(mutex->internal != GetCurrentThreadId(), "Attempted to lock Mutex recursively");
+        AcquireSRWLockExclusive(lock);
+    }
+
+    mutex->internal = GetCurrentThreadId();
 }
 
 void
 mutexRelease(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
+    mutex->internal = 0;
     ReleaseSRWLockExclusive((SRWLOCK *)(mutex->data));
 }
 
 //------------------------------------------------------------------------------
 
 void
+cvInit(ConditionVariable *cv)
+{
+    CF_ASSERT_NOT_NULL(cv);
+    InitializeConditionVariable((CONDITION_VARIABLE *)(cv->data));
+}
+
+void
+cvWait(ConditionVariable *cv, Mutex *mutex, u32 ms)
+{
+    CF_ASSERT_NOT_NULL(cv);
+    CF_ASSERT_NOT_NULL(mutex);
+    SleepConditionVariableSRW((CONDITION_VARIABLE *)(cv->data), (SRWLOCK *)(mutex->data), ms, 0);
+}
+
+void
+cvSignalOne(ConditionVariable *cv)
+{
+    CF_ASSERT_NOT_NULL(cv);
+    WakeConditionVariable((CONDITION_VARIABLE *)(cv->data));
+}
+
+void
+cvSignalAll(ConditionVariable *cv)
+{
+    CF_ASSERT_NOT_NULL(cv);
+    WakeAllConditionVariable((CONDITION_VARIABLE *)(cv->data));
+}
+
+//------------------------------------------------------------------------------
+
+#pragma warning(push)
+#pragma warning(disable : 4221)
+
+enum
+{
+    QueueSize = 1024
+};
+
+typedef struct Queue
+{
+    u32 buffer[QueueSize];
+    u32 pos;
+    Mutex lock;
+} Queue;
+
+void
 myThreadProc(void *parm)
 {
-    CF_UNUSED(parm);
+    Queue *queue = parm;
+
+    CF_UNUSED(queue);
 
     for (i32 i = 10; i >= 0; --i)
     {
@@ -175,7 +257,11 @@ myThreadProc(void *parm)
 int
 main(void)
 {
-    Thread thread = threadCreate(&(ThreadParms){.proc = myThreadProc, .suspended = true});
+    Queue queue = {0};
+    mutexInit(&queue.lock);
+
+    Thread thread =
+        threadCreate(&(ThreadParms){.proc = myThreadProc, .suspended = true, .args = &queue});
 
     printf("\nThread created\n");
 
@@ -192,3 +278,5 @@ main(void)
 
     return 0;
 }
+
+#pragma warning(pop)
