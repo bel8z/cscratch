@@ -26,6 +26,7 @@ include(cmake/CompileFlags.cmake)
 
 set(EXT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext)
 set(CODE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/code)
+set(TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 #-----------------------
 # Resource files
@@ -74,6 +75,7 @@ message(STATUS "Configuring ${EXE_NAME}")
 set(DEMO_SOURCES 
     ${CODE_DIR}/platform.c
     ${CODE_DIR}/win32/win32_platform.c
+    ${CODE_DIR}/win32/win32_threading.c
     ${CODE_DIR}/gui.c
     ${CODE_DIR}/demo/app.c)
 set_source_files_properties(${DEMO_SOURCES} PROPERTIES LANGUAGE C)
@@ -100,6 +102,7 @@ message(STATUS "Configuring ${EXE_NAME}")
 set(IMAGE_SOURCES 
     ${CODE_DIR}/platform.c
     ${CODE_DIR}/win32/win32_platform.c
+    ${CODE_DIR}/win32/win32_threading.c
     ${CODE_DIR}/gui.c
     ${CODE_DIR}/image/app.c 
     ${CODE_DIR}/image/image.c)
@@ -130,12 +133,14 @@ set_c_compile_flags(${EXE_NAME})
 include(CTest)
 enable_testing()
 
-add_executable(test_array tests/test_array.c)
+add_executable(test_array ${TESTS_DIR}/test_array.c)
 target_link_libraries(test_array PRIVATE foundation)
 target_include_directories(test_array PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_array)
 
-add_executable(test_win32_threads tests/test_win32_threads.c)
+add_executable(test_win32_threads 
+    ${CODE_DIR}/win32/win32_threading.c
+    ${TESTS_DIR}/test_win32_threads.c)
 target_link_libraries(test_win32_threads PRIVATE foundation)
 target_include_directories(test_win32_threads PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_win32_threads)

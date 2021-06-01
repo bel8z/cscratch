@@ -2,19 +2,19 @@
 
 #include "common.h"
 
-// Generic allocator interface
-// The memory provided by this interface should already be cleared to 0
-
+/// Definition of the main allocation function
 #define CF_ALLOCATOR_FUNC(name) \
     void *name(void *state, void *memory, usize old_size, usize new_size)
 
-typedef CF_ALLOCATOR_FUNC(cfAllocatorFunc);
-
+/// Generic allocator interface
+/// The memory provided by this interface should already be cleared to 0
 struct cfAllocator
 {
     void *state;
-    cfAllocatorFunc *reallocate;
+    CF_ALLOCATOR_FUNC((*reallocate));
 };
+
+// Helper macro-functions
 
 #define cfAlloc(a, size) (a)->reallocate((a)->state, NULL, 0, size)
 

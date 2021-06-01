@@ -1,44 +1,21 @@
-#include "win32.h"
+#include "win32/win32_threading.h"
 
 #include "foundation/common.h"
+
+#include "foundation/allocator.h"
 #include "foundation/threading.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "win32/win32_threading.c"
-
-static Threading api = {
-    .threadCreate = win32ThreadCreate,
-    .threadDestroy = win32ThreadDestroy,
-    .threadIsRunning = win32ThreadIsRunning,
-    .threadWait = win32ThreadWait,
-    .threadWaitAll = win32ThreadWaitAll,
-    .mutexInit = win32MutexInit,
-    .mutexShutdown = win32MutexShutdown,
-    .mutexTryAcquire = win32MutexTryAcquire,
-    .mutexAcquire = win32MutexAcquire,
-    .mutexRelease = win32MutexRelease,
-    .rwInit = win32RwInit,
-    .rwShutdown = win32RwShutdown,
-    .rwTryLockReader = win32RwTryLockReader,
-    .rwTryLockWriter = win32RwTryLockWriter,
-    .rwLockReader = win32RwLockReader,
-    .rwLockWriter = win32RwLockWriter,
-    .rwUnlockReader = win32RwUnlockReader,
-    .rwUnlockWriter = win32RwUnlockWriter,
-    .cvInit = win32CvInit,
-    .cvShutdown = win32CvShutdown,
-    .cvWaitMutex = win32CvWaitMutex,
-    .cvWaitRwLock = win32CvWaitRwLock,
-    .cvSignalOne = win32CvSignalOne,
-    .cvSignalAll = win32CvSignalAll,
-};
-
 //------------------------------------------------------------------------------
 
-#pragma warning(push)
-#pragma warning(disable : 4221)
+enum
+{
+    Consumer = 0,
+    Producer = 1,
+    Count,
+};
 
 enum
 {
@@ -54,28 +31,34 @@ typedef struct Queue
     ConditionVariable notify;
 } Queue;
 
+typedef struct Data
+{
+    Threading *api;
+    Queue *queue;
+} Data;
+
 static THREAD_PROC(myThreadProc)
 {
-    Queue *queue = data;
-
-    CF_UNUSED(queue);
+    Threading *api = args;
 
     for (i32 i = 10; i >= 0; --i)
     {
         fprintf(stdout, "\r%d", i);
         fflush(stdout);
-        Sleep(1000);
+        api->sleep(1000);
     }
 }
 
 static THREAD_PROC(producerProc)
 {
-    Queue *queue = data;
+    Data *d = args;
+    Queue *queue = d->queue;
+    Threading *api = d->api;
 
     while (true)
     {
-        Sleep(1000);
-        api.mutexAcquire(&queue->lock);
+        api->sleep(1000);
+        api->mutexAcquire(&queue->lock);
 
         i32 value = rand();
 
@@ -97,19 +80,21 @@ static THREAD_PROC(producerProc)
         fprintf(stdout, "\n");
         fflush(stdout);
 
-        api.cvSignalOne(&queue->notify);
-        api.mutexRelease(&queue->lock);
+        api->cvSignalOne(&queue->notify);
+        api->mutexRelease(&queue->lock);
     }
 }
 
 static THREAD_PROC(consumerProc)
 {
-    Queue *queue = data;
+    Data *d = args;
+    Queue *queue = d->queue;
+    Threading *api = d->api;
 
     while (true)
     {
-        api.mutexAcquire(&queue->lock);
-        if (api.cvWaitMutex(&queue->notify, &queue->lock, 15))
+        api->mutexAcquire(&queue->lock);
+        if (api->cvWaitMutex(&queue->notify, &queue->lock, 15))
         {
             i32 value = queue->buffer[queue->beg];
 
@@ -119,31 +104,53 @@ static THREAD_PROC(consumerProc)
             fprintf(stdout, "Consumed: %d\n", value);
             fflush(stdout);
         }
-        api.mutexRelease(&queue->lock);
+        api->mutexRelease(&queue->lock);
     }
 }
 
-enum
+static CF_ALLOCATOR_FUNC(reallocate)
 {
-    Consumer = 0,
-    Producer = 1,
-    Count,
-};
+    CF_UNUSED(state);
+    CF_UNUSED(old_size);
+
+    void *new_memory = NULL;
+
+    if (new_size)
+    {
+        new_memory = realloc(memory, new_size);
+    }
+    else if (memory)
+    {
+        free(memory);
+    }
+
+    return new_memory;
+}
+
+#pragma warning(push)
+#pragma warning(disable : 4221)
 
 int
 main(void)
 {
+    cfAllocator alloc = {.reallocate = reallocate};
+
+    Threading api = {0};
+    win32ThreadingInit(&api, &alloc);
+
     Queue queue = {0};
+    Data data = {.api = &api, .queue = &queue};
+
     api.mutexInit(&queue.lock);
 
     Thread threads[Count] = {[Producer] = api.threadCreate(&(ThreadParms){
                                  .proc = producerProc,
-                                 .args = &queue,
+                                 .args = &data,
                                  .debug_name = "Producer thread",
                              }),
                              [Consumer] = api.threadCreate(&(ThreadParms){
                                  .proc = consumerProc,
-                                 .args = &queue,
+                                 .args = &data,
                                  .debug_name = "Consumer thread",
                              })};
 

@@ -1,21 +1,16 @@
 #include "win32.h"
 
 #include "foundation/common.h"
+
+#include "foundation/allocator.h"
 #include "foundation/threading.h"
 
 //------------------------------------------------------------------------------
 
-CF_STATIC_ASSERT(sizeof(Thread) == sizeof(HANDLE), "Thread and HANDLE size must be equal");
-CF_STATIC_ASSERT(alignof(Thread) == alignof(HANDLE), "Thread must be aligned as HANDLE");
-
-CF_STATIC_ASSERT(sizeof(((Mutex *)0)->data) == sizeof(SRWLOCK), "Invalid Mutex internal size");
-
-CF_STATIC_ASSERT(sizeof(((RwLock *)0)->data) == sizeof(SRWLOCK), "Invalid RwLock internal size");
-
-CF_STATIC_ASSERT(sizeof(((ConditionVariable *)0)->data) == sizeof(CONDITION_VARIABLE),
-                 "Invalid ConditionVariable internal size");
+static cfAllocator *g_alloc = NULL;
 
 //------------------------------------------------------------------------------
+// Misc implementation
 
 static void
 win32Sleep(u32 ms)
@@ -24,6 +19,10 @@ win32Sleep(u32 ms)
 }
 
 //------------------------------------------------------------------------------
+// Thread implementation
+
+CF_STATIC_ASSERT(sizeof(Thread) == sizeof(HANDLE), "Thread and HANDLE size must be equal");
+CF_STATIC_ASSERT(alignof(Thread) == alignof(HANDLE), "Thread must be aligned as HANDLE");
 
 static u32 WINAPI
 win32ThreadProc(void *data)
@@ -33,7 +32,7 @@ win32ThreadProc(void *data)
     ThreadProc proc = parms->proc;
     void *args = parms->args;
 
-    HeapFree(GetProcessHeap(), 0, parms);
+    cfFree(g_alloc, parms, sizeof(*parms));
 
     proc(args);
 
@@ -48,7 +47,7 @@ win32ThreadCreate(ThreadParms *parms)
     Thread thread = {0};
 
     // TODO (Matteo): Use dedicated, lighter, data structure?
-    ThreadParms *parms_copy = HeapAlloc(GetProcessHeap(), 0, sizeof(*parms_copy));
+    ThreadParms *parms_copy = cfAlloc(g_alloc, sizeof(*parms_copy));
 
     if (parms_copy)
     {
@@ -152,6 +151,9 @@ win32UnlockExc(SRWLOCK *lock, u32 *owner_id)
 #endif
 
 //------------------------------------------------------------------------------
+// Mutex implementation
+
+CF_STATIC_ASSERT(sizeof(((Mutex *)0)->data) == sizeof(SRWLOCK), "Invalid Mutex internal size");
 
 static void
 win32MutexInit(Mutex *mutex)
@@ -203,6 +205,10 @@ win32MutexRelease(Mutex *mutex)
 }
 
 //------------------------------------------------------------------------------
+// RwLock implementation
+
+CF_STATIC_ASSERT(sizeof(((RwLock *)0)->data) == sizeof(SRWLOCK), "Invalid RwLock internal size");
+
 static void
 win32RwInit(RwLock *lock)
 {
@@ -288,6 +294,10 @@ win32RwUnlockWriter(RwLock *lock)
 }
 
 //------------------------------------------------------------------------------
+// ConditionVariable implementation
+
+CF_STATIC_ASSERT(sizeof(((ConditionVariable *)0)->data) == sizeof(CONDITION_VARIABLE),
+                 "Invalid ConditionVariable internal size");
 
 static inline bool
 win32CvWait(ConditionVariable *cv, SRWLOCK *lock, u32 timeout_ms)
@@ -341,4 +351,42 @@ win32CvSignalAll(ConditionVariable *cv)
 {
     CF_ASSERT_NOT_NULL(cv);
     WakeAllConditionVariable((CONDITION_VARIABLE *)(cv->data));
+}
+
+//------------------------------------------------------------------------------
+// API initialization
+
+void
+win32ThreadingInit(Threading *threading, cfAllocator *allocator)
+
+{
+    CF_ASSERT_NOT_NULL(allocator);
+
+    g_alloc = allocator;
+
+    threading->sleep = win32Sleep;
+    threading->threadCreate = win32ThreadCreate;
+    threading->threadDestroy = win32ThreadDestroy;
+    threading->threadIsRunning = win32ThreadIsRunning;
+    threading->threadWait = win32ThreadWait;
+    threading->threadWaitAll = win32ThreadWaitAll;
+    threading->mutexInit = win32MutexInit;
+    threading->mutexShutdown = win32MutexShutdown;
+    threading->mutexTryAcquire = win32MutexTryAcquire;
+    threading->mutexAcquire = win32MutexAcquire;
+    threading->mutexRelease = win32MutexRelease;
+    threading->rwInit = win32RwInit;
+    threading->rwShutdown = win32RwShutdown;
+    threading->rwTryLockReader = win32RwTryLockReader;
+    threading->rwTryLockWriter = win32RwTryLockWriter;
+    threading->rwLockReader = win32RwLockReader;
+    threading->rwLockWriter = win32RwLockWriter;
+    threading->rwUnlockReader = win32RwUnlockReader;
+    threading->rwUnlockWriter = win32RwUnlockWriter;
+    threading->cvInit = win32CvInit;
+    threading->cvShutdown = win32CvShutdown;
+    threading->cvWaitMutex = win32CvWaitMutex;
+    threading->cvWaitRwLock = win32CvWaitRwLock;
+    threading->cvSignalOne = win32CvSignalOne;
+    threading->cvSignalAll = win32CvSignalAll;
 }

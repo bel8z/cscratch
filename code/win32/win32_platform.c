@@ -1,3 +1,6 @@
+#include "win32.h"
+#include "win32_threading.h"
+
 #include "api.h"
 
 #include "foundation/common.h"
@@ -12,10 +15,6 @@
 #if !defined(_WIN32)
 #error "Win32 platform not supported"
 #endif // defined(_WIN32)
-
-#include "win32.h"
-
-#include "win32_threading.c"
 
 //------------------------------------------------------------------------------
 // Cross-platform entry point
@@ -141,33 +140,8 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
         .read_file = win32ReadFile,
     };
 
-    Threading threading = {
-        .sleep = win32Sleep,
-        .threadCreate = win32ThreadCreate,
-        .threadDestroy = win32ThreadDestroy,
-        .threadIsRunning = win32ThreadIsRunning,
-        .threadWait = win32ThreadWait,
-        .threadWaitAll = win32ThreadWaitAll,
-        .mutexInit = win32MutexInit,
-        .mutexShutdown = win32MutexShutdown,
-        .mutexTryAcquire = win32MutexTryAcquire,
-        .mutexAcquire = win32MutexAcquire,
-        .mutexRelease = win32MutexRelease,
-        .rwInit = win32RwInit,
-        .rwShutdown = win32RwShutdown,
-        .rwTryLockReader = win32RwTryLockReader,
-        .rwTryLockWriter = win32RwTryLockWriter,
-        .rwLockReader = win32RwLockReader,
-        .rwLockWriter = win32RwLockWriter,
-        .rwUnlockReader = win32RwUnlockReader,
-        .rwUnlockWriter = win32RwUnlockWriter,
-        .cvInit = win32CvInit,
-        .cvShutdown = win32CvShutdown,
-        .cvWaitMutex = win32CvWaitMutex,
-        .cvWaitRwLock = win32CvWaitRwLock,
-        .cvSignalOne = win32CvSignalOne,
-        .cvSignalAll = win32CvSignalAll,
-    };
+    Threading threading = {0};
+    win32ThreadingInit(&threading, &heap);
 
     cfPlatform platform = {
         .vm = &vm,

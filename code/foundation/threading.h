@@ -14,7 +14,7 @@ typedef struct Thread
     uptr handle;
 } Thread;
 
-#define THREAD_PROC(name) void name(void *data)
+#define THREAD_PROC(name) void name(void *args)
 
 typedef THREAD_PROC((*ThreadProc));
 
