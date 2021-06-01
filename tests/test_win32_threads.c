@@ -5,6 +5,8 @@
 #include "foundation/allocator.h"
 #include "foundation/threading.h"
 
+#include "std_allocator.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -108,32 +110,13 @@ static THREAD_PROC(consumerProc)
     }
 }
 
-static CF_ALLOCATOR_FUNC(reallocate)
-{
-    CF_UNUSED(state);
-    CF_UNUSED(old_size);
-
-    void *new_memory = NULL;
-
-    if (new_size)
-    {
-        new_memory = realloc(memory, new_size);
-    }
-    else if (memory)
-    {
-        free(memory);
-    }
-
-    return new_memory;
-}
-
 #pragma warning(push)
 #pragma warning(disable : 4221)
 
 int
 main(void)
 {
-    cfAllocator alloc = {.reallocate = reallocate};
+    cfAllocator alloc = stdAllocator();
 
     Threading api = {0};
     win32ThreadingInit(&api, &alloc);

@@ -4,16 +4,7 @@
 #include "foundation/allocator.h"
 #include "foundation/array.h"
 
-static CF_ALLOCATOR_FUNC(reallocate)
-{
-    (void)(state);
-    (void)(old_size);
-
-    if (new_size) return realloc(memory, new_size);
-
-    free(memory);
-    return NULL;
-}
+#include "std_allocator.h"
 
 int32_t
 main(int32_t argc, char **argv)
@@ -21,8 +12,10 @@ main(int32_t argc, char **argv)
     (void)argc;
     (void)argv;
 
+    cfAllocator std_alloc = stdAllocator();
+    cfAllocator *alloc = &std_alloc;
+
     cfArray(i32) array = NULL;
-    cfAllocator *alloc = &(cfAllocator){.reallocate = reallocate};
     cfArrayInit(array, alloc);
 
     cfArrayPush(array, 0);
