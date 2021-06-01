@@ -27,15 +27,11 @@ typedef struct ThreadParms
     usize stack_size;
 } ThreadParms;
 
-/// Create a thread. The returned thread is not running, and must be explicitly started.
+/// Create and start a new thread.
 Thread threadCreate(ThreadParms *parms);
-/// Create a running thread.
-Thread threadSpawn(ThreadParms *parms);
 /// Destroys the given thread handle. A running thread is not terminated by this call, but using the
 /// handle again is undefined behavior.
 void threadDestroy(Thread thread);
-/// Start a thread created with threadCreate
-void threadStart(Thread thread);
 /// Check if the given thread is running
 bool threadIsRunning(Thread thread);
 /// Wait the thread completion for the given amount of time; returns true if the thread terminates
@@ -134,8 +130,8 @@ win32ThreadProc(void *data)
     return 0;
 }
 
-static Thread
-internalThreadCreate(ThreadParms *parms, bool suspended)
+Thread
+threadCreate(ThreadParms *parms)
 {
     Thread thread = {0};
 
@@ -148,9 +144,8 @@ internalThreadCreate(ThreadParms *parms, bool suspended)
 
         CF_ASSERT(parms_copy->stack_size <= U32_MAX, "Required stack size is too large");
 
-        u32 flags = suspended ? CREATE_SUSPENDED : 0;
         thread.handle = _beginthreadex(NULL, (u32)parms_copy->stack_size, win32ThreadProc,
-                                       parms_copy, flags, NULL);
+                                       parms_copy, CREATE_SUSPENDED, NULL);
     }
 
     if (thread.handle && parms->debug_name)
@@ -159,33 +154,16 @@ internalThreadCreate(ThreadParms *parms, bool suspended)
         u32 size = MultiByteToWideChar(CP_UTF8, 0, parms->debug_name, -1, buffer, 1024);
         CF_ASSERT(size > 0 || size < 1024, "Thread debug name is too long");
         SetThreadDescription((HANDLE)thread.handle, buffer);
+        ResumeThread((HANDLE)thread.handle);
     }
 
     return thread;
-}
-
-Thread
-threadCreate(ThreadParms *parms)
-{
-    return internalThreadCreate(parms, true);
-}
-
-Thread
-threadSpawn(ThreadParms *parms)
-{
-    return internalThreadCreate(parms, false);
 }
 
 void
 threadDestroy(Thread thread)
 {
     if (thread.handle) CloseHandle((HANDLE)thread.handle);
-}
-
-void
-threadStart(Thread thread)
-{
-    if (thread.handle) ResumeThread((HANDLE)thread.handle);
 }
 
 bool
@@ -567,9 +545,6 @@ main(void)
                                  .args = &queue,
                                  .debug_name = "Consumer thread",
                              })};
-
-    threadStart(threads[Consumer]);
-    threadStart(threads[Producer]);
 
     threadWaitAll(threads, Count, TIMEOUT_INFINITE);
 
