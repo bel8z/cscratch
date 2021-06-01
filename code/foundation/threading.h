@@ -14,10 +14,13 @@ typedef struct Thread
     uptr handle;
 } Thread;
 
+/// Macro to generate a thread procedure signature
 #define THREAD_PROC(name) void name(void *args)
 
+/// Pointer to thread procedure
 typedef THREAD_PROC((*ThreadProc));
 
+/// Thread creation parameters
 typedef struct ThreadParms
 {
     ThreadProc proc;
@@ -55,48 +58,57 @@ typedef struct ConditionVariable
     u8 data[sizeof(void *)];
 } ConditionVariable;
 
+// clang-format off
+/// Macro to generate the threading API struct/functions
+/// X(name, ReturnType, ...) where ... is the argument list
+#define THREADING_API(X)                                                           \
+    /*** Misc ***/                                                                 \
+    X(sleep, void, u32 timeout_ms)                                                 \
+    /*** Thread ***/                                                               \
+    X(threadCreate,    Thread, ThreadParms *parms)                                 \
+    X(threadDestroy,   void,   Thread thread)                                      \
+    X(threadIsRunning, bool,   Thread thread)                                      \
+    X(threadWait,      bool,   Thread thread, u32 timeout_ms)                      \
+    X(threadWaitAll,   bool,   Thread *threads, usize num_threads, u32 timeout_ms) \
+    /*** Mutex ***/                                                                \
+    X(mutexInit,       void, Mutex *mutex)                                         \
+    X(mutexShutdown,   void, Mutex *mutex)                                         \
+    X(mutexTryAcquire, bool, Mutex *mutex)                                         \
+    X(mutexAcquire,    void, Mutex *mutex)                                         \
+    X(mutexRelease,    void, Mutex *mutex)                                         \
+    /*** RwLock ***/                                                               \
+    X(rwInit,          void, RwLock *lock)                                         \
+    X(rwShutdown,      void, RwLock *lock)                                         \
+    X(rwTryLockReader, bool, RwLock *lock)                                         \
+    X(rwTryLockWriter, bool, RwLock *lock)                                         \
+    X(rwLockReader,    void, RwLock *lock)                                         \
+    X(rwLockWriter,    void, RwLock *lock)                                         \
+    X(rwUnlockReader,  void, RwLock *lock)                                         \
+    X(rwUnlockWriter,  void, RwLock *lock)                                         \
+    /*** ConditionVariable ***/                                                    \
+    X(cvInit,       void, ConditionVariable *cv)                                   \
+    X(cvShutdown,   void, ConditionVariable *cv)                                   \
+    X(cvWaitMutex,  bool, ConditionVariable *cv, Mutex *mutex, u32 timeout_ms)     \
+    X(cvWaitRwLock, bool, ConditionVariable *cv, RwLock *lock, u32 timeout_ms)     \
+    X(cvSignalOne,  void, ConditionVariable *cv)                                   \
+    X(cvSignalAll,  void, ConditionVariable *cv)
+// clang-format on
+
 /// Threading API
 typedef struct Threading
 {
-    void (*sleep)(u32 timeout_ms);
-
-    /// Create and start a new thread.
-    Thread (*threadCreate)(ThreadParms *parms);
-    /// Destroys the given thread handle. A running thread is not terminated by this call, but using
-    /// the handle again is undefined behavior.
-    void (*threadDestroy)(Thread thread);
-    /// Check if the given thread is running
-    bool (*threadIsRunning)(Thread thread);
-    /// Wait the thread completion for the given amount of time; returns true if the thread
-    /// terminates before the timeout occurs, false otherwise.
-    bool (*threadWait)(Thread thread, u32 timeout_ms);
-    /// Wait the completion of the given threads for the given amount of time; returns true if all
-    /// the threads terminate before the timeout occurs, false otherwise.
-    bool (*threadWaitAll)(Thread *threads, usize num_threads, u32 timeout_ms);
-
-    void (*mutexInit)(Mutex *mutex);
-    void (*mutexShutdown)(Mutex *mutex);
-    bool (*mutexTryAcquire)(Mutex *mutex);
-    void (*mutexAcquire)(Mutex *mutex);
-    void (*mutexRelease)(Mutex *mutex);
-
-    void (*rwInit)(RwLock *lock);
-    void (*rwShutdown)(RwLock *lock);
-    bool (*rwTryLockReader)(RwLock *lock);
-    bool (*rwTryLockWriter)(RwLock *lock);
-    void (*rwLockReader)(RwLock *lock);
-    void (*rwLockWriter)(RwLock *lock);
-    void (*rwUnlockReader)(RwLock *lock);
-    void (*rwUnlockWriter)(RwLock *lock);
-
-    void (*cvInit)(ConditionVariable *cv);
-    void (*cvShutdown)(ConditionVariable *cv);
-    bool (*cvWaitMutex)(ConditionVariable *cv, Mutex *mutex, u32 timeout_ms);
-    bool (*cvWaitRwLock)(ConditionVariable *cv, RwLock *lock, u32 timeout_ms);
-    void (*cvSignalOne)(ConditionVariable *cv);
-    void (*cvSignalAll)(ConditionVariable *cv);
-
+#define ENTRY_FN(name, ReturnType, ...) ReturnType (*name)(__VA_ARGS__);
+    THREADING_API(ENTRY_FN)
+#undef ENTRY_FN
 } Threading;
+
+static inline void
+threadingCheckApi(Threading *api)
+{
+#define CHECK_ENTRY_FN(name, ...) CF_ASSERT_NOT_NULL(api->name);
+    THREADING_API(CHECK_ENTRY_FN)
+#undef CHECK_ENTRY_FN
+}
 
 #define FOUNDATION_THREADING_H
 #endif
