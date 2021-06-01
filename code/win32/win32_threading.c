@@ -181,6 +181,9 @@ win32mutexInit(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
     InitializeSRWLock((SRWLOCK *)(mutex->data));
+#if THREADING_DEBUG
+    mutex->internal = 0;
+#endif
 }
 
 void
@@ -235,6 +238,10 @@ win32rwInit(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
     InitializeSRWLock((SRWLOCK *)(lock->data));
+#if THREADING_DEBUG
+    lock->reserved0 = 0;
+    lock->reserved1 = 0;
+#endif
 }
 
 void

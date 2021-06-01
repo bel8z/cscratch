@@ -81,7 +81,6 @@ static THREAD_PROC(producerProc)
 
         fprintf(stdout, "\n");
         fflush(stdout);
-
         api->cvSignalOne(&queue->notify);
         api->mutexRelease(&queue->lock);
     }
@@ -125,6 +124,7 @@ main(void)
     Data data = {.api = &api, .queue = &queue};
 
     api.mutexInit(&queue.lock);
+    api.cvInit(&queue.notify);
 
     Thread threads[Count] = {[Producer] = api.threadCreate(&(ThreadParms){
                                  .proc = producerProc,
