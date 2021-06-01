@@ -73,8 +73,7 @@ message(STATUS "Configuring ${EXE_NAME}")
 
 set(DEMO_SOURCES 
     ${CODE_DIR}/platform.c
-    ${CODE_DIR}/platform_win32.c
-    ${CODE_DIR}/platform_win32.c
+    ${CODE_DIR}/win32/win32_platform.c
     ${CODE_DIR}/gui.c
     ${CODE_DIR}/demo/app.c)
 set_source_files_properties(${DEMO_SOURCES} PROPERTIES LANGUAGE C)
@@ -100,7 +99,7 @@ message(STATUS "Configuring ${EXE_NAME}")
 
 set(IMAGE_SOURCES 
     ${CODE_DIR}/platform.c
-    ${CODE_DIR}/platform_win32.c
+    ${CODE_DIR}/win32/win32_platform.c
     ${CODE_DIR}/gui.c
     ${CODE_DIR}/image/app.c 
     ${CODE_DIR}/image/image.c)

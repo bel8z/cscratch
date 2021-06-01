@@ -15,6 +15,8 @@
 
 #include "win32.h"
 
+#include "win32_threading.c"
+
 //------------------------------------------------------------------------------
 // Cross-platform entry point
 //------------------------------------------------------------------------------
@@ -44,11 +46,6 @@ static FileDlgResult win32OpenFileDlg(char const *filename_hint, FileDlgFilter *
                                       usize num_filters, cfAllocator *alloc);
 
 static FileContent win32ReadFile(char const *filename, cfAllocator *alloc);
-
-// Threading API
-static ThreadHandle win32ThreadCreate(ThreadParms const *parms);
-static void win32ThreadWait(ThreadHandle thread);
-static void win32Sleep(u32 ms);
 
 // Timing
 static struct
@@ -145,9 +142,31 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
     };
 
     Threading threading = {
-        .thread_create = win32ThreadCreate,
-        .thread_wait = win32ThreadWait,
         .sleep = win32Sleep,
+        .threadCreate = win32ThreadCreate,
+        .threadDestroy = win32ThreadDestroy,
+        .threadIsRunning = win32ThreadIsRunning,
+        .threadWait = win32ThreadWait,
+        .threadWaitAll = win32ThreadWaitAll,
+        .mutexInit = win32MutexInit,
+        .mutexShutdown = win32MutexShutdown,
+        .mutexTryAcquire = win32MutexTryAcquire,
+        .mutexAcquire = win32MutexAcquire,
+        .mutexRelease = win32MutexRelease,
+        .rwInit = win32RwInit,
+        .rwShutdown = win32RwShutdown,
+        .rwTryLockReader = win32RwTryLockReader,
+        .rwTryLockWriter = win32RwTryLockWriter,
+        .rwLockReader = win32RwLockReader,
+        .rwLockWriter = win32RwLockWriter,
+        .rwUnlockReader = win32RwUnlockReader,
+        .rwUnlockWriter = win32RwUnlockWriter,
+        .cvInit = win32CvInit,
+        .cvShutdown = win32CvShutdown,
+        .cvWaitMutex = win32CvWaitMutex,
+        .cvWaitRwLock = win32CvWaitRwLock,
+        .cvSignalOne = win32CvSignalOne,
+        .cvSignalAll = win32CvSignalAll,
     };
 
     cfPlatform platform = {
@@ -575,41 +594,7 @@ win32ReadFile(char const *filename, cfAllocator *alloc)
 }
 
 //------------------------------------------------------------------------------
-
 // Threading API
-ThreadHandle
-win32ThreadCreate(ThreadParms const *parms)
-{
-    ThreadHandle handle = 0;
-
-    CF_ASSERT_NOT_NULL(parms);
-    CF_ASSERT_NOT_NULL(parms->proc);
-    CF_ASSERT(parms->stack_size <= U32_MAX, "Thread stack size is too large");
-
-    uptr thread = _beginthread(parms->proc, (u32)parms->stack_size, parms->data);
-
-    if (thread != 0 && thread == (uptr)(-1))
-    {
-        handle = thread;
-    }
-
-    return handle;
-}
-
-void
-win32ThreadWait(ThreadHandle thread)
-{
-    if (thread)
-    {
-        WaitForSingleObject((HANDLE)thread, INFINITE);
-    }
-}
-
-void
-win32Sleep(u32 ms)
-{
-    Sleep(ms);
-}
 
 //------------------------------------------------------------------------------
 u64
