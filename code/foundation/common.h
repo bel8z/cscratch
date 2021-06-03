@@ -233,7 +233,8 @@ typedef struct Time
 
 #define TIME_MS(ms) TIME_US(1000 * ms)
 #define TIME_US(us) TIME_NS(1000 * us)
-#define TIME_NS(ns) ((Time){.nanoseconds = ns})
+#define TIME_NS(ns) \
+    (CF_ASSERT(ns > I64_MIN, "Invalid nanoseconds count"), (Time){.nanoseconds = ns})
 
 #define timeAdd(a, b) ((Time){.nanoseconds = a.nanoseconds + b.nanoseconds})
 #define timeSub(a, b) ((Time){.nanoseconds = a.nanoseconds - b.nanoseconds})
