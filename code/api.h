@@ -36,7 +36,7 @@ typedef struct cfPlatform
 
     /// Return the amount of nanoseconds elapsed since the start of the application
     /// Useful for performance measurement
-    u64 (*clock)(void);
+    Time (*clock)(void);
 
 } cfPlatform;
 

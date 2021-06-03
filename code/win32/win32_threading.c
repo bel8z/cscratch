@@ -33,10 +33,19 @@ win32ThreadingInit(Threading *api, cfAllocator *allocator)
 //------------------------------------------------------------------------------
 // Misc implementation
 
-static void
-win32sleep(u32 ms)
+static inline DWORD
+timeoutMs(Time timeout)
 {
-    Sleep(ms);
+    if (TIME_IS_INFINITE(timeout)) return INFINITE;
+    CF_ASSERT(timeout.nanoseconds >= 0, "Negative timeout given");
+    i64 ms = timeout.nanoseconds / 1000000;
+    return (DWORD)ms;
+}
+
+static void
+win32sleep(Time timeout)
+{
+    Sleep(timeoutMs(timeout));
 }
 
 //------------------------------------------------------------------------------
@@ -83,7 +92,7 @@ win32threadCreate(ThreadParms *parms)
     if (thread.handle && parms->debug_name)
     {
         WCHAR buffer[1024];
-        u32 size = MultiByteToWideChar(CP_UTF8, 0, parms->debug_name, -1, buffer, 1024);
+        i32 size = MultiByteToWideChar(CP_UTF8, 0, parms->debug_name, -1, buffer, 1024);
         CF_ASSERT(size > 0 || size < 1024, "Thread debug name is too long");
         SetThreadDescription((HANDLE)thread.handle, buffer);
         ResumeThread((HANDLE)thread.handle);
@@ -106,18 +115,18 @@ win32threadIsRunning(Thread thread)
 }
 
 bool
-win32threadWait(Thread thread, u32 timeout_ms)
+win32threadWait(Thread thread, Time timeout)
 {
     return (thread.handle &&
-            WAIT_OBJECT_0 == WaitForSingleObject((HANDLE)thread.handle, timeout_ms));
+            WAIT_OBJECT_0 == WaitForSingleObject((HANDLE)thread.handle, timeoutMs(timeout)));
 }
 
 bool
-win32threadWaitAll(Thread *threads, usize num_threads, u32 timeout_ms)
+win32threadWaitAll(Thread *threads, usize num_threads, Time timeout)
 {
     CF_ASSERT(num_threads <= U32_MAX, "Given number of threads is too large");
     DWORD count = (DWORD)num_threads;
-    DWORD code = WaitForMultipleObjects(count, (HANDLE *)threads, true, timeout_ms);
+    DWORD code = WaitForMultipleObjects(count, (HANDLE *)threads, true, timeoutMs(timeout));
     return (code < WAIT_OBJECT_0 + count);
 }
 
@@ -328,10 +337,10 @@ CF_STATIC_ASSERT(sizeof(((ConditionVariable *)0)->data) == sizeof(CONDITION_VARI
                  "Invalid ConditionVariable internal size");
 
 static inline bool
-win32cvWait(ConditionVariable *cv, SRWLOCK *lock, u32 timeout_ms)
+win32cvWait(ConditionVariable *cv, SRWLOCK *lock, Time timeout)
 {
     CF_ASSERT_NOT_NULL(cv);
-    return SleepConditionVariableSRW((CONDITION_VARIABLE *)(cv->data), lock, timeout_ms, 0);
+    return SleepConditionVariableSRW((CONDITION_VARIABLE *)(cv->data), lock, timeoutMs(timeout), 0);
 }
 
 void
@@ -348,23 +357,23 @@ win32cvShutdown(ConditionVariable *cv)
 }
 
 bool
-win32cvWaitMutex(ConditionVariable *cv, Mutex *mutex, u32 timeout_ms)
+win32cvWaitMutex(ConditionVariable *cv, Mutex *mutex, Time timeout)
 {
     CF_ASSERT_NOT_NULL(mutex);
 #if THREADING_DEBUG
     CF_ASSERT(mutex->internal != 0, "Attemped wait on unlocked Mutex");
 #endif
-    return win32cvWait(cv, (SRWLOCK *)(mutex->data), timeout_ms);
+    return win32cvWait(cv, (SRWLOCK *)(mutex->data), timeout);
 }
 
 bool
-win32cvWaitRwLock(ConditionVariable *cv, RwLock *lock, u32 timeout_ms)
+win32cvWaitRwLock(ConditionVariable *cv, RwLock *lock, Time timeout)
 {
     CF_ASSERT_NOT_NULL(lock);
 #if THREADING_DEBUG
     CF_ASSERT(lock->reserved0 != 0 || lock->reserved1 != 0, "Attemped wait on unlocked RwLock");
 #endif
-    return win32cvWait(cv, (SRWLOCK *)(lock->data), timeout_ms);
+    return win32cvWait(cv, (SRWLOCK *)(lock->data), timeout);
 }
 
 void

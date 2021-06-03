@@ -221,6 +221,24 @@ union Hsva
 };
 
 //------------------------------------------------------------------------------
+// Time interval, useful for performance tracking
+
+typedef struct Time
+{
+    i64 nanoseconds;
+} Time;
+
+#define TIME_INFINITE ((Time){.nanoseconds = I64_MIN})
+#define TIME_IS_INFINITE(time) (time.nanoseconds == I64_MIN)
+
+#define TIME_MS(ms) TIME_US(1000 * ms)
+#define TIME_US(us) TIME_NS(1000 * us)
+#define TIME_NS(ns) ((Time){.nanoseconds = ns})
+
+#define timeAdd(a, b) ((Time){.nanoseconds = a.nanoseconds + b.nanoseconds})
+#define timeSub(a, b) ((Time){.nanoseconds = a.nanoseconds - b.nanoseconds})
+
+//------------------------------------------------------------------------------
 // Assertion macros
 
 #if CF_RELEASE_ASSERTS && defined(NDEBUG)

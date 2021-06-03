@@ -65,18 +65,18 @@ appDestroy(AppState *app)
 //------------------------------------------------------------------------------
 
 static void
-guiClock(u64 ns)
+guiClock(Time time)
 {
-    u64 const secs_per_hour = 60 * 60;
-    u64 const secs_per_day = secs_per_hour * 24;
-    u64 const secs = ns / 1000000000;
-    u64 const ms_remainder = (ns - secs * 1000000000) / 1000000;
+    i64 const secs_per_hour = 60 * 60;
+    i64 const secs_per_day = secs_per_hour * 24;
+    i64 const secs = time.nanoseconds / 1000000000;
+    i64 const ms_remainder = (time.nanoseconds - secs * 1000000000) / 1000000;
 
     // Euclidean reminder to compute the number of seconds in a day boundary
-    u64 total_secs = ((secs % secs_per_day) + secs_per_day) % secs_per_day;
-    u64 hours = total_secs / secs_per_hour;
-    u64 mins = (total_secs - hours * secs_per_hour) / 60;
-    u64 final_secs = total_secs - mins * 60;
+    i64 total_secs = ((secs % secs_per_day) + secs_per_day) % secs_per_day;
+    i64 hours = total_secs / secs_per_hour;
+    i64 mins = (total_secs - hours * secs_per_hour) / 60;
+    i64 final_secs = total_secs - mins * 60;
 
     igText("%02d:%02d:%02d.%03d", hours, mins, final_secs, ms_remainder);
 }

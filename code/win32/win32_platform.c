@@ -49,13 +49,13 @@ static FileContent win32ReadFile(char const *filename, cfAllocator *alloc);
 // Timing
 static struct
 {
-    u64 start_ticks;
-    u64 ratio_num;
-    u64 ratio_den;
-    u64 last_ns;
+    i64 start_ticks;
+    i64 ratio_num;
+    i64 ratio_den;
+    i64 last_ns;
 } g_clock;
 
-static u64 win32Clock(void);
+static Time win32Clock(void);
 
 // UTF8<->UTF16 helpers
 static u32 win32Utf8To16(char const *str, i32 str_size, WCHAR *out, u32 out_size);
@@ -115,10 +115,10 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
     CF_ASSERT(now.QuadPart > 0, "System monotonic clock is not available");
 
     g_clock.last_ns = 0;
-    g_clock.start_ticks = (u64)now.QuadPart;
-    g_clock.ratio_num = (u64)1000000000;
-    g_clock.ratio_den = (u64)freq.QuadPart;
-    u64 gcd = cfGcd(g_clock.ratio_num, g_clock.ratio_den);
+    g_clock.start_ticks = now.QuadPart;
+    g_clock.ratio_num = 1000000000;
+    g_clock.ratio_den = freq.QuadPart;
+    u64 gcd = cfGcd((u64)g_clock.ratio_num, (u64)g_clock.ratio_den);
     g_clock.ratio_num /= gcd;
     g_clock.ratio_den /= gcd;
 
@@ -571,21 +571,21 @@ win32ReadFile(char const *filename, cfAllocator *alloc)
 // Threading API
 
 //------------------------------------------------------------------------------
-u64
+Time
 win32Clock(void)
 {
     LARGE_INTEGER now;
     QueryPerformanceCounter(&now);
 
-    CF_ASSERT((u64)now.QuadPart > g_clock.start_ticks, "Win32 clock is not monotonic!");
+    CF_ASSERT(now.QuadPart > g_clock.start_ticks, "Win32 clock is not monotonic!");
 
-    u64 time_delta = (u64)now.QuadPart - g_clock.start_ticks;
-    u64 ns = (time_delta * g_clock.ratio_num) / g_clock.ratio_den;
+    i64 time_delta = now.QuadPart - g_clock.start_ticks;
+    Time time = {.nanoseconds = (time_delta * g_clock.ratio_num) / g_clock.ratio_den};
 
-    CF_ASSERT(g_clock.last_ns < ns, "Win32 clock wrapped");
-    g_clock.last_ns = ns;
+    CF_ASSERT(g_clock.last_ns < time.nanoseconds, "Win32 clock wrapped");
+    g_clock.last_ns = time.nanoseconds;
 
-    return ns;
+    return time;
 }
 
 //------------------------------------------------------------------------------

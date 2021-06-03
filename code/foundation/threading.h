@@ -6,8 +6,6 @@
 #define THREADING_DEBUG 1
 #endif
 
-#define TIMEOUT_INFINITE (u32)(-1)
-
 /// Thread handle
 typedef struct Thread
 {
@@ -63,13 +61,13 @@ typedef struct ConditionVariable
 /// X(name, ReturnType, ...) where ... is the argument list
 #define THREADING_API(X)                                                           \
     /*** Misc ***/                                                                 \
-    X(sleep, void, u32 timeout_ms)                                                 \
+    X(sleep, void, Time timeout)                                                 \
     /*** Thread ***/                                                               \
     X(threadCreate,    Thread, ThreadParms *parms)                                 \
     X(threadDestroy,   void,   Thread thread)                                      \
     X(threadIsRunning, bool,   Thread thread)                                      \
-    X(threadWait,      bool,   Thread thread, u32 timeout_ms)                      \
-    X(threadWaitAll,   bool,   Thread *threads, usize num_threads, u32 timeout_ms) \
+    X(threadWait,      bool,   Thread thread, Time timeout)                      \
+    X(threadWaitAll,   bool,   Thread *threads, usize num_threads, Time timeout) \
     /*** Mutex ***/                                                                \
     X(mutexInit,       void, Mutex *mutex)                                         \
     X(mutexShutdown,   void, Mutex *mutex)                                         \
@@ -88,8 +86,8 @@ typedef struct ConditionVariable
     /*** ConditionVariable ***/                                                    \
     X(cvInit,       void, ConditionVariable *cv)                                   \
     X(cvShutdown,   void, ConditionVariable *cv)                                   \
-    X(cvWaitMutex,  bool, ConditionVariable *cv, Mutex *mutex, u32 timeout_ms)     \
-    X(cvWaitRwLock, bool, ConditionVariable *cv, RwLock *lock, u32 timeout_ms)     \
+    X(cvWaitMutex,  bool, ConditionVariable *cv, Mutex *mutex, Time timeout)     \
+    X(cvWaitRwLock, bool, ConditionVariable *cv, RwLock *lock, Time timeout)     \
     X(cvSignalOne,  void, ConditionVariable *cv)                                   \
     X(cvSignalAll,  void, ConditionVariable *cv)
 // clang-format on

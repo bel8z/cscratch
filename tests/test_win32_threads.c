@@ -39,18 +39,6 @@ typedef struct Data
     Queue *queue;
 } Data;
 
-static THREAD_PROC(myThreadProc)
-{
-    Threading *api = args;
-
-    for (i32 i = 10; i >= 0; --i)
-    {
-        fprintf(stdout, "\r%d", i);
-        fflush(stdout);
-        api->sleep(1000);
-    }
-}
-
 static THREAD_PROC(producerProc)
 {
     Data *d = args;
@@ -59,7 +47,7 @@ static THREAD_PROC(producerProc)
 
     while (true)
     {
-        api->sleep(1000);
+        api->sleep(TIME_MS(1000));
         api->mutexAcquire(&queue->lock);
 
         i32 value = rand();
@@ -95,7 +83,7 @@ static THREAD_PROC(consumerProc)
     while (true)
     {
         api->mutexAcquire(&queue->lock);
-        if (api->cvWaitMutex(&queue->notify, &queue->lock, 15))
+        if (queue->len)
         {
             i32 value = queue->buffer[queue->beg];
 
@@ -104,6 +92,10 @@ static THREAD_PROC(consumerProc)
 
             fprintf(stdout, "Consumed: %d\n", value);
             fflush(stdout);
+        }
+        else
+        {
+            api->cvWaitMutex(&queue->notify, &queue->lock, TIME_MS(15));
         }
         api->mutexRelease(&queue->lock);
     }
@@ -137,7 +129,7 @@ main(void)
                                  .debug_name = "Consumer thread",
                              })};
 
-    api.threadWaitAll(threads, Count, TIMEOUT_INFINITE);
+    api.threadWaitAll(threads, Count, TIME_INFINITE);
 
     return 0;
 }
