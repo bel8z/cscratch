@@ -18,11 +18,10 @@ static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"}
 
 typedef struct AppWindows
 {
-    bool demo;
-    bool metrics;
-    bool stats;
-    bool fonts;
     bool style;
+    bool fonts;
+    bool stats;
+    bool metrics;
     bool unsupported;
 } AppWindows;
 
@@ -339,8 +338,6 @@ appUpdate(AppState *state, FontOptions *font_opts)
             igSeparator();
             igMenuItemBoolPtr("Stats", NULL, &state->windows.stats, true);
             igMenuItemBoolPtr("Metrics", NULL, &state->windows.metrics, true);
-            igSeparator();
-            igMenuItemBoolPtr("Demo window", NULL, &state->windows.demo, true);
             igEndMenu();
         }
 
@@ -363,8 +360,6 @@ appUpdate(AppState *state, FontOptions *font_opts)
     guiBeginFullScreen("Main", false, false);
     appImageView(state);
     guiEndFullScreen();
-
-    if (state->windows.demo) igShowDemoWindow(&state->windows.demo);
 
     if (state->windows.fonts)
     {
