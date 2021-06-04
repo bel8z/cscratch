@@ -48,12 +48,27 @@ static inline Rgba
 rgbaMultiplyAlpha(Rgba col)
 {
     if (col.a >= 1.0f) return col;
+
     return (Rgba){
         .r = col.r * col.a,
         .g = col.g * col.a,
         .b = col.b * col.a,
         .a = col.a,
     };
+}
+
+static inline Rgba
+rgbaMultiplyAlpha32(Rgba32 col)
+{
+    Rgba rgba = rgbaUnpack32(col);
+
+    CF_ASSERT(0.0f <= rgba.a && rgba.a <= 1.0f, "Alpha channel out of bounds");
+
+    rgba.r *= rgba.a;
+    rgba.g *= rgba.a;
+    rgba.b *= rgba.a;
+
+    return rgba;
 }
 
 // Convert rgba floats to hsva floats  (components in the [0-1] range), from Foley & van Dam p592
@@ -144,24 +159,6 @@ hsvaToRgba(Hsva in)
     }
 
     return out;
-}
-
-static inline Rgba
-rgbaMultiplyAlpha32(Rgba32 col)
-{
-    Rgba rgba = rgbaUnpack32(col);
-
-    Hsva hsva = rgbaToHsva(rgba);
-    Rgba rgba2 = hsvaToRgba(hsva);
-    CF_UNUSED(rgba2);
-
-    CF_ASSERT(0.0f <= rgba.a && rgba.a <= 1.0f, "Alpha channel out of bounds");
-
-    rgba.r *= rgba.a;
-    rgba.g *= rgba.a;
-    rgba.b *= rgba.a;
-
-    return rgba;
 }
 
 #define FOUNDATION_COLOR_H
