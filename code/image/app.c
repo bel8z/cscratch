@@ -408,7 +408,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
     if (state->windows.style)
     {
         igBegin("Style Editor", &state->windows.style, 0);
-        igShowStyleEditor(igGetStyle());
+        igShowStyleEditor(NULL);
         igEnd();
     }
 
