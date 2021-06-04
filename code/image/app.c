@@ -65,13 +65,6 @@ struct AppState
 static void appLoadFromFile(AppState *state, char const *filename);
 static bool appLoadImage(AppState *state, char const *filename);
 
-static inline bool
-strEqualInsensitive(char const *l, char const *r)
-{
-    // TODO (Matteo): replace with portable method
-    return !_strcmpi(l, r);
-}
-
 //------------------------------------------------------------------------------
 
 AppState *

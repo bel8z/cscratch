@@ -103,3 +103,28 @@ strPrintf(char *buffer, usize buffer_size, char const *fmt, ...)
 
     return true;
 }
+
+i32
+strCompare(char const *l, char const *r)
+{
+    return strcmp(l, r);
+}
+
+i32
+strCompareInsensitive(char const *l, char const *r)
+{
+    // TODO (Matteo): replace with portable method
+    return _strcmpi(l, r);
+}
+
+bool
+strEqual(char const *l, char const *r)
+{
+    return !strCompare(l, r);
+}
+
+bool
+strEqualInsensitive(char const *l, char const *r)
+{
+    return !strCompareInsensitive(l, r);
+}
