@@ -1,3 +1,16 @@
+// ******************************
+//  Image viewer application
+// ******************************
+//
+// TODO (Matteo): missing features
+// - Drag after zoom
+// - Async file load/decode
+// - Bounded tool windows
+// - Better docking
+// - Animated GIF support
+//
+// ******************************
+
 #include "api.h"
 
 #include "image.h"
