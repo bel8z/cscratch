@@ -65,6 +65,15 @@ struct AppState
 static void appLoadFromFile(AppState *state, char const *filename);
 static bool appLoadImage(AppState *state, char const *filename);
 
+static inline bool
+strEqualInsensitive(char const *l, char const *r)
+{
+    // TODO (Matteo): replace with portable method
+    return !_strcmpi(l, r);
+}
+
+//------------------------------------------------------------------------------
+
 AppState *
 appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
 {
@@ -117,7 +126,7 @@ appIsFileSupported(char const *path)
 
     for (usize i = 0; i < CF_ARRAY_SIZE(g_supported_ext); ++i)
     {
-        if (!strcmp(g_supported_ext[i], ext)) return true;
+        if (strEqualInsensitive(g_supported_ext[i], ext)) return true;
     }
 
     return false;
@@ -180,7 +189,7 @@ appLoadFromFile(AppState *state, char const *filename)
 
         for (u32 index = 0; index < state->filenames.count; ++index)
         {
-            if (!_strcmpi(name, sbAt(&state->filenames, index)))
+            if (strEqualInsensitive(name, sbAt(&state->filenames, index)))
             {
                 state->curr_file = index;
                 break;
