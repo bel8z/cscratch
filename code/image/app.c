@@ -240,12 +240,12 @@ appImageView(AppState *state)
 
         if (guiKeyPressed(ImGuiKey_LeftArrow))
         {
-            next = (next - 1) % state->filenames.count;
+            if (next-- == 0) next = state->filenames.count - 1;
         }
 
         if (guiKeyPressed(ImGuiKey_RightArrow))
         {
-            next = (next + 1) % state->filenames.count;
+            if (++next == state->filenames.count) next = 0;
         }
 
         if (state->curr_file != next)
@@ -297,11 +297,13 @@ appImageView(AppState *state)
         image_w = image_h * image_aspect;
     }
 
-    image_w *= image->zoom;
-    image_h *= image->zoom;
+    // NOTE (Matteo): Round image bounds to nearest pixel for stable rendering
 
-    ImVec2 image_min = {view_min.x + 0.5f * (view_size.x - image_w),
-                        view_min.y + 0.5f * (view_size.y - image_h)};
+    image_w = cfRound(image_w * image->zoom);
+    image_h = cfRound(image_h * image->zoom);
+
+    ImVec2 image_min = {cfRound(view_min.x + 0.5f * (view_size.x - image_w)),
+                        cfRound(view_min.y + 0.5f * (view_size.y - image_h))};
 
     ImVec2 image_max = {image_min.x + image_w, //
                         image_min.y + image_h};
@@ -323,6 +325,8 @@ appImageView(AppState *state)
 AppUpdateResult
 appUpdate(AppState *state, FontOptions *font_opts)
 {
+    cfPlatform *plat = state->plat;
+
     AppUpdateResult result = {.flags = AppUpdateFlags_None};
     bool open_file_error = false;
 
@@ -337,7 +341,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
                                         : NULL);
 
                 FileDlgResult dlg_result =
-                    state->plat->fs->open_file_dlg(hint, &state->filter, 1, state->alloc);
+                    plat->fs->open_file_dlg(hint, &state->filter, 1, state->alloc);
 
                 switch (dlg_result.code)
                 {
@@ -397,7 +401,6 @@ appUpdate(AppState *state, FontOptions *font_opts)
 
     if (state->windows.stats)
     {
-        cfPlatform *plat = state->plat;
         f64 framerate = (f64)igGetIO()->Framerate;
 
         igBegin("Application stats stats", &state->windows.stats, 0);
