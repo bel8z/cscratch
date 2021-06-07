@@ -58,6 +58,7 @@ typedef enum AppUpdateFlags
     AppUpdateFlags_None = 0,
 
     AppUpdateFlags_RebuildFonts = 1 << 1,
+    AppUpdateFlags_Quit = 1 << 2,
 
     AppUpdateFlags_All = T_MAX(i32),
 } AppUpdateFlags;

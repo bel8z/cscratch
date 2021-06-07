@@ -5,9 +5,10 @@
 // TODO (Matteo): missing features
 // - Drag after zoom
 // - Async file load/decode
-// - Bounded tool windows
-// - Better docking
 // - Animated GIF support
+// - Bounded tool windows ?
+// - Better memory allocation strategy based on actual usage patterns
+//   (i.e. less usage of the heap allocator)
 //
 // ******************************
 
@@ -67,6 +68,8 @@ typedef struct ImageFile
     i32 state;
 } ImageFile;
 
+/// Array of image file info backed by a large VM allocation (no waste since
+/// memory is committed only when required)
 typedef struct ImageList
 {
     cfVirtualMemory *vm;
@@ -433,9 +436,10 @@ appOpenFile(AppState *state)
     return result;
 }
 
-static void
+static bool
 appMenuBar(AppState *state)
 {
+    bool quit = false;
     bool open_file_error = false;
 
     if (igBeginMainMenuBar())
@@ -446,6 +450,8 @@ appMenuBar(AppState *state)
             {
                 open_file_error = !appOpenFile(state);
             }
+            igSeparator();
+            quit = igMenuItemBool("Quit", NULL, false, true);
             igEndMenu();
         }
 
@@ -465,6 +471,8 @@ appMenuBar(AppState *state)
     }
 
     if (open_file_error) igOpenPopup("Open file error", 0);
+
+    return quit;
 }
 
 static void
@@ -506,7 +514,11 @@ appUpdate(AppState *state, FontOptions *font_opts)
 
     //==== Main UI ====
 
-    appMenuBar(state);
+    if (appMenuBar(state))
+    {
+        result.flags |= AppUpdateFlags_Quit;
+    }
+
     appMainWindow(state);
 
     //==== Tool windows ====

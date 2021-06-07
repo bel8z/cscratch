@@ -272,7 +272,7 @@ platform_main(cfPlatform *platform, char const *argv[], i32 argc)
                 done = true;
         }
 #else
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(window) && !(update_result.flags & AppUpdateFlags_Quit))
     {
         glfwPollEvents();
 #endif
