@@ -14,7 +14,6 @@
 #include "api.h"
 
 #include "image.h"
-#include "string_buff.h"
 
 #include "gui.h"
 
@@ -26,6 +25,7 @@
 #include "foundation/strings.h"
 #include "foundation/util.h"
 #include "foundation/vec.h"
+#include "foundation/vm.h"
 
 static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
 
@@ -41,6 +41,7 @@ typedef struct AppWindows
 enum
 {
     CURR_DIR_SIZE = 256,
+    FILENAME_SIZE = 256,
 };
 
 typedef struct ImageView
@@ -51,15 +52,40 @@ typedef struct ImageView
     i32 filter;
 } ImageView;
 
+typedef enum ImageFileState
+{
+    ImageFileState_Idle = 0,
+    ImageFileState_Loading,
+    ImageFileState_Loaded,
+    ImageFileState_Failed,
+} ImageFileState;
+
+typedef struct ImageFile
+{
+    char filename[FILENAME_SIZE];
+    Image image;
+    i32 state;
+} ImageFile;
+
+typedef struct ImageList
+{
+    cfVirtualMemory *vm;
+    usize bytes_reserved;
+    usize bytes_committed;
+
+    ImageFile *files;
+    u32 num_files;
+} ImageList;
+
 struct AppState
 {
     cfPlatform *plat;
     cfAllocator *alloc;
 
     FileDlgFilter filter;
-    StringBuff filenames;
     u32 curr_file;
     char curr_dir[CURR_DIR_SIZE];
+    ImageList images;
 
     ImageView iv;
 
@@ -70,8 +96,7 @@ struct AppState
 //------------------------------------------------------------------------------
 
 static void appLoadFromFile(AppState *state, char const *filename);
-static bool appLoadImage(ImageView *state, char const *filename, cfFileSystem *fs,
-                         cfAllocator *alloc);
+static bool appLoadImage(AppState *state, ImageFile *file, cfFileSystem *fs, cfAllocator *alloc);
 
 //------------------------------------------------------------------------------
 // Application creation/destruction
@@ -85,7 +110,10 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
     app->plat = plat;
     app->alloc = plat->heap;
 
-    app->iv = (ImageView){.zoom = 1.0f, .filter = ImageFilter_Nearest};
+    app->iv = (ImageView){
+        .zoom = 1.0f,
+        .filter = ImageFilter_Nearest,
+    };
 
     app->paths = paths;
 
@@ -93,8 +121,13 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
     app->filter.name = "Image files";
     app->filter.extensions = g_supported_ext;
     app->filter.num_extensions = CF_ARRAY_SIZE(g_supported_ext);
-    app->curr_file = StringBuff_MaxCount;
+    app->curr_file = U32_MAX;
     cfMemClear(app->curr_dir, CURR_DIR_SIZE);
+
+    usize const images_vm = CF_GB(1);
+    app->images.vm = plat->vm;
+    app->images.bytes_reserved = images_vm;
+    app->images.files = cfVmReserve(plat->vm, images_vm);
 
     if (argc > 1)
     {
@@ -103,9 +136,15 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
     else
     {
         // TODO (Matteo): Remove - kind of demo, but should not be kept
-        char buffer[1024];
-        strPrintf(buffer, 1024, "%sOpaque.png", paths.data);
-        appLoadImage(&app->iv, buffer, app->plat->fs, app->alloc);
+
+        ImageFile file = {0};
+        strPrintf(app->curr_dir, CURR_DIR_SIZE, "%s", paths.data);
+        strPrintf(file.filename, FILENAME_SIZE, "Opaque.png");
+        if (appLoadImage(app, &file, app->plat->fs, app->alloc))
+        {
+            app->iv.image = file.image;
+            imageSetFilter(&app->iv.image, app->iv.filter);
+        }
     }
 
     return app;
@@ -115,6 +154,7 @@ void
 appDestroy(AppState *app)
 {
     imageUnload(&app->iv.image);
+    cfVmRelease(app->images.vm, app->images.files, app->images.bytes_reserved);
     cfFree(app->alloc, app, sizeof(*app));
 }
 
@@ -136,21 +176,33 @@ appIsFileSupported(char const *path)
 }
 
 static bool
-appLoadImage(ImageView *state, char const *filename, cfFileSystem *fs, cfAllocator *alloc)
+appLoadImage(AppState *state, ImageFile *file, cfFileSystem *fs, cfAllocator *alloc)
 {
     bool result = false;
-    FileContent fc = fs->read_file(filename, alloc);
 
-    if (fc.data)
+    if (file->state == ImageFileState_Loaded)
     {
-        result = imageLoadFromMemory(&state->image, fc.data, fc.size, alloc);
-        cfFree(alloc, fc.data, fc.size);
+        result = true;
     }
-
-    if (result)
+    else
     {
-        state->zoom = 1.0f;
-        imageSetFilter(&state->image, state->filter);
+        char filename[CURR_DIR_SIZE];
+        bool ok = strPrintf(filename, CURR_DIR_SIZE, "%s/%s", state->curr_dir, file->filename);
+
+        CF_ASSERT(ok, "path is too long!");
+
+        FileContent fc = fs->read_file(filename, alloc);
+
+        if (fc.data)
+        {
+            file->state = ImageFileState_Loaded;
+            result = imageLoadFromMemory(&file->image, fc.data, fc.size, alloc);
+            cfFree(alloc, fc.data, fc.size);
+        }
+        else
+        {
+            file->state = ImageFileState_Idle;
+        }
     }
 
     return result;
@@ -160,25 +212,39 @@ static void
 appLoadFromFile(AppState *state, char const *filename)
 {
     cfFileSystem *fs = state->plat->fs;
+    ImageList *images = &state->images;
 
-    imageUnload(&state->iv.image);
+    for (u32 i = 0; i < images->num_files; ++i)
+    {
+        imageUnload(&images->files[i].image);
+    }
 
-    sbClear(&state->filenames);
-    state->curr_file = StringBuff_MaxCount;
+    images->num_files = 0;
+    state->curr_file = U32_MAX;
 
     if (filename)
     {
-        if (!appLoadImage(&state->iv, filename, state->plat->fs, state->alloc))
-        {
-            state->windows.unsupported = true;
-        }
-
         char const *name = pathSplitName(filename);
         isize dir_size = name - filename;
 
         CF_ASSERT(0 <= dir_size && dir_size < CURR_DIR_SIZE, "Directory path too big");
 
+        ImageFile file = {0};
+
+        cfMemClear(state->curr_dir, CURR_DIR_SIZE);
         cfMemCopy(filename, state->curr_dir, (usize)dir_size);
+        cfMemCopy(name, file.filename, strSize(name));
+
+        if (appLoadImage(state, &file, state->plat->fs, state->alloc))
+        {
+            state->iv.image = file.image;
+            state->iv.zoom = 1.0f;
+            imageSetFilter(&state->iv.image, state->iv.filter);
+        }
+        else
+        {
+            state->windows.unsupported = true;
+        }
 
         DirIter *it = fs->dir_iter_start(state->curr_dir, state->alloc);
 
@@ -189,17 +255,34 @@ appLoadFromFile(AppState *state, char const *filename)
             // NOTE (Matteo): Explicit test against NULL is required for compiling with /W4 on MSVC
             while ((path = fs->dir_iter_next(it)) != NULL)
             {
-                if (appIsFileSupported(path)) sbPush(&state->filenames, path);
+                if (appIsFileSupported(path))
+                {
+                    ImageFile *f = images->files + images->num_files++;
+
+                    usize commit_size = sizeof(*f) * images->num_files;
+                    CF_ASSERT(commit_size < images->bytes_reserved, "Out of memory");
+                    if (commit_size > images->bytes_committed)
+                    {
+                        usize page_size = images->vm->page_size;
+                        images->bytes_committed +=
+                            page_size * ((commit_size + page_size - 1) / page_size);
+                        cfVmCommit(images->vm, images->files, images->bytes_committed);
+                    }
+
+                    f->state = ImageFileState_Idle;
+                    cfMemCopy(path, f->filename, strSize(path));
+                }
             }
 
             fs->dir_iter_close(it);
         }
 
-        for (u32 index = 0; index < state->filenames.count; ++index)
+        for (u32 index = 0; index < images->num_files; ++index)
         {
-            if (strEqualInsensitive(name, sbAt(&state->filenames, index)))
+            if (strEqualInsensitive(name, state->images.files[index].filename))
             {
                 state->curr_file = index;
+                state->images.files[index] = file;
                 break;
             }
         }
@@ -240,32 +323,32 @@ appImageView(AppState *state)
     igGetItemRectMin(&view_min);
     igGetItemRectMax(&view_max);
 
-    if (state->curr_file != StringBuff_MaxCount)
+    if (state->curr_file != U32_MAX)
     {
         u32 next = state->curr_file;
 
         if (guiKeyPressed(ImGuiKey_LeftArrow))
         {
-            if (next-- == 0) next = state->filenames.count - 1;
+            if (next-- == 0) next = state->images.num_files - 1;
         }
 
         if (guiKeyPressed(ImGuiKey_RightArrow))
         {
-            if (++next == state->filenames.count) next = 0;
+            if (++next == state->images.num_files) next = 0;
         }
 
         if (state->curr_file != next)
         {
             state->curr_file = next;
-            imageUnload(&iv->image);
 
-            char buffer[CURR_DIR_SIZE];
-            bool ok = strPrintf(buffer, CURR_DIR_SIZE, "%s/%s", state->curr_dir,
-                                sbAt(&state->filenames, next));
+            ImageFile *file = state->images.files + next;
 
-            CF_ASSERT(ok, "path is too long!");
-
-            appLoadImage(iv, buffer, state->plat->fs, state->alloc);
+            if (appLoadImage(state, file, state->plat->fs, state->alloc))
+            {
+                state->iv.image = file->image;
+                state->iv.zoom = 1.0f;
+                imageSetFilter(&state->iv.image, state->iv.filter);
+            }
         }
     }
 
@@ -335,8 +418,7 @@ appOpenFile(AppState *state)
     bool result = true;
 
     char const *hint =
-        (state->curr_file != StringBuff_MaxCount ? sbAt(&state->filenames, state->curr_file)
-                                                 : NULL);
+        (state->curr_file != U32_MAX ? state->images.files[state->curr_file].filename : NULL);
 
     FileDlgResult dlg_result = plat->fs->open_file_dlg(hint, &state->filter, 1, state->alloc);
 
@@ -445,9 +527,11 @@ appUpdate(AppState *state, FontOptions *font_opts)
     {
         f64 framerate = (f64)igGetIO()->Framerate;
 
-        igBegin("Application stats stats", &state->windows.stats, 0);
+        igBegin("Application stats", &state->windows.stats, 0);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
         igText("Allocated %.3fkb in %zu blocks", (f64)plat->heap_size / 1024, plat->heap_blocks);
+        igText("Virtual memory reserved %.3fkb - committed %.3fkb", (f64)plat->reserved_size / 1024,
+               (f64)plat->committed_size / 1024);
         igSeparator();
         igText("App base path:%s", state->paths.base);
         igText("App data path:%s", state->paths.data);
