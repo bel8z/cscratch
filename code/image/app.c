@@ -99,7 +99,7 @@ struct AppState
 //------------------------------------------------------------------------------
 
 static void appLoadFromFile(AppState *state, char const *filename);
-static bool appLoadImage(AppState *state, ImageFile *file, cfFileSystem *fs, cfAllocator *alloc);
+static bool appLoadImage(AppState *state, ImageFile *file);
 
 //------------------------------------------------------------------------------
 // Application creation/destruction
@@ -143,7 +143,7 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
         ImageFile file = {0};
         strPrintf(app->curr_dir, CURR_DIR_SIZE, "%s", paths.data);
         strPrintf(file.filename, FILENAME_SIZE, "Opaque.png");
-        if (appLoadImage(app, &file, app->plat->fs, app->alloc))
+        if (appLoadImage(app, &file))
         {
             app->iv.image = file.image;
             imageSetFilter(&app->iv.image, app->iv.filter);
@@ -156,7 +156,11 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
 void
 appDestroy(AppState *app)
 {
-    imageUnload(&app->iv.image);
+    for (u32 i = 0; i < app->images.num_files; ++i)
+    {
+        imageUnload(&app->images.files[i].image);
+    }
+
     cfVmRelease(app->images.vm, app->images.files, app->images.bytes_reserved);
     cfFree(app->alloc, app, sizeof(*app));
 }
@@ -179,7 +183,7 @@ appIsFileSupported(char const *path)
 }
 
 static bool
-appLoadImage(AppState *state, ImageFile *file, cfFileSystem *fs, cfAllocator *alloc)
+appLoadImage(AppState *state, ImageFile *file)
 {
     bool result = false;
 
@@ -194,28 +198,51 @@ appLoadImage(AppState *state, ImageFile *file, cfFileSystem *fs, cfAllocator *al
 
         CF_ASSERT(ok, "path is too long!");
 
-        FileContent fc = fs->read_file(filename, alloc);
+        FileContent fc = state->plat->fs->read_file(filename, state->alloc);
 
         if (fc.data)
         {
             file->state = ImageFileState_Loaded;
-            result = imageLoadFromMemory(&file->image, fc.data, fc.size, alloc);
-            cfFree(alloc, fc.data, fc.size);
+            result = imageLoadFromMemory(&file->image, fc.data, fc.size, state->alloc);
+            cfFree(state->alloc, fc.data, fc.size);
         }
         else
         {
-            file->state = ImageFileState_Idle;
+            file->state = ImageFileState_Failed;
         }
     }
 
     return result;
 }
 
+static ImageFile *
+appPushImageFile(ImageList *images)
+{
+    ImageFile *file = images->files + images->num_files++;
+
+    usize commit_size = sizeof(*file) * images->num_files;
+
+    CF_ASSERT(commit_size < images->bytes_reserved, "Out of memory");
+
+    if (commit_size > images->bytes_committed)
+    {
+        // Round up committed memory as a multiple of the page size
+        usize page_size = images->vm->page_size;
+        images->bytes_committed += page_size * ((commit_size + page_size - 1) / page_size);
+        cfVmCommit(images->vm, images->files, images->bytes_committed);
+    }
+
+    file->state = ImageFileState_Idle;
+
+    return file;
+}
+
 static void
 appLoadFromFile(AppState *state, char const *filename)
 {
-    cfFileSystem *fs = state->plat->fs;
+    cfFileSystem const *fs = state->plat->fs;
     ImageList *images = &state->images;
+    ImageView *iv = &state->iv;
 
     for (u32 i = 0; i < images->num_files; ++i)
     {
@@ -238,11 +265,11 @@ appLoadFromFile(AppState *state, char const *filename)
         cfMemCopy(filename, state->curr_dir, (usize)dir_size);
         cfMemCopy(name, file.filename, strSize(name));
 
-        if (appLoadImage(state, &file, state->plat->fs, state->alloc))
+        if (appLoadImage(state, &file))
         {
-            state->iv.image = file.image;
-            state->iv.zoom = 1.0f;
-            imageSetFilter(&state->iv.image, state->iv.filter);
+            iv->image = file.image;
+            iv->zoom = 1.0f;
+            imageSetFilter(&iv->image, iv->filter);
         }
         else
         {
@@ -260,20 +287,8 @@ appLoadFromFile(AppState *state, char const *filename)
             {
                 if (appIsFileSupported(path))
                 {
-                    ImageFile *f = images->files + images->num_files++;
-
-                    usize commit_size = sizeof(*f) * images->num_files;
-                    CF_ASSERT(commit_size < images->bytes_reserved, "Out of memory");
-                    if (commit_size > images->bytes_committed)
-                    {
-                        usize page_size = images->vm->page_size;
-                        images->bytes_committed +=
-                            page_size * ((commit_size + page_size - 1) / page_size);
-                        cfVmCommit(images->vm, images->files, images->bytes_committed);
-                    }
-
-                    f->state = ImageFileState_Idle;
-                    cfMemCopy(path, f->filename, strSize(path));
+                    ImageFile *file = appPushImageFile(images);
+                    cfMemCopy(path, file->filename, strSize(path));
                 }
             }
 
@@ -346,11 +361,11 @@ appImageView(AppState *state)
 
             ImageFile *file = state->images.files + next;
 
-            if (appLoadImage(state, file, state->plat->fs, state->alloc))
+            if (appLoadImage(state, file))
             {
-                state->iv.image = file->image;
-                state->iv.zoom = 1.0f;
-                imageSetFilter(&state->iv.image, state->iv.filter);
+                iv->image = file->image;
+                iv->zoom = 1.0f;
+                imageSetFilter(&iv->image, iv->filter);
             }
         }
     }
