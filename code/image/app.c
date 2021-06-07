@@ -66,6 +66,7 @@ static void appLoadFromFile(AppState *state, char const *filename);
 static bool appLoadImage(AppState *state, char const *filename);
 
 //------------------------------------------------------------------------------
+// Application creation/destruction
 
 AppState *
 appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
@@ -110,6 +111,7 @@ appDestroy(AppState *app)
 }
 
 //------------------------------------------------------------------------------
+// Application update
 
 static bool
 appIsFileSupported(char const *path)
@@ -315,12 +317,32 @@ appImageView(AppState *state)
     }
 }
 
-AppUpdateResult
-appUpdate(AppState *state, FontOptions *font_opts)
+static bool
+appOpenFile(AppState *state)
 {
     cfPlatform *plat = state->plat;
+    bool result = true;
 
-    AppUpdateResult result = {.flags = AppUpdateFlags_None};
+    char const *hint =
+        (state->curr_file != StringBuff_MaxCount ? sbAt(&state->filenames, state->curr_file)
+                                                 : NULL);
+
+    FileDlgResult dlg_result = plat->fs->open_file_dlg(hint, &state->filter, 1, state->alloc);
+
+    switch (dlg_result.code)
+    {
+        case FileDlgResult_Ok: appLoadFromFile(state, dlg_result.filename); break;
+        case FileDlgResult_Error: result = false; break;
+    }
+
+    cfFree(state->alloc, dlg_result.filename, dlg_result.filename_size);
+
+    return result;
+}
+
+static void
+appMenuBar(AppState *state)
+{
     bool open_file_error = false;
 
     if (igBeginMainMenuBar())
@@ -329,21 +351,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
         {
             if (igMenuItemBool("Open", NULL, false, true))
             {
-                char const *hint = (state->curr_file != StringBuff_MaxCount
-                                        ? sbAt(&state->filenames, state->curr_file)
-                                        : NULL);
-
-                FileDlgResult dlg_result =
-                    plat->fs->open_file_dlg(hint, &state->filter, 1, state->alloc);
-
-                switch (dlg_result.code)
-                {
-                    case FileDlgResult_Ok: appLoadFromFile(state, dlg_result.filename); break;
-                    case FileDlgResult_Error: open_file_error = true; break;
-                    default: break;
-                }
-
-                cfFree(state->alloc, dlg_result.filename, dlg_result.filename_size);
+                open_file_error = !appOpenFile(state);
             }
             igEndMenu();
         }
@@ -364,21 +372,51 @@ appUpdate(AppState *state, FontOptions *font_opts)
     }
 
     if (open_file_error) igOpenPopup("Open file error", 0);
+}
 
-    if (igBeginPopupModal("Open file error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-    {
-        igText("Error opening file");
-        // TODO (Matteo): Find a way to center button inside the popup window
-        if (guiButton("Ok"))
-        {
-            igCloseCurrentPopup();
-        }
-        igEndPopup();
-    }
+static void
+appMainWindow(AppState *state)
+{
+    // NOTE (Matteo): Layout main window as a fixed dockspace that can host tool windows
+    // ImGuiDockNodeFlags_NoDockingInCentralNode is used to prevent tool windows from hiding the
+    // image view
+    ImGuiWindowFlags const window_flags =
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
+        ImGuiWindowFlags_NoNavFocus;
+    ImGuiViewport const *viewport = igGetMainViewport();
+    ImGuiID const dock_id =
+        igDockSpaceOverViewport(viewport, ImGuiDockNodeFlags_NoDockingInCentralNode, NULL);
 
-    guiBeginFullScreen("Main", false, false);
+    igSetNextWindowDockID(dock_id, ImGuiCond_None);
+    igBegin("Main", 0, window_flags);
+
+    // NOTE (Matteo): Instruct the docking system to consider the window's node always as the
+    // central one, thus not using it as a docking target (there's the backing dockspace already)
+    ImGuiDockNode *dock_node = igGetWindowDockNode();
+    dock_node->LocalFlags |= ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_CentralNode;
+
     appImageView(state);
-    guiEndFullScreen();
+
+    igEnd();
+}
+
+AppUpdateResult
+appUpdate(AppState *state, FontOptions *font_opts)
+{
+    cfPlatform *plat = state->plat;
+
+    AppUpdateResult result = {
+        .flags = AppUpdateFlags_None,
+        .back_color = igGetColorU32Col(ImGuiCol_WindowBg, 1.0f),
+    };
+
+    //==== Main UI ====
+
+    appMenuBar(state);
+    appMainWindow(state);
+
+    //==== Tool windows ====
 
     if (state->windows.fonts)
     {
@@ -423,6 +461,19 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igOpenPopup("Warning", 0);
     }
 
+    //==== Popups ====
+
+    if (igBeginPopupModal("Open file error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        igText("Error opening file");
+        // TODO (Matteo): Find a way to center button inside the popup window
+        if (guiButton("Ok"))
+        {
+            igCloseCurrentPopup();
+        }
+        igEndPopup();
+    }
+
     if (igBeginPopupModal("Warning", NULL, ImGuiWindowFlags_AlwaysAutoResize))
     {
         igText("Unsupported file format");
@@ -434,8 +485,6 @@ appUpdate(AppState *state, FontOptions *font_opts)
         }
         igEndPopup();
     }
-
-    result.back_color = igGetColorU32Col(ImGuiCol_WindowBg, 1.0f);
 
     return result;
 }
