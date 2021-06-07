@@ -56,6 +56,29 @@ guiButton(char const *label)
     return igButton(label, (ImVec2){0, 0});
 }
 
+static inline bool
+guiCenteredButton(char const *label)
+{
+    ImGuiStyle *style = igGetStyle();
+
+    // NOTE (Matteo): Button size calculation copied from ImGui::ButtonEx
+    ImVec2 label_size, button_size;
+    igCalcTextSize(&label_size, label, NULL, false, -1.0f);
+    igCalcItemSize(&button_size, (ImVec2){0, 0}, //
+                   label_size.x + style->FramePadding.x * 2.0f,
+                   label_size.y + style->FramePadding.y * 2.0f);
+
+    ImVec2 available_size;
+    igGetContentRegionAvail(&available_size);
+
+    if (available_size.x > button_size.x)
+    {
+        igSetCursorPosX((available_size.x - button_size.x) / 2);
+    }
+
+    return guiButton(label);
+}
+
 static inline void
 guiSameLine()
 {

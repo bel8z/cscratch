@@ -561,8 +561,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
     if (igBeginPopupModal("Open file error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
     {
         igText("Error opening file");
-        // TODO (Matteo): Find a way to center button inside the popup window
-        if (guiButton("Ok"))
+        if (guiCenteredButton("Ok"))
         {
             igCloseCurrentPopup();
         }
@@ -572,8 +571,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
     if (igBeginPopupModal("Warning", NULL, ImGuiWindowFlags_AlwaysAutoResize))
     {
         igText("Unsupported file format");
-        // TODO (Matteo): Find a way to center button inside the popup window
-        if (guiButton("Ok"))
+        if (guiCenteredButton("Ok"))
         {
             state->windows.unsupported = false;
             igCloseCurrentPopup();
