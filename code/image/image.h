@@ -19,8 +19,6 @@ typedef struct Image
     u32 texture;
     i32 width;
     i32 height;
-    f32 zoom;
-    ImageFilter filter;
 } Image;
 
 // Simple helper functions to load an image into a OpenGL texture with common settings

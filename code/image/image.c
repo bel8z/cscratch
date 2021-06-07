@@ -65,7 +65,6 @@ image__processData(u8 *data, i32 width, i32 height, Image *image)
     image->texture = image_texture;
     image->width = width;
     image->height = height;
-    image->filter = ImageFilter_Nearest;
 }
 
 bool
@@ -129,17 +128,12 @@ imageSetFilter(Image *image, ImageFilter filter)
 {
     CF_ASSERT_NOT_NULL(image);
 
-    if (filter != image->filter)
-    {
-        glBindTexture(GL_TEXTURE_2D, image->texture);
+    glBindTexture(GL_TEXTURE_2D, image->texture);
 
-        i32 value = (filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
+    i32 value = (filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
-
-        image->filter = filter;
-    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
 }
 
 void

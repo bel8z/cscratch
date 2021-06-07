@@ -43,6 +43,14 @@ enum
     CURR_DIR_SIZE = 256,
 };
 
+typedef struct ImageView
+{
+    Image image;
+    bool advanced;
+    f32 zoom;
+    i32 filter;
+} ImageView;
+
 struct AppState
 {
     cfPlatform *plat;
@@ -53,8 +61,7 @@ struct AppState
     u32 curr_file;
     char curr_dir[CURR_DIR_SIZE];
 
-    Image image;
-    bool image_adv;
+    ImageView iv;
 
     AppPaths paths;
     AppWindows windows;
@@ -63,7 +70,8 @@ struct AppState
 //------------------------------------------------------------------------------
 
 static void appLoadFromFile(AppState *state, char const *filename);
-static bool appLoadImage(AppState *state, char const *filename);
+static bool appLoadImage(ImageView *state, char const *filename, cfFileSystem *fs,
+                         cfAllocator *alloc);
 
 //------------------------------------------------------------------------------
 // Application creation/destruction
@@ -77,7 +85,7 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
     app->plat = plat;
     app->alloc = plat->heap;
 
-    app->image = (Image){.zoom = 1.0};
+    app->iv = (ImageView){.zoom = 1.0f, .filter = ImageFilter_Nearest};
 
     app->paths = paths;
 
@@ -97,7 +105,7 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
         // TODO (Matteo): Remove - kind of demo, but should not be kept
         char buffer[1024];
         strPrintf(buffer, 1024, "%sOpaque.png", paths.data);
-        appLoadImage(app, buffer);
+        appLoadImage(&app->iv, buffer, app->plat->fs, app->alloc);
     }
 
     return app;
@@ -106,7 +114,7 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
 void
 appDestroy(AppState *app)
 {
-    imageUnload(&app->image);
+    imageUnload(&app->iv.image);
     cfFree(app->alloc, app, sizeof(*app));
 }
 
@@ -128,15 +136,21 @@ appIsFileSupported(char const *path)
 }
 
 static bool
-appLoadImage(AppState *state, char const *filename)
+appLoadImage(ImageView *state, char const *filename, cfFileSystem *fs, cfAllocator *alloc)
 {
     bool result = false;
-    FileContent fc = state->plat->fs->read_file(filename, state->alloc);
+    FileContent fc = fs->read_file(filename, alloc);
 
     if (fc.data)
     {
-        result = imageLoadFromMemory(&state->image, fc.data, fc.size, state->alloc);
-        cfFree(state->alloc, fc.data, fc.size);
+        result = imageLoadFromMemory(&state->image, fc.data, fc.size, alloc);
+        cfFree(alloc, fc.data, fc.size);
+    }
+
+    if (result)
+    {
+        state->zoom = 1.0f;
+        imageSetFilter(&state->image, state->filter);
     }
 
     return result;
@@ -147,15 +161,14 @@ appLoadFromFile(AppState *state, char const *filename)
 {
     cfFileSystem *fs = state->plat->fs;
 
-    imageUnload(&state->image);
+    imageUnload(&state->iv.image);
 
     sbClear(&state->filenames);
     state->curr_file = StringBuff_MaxCount;
 
     if (filename)
     {
-
-        if (!appLoadImage(state, filename))
+        if (!appLoadImage(&state->iv, filename, state->plat->fs, state->alloc))
         {
             state->windows.unsupported = true;
         }
@@ -199,22 +212,20 @@ appImageView(AppState *state)
     f32 const min_zoom = 1.0f;
     f32 const max_zoom = 10.0f;
 
-    Image *image = &state->image;
+    ImageView *iv = &state->iv;
 
     // Image scaling settings
 
     // TODO (Matteo): Maybe this can get cleaner?
-    if (state->image_adv)
+    if (iv->advanced)
     {
-        i32 filter = image->filter;
-
-        igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
+        igRadioButtonIntPtr("Nearest", &iv->filter, ImageFilter_Nearest);
         guiSameLine();
-        igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
+        igRadioButtonIntPtr("Linear", &iv->filter, ImageFilter_Linear);
         guiSameLine();
-        igSliderFloat("zoom", &image->zoom, min_zoom, max_zoom, "%.3f", 0);
+        igSliderFloat("zoom", &iv->zoom, min_zoom, max_zoom, "%.3f", 0);
 
-        imageSetFilter(image, filter);
+        imageSetFilter(&iv->image, iv->filter);
     }
 
     // Use the available content area as the image view; an invisible button
@@ -246,7 +257,7 @@ appImageView(AppState *state)
         if (state->curr_file != next)
         {
             state->curr_file = next;
-            imageUnload(image);
+            imageUnload(&iv->image);
 
             char buffer[CURR_DIR_SIZE];
             bool ok = strPrintf(buffer, CURR_DIR_SIZE, "%s/%s", state->curr_dir,
@@ -254,7 +265,7 @@ appImageView(AppState *state)
 
             CF_ASSERT(ok, "path is too long!");
 
-            appLoadImage(state, buffer);
+            appLoadImage(iv, buffer, state->plat->fs, state->alloc);
         }
     }
 
@@ -262,7 +273,7 @@ appImageView(AppState *state)
 
     if (igIsItemHovered(0) && io->KeyCtrl)
     {
-        image->zoom = cfClamp(image->zoom + io->MouseWheel, min_zoom, max_zoom);
+        iv->zoom = cfClamp(iv->zoom + io->MouseWheel, min_zoom, max_zoom);
     }
 
     // 3. Draw the image properly scaled to fit the view
@@ -276,8 +287,8 @@ appImageView(AppState *state)
     // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
     // ratio at zoom level == 1; then zoom is applied
 
-    f32 image_w = (f32)image->width;
-    f32 image_h = (f32)image->height;
+    f32 image_w = (f32)iv->image.width;
+    f32 image_h = (f32)iv->image.height;
     f32 image_aspect = image_w / image_h;
 
     if (image_w > view_size.x)
@@ -294,8 +305,8 @@ appImageView(AppState *state)
 
     // NOTE (Matteo): Round image bounds to nearest pixel for stable rendering
 
-    image_w = cfRound(image_w * image->zoom);
-    image_h = cfRound(image_h * image->zoom);
+    image_w = cfRound(image_w * iv->zoom);
+    image_h = cfRound(image_h * iv->zoom);
 
     ImVec2 image_min = {cfRound(view_min.x + 0.5f * (view_size.x - image_w)),
                         cfRound(view_min.y + 0.5f * (view_size.y - image_h))};
@@ -305,10 +316,10 @@ appImageView(AppState *state)
 
     ImDrawList *draw_list = igGetWindowDrawList();
     ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
-    ImDrawList_AddImage(draw_list, (void *)(iptr)image->texture, image_min, image_max,
+    ImDrawList_AddImage(draw_list, (void *)(iptr)iv->image.texture, image_min, image_max,
                         (ImVec2){0.0f, 0.0f}, (ImVec2){1.0f, 1.0f}, igGetColorU32U32(RGBA32_WHITE));
 
-    if (state->image_adv)
+    if (iv->advanced)
     {
         // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
         ImU32 debug_color = igGetColorU32Vec4((ImVec4){1, 0, 1, 1});
@@ -358,7 +369,7 @@ appMenuBar(AppState *state)
 
         if (igBeginMenu("View", true))
         {
-            igMenuItemBoolPtr("Advanced", NULL, &state->image_adv, true);
+            igMenuItemBoolPtr("Advanced", NULL, &state->iv.advanced, true);
             igSeparator();
             igMenuItemBoolPtr("Style editor", NULL, &state->windows.style, true);
             igMenuItemBoolPtr("Font options", NULL, &state->windows.fonts, true);
