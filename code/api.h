@@ -17,13 +17,17 @@ typedef struct cfPlatform
 {
     /// Virtual memory services
     cfVirtualMemory *vm;
+    /// Reserved VM size in bytes
+    usize reserved_size; // TODO (Matteo): Should be a pointer?
+    /// Committed VM size in bytes
+    usize committed_size; // TODO (Matteo): Should be a pointer?
 
     /// System heap allocator
     cfAllocator *heap;
     /// Number of blocks allocated by the heap allocator
-    usize heap_blocks;
+    usize heap_blocks; // TODO (Matteo): Should be a pointer?
     // Total size in bytes of the allocation provided by the heap
-    usize heap_size;
+    usize heap_size; // TODO (Matteo): Should be a pointer?
 
     /// File system services
     cfFileSystem *fs;

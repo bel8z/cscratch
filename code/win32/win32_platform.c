@@ -61,6 +61,32 @@ static Time win32Clock(void);
 static u32 win32Utf8To16(char const *str, i32 str_size, WCHAR *out, u32 out_size);
 static u32 win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size);
 
+// Global platform API
+// NOTE (Matteo): a global here should be quite safe
+static cfPlatform g_platform = {
+    .vm =
+        &(cfVirtualMemory){
+            .reserve = win32VmReserve,
+            .release = win32VmRelease,
+            .commit = win32VmCommit,
+            .revert = win32VmDecommit,
+        },
+    .heap =
+        &(cfAllocator){
+            .reallocate = win32Alloc,
+        },
+    .fs =
+        &(cfFileSystem){
+            .dir_iter_start = win32DirIterStart,
+            .dir_iter_next = win32DirIterNext,
+            .dir_iter_close = win32DirIterClose,
+            .open_file_dlg = win32OpenFileDlg,
+            .read_file = win32ReadFile,
+        },
+    .threading = &(Threading){0},
+    .clock = win32Clock,
+};
+
 //------------------------------------------------------------------------------
 // Main entry point
 //------------------------------------------------------------------------------
@@ -122,49 +148,22 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
     g_clock.ratio_num /= gcd;
     g_clock.ratio_den /= gcd;
 
-    cfVirtualMemory vm = {
-        .reserve = win32VmReserve,
-        .release = win32VmRelease,
-        .commit = win32VmCommit,
-        .revert = win32VmDecommit,
-        .page_size = g_vm_page_size,
-    };
-
-    cfAllocator heap = {.reallocate = win32Alloc};
-
-    cfFileSystem fs = {
-        .dir_iter_start = win32DirIterStart,
-        .dir_iter_next = win32DirIterNext,
-        .dir_iter_close = win32DirIterClose,
-        .open_file_dlg = win32OpenFileDlg,
-        .read_file = win32ReadFile,
-    };
-
-    Threading threading = {0};
-    win32ThreadingInit(&threading, &heap);
-
-    cfPlatform platform = {
-        .vm = &vm,
-        .heap = &heap,
-        .fs = &fs,
-        .threading = &threading,
-        .clock = win32Clock,
-    };
-
-    heap.state = &platform;
+    g_platform.vm->page_size = g_vm_page_size;
+    g_platform.heap->state = &g_platform;
+    win32ThreadingInit(g_platform.threading, g_platform.heap);
 
     // TODO (Matteo): Improve command line handling
 
     usize cmd_line_size;
     i32 argc;
-    char **argv = win32GetCommandLineArgs(platform.heap, &argc, &cmd_line_size);
+    char **argv = win32GetCommandLineArgs(g_platform.heap, &argc, &cmd_line_size);
 
-    i32 result = platform_main(&platform, (char const **)argv, argc);
+    i32 result = platform_main(&g_platform, (char const **)argv, argc);
 
-    cfFree(&heap, argv, cmd_line_size);
+    cfFree(g_platform.heap, argv, cmd_line_size);
 
-    CF_ASSERT(platform.heap_blocks == 0, "Potential memory leak");
-    CF_ASSERT(platform.heap_size == 0, "Potential memory leak");
+    CF_ASSERT(g_platform.heap_blocks == 0, "Potential memory leak");
+    CF_ASSERT(g_platform.heap_size == 0, "Potential memory leak");
 
     return result;
 }
@@ -177,20 +176,38 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
 VM_RESERVE_FUNC(win32VmReserve)
 {
-    return VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_NOACCESS);
+    void *mem = VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_NOACCESS);
+
+    if (mem)
+    {
+        g_platform.reserved_size += size;
+    }
+
+    return mem;
 }
 
 VM_COMMIT_FUNC(win32VmCommit)
 {
     void *committed = VirtualAlloc(memory, size, MEM_COMMIT, PAGE_READWRITE);
+
+    if (committed)
+    {
+        g_platform.committed_size += size;
+        return true;
+    }
+
     CF_ASSERT(committed, "Memory not previously reserved");
-    return committed != NULL;
+    return false;
 }
 
 VM_REVERT_FUNC(win32VmDecommit)
 {
     bool result = VirtualFree(memory, size, MEM_DECOMMIT);
-    if (!result)
+    if (result)
+    {
+        g_platform.committed_size -= size;
+    }
+    else
     {
         u32 err = GetLastError();
         CF_UNUSED(err);
@@ -205,7 +222,11 @@ VM_RELEASE_FUNC(win32VmRelease)
     CF_UNUSED(size);
 
     bool result = VirtualFree(memory, 0, MEM_RELEASE);
-    if (!result)
+    if (result)
+    {
+        g_platform.reserved_size -= size;
+    }
+    else
     {
         u32 err = GetLastError();
         CF_UNUSED(err);
@@ -226,7 +247,7 @@ win32RoundSize(usize req_size, usize page_size)
 
 CF_ALLOCATOR_FUNC(win32Alloc)
 {
-    cfPlatform *plat = state;
+    CF_UNUSED(state);
 
     void *new_mem = NULL;
 
@@ -238,8 +259,8 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 
         win32VmCommit(base, block_size);
 
-        plat->heap_blocks++;
-        plat->heap_size += block_size;
+        g_platform.heap_blocks++;
+        g_platform.heap_size += block_size;
 
         new_mem = base + block_size - new_size;
     }
@@ -259,8 +280,8 @@ CF_ALLOCATOR_FUNC(win32Alloc)
         win32VmDecommit(base, block_size);
         win32VmRelease(base, block_size);
 
-        plat->heap_blocks--;
-        plat->heap_size -= block_size;
+        g_platform.heap_blocks--;
+        g_platform.heap_size -= block_size;
 
         memory = NULL;
     }
@@ -272,6 +293,8 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 
 CF_ALLOCATOR_FUNC(win32Alloc)
 {
+    CF_UNUSED(state);
+
     HANDLE heap = GetProcessHeap();
     void *old_mem = memory;
     void *new_mem = NULL;
@@ -292,19 +315,17 @@ CF_ALLOCATOR_FUNC(win32Alloc)
         HeapFree(heap, 0, old_mem);
     }
 
-    cfPlatform *plat = state;
-
     if (old_mem)
     {
         CF_ASSERT(old_size > 0, "Freeing valid pointer but given size is 0");
-        plat->heap_blocks--;
-        plat->heap_size -= old_size;
+        g_platform.heap_blocks--;
+        g_platform.heap_size -= old_size;
     }
 
     if (new_mem)
     {
-        plat->heap_blocks++;
-        plat->heap_size += new_size;
+        g_platform.heap_blocks++;
+        g_platform.heap_size += new_size;
     }
 
     return new_mem;
