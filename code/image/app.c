@@ -287,8 +287,8 @@ appLoadFromFile(AppState *state, char const *filename)
             {
                 if (appIsFileSupported(path))
                 {
-                    ImageFile *file = appPushImageFile(images);
-                    cfMemCopy(path, file->filename, strSize(path));
+                    ImageFile *tmp = appPushImageFile(images);
+                    cfMemCopy(path, tmp->filename, strSize(path));
                 }
             }
 
