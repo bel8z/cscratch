@@ -7,6 +7,7 @@
 
 #include "foundation/allocator.h"
 #include "foundation/fs.h"
+#include "foundation/path.h"
 #include "foundation/strings.h"
 #include "foundation/threading.h"
 #include "foundation/util.h"
@@ -85,13 +86,34 @@ static cfPlatform g_platform = {
         },
     .threading = &(Threading){0},
     .clock = win32Clock,
+    .paths = &(Paths){0},
 };
 
 //------------------------------------------------------------------------------
 // Main entry point
 //------------------------------------------------------------------------------
 
-char **
+static void
+pathsInit(Paths *g_paths)
+{
+    I32 base_size = GetModuleFileNameA(0, g_paths->base, Paths_Size) + 1;
+    CF_ASSERT(base_size <= Paths_Size, "Executable path is too long");
+
+    char *ext;
+    char const *file_name = pathSplitNameExt(g_paths->base, &ext);
+    CF_ASSERT_NOT_NULL(file_name);
+    CF_ASSERT_NOT_NULL(ext);
+
+    Isize file_name_ofst = file_name - g_paths->base;
+
+    cfMemCopy(file_name, g_paths->exe_name, base_size - file_name_ofst);
+    strPrintf(g_paths->dll_name, Paths_Size, "%.*s%s", (I32)(ext - file_name), file_name, ".dll");
+
+    g_paths->base[file_name_ofst] = 0;
+    strPrintf(g_paths->data, Paths_Size, "%sdata\\", g_paths->base);
+}
+
+static char **
 win32GetCommandLineArgs(cfAllocator *alloc, I32 *out_argc, Usize *out_size)
 {
     WCHAR *cmd_line = GetCommandLineW();
@@ -151,6 +173,8 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
     g_platform.vm->page_size = g_vm_page_size;
     g_platform.heap->state = &g_platform;
     win32ThreadingInit(g_platform.threading, g_platform.heap);
+
+    pathsInit(g_platform.paths);
 
     // TODO (Matteo): Improve command line handling
 

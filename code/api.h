@@ -13,6 +13,20 @@ typedef struct Threading Threading;
 
 typedef struct GlApi GlApi;
 
+enum
+{
+    Paths_Size = 256
+};
+
+// TODO (Matteo): Maybe simplify a bit? I suspect that the full exe path is enough
+typedef struct Paths
+{
+    char base[Paths_Size];
+    char data[Paths_Size];
+    char exe_name[Paths_Size];
+    char dll_name[Paths_Size];
+} Paths;
+
 typedef struct cfPlatform
 {
     /// Virtual memory services
@@ -42,6 +56,9 @@ typedef struct cfPlatform
     /// Useful for performance measurement
     Time (*clock)(void);
 
+    /// Common program paths
+    Paths *paths;
+
 } cfPlatform;
 
 //------------------------------------------------------------------------------
@@ -49,7 +66,6 @@ typedef struct cfPlatform
 //------------------------------------------------------------------------------
 
 typedef struct AppState AppState;
-typedef struct AppPaths AppPaths;
 
 typedef struct FontOptions FontOptions;
 
@@ -69,18 +85,7 @@ typedef struct AppUpdateResult
     Rgba32 back_color;
 } AppUpdateResult;
 
-enum
-{
-    AppPaths_Length = 256,
-};
-
-struct AppPaths
-{
-    char base[AppPaths_Length];
-    char data[AppPaths_Length];
-};
-
-AppState *appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], I32 argc);
+AppState *appCreate(cfPlatform *plat, char const *argv[], I32 argc);
 void appDestroy(AppState *app);
 AppUpdateResult appUpdate(AppState *app, FontOptions *opts);
 

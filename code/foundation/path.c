@@ -1,6 +1,8 @@
 #include "path.h"
 
 #include "common.h"
+#include "strings.h"
+#include "util.h"
 
 #include <string.h>
 
@@ -37,6 +39,18 @@ pathSplitNameExt(char const *path, char const **ext)
     }
 
     return path;
+}
+
+void
+pathChangeExt(char const *path, char const *new_ext, char *out)
+{
+    char const *ext = pathSplitExt(path);
+
+    CF_ASSERT_NOT_NULL(ext);
+
+    Isize offset = ext - path;
+    cfMemCopy(path, out, offset);
+    cfMemCopy(new_ext, out + offset, strSize(new_ext));
 }
 
 void

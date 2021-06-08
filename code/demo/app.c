@@ -29,8 +29,6 @@ struct AppState
     cfPlatform *plat;
     cfAllocator *alloc;
 
-    AppPaths paths;
-
     AppWindows windows;
     Rgba clear_color;
 };
@@ -38,7 +36,7 @@ struct AppState
 //------------------------------------------------------------------------------
 
 AppState *
-appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], I32 argc)
+appCreate(cfPlatform *plat, char const *argv[], I32 argc)
 {
     CF_UNUSED(argv);
     CF_UNUSED(argc);
@@ -50,8 +48,6 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], I32 argc)
     app->alloc = plat->heap;
 
     app->clear_color = (Rgba){.r = 0.45f, .g = 0.55f, .b = 0.60f, .a = 1.00f};
-
-    app->paths = paths;
 
     return app;
 }

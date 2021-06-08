@@ -92,7 +92,6 @@ struct AppState
 
     ImageView iv;
 
-    AppPaths paths;
     AppWindows windows;
 };
 
@@ -105,7 +104,7 @@ static bool appLoadImage(AppState *state, ImageFile *file);
 // Application creation/destruction
 
 AppState *
-appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], I32 argc)
+appCreate(cfPlatform *plat, char const *argv[], I32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
     AppState *app = cfAlloc(plat->heap, sizeof(*app));
@@ -117,8 +116,6 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], I32 argc)
         .zoom = 1.0f,
         .filter = ImageFilter_Nearest,
     };
-
-    app->paths = paths;
 
     // Init file list management
     app->filter.name = "Image files";
@@ -141,7 +138,7 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], I32 argc)
         // TODO (Matteo): Remove - kind of demo, but should not be kept
 
         ImageFile file = {0};
-        strPrintf(app->curr_dir, CURR_DIR_SIZE, "%s", paths.data);
+        strPrintf(app->curr_dir, CURR_DIR_SIZE, "%s", plat->paths->data);
         strPrintf(file.filename, FILENAME_SIZE, "Opaque.png");
         if (appLoadImage(app, &file))
         {
@@ -560,8 +557,8 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igText("Virtual memory reserved %.3fkb - committed %.3fkb", (F64)plat->reserved_size / 1024,
                (F64)plat->committed_size / 1024);
         igSeparator();
-        igText("App base path:%s", state->paths.base);
-        igText("App data path:%s", state->paths.data);
+        igText("App base path:%s", state->plat->paths->base);
+        igText("App data path:%s", state->plat->paths->data);
         igEnd();
     }
 

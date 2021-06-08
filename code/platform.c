@@ -169,25 +169,7 @@ platform_main(cfPlatform *platform, char const *argv[], I32 argc)
     platform->gl = gl;
 
     // Setup application
-
-    // TODO (Matteo): Review application paths management - it's quite messy
-
-    AppPaths paths = {0};
-    char gui_ini[AppPaths_Length] = {0};
-    char const *cmd_line = argv[0];
-
-    char const *ext;
-    char const *file_name = pathSplitNameExt(cmd_line, &ext);
-
-    CF_ASSERT_NOT_NULL(file_name);
-    CF_ASSERT_NOT_NULL(ext);
-
-    I32 root_len = (I32)(file_name - cmd_line);
-    strPrintf(paths.base, AppPaths_Length, "%.*s", root_len, cmd_line);
-    strPrintf(paths.data, AppPaths_Length, "%.*sdata/", root_len, cmd_line);
-    strPrintf(gui_ini, AppPaths_Length, "%.*s.gui", (I32)(ext - cmd_line), cmd_line);
-
-    AppState *app = appCreate(platform, paths, argv, argc);
+    AppState *app = appCreate(platform, argv, argc);
 
     // Setup Dear ImGui context
     igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
@@ -195,6 +177,11 @@ platform_main(cfPlatform *platform, char const *argv[], I32 argc)
     igSetAllocatorFunctions(guiAlloc, guiFree, platform->heap);
     ImGuiContext *imgui = igCreateContext(NULL);
     ImGuiIO *io = igGetIO();
+
+    // NOTE (Matteo): Custom IMGUI ini file
+    char gui_ini[Paths_Size] = {0};
+    strPrintf(gui_ini, Paths_Size, "%s%s", platform->paths->base, platform->paths->exe_name);
+    pathChangeExt(gui_ini, ".gui", gui_ini);
 
     io->IniFilename = gui_ini;
 
@@ -228,7 +215,7 @@ platform_main(cfPlatform *platform, char const *argv[], I32 argc)
 
     // Setup Dear ImGui style
     guiSetupStyle(dpi_scale);
-    guiSetupFonts(io->Fonts, dpi_scale, paths.data);
+    guiSetupFonts(io->Fonts, dpi_scale, platform->paths->data);
 
 // Setup Platform/Renderer backends
 #if SDL_BACKEND
@@ -254,13 +241,13 @@ platform_main(cfPlatform *platform, char const *argv[], I32 argc)
     while (!done)
     {
         // Poll and handle events (inputs, window resize, etc.)
-        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear
-        // imgui wants to use your inputs.
+        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if
+        // dear imgui wants to use your inputs.
         // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main
         // application.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your
-        // main application. Generally you may always pass all inputs to dear imgui, and hide
-        // them from your application based on those two flags.
+        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to
+        // your main application. Generally you may always pass all inputs to dear imgui,
+        // and hide them from your application based on those two flags.
 
         SDL_Event event;
         while (SDL_PollEvent(&event))
@@ -317,8 +304,8 @@ platform_main(cfPlatform *platform, char const *argv[], I32 argc)
         ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
 
         // Update and Render additional Platform Windows
-        // (Platform functions may change the current OpenGL context, so we save/restore it to
-        // make it easier to paste this code elsewhere.)
+        // (Platform functions may change the current OpenGL context, so we save/restore it
+        // to make it easier to paste this code elsewhere.)
         if (io->ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
 #if SDL_BACKEND

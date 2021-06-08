@@ -6,6 +6,8 @@ char const *pathSplitName(char const *path);
 char const *pathSplitExt(char const *path);
 char const *pathSplitNameExt(char const *path, char const **ext);
 
+void pathChangeExt(char const *path, char const *new_ext, char *out);
+
 typedef struct PathSplitIter
 {
     char const *cur;

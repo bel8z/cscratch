@@ -44,6 +44,7 @@ AllowShortCaseLabelsOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLoopsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: Inline
+AllowShortEnumsOnASingleLine : true
 
 #--------------
 # C++ specific
