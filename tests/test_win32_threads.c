@@ -26,9 +26,9 @@ enum
 
 typedef struct Queue
 {
-    i32 buffer[QueueSize];
-    u32 beg;
-    u32 len;
+    I32 buffer[QueueSize];
+    U32 beg;
+    U32 len;
     Mutex lock;
     ConditionVariable notify;
 } Queue;
@@ -50,7 +50,7 @@ static THREAD_PROC(producerProc)
         api->sleep(TIME_MS(1000));
         api->mutexAcquire(&queue->lock);
 
-        i32 value = rand();
+        I32 value = rand();
 
         fprintf(stdout, "Produced: %d", value);
 
@@ -85,7 +85,7 @@ static THREAD_PROC(consumerProc)
         api->mutexAcquire(&queue->lock);
         if (queue->len)
         {
-            i32 value = queue->buffer[queue->beg];
+            I32 value = queue->buffer[queue->beg];
 
             queue->beg = (queue->beg + 1) % QueueSize;
             --queue->len;

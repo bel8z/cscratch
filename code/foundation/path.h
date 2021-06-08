@@ -9,7 +9,7 @@ char const *pathSplitNameExt(char const *path, char const **ext);
 typedef struct PathSplitIter
 {
     char const *cur;
-    usize len;
+    Usize len;
     // **Internal**
     char const *path;
 } PathSplitIter;

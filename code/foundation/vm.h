@@ -4,11 +4,11 @@
 
 // Platform provided virtual memory API
 
-#define VM_RESERVE_FUNC(name) void *name(usize size)
-#define VM_RELEASE_FUNC(name) void name(void *memory, usize size)
+#define VM_RESERVE_FUNC(name) void *name(Usize size)
+#define VM_RELEASE_FUNC(name) void name(void *memory, Usize size)
 
-#define VM_COMMIT_FUNC(name) bool name(void *memory, usize size)
-#define VM_REVERT_FUNC(name) void name(void *memory, usize size)
+#define VM_COMMIT_FUNC(name) bool name(void *memory, Usize size)
+#define VM_REVERT_FUNC(name) void name(void *memory, Usize size)
 
 typedef struct cfVirtualMemory
 {
@@ -17,7 +17,7 @@ typedef struct cfVirtualMemory
     VM_COMMIT_FUNC((*commit));
     VM_REVERT_FUNC((*revert));
 
-    usize page_size;
+    Usize page_size;
 } cfVirtualMemory;
 
 #define cfVmReserve(vm, size) vm->reserve(size)

@@ -38,7 +38,7 @@ timeoutMs(Time timeout)
 {
     if (TIME_IS_INFINITE(timeout)) return INFINITE;
     CF_ASSERT(timeout.nanoseconds >= 0, "Negative timeout given");
-    i64 ms = timeout.nanoseconds / 1000000;
+    I64 ms = timeout.nanoseconds / 1000000;
     return (DWORD)ms;
 }
 
@@ -54,7 +54,7 @@ win32sleep(Time timeout)
 CF_STATIC_ASSERT(sizeof(Thread) == sizeof(HANDLE), "Thread and HANDLE size must be equal");
 CF_STATIC_ASSERT(alignof(Thread) == alignof(HANDLE), "Thread must be aligned as HANDLE");
 
-static u32 WINAPI
+static U32 WINAPI
 win32threadProc(void *data)
 {
     ThreadParms *parms = data;
@@ -85,14 +85,14 @@ win32threadCreate(ThreadParms *parms)
 
         CF_ASSERT(parms_copy->stack_size <= U32_MAX, "Required stack size is too large");
 
-        thread.handle = _beginthreadex(NULL, (u32)parms_copy->stack_size, win32threadProc,
+        thread.handle = _beginthreadex(NULL, (U32)parms_copy->stack_size, win32threadProc,
                                        parms_copy, CREATE_SUSPENDED, NULL);
     }
 
     if (thread.handle && parms->debug_name)
     {
         WCHAR buffer[1024];
-        i32 size = MultiByteToWideChar(CP_UTF8, 0, parms->debug_name, -1, buffer, 1024);
+        I32 size = MultiByteToWideChar(CP_UTF8, 0, parms->debug_name, -1, buffer, 1024);
         CF_ASSERT(size > 0 || size < 1024, "Thread debug name is too long");
         SetThreadDescription((HANDLE)thread.handle, buffer);
         ResumeThread((HANDLE)thread.handle);
@@ -122,7 +122,7 @@ win32threadWait(Thread thread, Time timeout)
 }
 
 bool
-win32threadWaitAll(Thread *threads, usize num_threads, Time timeout)
+win32threadWaitAll(Thread *threads, Usize num_threads, Time timeout)
 {
     CF_ASSERT(num_threads <= U32_MAX, "Given number of threads is too large");
     DWORD count = (DWORD)num_threads;
@@ -137,7 +137,7 @@ win32threadWaitAll(Thread *threads, usize num_threads, Time timeout)
 #if THREADING_DEBUG
 
 static bool
-win32tryLockExc(SRWLOCK *lock, u32 *owner_id)
+win32tryLockExc(SRWLOCK *lock, U32 *owner_id)
 {
     CF_ASSERT_NOT_NULL(lock);
     CF_ASSERT_NOT_NULL(owner_id);
@@ -154,7 +154,7 @@ win32tryLockExc(SRWLOCK *lock, u32 *owner_id)
 }
 
 static void
-win32lockExc(SRWLOCK *lock, u32 *owner_id)
+win32lockExc(SRWLOCK *lock, U32 *owner_id)
 {
     CF_ASSERT_NOT_NULL(lock);
     CF_ASSERT_NOT_NULL(owner_id);
@@ -170,7 +170,7 @@ win32lockExc(SRWLOCK *lock, u32 *owner_id)
 }
 
 static void
-win32unlockExc(SRWLOCK *lock, u32 *owner_id)
+win32unlockExc(SRWLOCK *lock, U32 *owner_id)
 {
     CF_ASSERT_NOT_NULL(lock);
     CF_ASSERT_NOT_NULL(owner_id);

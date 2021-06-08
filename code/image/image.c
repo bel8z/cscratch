@@ -8,7 +8,7 @@
 // Custom memory management for stbi
 static cfAllocator *g_alloc = NULL;
 
-static void *stbiRealloc(void *mem, usize size);
+static void *stbiRealloc(void *mem, Usize size);
 static void stbiFree(void *mem);
 
 #define STBI_MALLOC(size) stbiRealloc(NULL, size)
@@ -40,10 +40,10 @@ static void stbiFree(void *mem);
 // Image API implementation
 
 static void
-image__processData(u8 *data, i32 width, i32 height, Image *image)
+image__processData(U8 *data, I32 width, I32 height, Image *image)
 {
     // Create a OpenGL texture identifier
-    u32 image_texture;
+    U32 image_texture;
     glGenTextures(1, &image_texture);
     glBindTexture(GL_TEXTURE_2D, image_texture);
 
@@ -78,9 +78,9 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
     g_alloc = alloc;
 
     // Load from file
-    i32 width = 0;
-    i32 height = 0;
-    u8 *data = stbi_load(filename, &width, &height, NULL, 4);
+    I32 width = 0;
+    I32 height = 0;
+    U8 *data = stbi_load(filename, &width, &height, NULL, 4);
     bool result = false;
 
     if (data)
@@ -96,7 +96,7 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
 }
 
 bool
-imageLoadFromMemory(Image *image, u8 const *in_data, usize in_data_size, cfAllocator *alloc)
+imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAllocator *alloc)
 {
     CF_ASSERT_NOT_NULL(alloc);
     CF_ASSERT_NOT_NULL(image);
@@ -106,9 +106,9 @@ imageLoadFromMemory(Image *image, u8 const *in_data, usize in_data_size, cfAlloc
     g_alloc = alloc;
 
     // Load from file
-    i32 width = 0;
-    i32 height = 0;
-    u8 *data = stbi_load_from_memory(in_data, (i32)in_data_size, &width, &height, NULL, 4);
+    I32 width = 0;
+    I32 height = 0;
+    U8 *data = stbi_load_from_memory(in_data, (I32)in_data_size, &width, &height, NULL, 4);
     bool result = false;
 
     if (data)
@@ -130,7 +130,7 @@ imageSetFilter(Image *image, ImageFilter filter)
 
     glBindTexture(GL_TEXTURE_2D, image->texture);
 
-    i32 value = (filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
+    I32 value = (filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
@@ -146,14 +146,14 @@ imageUnload(Image *image)
 // stbi memory management
 
 void *
-stbiRealloc(void *mem, usize size)
+stbiRealloc(void *mem, Usize size)
 {
     CF_ASSERT_NOT_NULL(g_alloc);
     CF_ASSERT(size > 0, "stbi requested allocation of 0 bytes");
-    CF_ASSERT(size < USIZE_MAX - sizeof(usize), "stbi requested allocation is too big");
+    CF_ASSERT(size < USIZE_MAX - sizeof(Usize), "stbi requested allocation is too big");
 
-    usize *old_buf = mem;
-    usize old_size = 0;
+    Usize *old_buf = mem;
+    Usize old_size = 0;
 
     if (old_buf)
     {
@@ -161,8 +161,8 @@ stbiRealloc(void *mem, usize size)
         old_size = *old_buf;
     }
 
-    usize new_size = size + sizeof(*old_buf);
-    usize *new_buf = cfRealloc(g_alloc, old_buf, old_size, new_size);
+    Usize new_size = size + sizeof(*old_buf);
+    Usize *new_buf = cfRealloc(g_alloc, old_buf, old_size, new_size);
 
     if (!new_buf) return NULL;
 
@@ -178,8 +178,8 @@ stbiFree(void *mem)
 
     if (mem)
     {
-        usize *buf = (usize *)mem - 1;
-        usize old_size = *buf;
+        Usize *buf = (Usize *)mem - 1;
+        Usize old_size = *buf;
         CF_ASSERT(old_size, "stbi freeing invalid block");
         cfFree(g_alloc, buf, old_size);
     }

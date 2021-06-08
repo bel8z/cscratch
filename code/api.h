@@ -18,16 +18,16 @@ typedef struct cfPlatform
     /// Virtual memory services
     cfVirtualMemory *vm;
     /// Reserved VM size in bytes
-    usize reserved_size; // TODO (Matteo): Should be a pointer?
+    Usize reserved_size; // TODO (Matteo): Should be a pointer?
     /// Committed VM size in bytes
-    usize committed_size; // TODO (Matteo): Should be a pointer?
+    Usize committed_size; // TODO (Matteo): Should be a pointer?
 
     /// System heap allocator
     cfAllocator *heap;
     /// Number of blocks allocated by the heap allocator
-    usize heap_blocks; // TODO (Matteo): Should be a pointer?
+    Usize heap_blocks; // TODO (Matteo): Should be a pointer?
     // Total size in bytes of the allocation provided by the heap
-    usize heap_size; // TODO (Matteo): Should be a pointer?
+    Usize heap_size; // TODO (Matteo): Should be a pointer?
 
     /// File system services
     cfFileSystem *fs;
@@ -60,7 +60,7 @@ typedef enum AppUpdateFlags
     AppUpdateFlags_RebuildFonts = 1 << 1,
     AppUpdateFlags_Quit = 1 << 2,
 
-    AppUpdateFlags_All = T_MAX(i32),
+    AppUpdateFlags_All = T_MAX(I32),
 } AppUpdateFlags;
 
 typedef struct AppUpdateResult
@@ -80,7 +80,7 @@ struct AppPaths
     char data[AppPaths_Length];
 };
 
-AppState *appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc);
+AppState *appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], I32 argc);
 void appDestroy(AppState *app);
 AppUpdateResult appUpdate(AppState *app, FontOptions *opts);
 

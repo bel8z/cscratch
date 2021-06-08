@@ -5,7 +5,7 @@
 void
 print_vec(Vec2 v)
 {
-    printf("{%f;%f}\n", (f64)v.x, (f64)v.y);
+    printf("{%f;%f}\n", (F64)v.x, (F64)v.y);
 }
 
 int

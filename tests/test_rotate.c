@@ -7,12 +7,12 @@
 // Rotate array using Gries-Mills block swap algorith
 // Implementation detail for cfRotateLeft/cfRotateLeft
 static inline void
-rotateBlockSwap_(void *array, usize size, usize pos, usize item_size)
+rotateBlockSwap_(void *array, Usize size, Usize pos, Usize item_size)
 {
     if (pos == 0 || pos == size) return;
 
-    usize i = pos;
-    usize j = size - pos;
+    Usize i = pos;
+    Usize j = size - pos;
 
     while (i != j)
     {
@@ -40,10 +40,10 @@ enum
 };
 
 void
-arrayPrint(i32 const *array, usize count)
+arrayPrint(I32 const *array, Usize count)
 {
     printf("{");
-    for (usize i = 0; i < count; ++i)
+    for (Usize i = 0; i < count; ++i)
     {
         printf("%d,", array[i]);
     }
@@ -54,13 +54,13 @@ int
 main(void)
 {
     LARGE_INTEGER freq, start, end;
-    isize elapsed_us;
+    Isize elapsed_us;
     QueryPerformanceFrequency(&freq);
 
-    i32 *a = HeapAlloc(GetProcessHeap(), 0, COUNT * sizeof(*a));
-    i32 *b = HeapAlloc(GetProcessHeap(), 0, COUNT * sizeof(*b));
+    I32 *a = HeapAlloc(GetProcessHeap(), 0, COUNT * sizeof(*a));
+    I32 *b = HeapAlloc(GetProcessHeap(), 0, COUNT * sizeof(*b));
 
-    for (i32 i = 0; i < COUNT; ++i)
+    for (I32 i = 0; i < COUNT; ++i)
     {
         a[i] = b[i] = i;
     }
@@ -77,7 +77,7 @@ main(void)
     elapsed_us = ((end.QuadPart - start.QuadPart) * 1000000) / freq.QuadPart;
     printf("rotate reversal: %zu us\n", elapsed_us);
 
-    for (i32 i = 0; i < COUNT; ++i)
+    for (I32 i = 0; i < COUNT; ++i)
     {
         CF_ASSERT(a[i] == b[i], "!");
         CF_ASSERT(a[i] == (i + POS) % COUNT, "!");

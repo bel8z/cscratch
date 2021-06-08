@@ -49,8 +49,8 @@ typedef struct ImageView
 {
     Image image;
     bool advanced;
-    f32 zoom;
-    i32 filter;
+    F32 zoom;
+    I32 filter;
 } ImageView;
 
 typedef enum ImageFileState
@@ -65,7 +65,7 @@ typedef struct ImageFile
 {
     char filename[FILENAME_SIZE];
     Image image;
-    i32 state;
+    I32 state;
 } ImageFile;
 
 /// Array of image file info backed by a large VM allocation (no waste since
@@ -73,11 +73,11 @@ typedef struct ImageFile
 typedef struct ImageList
 {
     cfVirtualMemory *vm;
-    usize bytes_reserved;
-    usize bytes_committed;
+    Usize bytes_reserved;
+    Usize bytes_committed;
 
     ImageFile *files;
-    u32 num_files;
+    U32 num_files;
 } ImageList;
 
 struct AppState
@@ -86,7 +86,7 @@ struct AppState
     cfAllocator *alloc;
 
     FileDlgFilter filter;
-    u32 curr_file;
+    U32 curr_file;
     char curr_dir[CURR_DIR_SIZE];
     ImageList images;
 
@@ -105,7 +105,7 @@ static bool appLoadImage(AppState *state, ImageFile *file);
 // Application creation/destruction
 
 AppState *
-appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
+appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], I32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
     AppState *app = cfAlloc(plat->heap, sizeof(*app));
@@ -127,7 +127,7 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
     app->curr_file = U32_MAX;
     cfMemClear(app->curr_dir, CURR_DIR_SIZE);
 
-    usize const images_vm = CF_GB(1);
+    Usize const images_vm = CF_GB(1);
     app->images.vm = plat->vm;
     app->images.bytes_reserved = images_vm;
     app->images.files = cfVmReserve(plat->vm, images_vm);
@@ -156,7 +156,7 @@ appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
 void
 appDestroy(AppState *app)
 {
-    for (u32 i = 0; i < app->images.num_files; ++i)
+    for (U32 i = 0; i < app->images.num_files; ++i)
     {
         imageUnload(&app->images.files[i].image);
     }
@@ -174,7 +174,7 @@ appIsFileSupported(char const *path)
     char const *ext = pathSplitExt(path);
     if (!ext) return false;
 
-    for (usize i = 0; i < CF_ARRAY_SIZE(g_supported_ext); ++i)
+    for (Usize i = 0; i < CF_ARRAY_SIZE(g_supported_ext); ++i)
     {
         if (strEqualInsensitive(g_supported_ext[i], ext)) return true;
     }
@@ -220,14 +220,14 @@ appPushImageFile(ImageList *images)
 {
     ImageFile *file = images->files + images->num_files++;
 
-    usize commit_size = sizeof(*file) * images->num_files;
+    Usize commit_size = sizeof(*file) * images->num_files;
 
     CF_ASSERT(commit_size < images->bytes_reserved, "Out of memory");
 
     if (commit_size > images->bytes_committed)
     {
         // Round up committed memory as a multiple of the page size
-        usize page_size = images->vm->page_size;
+        Usize page_size = images->vm->page_size;
         images->bytes_committed += page_size * ((commit_size + page_size - 1) / page_size);
         cfVmCommit(images->vm, images->files, images->bytes_committed);
     }
@@ -244,7 +244,7 @@ appLoadFromFile(AppState *state, char const *filename)
     ImageList *images = &state->images;
     ImageView *iv = &state->iv;
 
-    for (u32 i = 0; i < images->num_files; ++i)
+    for (U32 i = 0; i < images->num_files; ++i)
     {
         imageUnload(&images->files[i].image);
     }
@@ -255,14 +255,14 @@ appLoadFromFile(AppState *state, char const *filename)
     if (filename)
     {
         char const *name = pathSplitName(filename);
-        isize dir_size = name - filename;
+        Isize dir_size = name - filename;
 
         CF_ASSERT(0 <= dir_size && dir_size < CURR_DIR_SIZE, "Directory path too big");
 
         ImageFile file = {0};
 
         cfMemClear(state->curr_dir, CURR_DIR_SIZE);
-        cfMemCopy(filename, state->curr_dir, (usize)dir_size);
+        cfMemCopy(filename, state->curr_dir, (Usize)dir_size);
         cfMemCopy(name, file.filename, strSize(name));
 
         if (appLoadImage(state, &file))
@@ -295,7 +295,7 @@ appLoadFromFile(AppState *state, char const *filename)
             fs->dir_iter_close(it);
         }
 
-        for (u32 index = 0; index < images->num_files; ++index)
+        for (U32 index = 0; index < images->num_files; ++index)
         {
             if (strEqualInsensitive(name, state->images.files[index].filename))
             {
@@ -310,8 +310,8 @@ appLoadFromFile(AppState *state, char const *filename)
 static void
 appImageView(AppState *state)
 {
-    f32 const min_zoom = 1.0f;
-    f32 const max_zoom = 10.0f;
+    F32 const min_zoom = 1.0f;
+    F32 const max_zoom = 10.0f;
 
     ImageView *iv = &state->iv;
 
@@ -343,7 +343,7 @@ appImageView(AppState *state)
 
     if (state->curr_file != U32_MAX)
     {
-        u32 next = state->curr_file;
+        U32 next = state->curr_file;
 
         if (guiKeyPressed(ImGuiKey_LeftArrow))
         {
@@ -381,16 +381,16 @@ appImageView(AppState *state)
     // TODO (Matteo): Fix zoom behavior
 
     // NOTE (Matteo): in case of more precision required
-    // i32 v = (i32)(1000 / *zoom);
-    // i32 d = (1000 - v) / 2;
-    // f32 uv = (f32)d * 0.001f;
+    // I32 v = (I32)(1000 / *zoom);
+    // I32 d = (1000 - v) / 2;
+    // F32 uv = (F32)d * 0.001f;
 
     // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
     // ratio at zoom level == 1; then zoom is applied
 
-    f32 image_w = (f32)iv->image.width;
-    f32 image_h = (f32)iv->image.height;
-    f32 image_aspect = image_w / image_h;
+    F32 image_w = (F32)iv->image.width;
+    F32 image_h = (F32)iv->image.height;
+    F32 image_aspect = image_w / image_h;
 
     if (image_w > view_size.x)
     {
@@ -417,7 +417,7 @@ appImageView(AppState *state)
 
     ImDrawList *draw_list = igGetWindowDrawList();
     ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
-    ImDrawList_AddImage(draw_list, (void *)(iptr)iv->image.texture, image_min, image_max,
+    ImDrawList_AddImage(draw_list, (void *)(Iptr)iv->image.texture, image_min, image_max,
                         (ImVec2){0.0f, 0.0f}, (ImVec2){1.0f, 1.0f}, igGetColorU32U32(RGBA32_WHITE));
 
     if (iv->advanced)
@@ -552,13 +552,13 @@ appUpdate(AppState *state, FontOptions *font_opts)
 
     if (state->windows.stats)
     {
-        f64 framerate = (f64)igGetIO()->Framerate;
+        F64 framerate = (F64)igGetIO()->Framerate;
 
         igBegin("Application stats", &state->windows.stats, 0);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
-        igText("Allocated %.3fkb in %zu blocks", (f64)plat->heap_size / 1024, plat->heap_blocks);
-        igText("Virtual memory reserved %.3fkb - committed %.3fkb", (f64)plat->reserved_size / 1024,
-               (f64)plat->committed_size / 1024);
+        igText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
+        igText("Virtual memory reserved %.3fkb - committed %.3fkb", (F64)plat->reserved_size / 1024,
+               (F64)plat->committed_size / 1024);
         igSeparator();
         igText("App base path:%s", state->paths.base);
         igText("App data path:%s", state->paths.data);

@@ -4,15 +4,15 @@
 
 typedef struct cfScratchBuffer
 {
-    u8 *buf;
-    usize cap;
-    usize beg;
-    usize len;
+    U8 *buf;
+    Usize cap;
+    Usize beg;
+    Usize len;
 } cfScratchBuffer;
 
-cfScratchBuffer cfScratchCreate(u8 *memory, usize size);
+cfScratchBuffer cfScratchCreate(U8 *memory, Usize size);
 
-void *cfScratchAlloc(cfScratchBuffer *sb, usize size);
+void *cfScratchAlloc(cfScratchBuffer *sb, Usize size);
 
 #define CF_SCRATCH_BUFFER_H
 #endif

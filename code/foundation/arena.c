@@ -4,20 +4,20 @@
 #include "util.h"
 #include "vm.h"
 
-static inline u32
-round_up(u32 block_size, u32 page_size)
+static inline U32
+round_up(U32 block_size, U32 page_size)
 {
     CF_ASSERT((page_size & (page_size - 1)) == 0, "Page size is not a power of 2");
     return page_size * ((block_size + page_size - 1) / page_size);
 }
 
 bool
-arenaInitVm(Arena *arena, cfVirtualMemory *vm, u32 reserved_size)
+arenaInitVm(Arena *arena, cfVirtualMemory *vm, U32 reserved_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
-    u32 rounded = round_up(reserved_size, vm->page_size);
-    u8 *buffer = vm->reserve(rounded);
+    U32 rounded = round_up(reserved_size, vm->page_size);
+    U8 *buffer = vm->reserve(rounded);
 
     if (!buffer) return false;
 
@@ -30,7 +30,7 @@ arenaInitVm(Arena *arena, cfVirtualMemory *vm, u32 reserved_size)
 }
 
 void
-arenaInitBuffer(Arena *arena, u8 *buffer, u32 buffer_size)
+arenaInitBuffer(Arena *arena, U8 *buffer, U32 buffer_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -64,26 +64,26 @@ arenaCommitVm(Arena *arena)
 
     if (arena->vm)
     {
-        u32 commit_size = round_up(arena->allocated, arena->vm->page_size);
+        U32 commit_size = round_up(arena->allocated, arena->vm->page_size);
         cfVmCommit(arena->vm, arena->memory, commit_size);
     }
 }
 
 void *
-arenaAllocAlign(Arena *arena, u32 size, u32 align)
+arenaAllocAlign(Arena *arena, U32 size, U32 align)
 {
     CF_ASSERT_NOT_NULL(arena);
     CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
 
     // Align base pointer forward
-    uptr ptr = (uptr)(arena->memory + arena->allocated);
+    Uptr ptr = (Uptr)(arena->memory + arena->allocated);
     // Same as (ptr % align) but faster as align is a power of 2
-    uptr modulo = ptr & (align - 1);
-    uptr offset = ptr + align - modulo - (uptr)arena->memory;
+    Uptr modulo = ptr & (align - 1);
+    Uptr offset = ptr + align - modulo - (Uptr)arena->memory;
 
     if (arena->reserved - offset < size) return NULL;
 
-    u8 *result = arena->memory + offset;
+    U8 *result = arena->memory + offset;
 
     arena->allocated = offset + size;
 
@@ -97,17 +97,17 @@ arenaAllocAlign(Arena *arena, u32 size, u32 align)
 }
 
 void *
-arenaReallocAlign(Arena *arena, void *memory, u32 old_size, u32 new_size, u32 align)
+arenaReallocAlign(Arena *arena, void *memory, U32 old_size, U32 new_size, U32 align)
 {
     CF_ASSERT_NOT_NULL(arena);
     CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
 
-    u8 *block = memory;
-    u8 const *block_end = block + old_size;
-    u8 const *alloc_end = arena->memory + arena->allocated;
-    u8 const *arena_end = arena->memory + arena->reserved;
+    U8 *block = memory;
+    U8 const *block_end = block + old_size;
+    U8 const *alloc_end = arena->memory + arena->allocated;
+    U8 const *arena_end = arena->memory + arena->reserved;
 
-    u8 *result = NULL;
+    U8 *result = NULL;
 
     if (!block)
     {
@@ -144,14 +144,14 @@ arenaReallocAlign(Arena *arena, void *memory, u32 old_size, u32 new_size, u32 al
 }
 
 void
-arenaFree(Arena *arena, void const *memory, u32 size)
+arenaFree(Arena *arena, void const *memory, U32 size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
-    u8 const *block = memory;
-    u8 const *block_end = block + size;
-    u8 const *alloc_end = arena->memory + arena->allocated;
-    u8 const *arena_end = arena->memory + arena->reserved;
+    U8 const *block = memory;
+    U8 const *block_end = block + size;
+    U8 const *alloc_end = arena->memory + arena->allocated;
+    U8 const *arena_end = arena->memory + arena->reserved;
 
     if (!block)
     {

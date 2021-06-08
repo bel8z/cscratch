@@ -12,9 +12,9 @@ typedef struct cfArrayParams
 {
     // Mandatory parameters
     cfAllocator *alloc;
-    usize item_size;
+    Usize item_size;
     // Optional parameters
-    usize capacity;
+    Usize capacity;
 } cfArrayParams;
 
 // -----------------------------------------------------------------------------
@@ -31,9 +31,9 @@ typedef struct cfArrayParams
 
 /// Capacity of the array (number of elements that can be stored before the
 /// array grows)
-usize cfArrayCapacity(void *array);
+Usize cfArrayCapacity(void *array);
 /// Size of the array (number of stored items)
-usize cfArraySize(void *array);
+Usize cfArraySize(void *array);
 /// Size of the stored items in bytes (useful for 'memcpy' and the like)
 #define cfArrayBytes(array) cfArraySize(array) * sizeof(*array))
 
@@ -113,15 +113,15 @@ void cfArrayClear(void *array);
 // -----------------------------------------------------------------------------
 
 void *cf__arrayInit(void *array, cfArrayParams const *params);
-void cf__arrayFree(void *array, usize item_size);
+void cf__arrayFree(void *array, Usize item_size);
 
-void *cf__arrayGrow(void *array, usize room, usize item_size);
-void *cf__arrayEnsure(void *array, usize capacity, usize item_size);
-void *cf__arrayExtend(void *array, usize room, usize item_size);
-void *cf__arrayShrink(void *array, usize room);
+void *cf__arrayGrow(void *array, Usize room, Usize item_size);
+void *cf__arrayEnsure(void *array, Usize capacity, Usize item_size);
+void *cf__arrayExtend(void *array, Usize room, Usize item_size);
+void *cf__arrayShrink(void *array, Usize room);
 
-void *cf__arrayInsert(void *array, usize pos, usize item_count, usize item_size);
-void *cf__arrayRemove(void *array, usize pos, usize item_count, usize item_size);
+void *cf__arrayInsert(void *array, Usize pos, Usize item_count, Usize item_size);
+void *cf__arrayRemove(void *array, Usize pos, Usize item_count, Usize item_size);
 
 // -----------------------------------------------------------------------------
 #define CF_ARRAY_H

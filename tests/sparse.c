@@ -7,21 +7,21 @@ enum
 
 typedef struct Sparse
 {
-    u32 sparse[MAX_INDICES];
-    u32 dense[MAX_INDICES];
+    U32 sparse[MAX_INDICES];
+    U32 dense[MAX_INDICES];
 
-    u32 next;
-    u32 count;
+    U32 next;
+    U32 count;
 } Sparse;
 
 bool
-sparse_has(Sparse const *sparse, u32 index)
+sparse_has(Sparse const *sparse, U32 index)
 {
-    u32 dense_index = sparse->sparse[index];
+    U32 dense_index = sparse->sparse[index];
     return dense_index < sparse->count && sparse->dense[dense_index] == index;
 }
 
-u32
+U32
 sparse_add(Sparse *sparse)
 {
     sparse->dense[sparse->count] = sparse->next;
@@ -31,30 +31,30 @@ sparse_add(Sparse *sparse)
 }
 
 void
-sparse_remove(Sparse *sparse, u32 index)
+sparse_remove(Sparse *sparse, U32 index)
 {
     if (sparse->count < 1) return;
 
-    u32 dense_index = sparse->sparse[index];
+    U32 dense_index = sparse->sparse[index];
 
     if (index < sparse->count && sparse->dense[dense_index] == index)
     {
-        u32 sparse_index = sparse->dense[--sparse->count];
+        U32 sparse_index = sparse->dense[--sparse->count];
         sparse->sparse[sparse_index] = dense_index;
         sparse->dense[dense_index] = sparse_index;
     }
 }
 
-i32
+I32
 main(void)
 {
     Sparse sparse = {0};
 
-    u32 a = sparse_add(&sparse);
+    U32 a = sparse_add(&sparse);
 
     CF_ASSERT(sparse_has(&sparse, a), "");
 
-    u32 b = sparse_add(&sparse);
+    U32 b = sparse_add(&sparse);
 
     CF_ASSERT(sparse_has(&sparse, b), "");
 

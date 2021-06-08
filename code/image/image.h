@@ -16,14 +16,14 @@ typedef enum ImageFilter
 
 typedef struct Image
 {
-    u32 texture;
-    i32 width;
-    i32 height;
+    U32 texture;
+    I32 width;
+    I32 height;
 } Image;
 
 // Simple helper functions to load an image into a OpenGL texture with common settings
 bool imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc);
-bool imageLoadFromMemory(Image *image, u8 const *in_data, usize in_data_size, cfAllocator *alloc);
+bool imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAllocator *alloc);
 
 void imageSetFilter(Image *image, ImageFilter filter);
 

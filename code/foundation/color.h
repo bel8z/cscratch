@@ -25,7 +25,7 @@
 static inline Rgba
 rgbaUnpack32(Rgba32 in)
 {
-    f32 s = 1.0f / 255.0f;
+    F32 s = 1.0f / 255.0f;
 
     return (Rgba){
         .r = RGBA32_R(in) * s,
@@ -76,7 +76,7 @@ rgbaMultiplyAlpha32(Rgba32 col)
 static inline Hsva
 rgbaToHsva(Rgba in)
 {
-    f32 K = 0.f;
+    F32 K = 0.f;
 
     if (in.g < in.b)
     {
@@ -90,7 +90,7 @@ rgbaToHsva(Rgba in)
         K = -2.f / 6.f - K;
     }
 
-    f32 const chroma = in.r - (in.g < in.b ? in.g : in.b);
+    F32 const chroma = in.r - (in.g < in.b ? in.g : in.b);
 
     // NOTE (Matteo): F32_MIN is added below to avoid checking against divisions by 0
     return (Hsva){
@@ -115,12 +115,12 @@ hsvaToRgba(Hsva in)
     }
     else
     {
-        f32 h = cfFmod(in.h, 1.0f) / (60.0f / 360.0f);
-        i32 i = (i32)h;
-        f32 f = h - (f32)i;
-        f32 p = in.v * (1.0f - in.s);
-        f32 q = in.v * (1.0f - in.s * f);
-        f32 t = in.v * (1.0f - in.s * (1.0f - f));
+        F32 h = cfFmod(in.h, 1.0f) / (60.0f / 360.0f);
+        I32 i = (I32)h;
+        F32 f = h - (F32)i;
+        F32 p = in.v * (1.0f - in.s);
+        F32 q = in.v * (1.0f - in.s * f);
+        F32 t = in.v * (1.0f - in.s * (1.0f - f));
 
         switch (i)
         {

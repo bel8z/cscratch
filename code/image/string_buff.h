@@ -14,9 +14,9 @@ enum
 
 typedef struct StringBuff
 {
-    u32 index[StringBuff_MaxCount];
+    U32 index[StringBuff_MaxCount];
     char data[StringBuff_BuffSize];
-    u32 count;
+    U32 count;
 } StringBuff;
 
 static inline void
@@ -34,21 +34,21 @@ sbPush(StringBuff *sb, char const *str)
     if (sb->count == StringBuff_MaxCount) return false;
 
     // Compute size of the string, including terminator
-    usize size = strSize(str);
+    Usize size = strSize(str);
 
-    u32 offset = sb->index[sb->count];
-    u32 avail = StringBuff_BuffSize - offset;
+    U32 offset = sb->index[sb->count];
+    U32 avail = StringBuff_BuffSize - offset;
     if (size > avail) return false;
 
     cfMemCopy(str, sb->data + offset, size);
 
-    sb->index[++sb->count] = offset + (u32)size;
+    sb->index[++sb->count] = offset + (U32)size;
 
     return true;
 }
 
 static inline char const *
-sbAt(StringBuff *sb, u32 index)
+sbAt(StringBuff *sb, U32 index)
 {
     CF_ASSERT_NOT_NULL(sb);
     CF_ASSERT(index < sb->count, "Index out of range");

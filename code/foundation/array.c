@@ -5,8 +5,8 @@
 typedef struct cfArrayHeader
 {
     cfAllocator *alloc;
-    usize len; // Number of stored items
-    usize cap; // Number of storable items
+    Usize len; // Number of stored items
+    Usize cap; // Number of storable items
 } cfArrayHeader;
 
 inline cfArrayHeader *
@@ -17,17 +17,17 @@ arrayHeader(void *array)
 }
 
 static cfArrayHeader *
-arrayHeaderGrow(cfArrayHeader *header, usize room, usize item_size)
+arrayHeaderGrow(cfArrayHeader *header, Usize room, Usize item_size)
 {
-    usize const req_cap = header->len + room;
+    Usize const req_cap = header->len + room;
 
     if (req_cap > header->cap)
     {
-        usize const dbl_cap = header->cap ? header->cap * 2 : 1;
-        usize const new_cap = req_cap > dbl_cap ? req_cap : dbl_cap;
+        Usize const dbl_cap = header->cap ? header->cap * 2 : 1;
+        Usize const new_cap = req_cap > dbl_cap ? req_cap : dbl_cap;
 
-        usize const old_size = sizeof(*header) + header->cap * item_size;
-        usize const new_size = sizeof(*header) + new_cap * item_size;
+        Usize const old_size = sizeof(*header) + header->cap * item_size;
+        Usize const new_size = sizeof(*header) + new_cap * item_size;
 
         header = cfRealloc(header->alloc, header, old_size, new_size);
         header->cap = new_cap;
@@ -36,13 +36,13 @@ arrayHeaderGrow(cfArrayHeader *header, usize room, usize item_size)
     return header;
 }
 
-usize
+Usize
 cfArrayCapacity(void *array)
 {
     return arrayHeader(array)->cap;
 }
 
-usize
+Usize
 cfArraySize(void *array)
 {
     return arrayHeader(array)->len;
@@ -60,7 +60,7 @@ cf__arrayInit(void *array, cfArrayParams const *params)
     (void)array; // Unused for now
 
     cfAllocator *alloc = params->alloc;
-    usize bytes = params->capacity * params->item_size;
+    Usize bytes = params->capacity * params->item_size;
 
     cfArrayHeader *header = cfAlloc(alloc, sizeof(*header) + bytes);
 
@@ -72,21 +72,21 @@ cf__arrayInit(void *array, cfArrayParams const *params)
 }
 
 void
-cf__arrayFree(void *array, usize item_size)
+cf__arrayFree(void *array, Usize item_size)
 {
     cfArrayHeader *header = arrayHeader(array);
     cfFree(header->alloc, header, sizeof(*header) + header->cap * item_size);
 }
 
 void *
-cf__arrayGrow(void *array, usize room, usize item_size)
+cf__arrayGrow(void *array, Usize room, Usize item_size)
 {
     cfArrayHeader *header = arrayHeaderGrow(arrayHeader(array), room, item_size);
     return (header + 1);
 }
 
 void *
-cf__arrayEnsure(void *array, usize capacity, usize item_size)
+cf__arrayEnsure(void *array, Usize capacity, Usize item_size)
 {
     cfArrayHeader *header = arrayHeader(array);
 
@@ -99,7 +99,7 @@ cf__arrayEnsure(void *array, usize capacity, usize item_size)
 }
 
 void *
-cf__arrayExtend(void *array, usize room, usize item_size)
+cf__arrayExtend(void *array, Usize room, Usize item_size)
 {
     cfArrayHeader *header = arrayHeaderGrow(arrayHeader(array), room, item_size);
     header->len += room;
@@ -107,7 +107,7 @@ cf__arrayExtend(void *array, usize room, usize item_size)
 }
 
 void *
-cf__arrayShrink(void *array, usize room)
+cf__arrayShrink(void *array, Usize room)
 {
     CF_ASSERT(array, "Cannot shrink an empty array");
     assert(arrayHeader(array)->len >= room);
@@ -116,16 +116,16 @@ cf__arrayShrink(void *array, usize room)
 }
 
 void *
-cf__arrayRemove(void *array, usize pos, usize item_count, usize item_size)
+cf__arrayRemove(void *array, Usize pos, Usize item_count, Usize item_size)
 {
     cfArrayHeader *header = arrayHeader(array);
 
     CF_ASSERT(pos < header->len, "Removing out of bounds range");
     CF_ASSERT(pos + item_count < header->len, "Removing out of bounds range");
 
-    usize const items = header->len - pos - item_count;
-    usize const bytes = items * item_size;
-    u8 *dst = (u8 *)(header + 1) + pos * item_size;
+    Usize const items = header->len - pos - item_count;
+    Usize const bytes = items * item_size;
+    U8 *dst = (U8 *)(header + 1) + pos * item_size;
 
     cfMemCopy(dst + item_size * item_count, dst, bytes);
 
@@ -135,16 +135,16 @@ cf__arrayRemove(void *array, usize pos, usize item_count, usize item_size)
 }
 
 void *
-cf__arrayInsert(void *array, usize pos, usize item_count, usize item_size)
+cf__arrayInsert(void *array, Usize pos, Usize item_count, Usize item_size)
 {
     cfArrayHeader *header = arrayHeaderGrow(arrayHeader(array), item_count, item_size);
 
     CF_ASSERT(pos < header->len, "Inserting out of bounds");
 
-    usize const items = header->len - pos;
-    usize const bytes = items * item_size;
+    Usize const items = header->len - pos;
+    Usize const bytes = items * item_size;
 
-    u8 *src = (u8 *)(header + 1) + pos * item_size;
+    U8 *src = (U8 *)(header + 1) + pos * item_size;
 
     cfMemCopy(src, src + item_size * item_count, bytes);
 

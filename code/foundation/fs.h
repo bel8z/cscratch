@@ -11,7 +11,7 @@ typedef struct FileDlgFilter
     char const *name;
     // Supported extensions
     char const **extensions;
-    usize num_extensions;
+    Usize num_extensions;
 } FileDlgFilter;
 
 enum
@@ -23,15 +23,15 @@ enum
 
 typedef struct FileDlgResult
 {
-    usize filename_size;
+    Usize filename_size;
     char *filename;
-    u8 code;
+    U8 code;
 } FileDlgResult;
 
 typedef struct FileContent
 {
-    u8 *data;
-    usize size;
+    U8 *data;
+    Usize size;
 } FileContent;
 
 typedef struct cfFileSystem
@@ -46,7 +46,7 @@ typedef struct cfFileSystem
     void (*dir_iter_close)(DirIter *iter);
 
     FileDlgResult (*open_file_dlg)(char const *filename_hint, FileDlgFilter *filters,
-                                   usize num_filters, cfAllocator *alloc);
+                                   Usize num_filters, cfAllocator *alloc);
 
     FileContent (*read_file)(char const *filename, cfAllocator *alloc);
 

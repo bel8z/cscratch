@@ -59,7 +59,7 @@ main(void)
         plat.fs.dir_iter_close(iter);
     }
 
-    u32 sz = 0;
+    U32 sz = 0;
     char *f = plat.fs.open_file_dlg(NULL, NULL, &plat.heap, &sz);
     printf("Opened file: %s \n", f);
     cfFree(&plat.heap, f, sz);

@@ -9,7 +9,7 @@
 /// Thread handle
 typedef struct Thread
 {
-    uptr handle;
+    Uptr handle;
 } Thread;
 
 /// Macro to generate a thread procedure signature
@@ -24,16 +24,16 @@ typedef struct ThreadParms
     ThreadProc proc;
     void *args;
     char const *debug_name;
-    usize stack_size;
+    Usize stack_size;
 } ThreadParms;
 
 /// Lightweight syncronization primitive which offers exclusive access to a resource.
 /// This mutex cannot be acquired recursively.
 typedef struct Mutex
 {
-    u8 data[sizeof(void *)];
+    U8 data[sizeof(void *)];
 #if THREADING_DEBUG
-    u32 internal;
+    U32 internal;
 #endif
 } Mutex;
 
@@ -42,10 +42,10 @@ typedef struct Mutex
 /// The lock cannot be taken recursively, neither by readers nor writers.
 typedef struct RwLock
 {
-    u8 data[sizeof(void *)];
+    U8 data[sizeof(void *)];
 #if THREADING_DEBUG
-    u32 reserved0;
-    u32 reserved1;
+    U32 reserved0;
+    U32 reserved1;
 #endif
 } RwLock;
 
@@ -53,7 +53,7 @@ typedef struct RwLock
 /// particular condition occurs.
 typedef struct ConditionVariable
 {
-    u8 data[sizeof(void *)];
+    U8 data[sizeof(void *)];
 } ConditionVariable;
 
 // clang-format off
@@ -67,7 +67,7 @@ typedef struct ConditionVariable
     X(threadDestroy,   void,   Thread thread)                                      \
     X(threadIsRunning, bool,   Thread thread)                                      \
     X(threadWait,      bool,   Thread thread, Time timeout)                      \
-    X(threadWaitAll,   bool,   Thread *threads, usize num_threads, Time timeout) \
+    X(threadWaitAll,   bool,   Thread *threads, Usize num_threads, Time timeout) \
     /*** Mutex ***/                                                                \
     X(mutexInit,       void, Mutex *mutex)                                         \
     X(mutexShutdown,   void, Mutex *mutex)                                         \

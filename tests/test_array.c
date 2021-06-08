@@ -15,16 +15,16 @@ main(int32_t argc, char **argv)
     cfAllocator std_alloc = stdAllocator();
     cfAllocator *alloc = &std_alloc;
 
-    cfArray(i32) array = NULL;
+    cfArray(I32) array = NULL;
     cfArrayInit(array, alloc);
 
     cfArrayPush(array, 0);
     cfArrayPush(array, 1);
     cfArrayPush(array, 2);
 
-    for (usize i = 0; i < cfArraySize(array); ++i)
+    for (Usize i = 0; i < cfArraySize(array); ++i)
     {
-        CF_ASSERT(array[i] == (i32)i, "Array push FAILED");
+        CF_ASSERT(array[i] == (I32)i, "Array push FAILED");
     }
 
     CF_ASSERT(cfArrayPop(array) == 2, "Array pop FAILED");
@@ -39,34 +39,34 @@ main(int32_t argc, char **argv)
     cfArrayPush(array, 3);
     cfArrayPush(array, 4);
 
-    for (usize i = 0; i < cfArraySize(array); ++i)
+    for (Usize i = 0; i < cfArraySize(array); ++i)
     {
-        CF_ASSERT(array[i] == (i32)i, "");
+        CF_ASSERT(array[i] == (I32)i, "");
     }
 
     cfArrayRemove(array, 1);
 
-    i32 test_remove[] = {0, 2, 3, 4};
+    I32 test_remove[] = {0, 2, 3, 4};
 
-    for (usize i = 0; i < CF_ARRAY_SIZE(test_remove); ++i)
+    for (Usize i = 0; i < CF_ARRAY_SIZE(test_remove); ++i)
     {
         CF_ASSERT(array[i] == test_remove[i], "Array remove FAILED");
     }
 
     cfArraySwapRemove(array, 1);
 
-    i32 test_swap_remove[] = {0, 4, 3};
+    I32 test_swap_remove[] = {0, 4, 3};
 
-    for (usize i = 0; i < CF_ARRAY_SIZE(test_swap_remove); ++i)
+    for (Usize i = 0; i < CF_ARRAY_SIZE(test_swap_remove); ++i)
     {
         CF_ASSERT(array[i] == test_swap_remove[i], "Array swap remove FAILED");
     }
 
     cfArrayInsert(array, 8, 1);
 
-    i32 test_insert[] = {0, 8, 4, 3};
+    I32 test_insert[] = {0, 8, 4, 3};
 
-    for (usize i = 0; i < CF_ARRAY_SIZE(test_insert); ++i)
+    for (Usize i = 0; i < CF_ARRAY_SIZE(test_insert); ++i)
     {
         CF_ASSERT(array[i] == test_insert[i], "Array insert FAILED");
     }

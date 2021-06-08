@@ -38,7 +38,7 @@ struct AppState
 //------------------------------------------------------------------------------
 
 AppState *
-appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], i32 argc)
+appCreate(cfPlatform *plat, AppPaths paths, char const *argv[], I32 argc)
 {
     CF_UNUSED(argv);
     CF_UNUSED(argc);
@@ -67,16 +67,16 @@ appDestroy(AppState *app)
 static void
 guiClock(Time time)
 {
-    i64 const secs_per_hour = 60 * 60;
-    i64 const secs_per_day = secs_per_hour * 24;
-    i64 const secs = time.nanoseconds / 1000000000;
-    i64 const ms_remainder = (time.nanoseconds - secs * 1000000000) / 1000000;
+    I64 const secs_per_hour = 60 * 60;
+    I64 const secs_per_day = secs_per_hour * 24;
+    I64 const secs = time.nanoseconds / 1000000000;
+    I64 const ms_remainder = (time.nanoseconds - secs * 1000000000) / 1000000;
 
     // Euclidean reminder to compute the number of seconds in a day boundary
-    i64 total_secs = ((secs % secs_per_day) + secs_per_day) % secs_per_day;
-    i64 hours = total_secs / secs_per_hour;
-    i64 mins = (total_secs - hours * secs_per_hour) / 60;
-    i64 final_secs = total_secs - mins * 60;
+    I64 total_secs = ((secs % secs_per_day) + secs_per_day) % secs_per_day;
+    I64 hours = total_secs / secs_per_hour;
+    I64 mins = (total_secs - hours * secs_per_hour) / 60;
+    I64 final_secs = total_secs - mins * 60;
 
     igText("%02d:%02d:%02d.%03d", hours, mins, final_secs, ms_remainder);
 }
@@ -122,11 +122,11 @@ appUpdate(AppState *state, FontOptions *font_opts)
     if (state->windows.stats)
     {
         cfPlatform *plat = state->plat;
-        f64 framerate = (f64)igGetIO()->Framerate;
+        F64 framerate = (F64)igGetIO()->Framerate;
 
         igBegin("Application stats stats", &state->windows.stats, 0);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
-        igText("Allocated %.3fkb in %zu blocks", (f64)plat->heap_size / 1024, plat->heap_blocks);
+        igText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
         igEnd();
     }
 
@@ -144,7 +144,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
 
     igBegin("Test", NULL, 0);
 
-    static f32 f = 0;
+    static F32 f = 0;
 
     igCheckbox("Demo Window", &state->windows.demo);
     igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);

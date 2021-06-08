@@ -17,7 +17,7 @@ main()
         return -1;
     }
 
-    i32 *ints = arenaAllocArray(&arena, i32, 1024);
+    I32 *ints = arenaAllocArray(&arena, I32, 1024);
 
     for (int i = 0; i < 1024; ++i)
     {
@@ -26,23 +26,23 @@ main()
 
     ARENA_TEMP_BEGIN(&arena);
 
-    ints = arenaReallocArray(&arena, i32, ints, 1024, 2048);
+    ints = arenaReallocArray(&arena, I32, ints, 1024, 2048);
 
-    for (i32 i = 0; i < 1024; ++i)
+    for (I32 i = 0; i < 1024; ++i)
     {
         assert(ints[i] == i);
     }
 
     ARENA_TEMP_END(&arena);
 
-    for (i32 i = 1024; i < 2048; ++i)
+    for (I32 i = 1024; i < 2048; ++i)
     {
         ints[i] = i;
     }
 
     arenaFreeAll(&arena);
 
-    for (i32 i = 0; i < 512; ++i)
+    for (I32 i = 0; i < 512; ++i)
     {
         assert(ints[i] == i);
     }

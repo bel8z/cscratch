@@ -9,7 +9,7 @@
 typedef struct FileInfo
 {
     char path[MAX_PATH];
-    usize size;
+    Usize size;
 } FileInfo;
 
 typedef struct DirectoryInfo

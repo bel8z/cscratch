@@ -15,14 +15,14 @@
 
 CF_PRINTF_LIKE(2, 3)
 char *
-strPrintfAlloc(cfAllocator *alloc, usize *out_size, char const *fmt, ...)
+strPrintfAlloc(cfAllocator *alloc, Usize *out_size, char const *fmt, ...)
 {
     va_list args, args_copy;
 
     va_start(args, fmt);
     va_copy(args_copy, args);
 
-    i32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+    I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
 
     va_end(args_copy);
 
@@ -32,7 +32,7 @@ strPrintfAlloc(cfAllocator *alloc, usize *out_size, char const *fmt, ...)
         return NULL;
     };
 
-    usize size = (usize)len + 1;
+    Usize size = (Usize)len + 1;
     char *buf = cfAlloc(alloc, size);
     if (buf)
     {
@@ -54,7 +54,7 @@ strPrintfBuffer(cfArray(char) * array, char const *fmt, ...)
     va_start(args, fmt);
     va_copy(args_copy, args);
 
-    i32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+    I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
 
     va_end(args_copy);
 
@@ -64,8 +64,8 @@ strPrintfBuffer(cfArray(char) * array, char const *fmt, ...)
         return false;
     };
 
-    usize req_size = (usize)len + 1;
-    usize arr_size = cfArraySize(*array);
+    Usize req_size = (Usize)len + 1;
+    Usize arr_size = cfArraySize(*array);
 
     cfArrayResize(*array, req_size);
 
@@ -78,18 +78,18 @@ strPrintfBuffer(cfArray(char) * array, char const *fmt, ...)
 
 CF_PRINTF_LIKE(2, 3)
 bool
-strPrintf(char *buffer, usize buffer_size, char const *fmt, ...)
+strPrintf(char *buffer, Usize buffer_size, char const *fmt, ...)
 {
     va_list args, args_copy;
 
     va_start(args, fmt);
     va_copy(args_copy, args);
 
-    i32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+    I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
 
     va_end(args_copy);
 
-    usize req_size = (usize)len + 1;
+    Usize req_size = (Usize)len + 1;
 
     if (len < 0 || req_size > buffer_size)
     {
@@ -104,13 +104,13 @@ strPrintf(char *buffer, usize buffer_size, char const *fmt, ...)
     return true;
 }
 
-i32
+I32
 strCompare(char const *l, char const *r)
 {
     return strcmp(l, r);
 }
 
-i32
+I32
 strCompareInsensitive(char const *l, char const *r)
 {
     // TODO (Matteo): replace with portable method

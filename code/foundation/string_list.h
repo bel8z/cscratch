@@ -6,7 +6,7 @@
 
 typedef struct StringEntry
 {
-    usize size;
+    Usize size;
     char *data;
     cfList node;
 } StringEntry;
@@ -14,19 +14,19 @@ typedef struct StringEntry
 typedef struct StringList
 {
     // Number of stored strings
-    usize count;
+    Usize count;
 
     // Internal list for iteration
     cfList list;
 
     // Internal memory management
     // cfAllocator *alloc;
-    usize cap;
-    usize len;
-    u8 *buf;
+    Usize cap;
+    Usize len;
+    U8 *buf;
 } StringList;
 
-void slInitBuffer(StringList *sl, u8 *buffer, usize size);
+void slInitBuffer(StringList *sl, U8 *buffer, Usize size);
 // void slInitAlloc(StringList *sl, cfAllocator *alloc);
 void slShutdown(StringList *sl);
 

@@ -40,10 +40,10 @@ typedef _Bool bool;
 //------------------------------------------------------------------------------
 // Fixed size unsigned integer types
 
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
+typedef uint8_t U8;
+typedef uint16_t U16;
+typedef uint32_t U32;
+typedef uint64_t U64;
 
 #define U8_MAX UINT8_MAX
 #define U16_MAX UINT16_MAX
@@ -53,10 +53,10 @@ typedef uint64_t u64;
 //------------------------------------------------------------------------------
 // Fixed size signed integer types
 
-typedef int8_t i8;
-typedef int16_t i16;
-typedef int32_t i32;
-typedef int64_t i64;
+typedef int8_t I8;
+typedef int16_t I16;
+typedef int32_t I32;
+typedef int64_t I64;
 
 #define I8_MIN INT8_MIN
 #define I8_MAX INT8_MAX
@@ -73,14 +73,14 @@ typedef int64_t i64;
 //------------------------------------------------------------------------------
 // Unsigned integer type of the result of sizeof, alignof and offsetof.
 
-typedef size_t usize;
+typedef size_t Usize;
 
 #define USIZE_MAX SIZE_MAX
 
 //------------------------------------------------------------------------------
 // Signed integer type of the result of subtracting two pointers.
 
-typedef ptrdiff_t isize;
+typedef ptrdiff_t Isize;
 
 #define ISIZE_MIN PTRDIFF_MIN
 #define ISIZE_MAX PTRDIFF_MAX
@@ -88,8 +88,8 @@ typedef ptrdiff_t isize;
 //------------------------------------------------------------------------------
 // Integer types capable of holding a pointer (for more comfortable arithmetics)
 
-typedef intptr_t iptr;
-typedef uintptr_t uptr;
+typedef intptr_t Iptr;
+typedef uintptr_t Uptr;
 
 #define UPTR_MAX UINTPTR_MAX
 #define IPTR_MIN INTPTR_MIN
@@ -98,8 +98,8 @@ typedef uintptr_t uptr;
 //------------------------------------------------------------------------------
 // Fixed size IEEE floating point types
 
-typedef float f32;
-typedef double f64;
+typedef float F32;
+typedef double F64;
 
 #define F32_MIN FLT_MIN
 #define F32_MAX FLT_MAX
@@ -117,32 +117,32 @@ typedef double f64;
 // clang-format off
 #define T_MIN(Type)        \
     _Generic((Type)(0),    \
-             i8 : I8_MIN,  \
-             i16: I16_MIN, \
-             i32: I32_MIN, \
-             i64: I64_MIN, \
-             f32: F32_MIN, \
-             f64: F64_MIN)
+             I8 : I8_MIN,  \
+             I16: I16_MIN, \
+             I32: I32_MIN, \
+             I64: I64_MIN, \
+             F32: F32_MIN, \
+             F64: F64_MIN)
 
 #define T_MAX(Type)        \
     _Generic((Type)(0),    \
-             u8 : U8_MAX,  \
-             u16: U16_MAX, \
-             u32: U32_MAX, \
-             u64: U64_MAX, \
-             i8 : I8_MAX,  \
-             i16: I16_MAX, \
-             i32: I32_MAX, \
-             i64: I64_MAX, \
-             f32: F32_MAX, \
-             f64: F64_MAX)
+             U8 : U8_MAX,  \
+             U16: U16_MAX, \
+             U32: U32_MAX, \
+             U64: U64_MAX, \
+             I8 : I8_MAX,  \
+             I16: I16_MAX, \
+             I32: I32_MAX, \
+             I64: I64_MAX, \
+             F32: F32_MAX, \
+             F64: F64_MAX)
 // clang-format on
 
 //------------------------------------------------------------------------------
 // Forward declare commonly used foundation types so that they can appear in
 // headers as pointers
 
-// Macro for declaring a dynamic array (e.g. cfArray(i32) ints;) - see array.h
+// Macro for declaring a dynamic array (e.g. cfArray(I32) ints;) - see array.h
 #define cfArray(Type) Type *
 
 // Allocator abstract interface
@@ -155,37 +155,37 @@ typedef union Vec2 Vec2;
 typedef union Vec3 Vec3;
 typedef union Vec4 Vec4;
 
-typedef f32 Mat4[4][4];
+typedef F32 Mat4[4][4];
 
 union Vec2
 {
     struct
     {
-        f32 x, y;
+        F32 x, y;
     };
     struct
     {
-        f32 u, v;
+        F32 u, v;
     };
-    f32 elem[2];
+    F32 elem[2];
 };
 
 union Vec3
 {
     struct
     {
-        f32 x, y, z;
+        F32 x, y, z;
     };
-    f32 elem[3];
+    F32 elem[3];
 };
 
 union Vec4
 {
     struct
     {
-        f32 x, y, z, w;
+        F32 x, y, z, w;
     };
-    f32 elem[4];
+    F32 elem[4];
 };
 
 //------------------------------------------------------------------------------
@@ -198,26 +198,26 @@ typedef union Rgba Rgba;
 typedef union Hsva Hsva;
 
 // Packed RBGA representation
-typedef u32 Rgba32;
+typedef U32 Rgba32;
 
 union Rgba
 {
     struct
     {
-        f32 r, g, b, a;
+        F32 r, g, b, a;
     };
 
-    f32 channel[4];
+    F32 channel[4];
 };
 
 union Hsva
 {
     struct
     {
-        f32 h, s, v, a;
+        F32 h, s, v, a;
     };
 
-    f32 elem[4];
+    F32 elem[4];
 };
 
 //------------------------------------------------------------------------------
@@ -225,7 +225,7 @@ union Hsva
 
 typedef struct Time
 {
-    i64 nanoseconds;
+    I64 nanoseconds;
 } Time;
 
 #define TIME_INFINITE ((Time){.nanoseconds = I64_MIN})
@@ -274,9 +274,9 @@ typedef struct Time
 
 #define CF_ARRAY_SIZE(a) sizeof(a) / sizeof(a[0])
 
-#define CF_KB(x) ((u64)1024 * (x))
-#define CF_MB(x) ((u64)1024 * CF_KB(x))
-#define CF_GB(x) ((u64)1024 * CF_MB(x))
+#define CF_KB(x) ((U64)1024 * (x))
+#define CF_MB(x) ((U64)1024 * CF_KB(x))
+#define CF_GB(x) ((U64)1024 * CF_MB(x))
 
 //------------------------------------------------------------------------------
 

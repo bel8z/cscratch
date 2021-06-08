@@ -31,13 +31,13 @@
 // Helper struct to tweak IMGUI font handling
 typedef struct FontOptions
 {
-    i32 tex_glyph_padding;
-    f32 rasterizer_multiply;
+    I32 tex_glyph_padding;
+    F32 rasterizer_multiply;
     // Stb only
-    i32 oversample_h;
-    i32 oversample_v;
+    I32 oversample_h;
+    I32 oversample_v;
     // Freetype only
-    u32 freetype_flags;
+    U32 freetype_flags;
     bool freetype_enabled;
 } FontOptions;
 

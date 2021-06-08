@@ -1,13 +1,13 @@
 #include "scratch_buffer.h"
 
 cfScratchBuffer
-cfScratchCreate(u8 *memory, usize size)
+cfScratchCreate(U8 *memory, Usize size)
 {
     return (cfScratchBuffer){.buf = memory, .cap = size};
 }
 
 void *
-cfScratchAlloc(cfScratchBuffer *sb, usize size)
+cfScratchAlloc(cfScratchBuffer *sb, Usize size)
 {
     // TODO (Matteo): Implement something
     CF_NOT_IMPLEMENTED();

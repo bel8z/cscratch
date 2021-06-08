@@ -20,14 +20,14 @@
 // Cross-platform entry point
 //------------------------------------------------------------------------------
 
-i32 platform_main(cfPlatform *platform, char const *argv[], i32 argc);
+I32 platform_main(cfPlatform *platform, char const *argv[], I32 argc);
 
 //------------------------------------------------------------------------------
 // Internal implementation
 //------------------------------------------------------------------------------
 
 // Virtual memory
-static usize g_vm_page_size = 0;
+static Usize g_vm_page_size = 0;
 static VM_RESERVE_FUNC(win32VmReserve);
 static VM_COMMIT_FUNC(win32VmCommit);
 static VM_REVERT_FUNC(win32VmDecommit);
@@ -42,24 +42,24 @@ static char const *win32DirIterNext(DirIter *self);
 static void win32DirIterClose(DirIter *self);
 
 static FileDlgResult win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters,
-                                      usize num_filters, cfAllocator *alloc);
+                                      Usize num_filters, cfAllocator *alloc);
 
 static FileContent win32ReadFile(char const *filename, cfAllocator *alloc);
 
 // Timing
 static struct
 {
-    i64 start_ticks;
-    i64 ratio_num;
-    i64 ratio_den;
-    i64 last_ns;
+    I64 start_ticks;
+    I64 ratio_num;
+    I64 ratio_den;
+    I64 last_ns;
 } g_clock;
 
 static Time win32Clock(void);
 
 // UTF8<->UTF16 helpers
-static u32 win32Utf8To16(char const *str, i32 str_size, WCHAR *out, u32 out_size);
-static u32 win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size);
+static U32 win32Utf8To16(char const *str, I32 str_size, WCHAR *out, U32 out_size);
+static U32 win32Utf16To8(WCHAR const *str, I32 str_size, char *out, U32 out_size);
 
 // Global platform API
 // NOTE (Matteo): a global here should be quite safe
@@ -92,22 +92,22 @@ static cfPlatform g_platform = {
 //------------------------------------------------------------------------------
 
 char **
-win32GetCommandLineArgs(cfAllocator *alloc, i32 *out_argc, usize *out_size)
+win32GetCommandLineArgs(cfAllocator *alloc, I32 *out_argc, Usize *out_size)
 {
     WCHAR *cmd_line = GetCommandLineW();
     WCHAR **argv_utf16 = CommandLineToArgvW(cmd_line, out_argc);
 
     char **argv = NULL;
 
-    *out_size = (usize)(*out_argc) * sizeof(*argv) + CF_MB(1);
+    *out_size = (Usize)(*out_argc) * sizeof(*argv) + CF_MB(1);
 
     argv = cfAlloc(alloc, *out_size);
     char *buf = (char *)(argv + *out_argc);
 
-    for (i32 i = 0; i < *out_argc; ++i)
+    for (I32 i = 0; i < *out_argc; ++i)
     {
         argv[i] = buf;
-        u32 size = win32Utf16To8(argv_utf16[i], -1, NULL, 0);
+        U32 size = win32Utf16To8(argv_utf16[i], -1, NULL, 0);
         win32Utf16To8(argv_utf16[i], -1, argv[i], size);
         buf += size;
     }
@@ -144,7 +144,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
     g_clock.start_ticks = now.QuadPart;
     g_clock.ratio_num = 1000000000;
     g_clock.ratio_den = freq.QuadPart;
-    u64 gcd = cfGcd((u64)g_clock.ratio_num, (u64)g_clock.ratio_den);
+    U64 gcd = cfGcd((U64)g_clock.ratio_num, (U64)g_clock.ratio_den);
     g_clock.ratio_num /= gcd;
     g_clock.ratio_den /= gcd;
 
@@ -154,11 +154,11 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     // TODO (Matteo): Improve command line handling
 
-    usize cmd_line_size;
-    i32 argc;
+    Usize cmd_line_size;
+    I32 argc;
     char **argv = win32GetCommandLineArgs(g_platform.heap, &argc, &cmd_line_size);
 
-    i32 result = platform_main(&g_platform, (char const **)argv, argc);
+    I32 result = platform_main(&g_platform, (char const **)argv, argc);
 
     cfFree(g_platform.heap, argv, cmd_line_size);
 
@@ -209,7 +209,7 @@ VM_REVERT_FUNC(win32VmDecommit)
     }
     else
     {
-        u32 err = GetLastError();
+        U32 err = GetLastError();
         CF_UNUSED(err);
         CF_ASSERT(false, "VM decommit failed");
     }
@@ -228,7 +228,7 @@ VM_RELEASE_FUNC(win32VmRelease)
     }
     else
     {
-        u32 err = GetLastError();
+        U32 err = GetLastError();
         CF_UNUSED(err);
         CF_ASSERT(false, "VM release failed");
     }
@@ -238,10 +238,10 @@ VM_RELEASE_FUNC(win32VmRelease)
 
 #if CF_MEMORY_PROTECTION
 
-static usize
-win32RoundSize(usize req_size, usize page_size)
+static Usize
+win32RoundSize(Usize req_size, Usize page_size)
 {
-    usize page_count = (req_size + page_size - 1) / page_size;
+    Usize page_count = (req_size + page_size - 1) / page_size;
     return page_count * page_size;
 }
 
@@ -253,8 +253,8 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 
     if (new_size)
     {
-        usize block_size = win32RoundSize(new_size, g_vm_page_size);
-        u8 *base = win32VmReserve(block_size);
+        Usize block_size = win32RoundSize(new_size, g_vm_page_size);
+        U8 *base = win32VmReserve(block_size);
         if (!base) return NULL;
 
         win32VmCommit(base, block_size);
@@ -274,8 +274,8 @@ CF_ALLOCATOR_FUNC(win32Alloc)
             cfMemCopy(memory, new_mem, cfMin(old_size, new_size));
         }
 
-        usize block_size = win32RoundSize(old_size, g_vm_page_size);
-        u8 *base = (u8 *)memory + old_size - block_size;
+        Usize block_size = win32RoundSize(old_size, g_vm_page_size);
+        U8 *base = (U8 *)memory + old_size - block_size;
 
         win32VmDecommit(base, block_size);
         win32VmRelease(base, block_size);
@@ -349,7 +349,7 @@ struct DirIter
     HANDLE finder;
     char buffer[MAX_PATH];
 
-    u8 state;
+    U8 state;
 };
 
 DirIter *
@@ -420,13 +420,13 @@ win32DirIterClose(DirIter *self)
 }
 
 static WCHAR *
-win32GrowString(WCHAR *str, u32 len, u32 *cap, u32 req, cfAllocator *alloc)
+win32GrowString(WCHAR *str, U32 len, U32 *cap, U32 req, cfAllocator *alloc)
 {
-    u32 old_cap = *cap;
+    U32 old_cap = *cap;
 
     if (req > old_cap - len)
     {
-        u32 new_cap = cfMax(req, old_cap * 2);
+        U32 new_cap = cfMax(req, old_cap * 2);
         str = cfRealloc(alloc, str, old_cap, new_cap);
         *cap = new_cap;
     }
@@ -435,20 +435,20 @@ win32GrowString(WCHAR *str, u32 len, u32 *cap, u32 req, cfAllocator *alloc)
 }
 
 static WCHAR *
-win32BuildFilterString(FileDlgFilter *filters, usize num_filters, cfAllocator *alloc, u32 *out_size)
+win32BuildFilterString(FileDlgFilter *filters, Usize num_filters, cfAllocator *alloc, U32 *out_size)
 {
     *out_size = 0;
     if (num_filters == 0) return NULL;
 
-    u32 cap = 1024;
-    u32 len = 0;
+    U32 cap = 1024;
+    U32 len = 0;
     WCHAR *out_filter = cfAlloc(alloc, cap);
 
     if (!out_filter) return NULL;
 
     for (FileDlgFilter *filter = filters, *end = filter + num_filters; filter < end; ++filter)
     {
-        u32 name_size = win32Utf8To16(filter->name, -1, NULL, 0);
+        U32 name_size = win32Utf8To16(filter->name, -1, NULL, 0);
 
         out_filter = win32GrowString(out_filter, len, &cap, name_size, alloc);
         if (!out_filter) return NULL;
@@ -456,10 +456,10 @@ win32BuildFilterString(FileDlgFilter *filters, usize num_filters, cfAllocator *a
         win32Utf8To16(filter->name, -1, out_filter + len, name_size);
         len += name_size;
 
-        for (usize ext_no = 0; ext_no < filter->num_extensions; ++ext_no)
+        for (Usize ext_no = 0; ext_no < filter->num_extensions; ++ext_no)
         {
             char const *ext = filter->extensions[ext_no];
-            u32 ext_size = win32Utf8To16(ext, -1, NULL, 0);
+            U32 ext_size = win32Utf8To16(ext, -1, NULL, 0);
 
             out_filter = win32GrowString(out_filter, len, &cap, ext_size + 1, alloc);
             if (!out_filter) return NULL;
@@ -488,7 +488,7 @@ win32BuildFilterString(FileDlgFilter *filters, usize num_filters, cfAllocator *a
 }
 
 FileDlgResult
-win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, usize num_filters,
+win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, Usize num_filters,
                  cfAllocator *alloc)
 {
     FileDlgResult result = {.code = FileDlgResult_Error};
@@ -497,12 +497,12 @@ win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, usize num_fi
 
     if (filename_hint)
     {
-        u32 name_size = win32Utf8To16(filename_hint, -1, NULL, 0);
+        U32 name_size = win32Utf8To16(filename_hint, -1, NULL, 0);
         if (name_size > MAX_PATH) return result;
         win32Utf8To16(filename_hint, -1, name, name_size);
     }
 
-    u32 filt_size = 0;
+    U32 filt_size = 0;
     WCHAR *filt = win32BuildFilterString(filters, num_filters, alloc, &filt_size);
 
     OPENFILENAMEW ofn = {0};
@@ -519,7 +519,7 @@ win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, usize num_fi
 
     if (GetOpenFileNameW(&ofn))
     {
-        u32 result_size = win32Utf16To8(ofn.lpstrFile, -1, NULL, 0);
+        U32 result_size = win32Utf16To8(ofn.lpstrFile, -1, NULL, 0);
         result.filename = cfAlloc(alloc, result_size);
 
         if (result.filename)
@@ -545,7 +545,7 @@ win32ReadFile(char const *filename, cfAllocator *alloc)
     FileContent result = {0};
 
     WCHAR path[MAX_PATH] = {0};
-    u32 path_size = win32Utf8To16(filename, -1, NULL, 0);
+    U32 path_size = win32Utf8To16(filename, -1, NULL, 0);
 
     if (path_size > MAX_PATH)
     {
@@ -600,7 +600,7 @@ win32Clock(void)
 
     CF_ASSERT(now.QuadPart > g_clock.start_ticks, "Win32 clock is not monotonic!");
 
-    i64 time_delta = now.QuadPart - g_clock.start_ticks;
+    I64 time_delta = now.QuadPart - g_clock.start_ticks;
     Time time = {.nanoseconds = (time_delta * g_clock.ratio_num) / g_clock.ratio_den};
 
     CF_ASSERT(g_clock.last_ns < time.nanoseconds, "Win32 clock wrapped");
@@ -611,20 +611,20 @@ win32Clock(void)
 
 //------------------------------------------------------------------------------
 
-u32
-win32Utf8To16(char const *str, i32 str_size, WCHAR *out, u32 out_size)
+U32
+win32Utf8To16(char const *str, I32 str_size, WCHAR *out, U32 out_size)
 {
-    i32 result = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str, str_size, out, (i32)out_size);
+    I32 result = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str, str_size, out, (I32)out_size);
     CF_ASSERT(result >= 0, "");
-    return (u32)result;
+    return (U32)result;
 }
 
-u32
-win32Utf16To8(WCHAR const *str, i32 str_size, char *out, u32 out_size)
+U32
+win32Utf16To8(WCHAR const *str, I32 str_size, char *out, U32 out_size)
 {
-    i32 result = WideCharToMultiByte(CP_UTF8, 0, str, str_size, out, (i32)out_size, 0, false);
+    I32 result = WideCharToMultiByte(CP_UTF8, 0, str, str_size, out, (I32)out_size, 0, false);
     CF_ASSERT(result >= 0, "");
-    return (u32)result;
+    return (U32)result;
 }
 
 //------------------------------------------------------------------------------

@@ -5,7 +5,7 @@
 #include "util.h"
 
 void
-slInitBuffer(StringList *sl, u8 *buffer, usize size)
+slInitBuffer(StringList *sl, U8 *buffer, Usize size)
 {
     // sl->alloc = NULL;
     sl->cap = size;
@@ -52,11 +52,11 @@ bool
 slPush(StringList *sl, char const *str)
 {
     // Compute size of the string, including terminator
-    usize size = strSize(str);
+    Usize size = strSize(str);
 
     StringEntry *entry = NULL;
-    usize avail = sl->cap - sl->len;
-    usize required = sizeof(*entry) + size;
+    Usize avail = sl->cap - sl->len;
+    Usize required = sizeof(*entry) + size;
 
     if (required > avail)
     {
@@ -64,8 +64,8 @@ slPush(StringList *sl, char const *str)
 
         // if (!sl->alloc) return false;
 
-        // usize new_cap = cfMax(required, sl->cap ? sl->cap * 2 : 1);
-        // u8 *new_buf = cfRealloc(sl->alloc, sl->buf, sl->cap, new_cap);
+        // Usize new_cap = cfMax(required, sl->cap ? sl->cap * 2 : 1);
+        // U8 *new_buf = cfRealloc(sl->alloc, sl->buf, sl->cap, new_cap);
         // if (!new_buf) return false;
 
         // sl->cap = new_cap;
@@ -100,7 +100,7 @@ slPop(StringList *sl)
 
     StringEntry *entry = cfListItem(tail, StringEntry, node);
 
-    usize block_size = sizeof(*entry) + entry->size;
+    Usize block_size = sizeof(*entry) + entry->size;
 
     CF_ASSERT(block_size <= sl->len, "Removing more than available");
 

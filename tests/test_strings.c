@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-static u8 g_buffer[4096];
+static U8 g_buffer[4096];
 
 int
 main(void)
@@ -12,7 +12,7 @@ main(void)
 
     slInitBuffer(&buff, g_buffer, sizeof(g_buffer));
 
-    usize i = 0;
+    Usize i = 0;
 
     if (slPush(&buff, "STR1")) ++i;
     if (slPush(&buff, "STR2")) ++i;

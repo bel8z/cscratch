@@ -34,10 +34,10 @@
 // Local function declarations
 //------------------------------------------------------------------------------
 
-static void *guiAlloc(usize size, void *state);
+static void *guiAlloc(Usize size, void *state);
 static void guiFree(void *mem, void *state);
-static void guiSetupStyle(f32 dpi);
-static void guiSetupFonts(ImFontAtlas *fonts, f32 dpi, char const *data_path);
+static void guiSetupStyle(F32 dpi);
+static void guiSetupFonts(ImFontAtlas *fonts, F32 dpi, char const *data_path);
 static void guiUpdateFonts(ImFontAtlas *fonts, FontOptions *font_opts);
 
 #if SDL_BACKEND
@@ -84,8 +84,8 @@ extern void ImGui_ImplOpenGL3_DestroyDeviceObjects();
 // Main
 //------------------------------------------------------------------------------
 
-i32
-platform_main(cfPlatform *platform, char const *argv[], i32 argc)
+I32
+platform_main(cfPlatform *platform, char const *argv[], I32 argc)
 {
     CF_UNUSED(argc);
     CF_UNUSED(argv);
@@ -182,10 +182,10 @@ platform_main(cfPlatform *platform, char const *argv[], i32 argc)
     CF_ASSERT_NOT_NULL(file_name);
     CF_ASSERT_NOT_NULL(ext);
 
-    i32 root_len = (i32)(file_name - cmd_line);
+    I32 root_len = (I32)(file_name - cmd_line);
     strPrintf(paths.base, AppPaths_Length, "%.*s", root_len, cmd_line);
     strPrintf(paths.data, AppPaths_Length, "%.*sdata/", root_len, cmd_line);
-    strPrintf(gui_ini, AppPaths_Length, "%.*s.gui", (i32)(ext - cmd_line), cmd_line);
+    strPrintf(gui_ini, AppPaths_Length, "%.*s.gui", (I32)(ext - cmd_line), cmd_line);
 
     AppState *app = appCreate(platform, paths, argv, argc);
 
@@ -208,10 +208,10 @@ platform_main(cfPlatform *platform, char const *argv[], i32 argc)
     io->ConfigDockingTransparentPayload = true;
 
     // Setup DPI handling
-    f32 dpi_scale = 1.0f;
+    F32 dpi_scale = 1.0f;
 
 #if SDL_BACKEND
-    f32 ddpi, hdpi, vdpi;
+    F32 ddpi, hdpi, vdpi;
     if (SDL_GetDisplayDPI(0, &ddpi, &hdpi, &vdpi) != 0)
     {
         fprintf(stderr, "Failed to obtain DPI information for display 0: %s\n", SDL_GetError());
@@ -220,7 +220,7 @@ platform_main(cfPlatform *platform, char const *argv[], i32 argc)
     dpi_scale = ddpi / PLATFORM_DPI;
 
 #else
-    f32 win_x_scale, win_y_scale;
+    F32 win_x_scale, win_y_scale;
     glfwGetWindowContentScale(window, &win_x_scale, &win_y_scale);
     // HACK How do I get the platform base DPI?
     dpi_scale = win_x_scale > win_y_scale ? win_y_scale : win_x_scale;
@@ -371,10 +371,10 @@ platform_main(cfPlatform *platform, char const *argv[], i32 argc)
 //------------------------------------------------------------------------------
 
 void *
-guiAlloc(usize size, void *state)
+guiAlloc(Usize size, void *state)
 {
     cfAllocator *alloc = state;
-    usize *buf = cfAlloc(alloc, size + sizeof(*buf));
+    Usize *buf = cfAlloc(alloc, size + sizeof(*buf));
 
     if (buf) *(buf++) = size;
 
@@ -387,7 +387,7 @@ guiFree(void *mem, void *state)
     if (mem)
     {
         cfAllocator *alloc = state;
-        usize *buf = mem;
+        Usize *buf = mem;
         buf--;
         cfFree(alloc, buf, *buf + sizeof(*buf));
     }
@@ -480,7 +480,7 @@ guiSetupStyleColors(ImGuiStyle *style)
 }
 
 void
-guiSetupStyle(f32 dpi_scale)
+guiSetupStyle(F32 dpi_scale)
 {
     igStyleColorsClassic(NULL);
 
@@ -501,7 +501,7 @@ guiSetupStyle(f32 dpi_scale)
 }
 
 ImFont *
-guiLoadFont(ImFontAtlas *fonts, char const *data_path, char const *name, f32 font_size,
+guiLoadFont(ImFontAtlas *fonts, char const *data_path, char const *name, F32 font_size,
             ImWchar const *ranges)
 {
     char buffer[1024] = {0};
@@ -512,7 +512,7 @@ guiLoadFont(ImFontAtlas *fonts, char const *data_path, char const *name, f32 fon
 }
 
 void
-guiSetupFonts(ImFontAtlas *fonts, f32 dpi_scale, char const *data_path)
+guiSetupFonts(ImFontAtlas *fonts, F32 dpi_scale, char const *data_path)
 {
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can
@@ -531,7 +531,7 @@ guiSetupFonts(ImFontAtlas *fonts, f32 dpi_scale, char const *data_path)
     // literal you need to write a double backslash \\ !
     ImWchar const *ranges = ImFontAtlas_GetGlyphRangesDefault(fonts);
 
-    f32 const scale = dpi_scale * PLATFORM_DPI / TRUETYPE_DPI;
+    F32 const scale = dpi_scale * PLATFORM_DPI / TRUETYPE_DPI;
 
     if (!guiLoadFont(fonts, data_path, "NotoSans", cfRound(13.0f * scale), ranges) &
         !guiLoadFont(fonts, data_path, "OpenSans", cfRound(13.5f * scale), ranges) &
@@ -550,7 +550,7 @@ guiUpdateFonts(ImFontAtlas *fonts, FontOptions *font_opts)
         fonts->TexGlyphPadding = font_opts->tex_glyph_padding;
     }
 
-    for (i32 i = 0; i < fonts->ConfigData.Size; ++i)
+    for (I32 i = 0; i < fonts->ConfigData.Size; ++i)
     {
         fonts->ConfigData.Data[i].RasterizerMultiply = font_opts->rasterizer_multiply;
         fonts->ConfigData.Data[i].OversampleH = font_opts->oversample_h;
@@ -560,7 +560,7 @@ guiUpdateFonts(ImFontAtlas *fonts, FontOptions *font_opts)
     if (font_opts->freetype_enabled)
     {
         fonts->FontBuilderIO = ImGuiFreeType_GetBuilderForFreeType();
-        fonts->FontBuilderFlags = (u32)font_opts->freetype_flags;
+        fonts->FontBuilderFlags = (U32)font_opts->freetype_flags;
     }
     else
     {
