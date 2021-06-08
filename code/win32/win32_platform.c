@@ -21,7 +21,7 @@
 // Cross-platform entry point
 //------------------------------------------------------------------------------
 
-I32 platform_main(cfPlatform *platform, char const *argv[], I32 argc);
+I32 platformMain(cfPlatform *platform, char const *argv[], I32 argc);
 
 //------------------------------------------------------------------------------
 // Internal implementation
@@ -139,22 +139,28 @@ win32GetCommandLineArgs(cfAllocator *alloc, I32 *out_argc, Usize *out_size)
     return argv;
 }
 
-#pragma warning(push)
-#pragma warning(disable : 4221)
-
 int WINAPI
 wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
-
     CF_UNUSED(hInstance);
     CF_UNUSED(hPrevInstance);
     CF_UNUSED(pCmdLine);
     CF_UNUSED(nCmdShow);
 
+    // ** Init memory management **
+
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
 
     g_vm_page_size = sysinfo.dwPageSize;
+    g_platform.vm->page_size = g_vm_page_size;
+    g_platform.heap->state = &g_platform;
+
+    // ** Init threading **
+
+    win32ThreadingInit(g_platform.threading, g_platform.heap);
+
+    // ** Init timing **
 
     LARGE_INTEGER now, freq;
     QueryPerformanceFrequency(&freq);
@@ -170,11 +176,11 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
     g_clock.ratio_num /= gcd;
     g_clock.ratio_den /= gcd;
 
-    g_platform.vm->page_size = g_vm_page_size;
-    g_platform.heap->state = &g_platform;
-    win32ThreadingInit(g_platform.threading, g_platform.heap);
+    // ** Init paths **
 
     pathsInit(g_platform.paths);
+
+    // ** Platform-agnostic entry point **
 
     // TODO (Matteo): Improve command line handling
 
@@ -182,7 +188,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
     I32 argc;
     char **argv = win32GetCommandLineArgs(g_platform.heap, &argc, &cmd_line_size);
 
-    I32 result = platform_main(&g_platform, (char const **)argv, argc);
+    I32 result = platformMain(&g_platform, (char const **)argv, argc);
 
     cfFree(g_platform.heap, argv, cmd_line_size);
 
@@ -191,8 +197,6 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     return result;
 }
-
-#pragma warning(pop)
 
 //------------------------------------------------------------------------------
 // Internal implementation

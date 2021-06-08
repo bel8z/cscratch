@@ -85,7 +85,7 @@ extern void ImGui_ImplOpenGL3_DestroyDeviceObjects();
 //------------------------------------------------------------------------------
 
 I32
-platform_main(cfPlatform *platform, char const *argv[], I32 argc)
+platformMain(cfPlatform *platform, char const *argv[], I32 argc)
 {
     CF_UNUSED(argc);
     CF_UNUSED(argv);
