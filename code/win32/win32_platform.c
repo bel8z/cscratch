@@ -58,6 +58,10 @@ static struct
 
 static Time win32Clock(void);
 
+/// Dynamic loading
+static void *win32libLoad(char const *filename);
+static void *win32libLoadProc(void *restrict lib, char const *restrict name);
+
 // UTF8<->UTF16 helpers
 static U32 win32Utf8To16(char const *str, I32 str_size, WCHAR *out, U32 out_size);
 static U32 win32Utf16To8(WCHAR const *str, I32 str_size, char *out, U32 out_size);
@@ -87,6 +91,8 @@ static cfPlatform g_platform = {
     .threading = &(Threading){0},
     .clock = win32Clock,
     .paths = &(Paths){0},
+    .libLoad = win32libLoad,
+    .libLoadProc = win32libLoadProc,
 };
 
 //------------------------------------------------------------------------------
@@ -635,6 +641,23 @@ win32Clock(void)
     g_clock.last_ns = time.nanoseconds;
 
     return time;
+}
+
+//------------------------------------------------------------------------------
+// Dynamic loading
+
+static void *
+win32libLoad(char const *filename)
+{
+    WCHAR buffer[1024];
+    win32Utf8To16(filename, -1, buffer, 1024);
+    return LoadLibraryW(buffer);
+}
+
+static void *
+win32libLoadProc(void *lib, char const *name)
+{
+    return (void *)GetProcAddress(lib, name);
 }
 
 //------------------------------------------------------------------------------

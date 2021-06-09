@@ -59,6 +59,10 @@ typedef struct cfPlatform
     /// Common program paths
     Paths *paths;
 
+    /// Dynamic library loading
+    void *(*libLoad)(char const *filename);
+    void *(*libLoadProc)(void *restrict lib, char const *restrict name);
+
 } cfPlatform;
 
 //------------------------------------------------------------------------------
@@ -85,9 +89,28 @@ typedef struct AppUpdateResult
     Rgba32 back_color;
 } AppUpdateResult;
 
-AppState *appCreate(cfPlatform *plat, char const *argv[], I32 argc);
-void appDestroy(AppState *app);
-AppUpdateResult appUpdate(AppState *app, FontOptions *opts);
+#define APP_CREATE(name) AppState *name(cfPlatform *plat, char const *argv[], I32 argc)
+#define APP_DESTROY(name) void name(AppState *app)
+#define APP_UPDATE(name) AppUpdateResult name(AppState *app, FontOptions *opts)
+
+typedef struct AppApi
+{
+    APP_CREATE((*create));
+    APP_DESTROY((*destroy));
+    APP_UPDATE((*update));
+} AppApi;
+
+#if CF_OS_WIN32
+#define APP_API __declspec(dllexport)
+#else
+#define APP_API
+#endif
+
+APP_API void appApiInit(AppApi *api);
+
+APP_CREATE(appCreate);
+APP_DESTROY(appDestroy);
+APP_UPDATE(appUpdate);
 
 #define APP_H
 #endif
