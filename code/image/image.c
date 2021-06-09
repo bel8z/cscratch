@@ -19,7 +19,7 @@ static void stbiFree(void *mem);
 #define STBI_ASSERT(x) CF_ASSERT(x, "stb image assert")
 
 // Include stbi implementation
-#if defined(__clang__)
+#if CF_COMPILER_CLANG
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wsign-conversion"
 #pragma clang diagnostic ignored "-Wsign-compare"
@@ -32,7 +32,7 @@ static void stbiFree(void *mem);
 
 #include <stb_image.h>
 
-#if defined(__clang__)
+#if CF_COMPILER_CLANG
 #pragma clang diagnostic pop
 #endif
 

@@ -13,9 +13,9 @@
 #include "foundation/util.h"
 #include "foundation/vm.h"
 
-#if !defined(_WIN32)
+#if !CF_OS_WIN32
 #error "Win32 platform not supported"
-#endif // defined(_WIN32)
+#endif
 
 //------------------------------------------------------------------------------
 // Cross-platform entry point
@@ -96,15 +96,15 @@ static cfPlatform g_platform = {
 static void
 pathsInit(Paths *g_paths)
 {
-    I32 base_size = GetModuleFileNameA(0, g_paths->base, Paths_Size) + 1;
+    Usize base_size = 1 + GetModuleFileNameA(0, g_paths->base, Paths_Size);
     CF_ASSERT(base_size <= Paths_Size, "Executable path is too long");
 
-    char *ext;
+    char const *ext;
     char const *file_name = pathSplitNameExt(g_paths->base, &ext);
     CF_ASSERT_NOT_NULL(file_name);
     CF_ASSERT_NOT_NULL(ext);
 
-    Isize file_name_ofst = file_name - g_paths->base;
+    Usize file_name_ofst = (Usize)(file_name - g_paths->base);
 
     cfMemCopy(file_name, g_paths->exe_name, base_size - file_name_ofst);
     strPrintf(g_paths->dll_name, Paths_Size, "%.*s%s", (I32)(ext - file_name), file_name, ".dll");

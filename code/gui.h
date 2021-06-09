@@ -4,27 +4,25 @@
 // Safely include cimgui.h with C declarations
 //------------------------------------------------------------------------------
 
-#if defined(_MSC_VER)
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wlanguage-extension-token"
-#else
+#include "foundation/common.h"
+
+#if CF_COMPILER_MSVC
 #pragma warning(push)
 #pragma warning(disable : 4201)
 #pragma warning(disable : 4214)
-#endif // defined(__clang__)
-#endif // defined(_MSC_VER)
+#elif CF_COMPILER_CLANG
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wlanguage-extension-token"
+#endif
 
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include "cimgui.h"
 
-#if defined(_MSC_VER)
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#else
+#if CF_COMP_MSVC
 #pragma warning(pop)
-#endif // defined(__clang__)
-#endif // defined(_MSC_VER)
+#elif CF_COMP_CLANG
+#pragma clang diagnostic pop
+#endif
 
 #include "foundation/vec.h"
 

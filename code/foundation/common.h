@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+//------------------------------------------------------------------------------
+// Customization flags
+
 // NOTE (Matteo): Memory protection is on by default, and can be disabled as a compilation flag
 #if !defined(CF_MEMORY_PROTECTION)
 #define CF_MEMORY_PROTECTION 1
@@ -16,12 +19,87 @@
 #endif
 
 //------------------------------------------------------------------------------
+// Context defines
+
+// clang-format off
+#if defined(__clang__)
+#    define CF_COMPILER_CLANG 1
+#elif defined(_MSC_VER)
+#    define CF_COMPILER_MSVC 1
+#elif defined(__GNUC__)
+#    define CF_COMPILER_GCC 1
+#else
+#    error "Compiler not detected"
+#endif
+
+#if defined(_WIN32)
+#    define CF_OS_WIN32 1
+#elif defined(__gnu_linux__)
+#    define CF_OS_LINUX 1
+#elif defined(__APPLE__) && defined(__MACH__)
+#    define CF_OS_MAC 1
+#else
+#    error "OS not detected"
+#endif
+
+#if defined(CF_COMPILER_MSVC)
+#    if defined(_M_X64)
+#        define CF_ARCH_X64 1
+#    elif defined(_M_IX86)
+#        define CF_ARCH_X86 1
+#    else
+#        error "Architecture not detected"
+#    endif
+#else
+#    if defined(__i386)
+#        define CF_ARCH_X86 1
+#    elif defined(__amd64)
+#        define CF_ARCH_X64 1
+#    else
+#        error "Architecture not detected"
+#    endif
+#endif
+
+#if !defined(CF_COMPILER_CLANG)
+#    define CF_COMPILER_CLANG 0
+#endif
+
+#if !defined(CF_COMPILER_GCC)
+#    define CF_COMPILER_GCC 0
+#endif
+
+#if !defined(CF_COMPILER_MSVC)
+#    define CF_COMPILER_MSVC 0
+#endif
+
+#if !defined(CF_OS_WIN32)
+#    define CF_OS_WIN32 0
+#endif
+
+#if !defined(CF_OS_LINUX)
+#    define CF_OS_LINUX 0
+#endif
+
+#if !defined(CF_OS_MAC)
+#    define CF_OS_MAC 0
+#endif
+
+#if !defined(CF_ARCH_X64)
+#    define CF_ARCH_X64 0
+#endif
+
+#if !defined(CF_ARCH_X86)
+#    define CF_ARCH_X86 0
+#endif
+// clang-format on
+
+//------------------------------------------------------------------------------
 // Alignment
 
 #define alignof _Alignof
 #define alignas _Alignas
 
-#if defined(_MSC_VER)
+#if CF_COMPILER_MSVC
 #define CF_MAX_ALIGN (sizeof(void *) * 2)
 #else
 #define CF_MAX_ALIGN (alignof(max_align_t))
@@ -231,10 +309,10 @@ typedef struct Time
 #define TIME_INFINITE ((Time){.nanoseconds = I64_MIN})
 #define TIME_IS_INFINITE(time) (time.nanoseconds == I64_MIN)
 
-#define TIME_MS(ms) TIME_US(1000 * ms)
-#define TIME_US(us) TIME_NS(1000 * us)
 #define TIME_NS(ns) \
     (CF_ASSERT(ns > I64_MIN, "Invalid nanoseconds count"), (Time){.nanoseconds = ns})
+#define TIME_US(us) TIME_NS(1000 * us)
+#define TIME_MS(ms) TIME_US(1000 * ms)
 
 #define timeAdd(a, b) ((Time){.nanoseconds = a.nanoseconds + b.nanoseconds})
 #define timeSub(a, b) ((Time){.nanoseconds = a.nanoseconds - b.nanoseconds})
@@ -243,7 +321,7 @@ typedef struct Time
 // Assertion macros
 
 #if CF_RELEASE_ASSERTS && defined(NDEBUG)
-#define CF__RESTORE_NDEBUG 1
+#define CF__RESTORE_NDEBUG
 #undef NDEBUG
 #endif
 
@@ -267,6 +345,7 @@ typedef struct Time
 #define NDEBUG 1
 #undef CF__RESTORE_NDEBUG
 #endif
+
 //------------------------------------------------------------------------------
 // Misc
 
@@ -277,6 +356,12 @@ typedef struct Time
 #define CF_KB(x) ((U64)1024 * (x))
 #define CF_MB(x) ((U64)1024 * CF_KB(x))
 #define CF_GB(x) ((U64)1024 * CF_MB(x))
+
+#define CF__CONCAT(a, b) a##b
+#define CF_CONCAT(a, b) CF__CONCAT(a, b)
+
+#define CF__STRINGIFY(x) #x
+#define CF_STRINGIFY(x) CF__STRINGIFY(x)
 
 //------------------------------------------------------------------------------
 
