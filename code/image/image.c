@@ -39,6 +39,12 @@ static void stbiFree(void *mem);
 //------------------------------------------------------------------------------
 // Image API implementation
 
+bool
+imageInit(GlApi *api)
+{
+    return gloadInit(api);
+}
+
 static void
 image__processData(U8 *data, I32 width, I32 height, Image *image)
 {

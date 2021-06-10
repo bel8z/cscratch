@@ -13,6 +13,8 @@ typedef struct Threading Threading;
 
 typedef struct GlApi GlApi;
 
+typedef struct ImGuiContext ImGuiContext;
+
 enum
 {
     Paths_Size = 256
@@ -26,6 +28,14 @@ typedef struct Paths
     char exe_name[Paths_Size];
     char dll_name[Paths_Size];
 } Paths;
+
+typedef struct Gui
+{
+    ImGuiContext *ctx;
+    void *alloc_state;
+    void *(*alloc)(Usize size, void *state);
+    void (*free)(void *mem, void *state);
+} Gui;
 
 typedef struct cfPlatform
 {
@@ -51,6 +61,9 @@ typedef struct cfPlatform
 
     /// OpenGL API
     GlApi *gl;
+
+    //
+    Gui *gui;
 
     /// Return the amount of nanoseconds elapsed since the start of the application
     /// Useful for performance measurement
@@ -93,11 +106,15 @@ typedef struct AppUpdateResult
 #define APP_DESTROY(name) void name(AppState *app)
 #define APP_UPDATE(name) AppUpdateResult name(AppState *app, FontOptions *opts)
 
+typedef APP_CREATE((*AppCreateProc));
+typedef APP_DESTROY((*AppDestroyProc));
+typedef APP_UPDATE((*AppUpdateProc));
+
 typedef struct AppApi
 {
-    APP_CREATE((*create));
-    APP_DESTROY((*destroy));
-    APP_UPDATE((*update));
+    AppCreateProc create;
+    AppDestroyProc destroy;
+    AppUpdateProc update;
 } AppApi;
 
 #if CF_OS_WIN32
@@ -106,11 +123,9 @@ typedef struct AppApi
 #define APP_API
 #endif
 
-APP_API void appApiInit(AppApi *api);
-
-APP_CREATE(appCreate);
-APP_DESTROY(appDestroy);
-APP_UPDATE(appUpdate);
+APP_API APP_CREATE(appCreate);
+APP_API APP_DESTROY(appDestroy);
+APP_API APP_UPDATE(appUpdate);
 
 #define APP_H
 #endif

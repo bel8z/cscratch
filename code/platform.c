@@ -84,6 +84,52 @@ extern void ImGui_ImplOpenGL3_DestroyDeviceObjects();
 // Main
 //------------------------------------------------------------------------------
 
+static APP_CREATE(appCreateStub)
+{
+    CF_UNUSED(plat);
+    CF_UNUSED(argc);
+    CF_UNUSED(argv);
+    return NULL;
+}
+
+static APP_DESTROY(appDestroyStub)
+{
+    CF_UNUSED(app);
+    CF_ASSERT(!app, "");
+}
+
+static APP_UPDATE(appUpdateStub)
+{
+    CF_UNUSED(app);
+    CF_UNUSED(opts);
+    return (AppUpdateResult){.flags = AppUpdateFlags_Quit};
+}
+
+void
+appInit(AppApi *app, cfPlatform *platform)
+{
+    char path[Paths_Size] = {0};
+    strPrintf(path, Paths_Size, "%s%s", platform->paths->base, platform->paths->dll_name);
+
+    cfMemClear(app, sizeof(*app));
+
+    void *app_lib = platform->libLoad(path);
+
+    if (app_lib)
+    {
+        app->create = (AppCreateProc)platform->libLoadProc(app_lib, "appCreate");
+        app->destroy = (AppDestroyProc)platform->libLoadProc(app_lib, "appDestroy");
+        app->update = (AppUpdateProc)platform->libLoadProc(app_lib, "appUpdate");
+    }
+
+    if (!app->create || !app->destroy || !app->update)
+    {
+        app->create = appCreateStub;
+        app->destroy = appDestroyStub;
+        app->update = appUpdateStub;
+    }
+}
+
 I32
 platformMain(cfPlatform *platform, char const *argv[], I32 argc)
 {
@@ -168,14 +214,25 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
     CF_ASSERT_NOT_NULL(gl);
     platform->gl = gl;
 
-    // Setup application
-    AppState *app = appCreate(platform, argv, argc);
-
     // Setup Dear ImGui context
+    platform->gui = &(Gui){
+        .alloc = guiAlloc,
+        .free = guiFree,
+        .alloc_state = platform->heap,
+    };
+
     igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
                                      sizeof(ImVec4), sizeof(ImDrawVert), sizeof(ImDrawIdx));
-    igSetAllocatorFunctions(guiAlloc, guiFree, platform->heap);
-    ImGuiContext *imgui = igCreateContext(NULL);
+    igSetAllocatorFunctions(platform->gui->alloc, platform->gui->free, platform->gui->alloc_state);
+    platform->gui->ctx = igCreateContext(NULL);
+
+    // Setup application
+    AppApi app_api;
+    appInit(&app_api, platform);
+    AppState *app = app_api.create(platform, argv, argc);
+
+    // Configure Dear ImGui
+
     ImGuiIO *io = igGetIO();
 
     // NOTE (Matteo): Custom IMGUI ini file
@@ -284,7 +341,7 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
         igNewFrame();
 
         // Application frame update
-        update_result = appUpdate(app, &font_opts);
+        update_result = app_api.update(app, &font_opts);
 
         // Rendering
         igRender();
@@ -337,7 +394,7 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
 #else
     ImGui_ImplGlfw_Shutdown();
 #endif
-    igDestroyContext(imgui);
+    igDestroyContext(platform->gui->ctx);
 
 #if SDL_BACKEND
     SDL_GL_DeleteContext(gl_context);
@@ -348,7 +405,7 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
     glfwTerminate();
 #endif
 
-    appDestroy(app);
+    app_api.destroy(app);
 
     return 0;
 }

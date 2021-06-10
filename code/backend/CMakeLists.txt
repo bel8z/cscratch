@@ -49,6 +49,7 @@ find_package(OpenGL REQUIRED)
 #-----------------------
 # Backend library
 #-----------------------
+set(BACKEND_NAME cimgui_backend)
 
 set(BACKEND_SOURCES 
     ${BACKEND_DIR}/imgui_impl_opengl3.cpp
@@ -60,25 +61,25 @@ else()
     list(APPEND BACKEND_SOURCES ${BACKEND_DIR}/imgui_impl_glfw.cpp)
 endif()
 
-add_library(backend STATIC ${BACKEND_SOURCES})
+add_library(${BACKEND_NAME} STATIC ${BACKEND_SOURCES})
 
-target_compile_definitions(backend PRIVATE IMGUI_IMPL_OPENGL_LOADER_CUSTOM=<gl/gload.h>)
+target_compile_definitions(${BACKEND_NAME} PRIVATE IMGUI_IMPL_OPENGL_LOADER_CUSTOM=<gl/gload.h>)
 
-target_include_directories(backend PUBLIC 
+target_include_directories(${BACKEND_NAME} PUBLIC 
     ${IMGUI_DIR}/imgui
     ${CODE_DIR})
 
-target_include_directories(backend INTERFACE ${IMGUI_DIR})
+target_include_directories(${BACKEND_NAME} INTERFACE ${IMGUI_DIR})
 
-target_link_libraries(backend PUBLIC 
+target_link_libraries(${BACKEND_NAME} PUBLIC 
     cimgui 
     ${OPENGL_gl_LIBRARY})
 
 if(BACKEND_SDL)
     find_package(SDL2 REQUIRED PATHS ${SDL2_DIR})
-    target_link_libraries(backend PUBLIC SDL2::SDL2-static)
-    target_compile_definitions(backend INTERFACE "SDL_BACKEND=1")
+    target_link_libraries(${BACKEND_NAME} PUBLIC SDL2::SDL2-static)
+    target_compile_definitions(${BACKEND_NAME} INTERFACE "SDL_BACKEND=1")
 else()
-    target_link_libraries(backend PUBLIC glfw)
-    target_compile_definitions(backend INTERFACE "SDL_BACKEND=0")
+    target_link_libraries(${BACKEND_NAME} PUBLIC glfw)
+    target_compile_definitions(${BACKEND_NAME} INTERFACE "SDL_BACKEND=0")
 endif()

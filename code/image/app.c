@@ -103,7 +103,7 @@ static bool appLoadImage(AppState *state, ImageFile *file);
 //------------------------------------------------------------------------------
 // Application creation/destruction
 
-AppState *
+APP_API AppState *
 appCreate(cfPlatform *plat, char const *argv[], I32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
@@ -129,6 +129,15 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
     app->images.bytes_reserved = images_vm;
     app->images.files = cfVmReserve(plat->vm, images_vm);
 
+    // Init Dear Imgui
+    igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
+                                     sizeof(ImVec4), sizeof(ImDrawVert), sizeof(ImDrawIdx));
+    igSetAllocatorFunctions(plat->gui->alloc, plat->gui->free, plat->gui->alloc_state);
+    igSetCurrentContext(plat->gui->ctx);
+
+    // Init image loading
+    imageInit(plat->gl);
+
     if (argc > 1)
     {
         appLoadFromFile(app, argv[1]);
@@ -150,7 +159,7 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
     return app;
 }
 
-void
+APP_API void
 appDestroy(AppState *app)
 {
     for (U32 i = 0; i < app->images.num_files; ++i)
@@ -514,7 +523,7 @@ appMainWindow(AppState *state)
     igEnd();
 }
 
-AppUpdateResult
+APP_API AppUpdateResult
 appUpdate(AppState *state, FontOptions *font_opts)
 {
     cfPlatform *plat = state->plat;
