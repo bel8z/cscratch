@@ -1,8 +1,13 @@
 #pragma once
 
+#include <assert.h>
 #include <float.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
+
+// TODO (Matteo): Clean up file
 
 //------------------------------------------------------------------------------
 // Customization flags
@@ -106,8 +111,6 @@
 
 //------------------------------------------------------------------------------
 // Boolean type
-
-#include <stdbool.h>
 
 #ifdef bool
 #    undef bool
@@ -388,8 +391,6 @@ typedef struct Time
 #    undef NDEBUG
 #endif
 
-#include <assert.h>
-
 #define CF_STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
 
 #if defined(NDEBUG)
@@ -425,5 +426,25 @@ typedef struct Time
 
 #define CF__STRINGIFY(x) #x
 #define CF_STRINGIFY(x) CF__STRINGIFY(x)
+
+#define cfClamp(val, min_val, max_val) \
+    ((val) < (min_val) ? (min_val) : (val) > (max_val) ? (max_val) : (val))
+
+#define cfMin(l, r) ((l) < (r) ? (l) : (r))
+#define cfMax(l, r) ((l) > (r) ? (l) : (r))
+
+//------------------------------------------------------------------------------
+// Memory utilities (clear, write, copy)
+//------------------------------------------------------------------------------
+
+#define cfMemClear(mem, count) memset(mem, 0, count)        // NOLINT
+#define cfMemCopy(from, to, count) memmove(to, from, count) // NOLINT
+#define cfMemCopySafe(from, from_size, to, to_size) memmove_s(to, to_size, from, from_size)
+
+static inline void
+cfMemWrite(U8 *mem, U8 value, Usize count)
+{
+    memset(mem, value, count); // NOLINT
+}
 
 //------------------------------------------------------------------------------

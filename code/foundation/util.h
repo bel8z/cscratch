@@ -4,36 +4,11 @@
 
 #include "common.h"
 
-#define cfAbs(X) _Generic((X), default : abs, I64 : llabs, F64 : fabs, F32 : fabsf)(X)
-
-#define cfClamp(val, min_val, max_val) \
-    ((val) < (min_val) ? (min_val) : (val) > (max_val) ? (max_val) : (val))
-
-#define cfMin(l, r) ((l) < (r) ? (l) : (r))
-#define cfMax(l, r) ((l) > (r) ? (l) : (r))
-
-//------------------------------------------------------------------------------
-// Memory utilities (clear, write, copy)
-//------------------------------------------------------------------------------
-
-#include <string.h>
-
-static inline void
-cfMemClear(void *mem, Usize count)
+static inline U32
+cfRoundUp(U32 block_size, U32 page_size)
 {
-    memset(mem, 0, count); // NOLINT
-}
-
-static inline void
-cfMemWrite(U8 *mem, U8 value, Usize count)
-{
-    memset(mem, value, count); // NOLINT
-}
-
-static inline void
-cfMemCopy(void const *from, void *to, Usize count)
-{
-    memmove_s(to, count, from, count);
+    CF_ASSERT((page_size & (page_size - 1)) == 0, "Page size is not a power of 2");
+    return page_size * ((block_size + page_size - 1) / page_size);
 }
 
 //------------------------------------------------------------------------------

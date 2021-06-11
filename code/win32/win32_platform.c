@@ -11,7 +11,6 @@
 #include "foundation/path.h"
 #include "foundation/strings.h"
 #include "foundation/threading.h"
-#include "foundation/util.h"
 #include "foundation/vm.h"
 
 #if !CF_OS_WIN32

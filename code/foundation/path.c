@@ -2,7 +2,6 @@
 
 #include "common.h"
 #include "strings.h"
-#include "util.h"
 
 #include <string.h>
 

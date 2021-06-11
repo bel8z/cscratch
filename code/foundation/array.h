@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include "util.h"
 
 // -----------------------------------------------------------------------------
 // Data types

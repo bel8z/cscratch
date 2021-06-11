@@ -20,7 +20,6 @@
 #include "foundation/common.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"
-#include "foundation/util.h"
 
 // Standard library
 #include <stdio.h>

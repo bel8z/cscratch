@@ -8,7 +8,6 @@
 #include "foundation/maths.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"
-#include "foundation/util.h"
 
 typedef struct AppWindows
 {

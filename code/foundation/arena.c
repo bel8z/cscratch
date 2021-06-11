@@ -4,19 +4,12 @@
 #include "util.h"
 #include "vm.h"
 
-static inline U32
-round_up(U32 block_size, U32 page_size)
-{
-    CF_ASSERT((page_size & (page_size - 1)) == 0, "Page size is not a power of 2");
-    return page_size * ((block_size + page_size - 1) / page_size);
-}
-
 bool
 arenaInitVm(Arena *arena, cfVirtualMemory *vm, U32 reserved_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
-    U32 rounded = round_up(reserved_size, vm->page_size);
+    U32 rounded = cfRoundUp(reserved_size, vm->page_size);
     U8 *buffer = vm->reserve(rounded);
 
     if (!buffer) return false;
@@ -64,7 +57,7 @@ arenaCommitVm(Arena *arena)
 
     if (arena->vm)
     {
-        U32 commit_size = round_up(arena->allocated, arena->vm->page_size);
+        U32 commit_size = cfRoundUp(arena->allocated, arena->vm->page_size);
         cfVmCommit(arena->vm, arena->memory, commit_size);
     }
 }
