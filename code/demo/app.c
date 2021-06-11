@@ -35,8 +35,7 @@ struct AppState
 
 //------------------------------------------------------------------------------
 
-AppState *
-appCreate(cfPlatform *plat, char const *argv[], I32 argc)
+APP_API APP_CREATE(appCreate)
 {
     CF_UNUSED(argv);
     CF_UNUSED(argc);
@@ -49,11 +48,13 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
 
     app->clear_color = (Rgba){.r = 0.45f, .g = 0.55f, .b = 0.60f, .a = 1.00f};
 
+    // Init Dear Imgui
+    guiInit(plat->gui);
+
     return app;
 }
 
-void
-appDestroy(AppState *app)
+APP_API APP_DESTROY(appDestroy)
 {
     cfFree(app->alloc, app, sizeof(*app));
 }
@@ -77,8 +78,7 @@ guiClock(Time time)
     igText("%02d:%02d:%02d.%03d", hours, mins, final_secs, ms_remainder);
 }
 
-AppUpdateResult
-appUpdate(AppState *state, FontOptions *font_opts)
+APP_API APP_UPDATE(appUpdate)
 {
     AppUpdateResult result = {.flags = AppUpdateFlags_None};
 
@@ -88,26 +88,26 @@ appUpdate(AppState *state, FontOptions *font_opts)
 
         if (igBeginMenu("Windows", true))
         {
-            igMenuItemBoolPtr("Style editor", NULL, &state->windows.style, true);
-            igMenuItemBoolPtr("Font options", NULL, &state->windows.fonts, true);
+            igMenuItemBoolPtr("Style editor", NULL, &app->windows.style, true);
+            igMenuItemBoolPtr("Font options", NULL, &app->windows.fonts, true);
             igSeparator();
-            igMenuItemBoolPtr("Stats", NULL, &state->windows.stats, true);
-            igMenuItemBoolPtr("Metrics", NULL, &state->windows.metrics, true);
+            igMenuItemBoolPtr("Stats", NULL, &app->windows.stats, true);
+            igMenuItemBoolPtr("Metrics", NULL, &app->windows.metrics, true);
             igSeparator();
-            igMenuItemBoolPtr("Demo window", NULL, &state->windows.demo, true);
+            igMenuItemBoolPtr("Demo window", NULL, &app->windows.demo, true);
             igEndMenu();
         }
 
         igEndMainMenuBar();
     }
 
-    if (state->windows.demo) igShowDemoWindow(&state->windows.demo);
+    if (app->windows.demo) igShowDemoWindow(&app->windows.demo);
 
-    if (state->windows.fonts)
+    if (app->windows.fonts)
     {
-        igBegin("Font Options", &state->windows.fonts, 0);
+        igBegin("Font Options", &app->windows.fonts, 0);
 
-        if (guiFontOptions(font_opts))
+        if (guiFontOptions(opts))
         {
             result.flags |= AppUpdateFlags_RebuildFonts;
         }
@@ -115,40 +115,40 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igEnd();
     }
 
-    if (state->windows.stats)
+    if (app->windows.stats)
     {
-        cfPlatform *plat = state->plat;
+        cfPlatform *plat = app->plat;
         F64 framerate = (F64)igGetIO()->Framerate;
 
-        igBegin("Application stats stats", &state->windows.stats, 0);
+        igBegin("Application stats stats", &app->windows.stats, 0);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
         igText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
         igEnd();
     }
 
-    if (state->windows.style)
+    if (app->windows.style)
     {
-        igBegin("Style Editor", &state->windows.style, 0);
+        igBegin("Style Editor", &app->windows.style, 0);
         igShowStyleEditor(NULL);
         igEnd();
     }
 
-    if (state->windows.metrics)
+    if (app->windows.metrics)
     {
-        igShowMetricsWindow(&state->windows.metrics);
+        igShowMetricsWindow(&app->windows.metrics);
     }
 
     igBegin("Test", NULL, 0);
 
     static F32 f = 0;
 
-    igCheckbox("Demo Window", &state->windows.demo);
+    igCheckbox("Demo Window", &app->windows.demo);
     igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
-    igColorEdit4("clear color", state->clear_color.channel, 0);
-    guiClock(state->plat->clock());
+    igColorEdit4("clear color", app->clear_color.channel, 0);
+    guiClock(app->plat->clock());
     igEnd();
 
-    result.back_color = rgbaPack32(state->clear_color);
+    result.back_color = rgbaPack32(app->clear_color);
 
     return result;
 }

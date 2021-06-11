@@ -130,10 +130,7 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
     app->images.files = cfVmReserve(plat->vm, images_vm);
 
     // Init Dear Imgui
-    igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
-                                     sizeof(ImVec4), sizeof(ImDrawVert), sizeof(ImDrawIdx));
-    igSetAllocatorFunctions(plat->gui->alloc, plat->gui->free, plat->gui->alloc_state);
-    igSetCurrentContext(plat->gui->ctx);
+    guiInit(plat->gui);
 
     // Init image loading
     imageInit(plat->gl);

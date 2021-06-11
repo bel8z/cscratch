@@ -39,6 +39,14 @@ typedef struct FontOptions
     bool freetype_enabled;
 } FontOptions;
 
+typedef struct Gui
+{
+    ImGuiContext *ctx;
+    void *alloc_state;
+    void *(*alloc_func)(Usize size, void *state);
+    void (*free_func)(void *mem, void *state);
+} Gui;
+
 //------------------------------------------------------------------------------
 // Some common gui extensions
 //------------------------------------------------------------------------------
@@ -47,6 +55,23 @@ void guiBeginFullScreen(char *label, bool docking, bool menu_bar);
 void guiEndFullScreen(void);
 
 bool guiFontOptions(FontOptions *state);
+
+static inline void
+guiInit(Gui *gui)
+{
+    igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
+                                     sizeof(ImVec4), sizeof(ImDrawVert), sizeof(ImDrawIdx));
+    igSetAllocatorFunctions(gui->alloc_func, gui->free_func, gui->alloc_state);
+
+    if (gui->ctx)
+    {
+        igSetCurrentContext(gui->ctx);
+    }
+    else
+    {
+        gui->ctx = igCreateContext(NULL);
+    }
+}
 
 static inline bool
 guiButton(char const *label)

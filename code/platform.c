@@ -81,54 +81,25 @@ extern bool ImGui_ImplOpenGL3_CreateDeviceObjects();
 extern void ImGui_ImplOpenGL3_DestroyDeviceObjects();
 
 //------------------------------------------------------------------------------
-// Main
+// Application API
 //------------------------------------------------------------------------------
 
-static APP_CREATE(appCreateStub)
+typedef struct AppApi
 {
-    CF_UNUSED(plat);
-    CF_UNUSED(argc);
-    CF_UNUSED(argv);
-    return NULL;
-}
+    AppCreateProc create;
+    AppDestroyProc destroy;
+    AppUpdateProc update;
+} AppApi;
 
-static APP_DESTROY(appDestroyStub)
-{
-    CF_UNUSED(app);
-    CF_ASSERT(!app, "");
-}
+static APP_CREATE(appCreateStub);
+static APP_DESTROY(appDestroyStub);
+static APP_UPDATE(appUpdateStub);
 
-static APP_UPDATE(appUpdateStub)
-{
-    CF_UNUSED(app);
-    CF_UNUSED(opts);
-    return (AppUpdateResult){.flags = AppUpdateFlags_Quit};
-}
+static void appInit(AppApi *app, cfPlatform *platform);
 
-void
-appInit(AppApi *app, cfPlatform *platform)
-{
-    char path[Paths_Size] = {0};
-    strPrintf(path, Paths_Size, "%s%s", platform->paths->base, platform->paths->dll_name);
-
-    cfMemClear(app, sizeof(*app));
-
-    void *app_lib = platform->libLoad(path);
-
-    if (app_lib)
-    {
-        app->create = (AppCreateProc)platform->libLoadProc(app_lib, "appCreate");
-        app->destroy = (AppDestroyProc)platform->libLoadProc(app_lib, "appDestroy");
-        app->update = (AppUpdateProc)platform->libLoadProc(app_lib, "appUpdate");
-    }
-
-    if (!app->create || !app->destroy || !app->update)
-    {
-        app->create = appCreateStub;
-        app->destroy = appDestroyStub;
-        app->update = appUpdateStub;
-    }
-}
+//------------------------------------------------------------------------------
+// Main
+//------------------------------------------------------------------------------
 
 I32
 platformMain(cfPlatform *platform, char const *argv[], I32 argc)
@@ -216,15 +187,12 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
 
     // Setup Dear ImGui context
     platform->gui = &(Gui){
-        .alloc = guiAlloc,
-        .free = guiFree,
+        .alloc_func = guiAlloc,
+        .free_func = guiFree,
         .alloc_state = platform->heap,
     };
 
-    igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
-                                     sizeof(ImVec4), sizeof(ImDrawVert), sizeof(ImDrawIdx));
-    igSetAllocatorFunctions(platform->gui->alloc, platform->gui->free, platform->gui->alloc_state);
-    platform->gui->ctx = igCreateContext(NULL);
+    guiInit(platform->gui);
 
     // Setup application
     AppApi app_api;
@@ -412,6 +380,54 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
 
 //------------------------------------------------------------------------------
 // Internal functions
+//------------------------------------------------------------------------------
+
+static APP_CREATE(appCreateStub)
+{
+    CF_UNUSED(plat);
+    CF_UNUSED(argc);
+    CF_UNUSED(argv);
+    return NULL;
+}
+
+static APP_DESTROY(appDestroyStub)
+{
+    CF_UNUSED(app);
+    CF_ASSERT(!app, "");
+}
+
+static APP_UPDATE(appUpdateStub)
+{
+    CF_UNUSED(app);
+    CF_UNUSED(opts);
+    return (AppUpdateResult){.flags = AppUpdateFlags_Quit};
+}
+
+static void
+appInit(AppApi *app, cfPlatform *platform)
+{
+    char path[Paths_Size] = {0};
+    strPrintf(path, Paths_Size, "%s%s", platform->paths->base, platform->paths->dll_name);
+
+    cfMemClear(app, sizeof(*app));
+
+    void *app_lib = platform->libLoad(path);
+
+    if (app_lib)
+    {
+        app->create = (AppCreateProc)platform->libLoadProc(app_lib, "appCreate");
+        app->destroy = (AppDestroyProc)platform->libLoadProc(app_lib, "appDestroy");
+        app->update = (AppUpdateProc)platform->libLoadProc(app_lib, "appUpdate");
+    }
+
+    if (!app->create || !app->destroy || !app->update)
+    {
+        app->create = appCreateStub;
+        app->destroy = appDestroyStub;
+        app->update = appUpdateStub;
+    }
+}
+
 //------------------------------------------------------------------------------
 
 void *
@@ -615,3 +631,5 @@ guiUpdateFonts(ImFontAtlas *fonts, FontOptions *font_opts)
 
     font_opts->tex_glyph_padding = fonts->TexGlyphPadding;
 }
+
+//------------------------------------------------------------------------------

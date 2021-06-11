@@ -13,7 +13,7 @@ typedef struct Threading Threading;
 
 typedef struct GlApi GlApi;
 
-typedef struct ImGuiContext ImGuiContext;
+typedef struct Gui Gui;
 
 enum
 {
@@ -28,14 +28,6 @@ typedef struct Paths
     char exe_name[Paths_Size];
     char dll_name[Paths_Size];
 } Paths;
-
-typedef struct Gui
-{
-    ImGuiContext *ctx;
-    void *alloc_state;
-    void *(*alloc)(Usize size, void *state);
-    void (*free)(void *mem, void *state);
-} Gui;
 
 typedef struct cfPlatform
 {
@@ -109,13 +101,6 @@ typedef struct AppUpdateResult
 typedef APP_CREATE((*AppCreateProc));
 typedef APP_DESTROY((*AppDestroyProc));
 typedef APP_UPDATE((*AppUpdateProc));
-
-typedef struct AppApi
-{
-    AppCreateProc create;
-    AppDestroyProc destroy;
-    AppUpdateProc update;
-} AppApi;
 
 #if CF_OS_WIN32
 #    define APP_API __declspec(dllexport)
