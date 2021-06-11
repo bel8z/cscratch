@@ -7,21 +7,21 @@
 #include "foundation/common.h"
 
 #if CF_COMPILER_MSVC
-#pragma warning(push)
-#pragma warning(disable : 4201)
-#pragma warning(disable : 4214)
+#    pragma warning(push)
+#    pragma warning(disable : 4201)
+#    pragma warning(disable : 4214)
 #elif CF_COMPILER_CLANG
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wlanguage-extension-token"
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wlanguage-extension-token"
 #endif
 
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include "cimgui.h"
 
 #if CF_COMP_MSVC
-#pragma warning(pop)
+#    pragma warning(pop)
 #elif CF_COMP_CLANG
-#pragma clang diagnostic pop
+#    pragma clang diagnostic pop
 #endif
 
 #include "foundation/vec.h"

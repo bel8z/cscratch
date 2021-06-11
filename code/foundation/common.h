@@ -9,25 +9,25 @@
 
 // NOTE (Matteo): Memory protection is on by default, and can be disabled as a compilation flag
 #if !defined(CF_MEMORY_PROTECTION)
-#define CF_MEMORY_PROTECTION 1
+#    define CF_MEMORY_PROTECTION 1
 #endif
 
 // NOTE (Matteo): Asserts in release builds are enabled by default, and can be disabled as a
 // compilation flag
 #if !defined(CF_RELEASE_ASSERTS)
-#define CF_RELEASE_ASSERTS 1
+#    define CF_RELEASE_ASSERTS 1
 #endif
 
 //------------------------------------------------------------------------------
 // Context defines
 
-// clang-format off
 #if defined(__clang__)
 #    define CF_COMPILER_CLANG 1
 #elif defined(_MSC_VER)
 #    define CF_COMPILER_MSVC 1
 #elif defined(__GNUC__)
 #    define CF_COMPILER_GCC 1
+#    error "GCC not tested yet"
 #else
 #    error "Compiler not detected"
 #endif
@@ -91,7 +91,6 @@
 #if !defined(CF_ARCH_X86)
 #    define CF_ARCH_X86 0
 #endif
-// clang-format on
 
 //------------------------------------------------------------------------------
 // Alignment
@@ -100,9 +99,9 @@
 #define alignas _Alignas
 
 #if CF_COMPILER_MSVC
-#define CF_MAX_ALIGN (sizeof(void *) * 2)
+#    define CF_MAX_ALIGN (sizeof(void *) * 2)
 #else
-#define CF_MAX_ALIGN (alignof(max_align_t))
+#    define CF_MAX_ALIGN (alignof(max_align_t))
 #endif
 
 //------------------------------------------------------------------------------
@@ -111,7 +110,7 @@
 #include <stdbool.h>
 
 #ifdef bool
-#undef bool
+#    undef bool
 typedef _Bool bool;
 #endif
 
@@ -321,8 +320,8 @@ typedef struct Time
 // Assertion macros
 
 #if CF_RELEASE_ASSERTS && defined(NDEBUG)
-#define CF__RESTORE_NDEBUG
-#undef NDEBUG
+#    define CF__RESTORE_NDEBUG
+#    undef NDEBUG
 #endif
 
 #include <assert.h>
@@ -330,9 +329,9 @@ typedef struct Time
 #define CF_STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
 
 #if defined(NDEBUG)
-#define CF_ASSERT(expr, msg) (CF_UNUSED(expr), CF_UNUSED(msg))
+#    define CF_ASSERT(expr, msg) (CF_UNUSED(expr), CF_UNUSED(msg))
 #else
-#define CF_ASSERT(expr, msg) (assert((expr) && (msg)))
+#    define CF_ASSERT(expr, msg) (assert((expr) && (msg)))
 #endif
 
 #define CF_ASSERT_NOT_NULL(ptr) CF_ASSERT(ptr, #ptr " is null")
@@ -342,8 +341,8 @@ typedef struct Time
 #define CF_INVALID_CODE_PATH() CF_ASSERT(false, "Invalid code path")
 
 #if defined(CF__RESTORE_NDEBUG)
-#define NDEBUG 1
-#undef CF__RESTORE_NDEBUG
+#    define NDEBUG 1
+#    undef CF__RESTORE_NDEBUG
 #endif
 
 //------------------------------------------------------------------------------

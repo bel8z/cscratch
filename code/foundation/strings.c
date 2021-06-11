@@ -7,10 +7,10 @@
 #include <stdio.h>
 
 #if CF_COMPILER_CLANG
-#define CF_PRINTF_LIKE(fmt_argno, variadic_argno) \
-    __attribute__((__format__(__printf__, fmt_argno + 1, variadic_argno + 1)))
+#    define CF_PRINTF_LIKE(fmt_argno, variadic_argno) \
+        __attribute__((__format__(__printf__, fmt_argno + 1, variadic_argno + 1)))
 #else
-#define CF_PRINTF_LIKE(fmt_argno, variadic_argno)
+#    define CF_PRINTF_LIKE(fmt_argno, variadic_argno)
 #endif
 
 CF_PRINTF_LIKE(2, 3)

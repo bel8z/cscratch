@@ -118,9 +118,9 @@ typedef struct AppApi
 } AppApi;
 
 #if CF_OS_WIN32
-#define APP_API __declspec(dllexport)
+#    define APP_API __declspec(dllexport)
 #else
-#define APP_API
+#    define APP_API
 #endif
 
 APP_API APP_CREATE(appCreate);

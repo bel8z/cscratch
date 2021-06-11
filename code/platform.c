@@ -8,10 +8,10 @@
 #include "gl/gload.h"
 
 #if SDL_BACKEND
-#define SDL_MAIN_HANDLED
-#include <SDL.h>
+#    define SDL_MAIN_HANDLED
+#    include <SDL.h>
 #else
-#include <GLFW/glfw3.h>
+#    include <GLFW/glfw3.h>
 #endif
 
 // Foundation library
@@ -145,7 +145,7 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
     }
 
     // Decide GL+GLSL versions
-#ifdef __APPLE__
+#    ifdef __APPLE__
     // GL 3.2 Core + GLSL 150
     const char *glsl_version = "#version 150";
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
@@ -153,14 +153,14 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-#else
+#    else
     // GL 3.0 + GLSL 130
     const char *glsl_version = "#version 130";
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#endif
+#    endif
 
     // Create window with graphics context
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -180,21 +180,21 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
     if (!glfwInit()) return 1;
 
         // Decide GL+GLSL versions
-#ifdef __APPLE__
+#    ifdef __APPLE__
     // GL 3.2 + GLSL 150
     const char *glsl_version = "#version 150";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // 3.2+ only
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);           // Required on Mac
-#else
+#    else
     // GL 3.0 + GLSL 130
     const char *glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
     // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
-#endif
+#    endif
 
     // Create window with graphics context
     GLFWwindow *window = glfwCreateWindow(1280, 720, "Dear ImGui template", NULL, NULL);

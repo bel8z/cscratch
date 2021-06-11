@@ -20,12 +20,12 @@ static void stbiFree(void *mem);
 
 // Include stbi implementation
 #if CF_COMPILER_CLANG
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wsign-conversion"
-#pragma clang diagnostic ignored "-Wsign-compare"
-#pragma clang diagnostic ignored "-Wimplicit-int-conversion"
-#pragma clang diagnostic ignored "-Wdouble-promotion"
-#pragma clang diagnostic ignored "-Wcast-align"
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wsign-conversion"
+#    pragma clang diagnostic ignored "-Wsign-compare"
+#    pragma clang diagnostic ignored "-Wimplicit-int-conversion"
+#    pragma clang diagnostic ignored "-Wdouble-promotion"
+#    pragma clang diagnostic ignored "-Wcast-align"
 #endif
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -33,7 +33,7 @@ static void stbiFree(void *mem);
 #include <stb_image.h>
 
 #if CF_COMPILER_CLANG
-#pragma clang diagnostic pop
+#    pragma clang diagnostic pop
 #endif
 
 //------------------------------------------------------------------------------

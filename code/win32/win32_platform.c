@@ -14,7 +14,7 @@
 #include "foundation/vm.h"
 
 #if !CF_OS_WIN32
-#error "Win32 platform not supported"
+#    error "Win32 platform not supported"
 #endif
 
 //------------------------------------------------------------------------------
