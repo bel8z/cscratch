@@ -1,4 +1,4 @@
-#ifndef FOUNDATION_COLOR_H
+#pragma once
 
 #include "common.h"
 #include "util.h"
@@ -160,6 +160,3 @@ hsvaToRgba(Hsva in)
 
     return out;
 }
-
-#define FOUNDATION_COLOR_H
-#endif

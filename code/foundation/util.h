@@ -1,5 +1,6 @@
+#pragma once
+
 // Misc utilities (basically wrapper on common standard library functions as memset and memcpy)
-#ifndef UTIL_H
 
 #include "common.h"
 
@@ -251,6 +252,3 @@ CF__GCD(U64)
 #undef CF__GCD
 
 //------------------------------------------------------------------------------
-
-#define UTIL_H
-#endif

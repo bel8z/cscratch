@@ -1,4 +1,4 @@
-#ifndef CF_ALLOCATOR_H
+#pragma once
 
 #include "common.h"
 
@@ -22,6 +22,3 @@ struct cfAllocator
     (a)->reallocate((a)->state, (memory), (old_size), (new_size))
 
 #define cfFree(a, memory, size) (a)->reallocate((a)->state, (void *)(memory), (size), 0)
-
-#define CF_ALLOCATOR_H
-#endif

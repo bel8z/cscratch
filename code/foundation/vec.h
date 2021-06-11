@@ -1,4 +1,4 @@
-#ifndef FOUNDATION_VEC_H
+#pragma once
 
 #include "common.h"
 #include "util.h"
@@ -225,6 +225,3 @@ VEC_OPS(4)
 
 // Mat 4
 // TODO
-
-#define FOUNDATION_VEC_H
-#endif

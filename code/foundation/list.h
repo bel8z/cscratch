@@ -1,4 +1,4 @@
-#ifndef CF_LIST_H
+#pragma once
 
 #include "common.h"
 
@@ -36,6 +36,3 @@ cfList *cfListPopHead(cfList *list);
 cfList *cfListPopTail(cfList *list);
 
 // TODO (Matteo): Implement iteration safely in case of sentinel nodes
-
-#define CF_LIST_H
-#endif

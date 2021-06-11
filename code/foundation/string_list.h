@@ -1,4 +1,4 @@
-#ifndef FOUNDATION_STRING_LIST_H
+#pragma once
 
 #include "common.h"
 
@@ -39,6 +39,3 @@ StringEntry *slLast(StringList const *sl);
 
 bool slIterNext(StringList const *sl, StringEntry **entry);
 bool slIterPrev(StringList const *sl, StringEntry **entry);
-
-#define FOUNDATION_STRING_LIST_H
-#endif

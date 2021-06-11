@@ -1,4 +1,4 @@
-#ifndef FOUNDATION_THREADING_H
+#pragma once
 
 #include "common.h"
 
@@ -107,6 +107,3 @@ threadingCheckApi(Threading *api)
     THREADING_API(CHECK_ENTRY_FN)
 #undef CHECK_ENTRY_FN
 }
-
-#define FOUNDATION_THREADING_H
-#endif

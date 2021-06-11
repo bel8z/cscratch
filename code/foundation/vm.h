@@ -1,4 +1,4 @@
-#ifndef CF_VM_H
+#pragma once
 
 #include "common.h"
 
@@ -24,6 +24,3 @@ typedef struct cfVirtualMemory
 #define cfVmRelease(vm, mem, size) vm->release(mem, size)
 #define cfVmCommit(vm, mem, size) vm->commit(mem, size)
 #define cfVmRevert(vm, mem, size) vm->revert(mem, size)
-
-#define CF_VM_H
-#endif

@@ -1,4 +1,4 @@
-#ifndef FOUNDATION_PATH_H
+#pragma once
 
 #include "common.h"
 
@@ -18,6 +18,3 @@ typedef struct PathSplitIter
 
 void pathSplitStart(PathSplitIter *iter, char const *path);
 bool pathSplitNext(PathSplitIter *iter);
-
-#define FOUNDATION_PATH_H
-#endif

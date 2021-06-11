@@ -1,4 +1,4 @@
-#ifndef VM_ARENA_H
+#pragma once
 
 // Dependencies
 #include "common.h"
@@ -84,6 +84,3 @@ void arenaRestore(Arena *arena, ArenaTempState);
 
 #define ARENA_TEMP_BEGIN(arena) ArenaTempState ARENA_TEMP_END_NOT_CALLED = arenaSave(arena)
 #define ARENA_TEMP_END(arena) arenaRestore(arena, ARENA_TEMP_END_NOT_CALLED)
-
-#define VM_ARENA_H
-#endif

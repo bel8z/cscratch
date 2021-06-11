@@ -1,10 +1,7 @@
-#ifndef _WIN32_THREADING_H_
+#pragma once
 
 #include "foundation/common.h"
 
 typedef struct Threading Threading;
 
 void win32ThreadingInit(Threading *threading, cfAllocator *allocator);
-
-#define _WIN32_THREADING_H_
-#endif

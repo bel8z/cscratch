@@ -1,4 +1,4 @@
-#ifndef APP_H
+#pragma once
 
 #include "foundation/common.h"
 
@@ -126,6 +126,3 @@ typedef struct AppApi
 APP_API APP_CREATE(appCreate);
 APP_API APP_DESTROY(appDestroy);
 APP_API APP_UPDATE(appUpdate);
-
-#define APP_H
-#endif

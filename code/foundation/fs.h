@@ -1,4 +1,4 @@
-#ifndef FOUNDATION_FS_H
+#pragma once
 
 #include "common.h"
 
@@ -53,6 +53,3 @@ typedef struct cfFileSystem
 } cfFileSystem;
 
 //------------------------------------------------------------------------------
-
-#define FOUNDATION_FS_H
-#endif

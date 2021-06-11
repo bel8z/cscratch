@@ -1,4 +1,4 @@
-#ifndef FOUNDATION_STRINGS_H
+#pragma once
 
 #include "common.h"
 
@@ -32,6 +32,3 @@ I32 strCompare(char const *l, char const *r);
 I32 strCompareInsensitive(char const *l, char const *r);
 bool strEqual(char const *l, char const *r);
 bool strEqualInsensitive(char const *l, char const *r);
-
-#define FOUNDATION_STRINGS_H
-#endif

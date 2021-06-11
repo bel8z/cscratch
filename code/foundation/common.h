@@ -1,4 +1,4 @@
-#ifndef FOUNDATION_COMMON_H
+#pragma once
 
 #include <float.h>
 #include <stddef.h>
@@ -364,6 +364,3 @@ typedef struct Time
 #define CF_STRINGIFY(x) CF__STRINGIFY(x)
 
 //------------------------------------------------------------------------------
-
-#define FOUNDATION_COMMON_H
-#endif

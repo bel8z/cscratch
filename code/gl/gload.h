@@ -1,4 +1,4 @@
-#ifndef GLOAD_H
+#pragma once
 
 #if defined(__cplusplus)
 extern "C"
@@ -1257,7 +1257,4 @@ extern "C"
 
 #if defined(__cplusplus)
 }
-#endif
-
-#define GLOAD_H
 #endif

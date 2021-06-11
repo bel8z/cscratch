@@ -1,6 +1,6 @@
 // Attempt to include windows headers in a clean way
 
-#ifndef _WIN32_H_
+#pragma once
 
 #pragma warning(push)
 #pragma warning(disable : 5105)
@@ -15,6 +15,3 @@
 #include <shellapi.h>
 
 #pragma warning(pop)
-
-#define _WIN32_H_
-#endif

@@ -1,5 +1,4 @@
-#ifndef CF_ARRAY_H
-// -----------------------------------------------------------------------------
+#pragma once
 
 #include "common.h"
 #include "util.h"
@@ -124,5 +123,3 @@ void *cf__arrayInsert(void *array, Usize pos, Usize item_count, Usize item_size)
 void *cf__arrayRemove(void *array, Usize pos, Usize item_count, Usize item_size);
 
 // -----------------------------------------------------------------------------
-#define CF_ARRAY_H
-#endif

@@ -1,5 +1,3 @@
-#ifndef STRING_BUFF_H
-
 #include "foundation/common.h"
 #include "foundation/strings.h"
 #include "foundation/util.h"
@@ -54,6 +52,3 @@ sbAt(StringBuff *sb, U32 index)
     CF_ASSERT(index < sb->count, "Index out of range");
     return sb->data + sb->index[index];
 }
-
-#define STRING_BUFF_H
-#endif

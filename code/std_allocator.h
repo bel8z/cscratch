@@ -1,4 +1,4 @@
-#ifndef _STD_ALLOCATOR_H_
+#pragma once
 
 #include "foundation/allocator.h"
 
@@ -20,6 +20,3 @@ stdAllocator()
 {
     return (cfAllocator){.reallocate = std__realloc};
 }
-
-#define _STD_ALLOCATOR_H_
-#endif

@@ -1,4 +1,4 @@
-#ifndef IMAGE_H
+#pragma once
 
 #include "foundation/common.h"
 
@@ -31,6 +31,3 @@ bool imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cf
 void imageSetFilter(Image *image, ImageFilter filter);
 
 void imageUnload(Image *image);
-
-#define IMAGE_H
-#endif
