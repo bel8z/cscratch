@@ -1,5 +1,50 @@
 #include "gui.h"
 
+void
+guiInit(Gui *gui)
+{
+    igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
+                                     sizeof(ImVec4), sizeof(ImDrawVert), sizeof(ImDrawIdx));
+    igSetAllocatorFunctions(gui->alloc_func, gui->free_func, gui->alloc_state);
+
+    if (gui->ctx)
+    {
+        igSetCurrentContext(gui->ctx);
+    }
+    else
+    {
+        gui->ctx = igCreateContext(NULL);
+    }
+}
+
+void
+guiBeginFullScreen(char *label, bool docking, bool menu_bar)
+{
+    ImGuiViewport const *viewport = igGetMainViewport();
+    igSetNextWindowPos(viewport->WorkPos, 0, (ImVec2){0, 0});
+    igSetNextWindowSize(viewport->WorkSize, 0);
+    igPushStyleVarFloat(ImGuiStyleVar_WindowRounding, 0.0f);
+    igPushStyleVarFloat(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    igPushStyleVarVec2(ImGuiStyleVar_WindowPadding, (ImVec2){0.0f, 0.0f});
+
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+                                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                                    ImGuiWindowFlags_NoBringToFrontOnFocus |
+                                    ImGuiWindowFlags_NoNavFocus;
+
+    if (!docking) window_flags |= ImGuiWindowFlags_NoDocking;
+    if (menu_bar) window_flags |= ImGuiWindowFlags_MenuBar;
+
+    igBegin(label, NULL, window_flags);
+    igPopStyleVar(3);
+}
+
+void
+guiEndFullScreen(void)
+{
+    igEnd();
+}
+
 bool
 guiFontOptions(FontOptions *state)
 {
@@ -58,30 +103,25 @@ guiFontOptions(FontOptions *state)
     return rebuild_fonts;
 }
 
-void
-guiBeginFullScreen(char *label, bool docking, bool menu_bar)
+bool
+guiCenteredButton(char const *label)
 {
-    ImGuiViewport const *viewport = igGetMainViewport();
-    igSetNextWindowPos(viewport->WorkPos, 0, (ImVec2){0, 0});
-    igSetNextWindowSize(viewport->WorkSize, 0);
-    igPushStyleVarFloat(ImGuiStyleVar_WindowRounding, 0.0f);
-    igPushStyleVarFloat(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    igPushStyleVarVec2(ImGuiStyleVar_WindowPadding, (ImVec2){0.0f, 0.0f});
+    ImGuiStyle *style = igGetStyle();
 
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-                                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                                    ImGuiWindowFlags_NoBringToFrontOnFocus |
-                                    ImGuiWindowFlags_NoNavFocus;
+    // NOTE (Matteo): Button size calculation copied from ImGui::ButtonEx
+    ImVec2 label_size, button_size;
+    igCalcTextSize(&label_size, label, NULL, false, -1.0f);
+    igCalcItemSize(&button_size, (ImVec2){0, 0}, //
+                   label_size.x + style->FramePadding.x * 2.0f,
+                   label_size.y + style->FramePadding.y * 2.0f);
 
-    if (!docking) window_flags |= ImGuiWindowFlags_NoDocking;
-    if (menu_bar) window_flags |= ImGuiWindowFlags_MenuBar;
+    ImVec2 available_size;
+    igGetContentRegionAvail(&available_size);
 
-    igBegin(label, NULL, window_flags);
-    igPopStyleVar(3);
-}
+    if (available_size.x > button_size.x)
+    {
+        igSetCursorPosX((available_size.x - button_size.x) / 2);
+    }
 
-void
-guiEndFullScreen(void)
-{
-    igEnd();
+    return guiButton(label);
 }

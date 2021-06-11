@@ -47,9 +47,31 @@ add_subdirectory(${GLFW_DIR}  ${CMAKE_BINARY_DIR}/glfw-3)
 find_package(OpenGL REQUIRED)
 
 #-----------------------
+# Gui library
+#-----------------------
+set(GUI_NAME gui)
+
+set(GUI_SOURCES 
+    ${CODE_DIR}/gui/gui.c)
+
+add_library(${GUI_NAME} STATIC ${GUI_SOURCES})
+
+set_source_files_properties(${GUI_SOURCES} PROPERTIES LANGUAGE C)
+
+target_include_directories(${GUI_NAME} PUBLIC 
+    ${IMGUI_DIR}/imgui
+    ${CODE_DIR})
+
+target_include_directories(${GUI_NAME} INTERFACE ${IMGUI_DIR})
+
+target_link_libraries(${GUI_NAME} PUBLIC cimgui)
+
+target_compile_features(${GUI_NAME} PUBLIC c_std_11)
+
+#-----------------------
 # Backend library
 #-----------------------
-set(BACKEND_NAME cimgui_backend)
+set(BACKEND_NAME gui_backend)
 
 set(BACKEND_SOURCES 
     ${BACKEND_DIR}/imgui_impl_opengl3.cpp
@@ -65,14 +87,10 @@ add_library(${BACKEND_NAME} STATIC ${BACKEND_SOURCES})
 
 target_compile_definitions(${BACKEND_NAME} PRIVATE IMGUI_IMPL_OPENGL_LOADER_CUSTOM=<gl/gload.h>)
 
-target_include_directories(${BACKEND_NAME} PUBLIC 
-    ${IMGUI_DIR}/imgui
-    ${CODE_DIR})
-
 target_include_directories(${BACKEND_NAME} INTERFACE ${IMGUI_DIR})
 
 target_link_libraries(${BACKEND_NAME} PUBLIC 
-    cimgui 
+    ${GUI_NAME} 
     ${OPENGL_gl_LIBRARY})
 
 if(BACKEND_SDL)

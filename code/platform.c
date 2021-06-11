@@ -2,7 +2,7 @@
 #include "api.h"
 
 // Gui library
-#include "gui.h"
+#include "gui/gui.h"
 
 // Backend libraries
 #include "gl/gload.h"

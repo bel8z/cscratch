@@ -26,6 +26,10 @@
 
 #include "foundation/vec.h"
 
+//------------------------------------------------------------------------------
+// Gui utilities
+//------------------------------------------------------------------------------
+
 // Helper struct to tweak IMGUI font handling
 typedef struct FontOptions
 {
@@ -47,59 +51,23 @@ typedef struct Gui
     void (*free_func)(void *mem, void *state);
 } Gui;
 
-//------------------------------------------------------------------------------
-// Some common gui extensions
-//------------------------------------------------------------------------------
+void guiInit(Gui *gui);
 
 void guiBeginFullScreen(char *label, bool docking, bool menu_bar);
 void guiEndFullScreen(void);
 
 bool guiFontOptions(FontOptions *state);
 
-static inline void
-guiInit(Gui *gui)
-{
-    igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
-                                     sizeof(ImVec4), sizeof(ImDrawVert), sizeof(ImDrawIdx));
-    igSetAllocatorFunctions(gui->alloc_func, gui->free_func, gui->alloc_state);
+bool guiCenteredButton(char const *label);
 
-    if (gui->ctx)
-    {
-        igSetCurrentContext(gui->ctx);
-    }
-    else
-    {
-        gui->ctx = igCreateContext(NULL);
-    }
-}
+//------------------------------------------------------------------------------
+// Inline utilities
+//------------------------------------------------------------------------------
 
 static inline bool
 guiButton(char const *label)
 {
     return igButton(label, (ImVec2){0, 0});
-}
-
-static inline bool
-guiCenteredButton(char const *label)
-{
-    ImGuiStyle *style = igGetStyle();
-
-    // NOTE (Matteo): Button size calculation copied from ImGui::ButtonEx
-    ImVec2 label_size, button_size;
-    igCalcTextSize(&label_size, label, NULL, false, -1.0f);
-    igCalcItemSize(&button_size, (ImVec2){0, 0}, //
-                   label_size.x + style->FramePadding.x * 2.0f,
-                   label_size.y + style->FramePadding.y * 2.0f);
-
-    ImVec2 available_size;
-    igGetContentRegionAvail(&available_size);
-
-    if (available_size.x > button_size.x)
-    {
-        igSetCursorPosX((available_size.x - button_size.x) / 2);
-    }
-
-    return guiButton(label);
 }
 
 static inline void

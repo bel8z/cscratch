@@ -41,7 +41,7 @@ set(TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 #-----------------------
 
 add_subdirectory(${CODE_DIR}/foundation)
-add_subdirectory(${CODE_DIR}/backend)
+add_subdirectory(${CODE_DIR}/gui)
 
 #-----------------------
 # Common resource files
@@ -104,7 +104,6 @@ foreach(APP ${APP_LIST})
     file(GLOB_RECURSE APP_RESOURCES ${CODE_DIR}/${APP}/*.rc)
 
     list(APPEND APP_SOURCES
-            ${CODE_DIR}/gui.c
             ${CODE_DIR}/gl/gload.c)
 
     set_source_files_properties(${APP_SOURCES} PROPERTIES LANGUAGE C)
@@ -119,8 +118,8 @@ foreach(APP ${APP_LIST})
     target_include_directories(${EXE_NAME} PUBLIC ${CODE_DIR})
     target_include_directories(${DLL_NAME} PUBLIC ${CODE_DIR} ${EXT_DIR}/stb)
 
-    target_link_libraries(${EXE_NAME} PRIVATE foundation cimgui_backend)
-    target_link_libraries(${DLL_NAME} PRIVATE foundation cimgui ${OPENGL_gl_LIBRARY}) 
+    target_link_libraries(${EXE_NAME} PRIVATE foundation gui_backend)
+    target_link_libraries(${DLL_NAME} PRIVATE foundation gui ${OPENGL_gl_LIBRARY}) 
 
     set_c_compile_flags(${EXE_NAME})
     set_c_compile_flags(${DLL_NAME})

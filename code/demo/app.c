@@ -1,6 +1,6 @@
 #include "api.h"
 
-#include "gui.h"
+#include "gui/gui.h"
 
 #include "foundation/allocator.h"
 #include "foundation/color.h"
