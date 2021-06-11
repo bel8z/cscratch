@@ -7,10 +7,9 @@
 #include <stdint.h>
 #include <string.h>
 
-// TODO (Matteo): Clean up file
-
 //------------------------------------------------------------------------------
 // Customization flags
+//------------------------------------------------------------------------------
 
 // NOTE (Matteo): Memory protection is on by default, and can be disabled as a compilation flag
 #if !defined(CF_MEMORY_PROTECTION)
@@ -25,6 +24,7 @@
 
 //------------------------------------------------------------------------------
 // Context defines
+//------------------------------------------------------------------------------
 
 #if defined(__clang__)
 #    define CF_COMPILER_CLANG 1
@@ -97,8 +97,7 @@
 #    define CF_ARCH_X86 0
 #endif
 
-//------------------------------------------------------------------------------
-// Alignment
+// Note (Matteo): These are kept almost at top because are keywords
 
 #define alignof _Alignof
 #define alignas _Alignas
@@ -110,15 +109,17 @@
 #endif
 
 //------------------------------------------------------------------------------
-// Boolean type
+// Basic types
+//------------------------------------------------------------------------------
+
+// Boolean
 
 #ifdef bool
 #    undef bool
 typedef _Bool bool;
 #endif
 
-//------------------------------------------------------------------------------
-// Fixed size unsigned integer types
+// Fixed size unsigned integers
 
 typedef uint8_t U8;
 typedef uint16_t U16;
@@ -130,8 +131,7 @@ typedef uint64_t U64;
 #define U32_MAX UINT32_MAX
 #define U64_MAX UINT64_MAX
 
-//------------------------------------------------------------------------------
-// Fixed size signed integer types
+// Fixed size signed integers
 
 typedef int8_t I8;
 typedef int16_t I16;
@@ -150,14 +150,12 @@ typedef int64_t I64;
 #define I64_MIN INT64_MIN
 #define I64_MAX INT64_MAX
 
-//------------------------------------------------------------------------------
 // Unsigned integer type of the result of sizeof, alignof and offsetof.
 
 typedef size_t Usize;
 
 #define USIZE_MAX SIZE_MAX
 
-//------------------------------------------------------------------------------
 // Signed integer type of the result of subtracting two pointers.
 
 typedef ptrdiff_t Isize;
@@ -165,7 +163,6 @@ typedef ptrdiff_t Isize;
 #define ISIZE_MIN PTRDIFF_MIN
 #define ISIZE_MAX PTRDIFF_MAX
 
-//------------------------------------------------------------------------------
 // Integer types capable of holding a pointer (for more comfortable arithmetics)
 
 typedef intptr_t Iptr;
@@ -175,7 +172,6 @@ typedef uintptr_t Uptr;
 #define IPTR_MIN INTPTR_MIN
 #define IPTR_MAX INTPTR_MAX
 
-//------------------------------------------------------------------------------
 // Fixed size IEEE floating point types
 
 typedef float F32;
@@ -189,7 +185,6 @@ typedef double F64;
 #define F64_MAX DBL_MAX
 #define F64_EPS DBL_EPSILON
 
-//------------------------------------------------------------------------------
 // Macros to retrieve min/max values for basic types
 
 // TODO (Matteo): Find a better name
@@ -219,8 +214,9 @@ typedef double F64;
 // clang-format on
 
 //------------------------------------------------------------------------------
-// Forward declare commonly used foundation types so that they can appear in
-// headers as pointers
+// Commonly used foundation types
+// "Abstract" types are forward declared
+//------------------------------------------------------------------------------
 
 // Macro for declaring a dynamic array (e.g. cfArray(I32) ints;) - see array.h
 #define cfArray(Type) Type *
@@ -228,8 +224,9 @@ typedef double F64;
 // Allocator abstract interface
 typedef struct cfAllocator cfAllocator;
 
-//------------------------------------------------------------------------------
-// Vector maths types
+//---------------
+// Vectors
+//---------------
 
 // TODO (Matteo): Maybe rename to FVec?
 
@@ -305,8 +302,9 @@ union IVec4
     I32 elem[4];
 };
 
-//------------------------------------------------------------------------------
-// Color space types
+//---------------
+// Color spaces
+//---------------
 
 // Represents a color in RGBA format as 4 floats in the [0,1] range
 typedef union Rgba Rgba;
@@ -337,8 +335,9 @@ union Hsva
     F32 elem[4];
 };
 
-//------------------------------------------------------------------------------
-// Rectangle types, for basic 2D drawing/UI
+//---------------
+// Rectangles
+//---------------
 
 typedef union FRect
 {
@@ -364,8 +363,9 @@ typedef union IRect
     };
 } IRect;
 
-//------------------------------------------------------------------------------
-// Time interval, useful for performance tracking
+//-------------------------------------------------
+// Time interval (useful for performance tracking)
+//-------------------------------------------------
 
 typedef struct Time
 {
@@ -384,7 +384,36 @@ typedef struct Time
 #define timeSub(a, b) ((Time){.nanoseconds = a.nanoseconds - b.nanoseconds})
 
 //------------------------------------------------------------------------------
-// Assertion macros
+// Helper macros
+//------------------------------------------------------------------------------
+
+#define CF_UNUSED(var) (void)(var)
+
+#define CF_ARRAY_SIZE(a) sizeof(a) / sizeof(a[0])
+
+#define CF_KB(x) ((U64)1024 * (x))
+#define CF_MB(x) ((U64)1024 * CF_KB(x))
+#define CF_GB(x) ((U64)1024 * CF_MB(x))
+
+#define cfClamp(val, min_val, max_val) \
+    ((val) < (min_val) ? (min_val) : (val) > (max_val) ? (max_val) : (val))
+
+#define cfMin(l, r) ((l) < (r) ? (l) : (r))
+#define cfMax(l, r) ((l) > (r) ? (l) : (r))
+
+//---------------------------
+// Expansion / token pasting
+//---------------------------
+
+#define CF__CONCAT(a, b) a##b
+#define CF_CONCAT(a, b) CF__CONCAT(a, b)
+
+#define CF__STRINGIFY(x) #x
+#define CF_STRINGIFY(x) CF__STRINGIFY(x)
+
+//------------
+// Assertions
+//------------
 
 #if CF_RELEASE_ASSERTS && defined(NDEBUG)
 #    define CF__RESTORE_NDEBUG
@@ -410,32 +439,9 @@ typedef struct Time
 #    undef CF__RESTORE_NDEBUG
 #endif
 
-//------------------------------------------------------------------------------
-// Misc
-
-#define CF_UNUSED(var) (void)(var)
-
-#define CF_ARRAY_SIZE(a) sizeof(a) / sizeof(a[0])
-
-#define CF_KB(x) ((U64)1024 * (x))
-#define CF_MB(x) ((U64)1024 * CF_KB(x))
-#define CF_GB(x) ((U64)1024 * CF_MB(x))
-
-#define CF__CONCAT(a, b) a##b
-#define CF_CONCAT(a, b) CF__CONCAT(a, b)
-
-#define CF__STRINGIFY(x) #x
-#define CF_STRINGIFY(x) CF__STRINGIFY(x)
-
-#define cfClamp(val, min_val, max_val) \
-    ((val) < (min_val) ? (min_val) : (val) > (max_val) ? (max_val) : (val))
-
-#define cfMin(l, r) ((l) < (r) ? (l) : (r))
-#define cfMax(l, r) ((l) > (r) ? (l) : (r))
-
-//------------------------------------------------------------------------------
-// Memory utilities (clear, write, copy)
-//------------------------------------------------------------------------------
+//----------------------------
+// Memory (clear, write, copy)
+//----------------------------
 
 #define cfMemClear(mem, count) memset(mem, 0, count)        // NOLINT
 #define cfMemCopy(from, to, count) memmove(to, from, count) // NOLINT
