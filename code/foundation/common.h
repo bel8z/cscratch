@@ -228,9 +228,15 @@ typedef struct cfAllocator cfAllocator;
 //------------------------------------------------------------------------------
 // Vector maths types
 
+// TODO (Matteo): Maybe rename to FVec?
+
 typedef union Vec2 Vec2;
 typedef union Vec3 Vec3;
 typedef union Vec4 Vec4;
+
+typedef union IVec2 IVec2;
+typedef union IVec3 IVec3;
+typedef union IVec4 IVec4;
 
 typedef F32 Mat4[4][4];
 
@@ -265,6 +271,37 @@ union Vec4
     F32 elem[4];
 };
 
+union IVec2
+{
+    struct
+    {
+        I32 x, y;
+    };
+    struct
+    {
+        I32 u, v;
+    };
+    I32 elem[2];
+};
+
+union IVec3
+{
+    struct
+    {
+        I32 x, y, z;
+    };
+    I32 elem[3];
+};
+
+union IVec4
+{
+    struct
+    {
+        I32 x, y, z, w;
+    };
+    I32 elem[4];
+};
+
 //------------------------------------------------------------------------------
 // Color space types
 
@@ -296,6 +333,33 @@ union Hsva
 
     F32 elem[4];
 };
+
+//------------------------------------------------------------------------------
+// Rectangle types, for basic 2D drawing/UI
+
+typedef union FRect
+{
+    struct
+    {
+        Vec2 p0, p1;
+    };
+    struct
+    {
+        F32 x0, y0, x1, y1;
+    };
+} FRect;
+
+typedef union IRect
+{
+    struct
+    {
+        IVec2 p0, p1;
+    };
+    struct
+    {
+        I32 x0, y0, x1, y1;
+    };
+} IRect;
 
 //------------------------------------------------------------------------------
 // Time interval, useful for performance tracking

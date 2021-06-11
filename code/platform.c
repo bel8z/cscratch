@@ -21,7 +21,6 @@
 #include "foundation/path.h"
 #include "foundation/strings.h"
 #include "foundation/util.h"
-#include "foundation/vec.h"
 
 // Standard library
 #include <stdio.h>

@@ -25,7 +25,7 @@
 #include "foundation/path.h"
 #include "foundation/strings.h"
 #include "foundation/util.h"
-#include "foundation/vec.h"
+#include "foundation/maths.h"
 #include "foundation/vm.h"
 
 static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};

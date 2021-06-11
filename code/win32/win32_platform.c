@@ -7,6 +7,7 @@
 
 #include "foundation/allocator.h"
 #include "foundation/fs.h"
+#include "foundation/maths.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"
 #include "foundation/threading.h"

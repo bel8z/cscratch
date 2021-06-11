@@ -4,6 +4,14 @@
 
 #include "common.h"
 
+#define cfAbs(X) _Generic((X), default : abs, I64 : llabs, F64 : fabs, F32 : fabsf)(X)
+
+#define cfClamp(val, min_val, max_val) \
+    ((val) < (min_val) ? (min_val) : (val) > (max_val) ? (max_val) : (val))
+
+#define cfMin(l, r) ((l) < (r) ? (l) : (r))
+#define cfMax(l, r) ((l) > (r) ? (l) : (r))
+
 //------------------------------------------------------------------------------
 // Memory utilities (clear, write, copy)
 //------------------------------------------------------------------------------
@@ -124,131 +132,5 @@ cf__rotateReversal(void *array, Usize size, Usize pos, U8 *swap_buf, Usize swap_
         cfSwapChunkAdjacent(arr, l_end + 1, r_beg, r_end);  \
         cfSwapChunkAdjacent(arr, l_beg, l_end + 1, r_end)); \
     } while (0)
-
-//------------------------------------------------------------------------------
-// Math utilities
-//------------------------------------------------------------------------------
-
-#include <math.h>
-
-#define cfAbs(X) _Generic((X), default : abs, I64 : llabs, F64 : fabs, F32 : fabsf)(X)
-
-#define cfClamp(val, min_val, max_val) \
-    ((val) < (min_val) ? (min_val) : (val) > (max_val) ? (max_val) : (val))
-
-#define cfMin(l, r) ((l) < (r) ? (l) : (r))
-#define cfMax(l, r) ((l) > (r) ? (l) : (r))
-
-#define cfCeil(X) _Generic((X), default : ceil, F32 : ceilf)(X)
-#define cfFloor(X) _Generic((X), default : floor, F32 : floorf)(X)
-#define cfRound(X) _Generic((X), default : round, F32 : roundf)(X)
-
-//========
-//  Trig
-//========
-
-#define cfCos(X) _Generic((X), default : cos, F32 : cosf)(X)
-#define cfSin(X) _Generic((X), default : sin, F32 : sinf)(X)
-#define cfTan(X) _Generic((X), default : tan, F32 : tanf)(X)
-
-#define cfCosH(X) _Generic((X), default : cosh, F32 : coshf)(X)
-#define cfSinH(X) _Generic((X), default : sinh, F32 : sinhf)(X)
-#define cfTanH(X) _Generic((X), default : tanh, F32 : tanhf)(X)
-
-//=================
-//  Powers / roots
-//=================
-
-#define cfSqrt(X) _Generic((X), default : sqrt, F32 : sqrtf)(X)
-#define cfPow(base, xp) _Generic((base, xp), default : pow, F32 : powf)(base, xp)
-#define cfSquare(x) ((x) * (x))
-#define cfCube(x) ((x) * (x) * (x))
-#define cfExp(x) _Generic((x), default : exp, F32 : expf)(base, xp)
-
-//==========
-//  Modulo
-//==========
-
-#define cfFmod(X, Y) _Generic((X, Y), default : fmod, F32 : fmodf)(X, Y)
-
-//========
-//  Lerp
-//========
-
-#define cfLerp(x, y, t) _Generic((x, y, t), default : cf__Lerp64, F32 : cf__Lerp32)(x, y, t)
-
-static inline F32
-cf__Lerp32(F32 x, F32 y, F32 t)
-{
-    return x * (1 - t) + y * t;
-}
-
-static inline F64
-cf__Lerp64(F64 x, F64 y, F64 t)
-{
-    return x * (1 - t) + y * t;
-}
-
-//========
-//  GCD
-//========
-
-// clang-format off
-#define cfGcd(a, b)                   \
-    _Generic((a, b),                  \
-             U8 : cf__Gcd_U8,         \
-             U16 : cf__Gcd_U16,       \
-             U32 : cf__Gcd_U32,       \
-             U64 : cf__Gcd_U64)(a, b)
-// clang-format on
-
-#define CF__GCD(Type)                                                            \
-    static inline Type cf__Gcd_##Type(Type a, Type b)                            \
-    {                                                                            \
-        /* GCD(0, b) == b, */                                                    \
-        /* GCD(a, 0) == a, */                                                    \
-        /* GCD(0, 0) == 0  */                                                    \
-                                                                                 \
-        if (a == 0) return b;                                                    \
-        if (b == 0) return a;                                                    \
-                                                                                 \
-        /* Find k, which is the greatest power of 2 that divides both a and b */ \
-        Type k = 0;                                                              \
-        for (; !((a | b) & 1); ++k)                                              \
-        {                                                                        \
-            a = a >> 1;                                                          \
-            b = b >> 1;                                                          \
-        }                                                                        \
-                                                                                 \
-        /* Divide a by 2 until it becames odd */                                 \
-        while (!(a & 1)) a = a >> 1;                                             \
-                                                                                 \
-        do                                                                       \
-        {                                                                        \
-            /* Divide b by 2 until it becames odd */                             \
-            while (!(b & 1)) b = b >> 1;                                         \
-                                                                                 \
-            /* Now a and b are both odd. Swap in order to have a <= b, */        \
-            /* then set b = b - a (which is even). */                            \
-            if (a > b)                                                           \
-            {                                                                    \
-                Type t = a;                                                      \
-                a = b;                                                           \
-                b = t;                                                           \
-            }                                                                    \
-                                                                                 \
-            b = (b - a);                                                         \
-        } while (b);                                                             \
-                                                                                 \
-        /* Restore the common factor of 2 */                                     \
-        return (Type)(a << k);                                                   \
-    }
-
-CF__GCD(U8)
-CF__GCD(U16)
-CF__GCD(U32)
-CF__GCD(U64)
-
-#undef CF__GCD
 
 //------------------------------------------------------------------------------

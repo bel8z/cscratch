@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "maths.h"
 #include "util.h"
 
 #define RGBA32_R_SHIFT 0
