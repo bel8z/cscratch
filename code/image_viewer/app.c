@@ -4,11 +4,14 @@
 //
 // TODO (Matteo): missing features
 // - Drag after zoom
-// - Async file load/decode
 // - Animated GIF support
 // - Bounded tool windows ?
 // - Better memory allocation strategy based on actual usage patterns
 //   (i.e. less usage of the heap allocator)
+// - Cleanup loading code
+// - Cache texture for image loading (create a new texture only if bigger size is required)
+//   This will prevent some flickering
+// - Display transparent images properly
 //
 // ******************************
 
@@ -495,76 +498,84 @@ appImageView(AppState *state)
                 state->curr_file = next;
                 loadQueueItem(&state->queue, state->images.files + next);
                 textureUnload(&iv->texture);
+
+                // NOTE (Matteo): improve browsing performance by pre-loading previous and next file
+
+                I32 n = (next == state->images.num_files - 1) ? 0 : next + 1;
+                I32 p = (next == 0) ? state->images.num_files - 1 : next - 1;
+
+                if (n != next) loadQueueItem(&state->queue, state->images.files + n);
+                if (p != n) loadQueueItem(&state->queue, state->images.files + p);
             }
-            else if (curr_file->state == ImageFileState_Loaded && iv->texture == 0)
-            {
-                iv->texture = textureLoadFromImage(&curr_file->image);
-                update_filter = true;
-            }
         }
-
-        ImGuiIO *io = igGetIO();
-
-        if (igIsItemHovered(0) && io->KeyCtrl)
+        else if (curr_file->state == ImageFileState_Loaded && iv->texture == 0)
         {
-            iv->zoom = cfClamp(iv->zoom + io->MouseWheel, min_zoom, max_zoom);
-        }
-
-        // 3. Draw the image properly scaled to fit the view
-        // TODO (Matteo): Fix zoom behavior
-
-        // NOTE (Matteo): in case of more precision required
-        // I32 v = (I32)(1000 / *zoom);
-        // I32 d = (1000 - v) / 2;
-        // F32 uv = (F32)d * 0.001f;
-
-        // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
-        // ratio at zoom level == 1; then zoom is applied
-
-        F32 image_w = (F32)curr_file->image.width;
-        F32 image_h = (F32)curr_file->image.height;
-        F32 image_aspect = image_w / image_h;
-
-        if (image_w > view_size.x)
-        {
-            image_w = view_size.x;
-            image_h = image_w / image_aspect;
-        }
-
-        if (image_h > view_size.y)
-        {
-            image_h = view_size.y;
-            image_w = image_h * image_aspect;
-        }
-
-        // NOTE (Matteo): Round image bounds to nearest pixel for stable rendering
-
-        image_w = cfRound(image_w * iv->zoom);
-        image_h = cfRound(image_h * iv->zoom);
-
-        ImVec2 image_min = {cfRound(view_min.x + 0.5f * (view_size.x - image_w)),
-                            cfRound(view_min.y + 0.5f * (view_size.y - image_h))};
-
-        ImVec2 image_max = {image_min.x + image_w, //
-                            image_min.y + image_h};
-
-        // NOTE (Matteo): Apply filtering if required
-        if (update_filter) textureSetFilter(iv->texture, iv->filter);
-
-        ImDrawList *draw_list = igGetWindowDrawList();
-        ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
-        ImDrawList_AddImage(draw_list, (void *)(Iptr)iv->texture, image_min, image_max,
-                            (ImVec2){0.0f, 0.0f}, (ImVec2){1.0f, 1.0f},
-                            igGetColorU32U32(RGBA32_WHITE));
-
-        if (iv->advanced)
-        {
-            // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
-            ImU32 debug_color = igGetColorU32Vec4((ImVec4){1, 0, 1, 1});
-            ImDrawList_AddRect(draw_list, image_min, image_max, debug_color, 0.0f, 0, 1.0f);
-            ImDrawList_AddRect(draw_list, view_min, view_max, debug_color, 0.0f, 0, 1.0f);
+            iv->texture = textureLoadFromImage(&curr_file->image);
+            update_filter = true;
         }
     }
+
+    ImGuiIO *io = igGetIO();
+
+    if (igIsItemHovered(0) && io->KeyCtrl)
+    {
+        iv->zoom = cfClamp(iv->zoom + io->MouseWheel, min_zoom, max_zoom);
+    }
+
+    // 3. Draw the image properly scaled to fit the view
+    // TODO (Matteo): Fix zoom behavior
+
+    // NOTE (Matteo): in case of more precision required
+    // I32 v = (I32)(1000 / *zoom);
+    // I32 d = (1000 - v) / 2;
+    // F32 uv = (F32)d * 0.001f;
+
+    // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
+    // ratio at zoom level == 1; then zoom is applied
+
+    F32 image_w = (F32)curr_file->image.width;
+    F32 image_h = (F32)curr_file->image.height;
+    F32 image_aspect = image_w / image_h;
+
+    if (image_w > view_size.x)
+    {
+        image_w = view_size.x;
+        image_h = image_w / image_aspect;
+    }
+
+    if (image_h > view_size.y)
+    {
+        image_h = view_size.y;
+        image_w = image_h * image_aspect;
+    }
+
+    // NOTE (Matteo): Round image bounds to nearest pixel for stable rendering
+
+    image_w = cfRound(image_w * iv->zoom);
+    image_h = cfRound(image_h * iv->zoom);
+
+    ImVec2 image_min = {cfRound(view_min.x + 0.5f * (view_size.x - image_w)),
+                        cfRound(view_min.y + 0.5f * (view_size.y - image_h))};
+
+    ImVec2 image_max = {image_min.x + image_w, //
+                        image_min.y + image_h};
+
+    // NOTE (Matteo): Apply filtering if required
+    if (update_filter) textureSetFilter(iv->texture, iv->filter);
+
+    ImDrawList *draw_list = igGetWindowDrawList();
+    ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
+    ImDrawList_AddImage(draw_list, (void *)(Iptr)iv->texture, image_min, image_max,
+                        (ImVec2){0.0f, 0.0f}, (ImVec2){1.0f, 1.0f}, igGetColorU32U32(RGBA32_WHITE));
+
+    if (iv->advanced)
+    {
+        // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
+        ImU32 debug_color = igGetColorU32Vec4((ImVec4){1, 0, 1, 1});
+        ImDrawList_AddRect(draw_list, image_min, image_max, debug_color, 0.0f, 0, 1.0f);
+        ImDrawList_AddRect(draw_list, view_min, view_max, debug_color, 0.0f, 0, 1.0f);
+    }
+}
 }
 
 static bool
