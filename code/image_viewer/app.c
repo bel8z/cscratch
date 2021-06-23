@@ -54,7 +54,9 @@ typedef struct ImageView
     bool advanced;
     F32 zoom;
     I32 filter;
-    U32 texture;
+    U32 tex_id;
+    I32 tex_width;
+    I32 tex_height;
 } ImageView;
 
 typedef enum ImageFileState
@@ -63,6 +65,7 @@ typedef enum ImageFileState
     ImageFileState_Loading,
     ImageFileState_Loaded,
     ImageFileState_Failed,
+    ImageFileState_Viewing,
 } ImageFileState;
 
 typedef struct ImageFile
@@ -134,13 +137,17 @@ static THREAD_PROC(loadProc);
 
 // Simple helper functions to load an image into a OpenGL texture with common settings
 
-U32
-textureLoadFromImage(Image *image)
+void
+imageViewInit(ImageView *iv)
 {
-    // Create a OpenGL texture identifier
-    U32 texture = 0;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    iv->advanced = false;
+    iv->filter = ImageFilter_Nearest;
+    iv->tex_id = 0;
+    iv->tex_height = 4096;
+    iv->tex_width = 4096;
+
+    glGenTextures(1, &iv->tex_id);
+    glBindTexture(GL_TEXTURE_2D, iv->tex_id);
 
     // TODO (Matteo): Separate texture parameterization from loading
 
@@ -155,28 +162,46 @@ textureLoadFromImage(Image *image)
 #if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image->width, image->height, 0, GL_RGBA,
-                 GL_UNSIGNED_BYTE, image->data);
-
-    return texture;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, iv->tex_width, iv->tex_height, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, NULL);
 }
 
 void
-textureSetFilter(U32 texture, ImageFilter filter)
+imageViewShutdown(ImageView *iv)
 {
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    I32 value = (filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
+    glDeleteTextures(1, &iv->tex_id);
+    iv->tex_id = 0;
 }
 
 void
-textureUnload(U32 *texture)
+imageViewSetFilter(ImageView *iv, ImageFilter filter)
 {
-    glDeleteTextures(1, texture);
-    *texture = 0;
+    if (filter != iv->filter)
+    {
+        iv->filter = filter;
+
+        glBindTexture(GL_TEXTURE_2D, iv->tex_id);
+
+        I32 value = (filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
+    }
+}
+
+void
+imageViewUpdate(ImageView *iv, Image const *image)
+{
+    if (image->height > iv->tex_height || image->width > iv->tex_width)
+    {
+        iv->tex_height = cfMax(image->height, iv->tex_height);
+        iv->tex_width = cfMax(image->width, iv->tex_width);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, iv->tex_width, iv->tex_height, 0, GL_RGBA,
+                     GL_UNSIGNED_BYTE, NULL);
+    }
+
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->width, image->height, GL_RGBA, GL_UNSIGNED_BYTE,
+                    image->data);
 }
 
 //------------------------------------------------------------------------------
@@ -212,6 +237,8 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
 
     // Init image loading
     gloadInit(plat->gl);
+
+    imageViewInit(&app->iv);
 
     Threading *threading = app->plat->threading;
     app->queue.alloc = app->alloc;
@@ -271,7 +298,8 @@ appLoadImage(ImageFile *file, cfFileSystem *fs, cfAllocator *alloc)
     switch (file->state)
     {
         case ImageFileState_Loading: break;
-        case ImageFileState_Loaded: result = true; break;
+        case ImageFileState_Loaded:
+        case ImageFileState_Viewing: result = true; break;
         default:
             file->state = ImageFileState_Loading;
 
@@ -347,8 +375,7 @@ appLoadFromFile(AppState *state, char const *full_name)
         if (appLoadImage(&file, state->plat->fs, state->alloc))
         {
             iv->zoom = 1.0f;
-            iv->texture = textureLoadFromImage(&file.image);
-            textureSetFilter(iv->texture, iv->filter);
+            imageViewUpdate(iv, &file.image);
         }
         else
         {
@@ -430,6 +457,8 @@ loadQueueItem(LoadQueue *queue, ImageFile *file)
         queue->buf[write_pos] = file;
         queue->len++;
 
+        file->state = ImageFileState_Loading;
+
         api->cvSignalOne(&queue->wake);
     }
     api->mutexRelease(&queue->mutex);
@@ -443,24 +472,18 @@ appImageView(AppState *state)
 
     ImageView *iv = &state->iv;
 
-    bool update_filter = false;
-
     // Image scaling settings
 
     // TODO (Matteo): Maybe this can get cleaner?
     if (iv->advanced)
     {
-        if (igRadioButtonIntPtr("Nearest", &iv->filter, ImageFilter_Nearest))
-        {
-            update_filter = true;
-        }
+        I32 filter = iv->filter;
+        igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
         guiSameLine();
-        if (igRadioButtonIntPtr("Linear", &iv->filter, ImageFilter_Linear))
-        {
-            update_filter = true;
-        }
+        igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
         guiSameLine();
         igSliderFloat("zoom", &iv->zoom, min_zoom, max_zoom, "%.3f", 0);
+        imageViewSetFilter(iv, filter);
     }
 
     // Use the available content area as the image view; an invisible button
@@ -497,7 +520,6 @@ appImageView(AppState *state)
             {
                 state->curr_file = next;
                 loadQueueItem(&state->queue, state->images.files + next);
-                textureUnload(&iv->texture);
 
                 // NOTE (Matteo): improve browsing performance by pre-loading previous and next file
 
@@ -507,11 +529,11 @@ appImageView(AppState *state)
                 if (n != next) loadQueueItem(&state->queue, state->images.files + n);
                 if (p != n) loadQueueItem(&state->queue, state->images.files + p);
             }
-        }
-        else if (curr_file->state == ImageFileState_Loaded && iv->texture == 0)
-        {
-            iv->texture = textureLoadFromImage(&curr_file->image);
-            update_filter = true;
+            else if (curr_file->state == ImageFileState_Loaded)
+            {
+                curr_file->state = ImageFileState_Viewing;
+                imageViewUpdate(iv, &curr_file->image);
+            }
         }
 
         ImGuiIO *io = igGetIO();
@@ -559,12 +581,9 @@ appImageView(AppState *state)
         ImVec2 image_max = {image_min.x + image_w, //
                             image_min.y + image_h};
 
-        // NOTE (Matteo): Apply filtering if required
-        if (update_filter) textureSetFilter(iv->texture, iv->filter);
-
         ImDrawList *draw_list = igGetWindowDrawList();
         ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
-        ImDrawList_AddImage(draw_list, (void *)(Iptr)iv->texture, image_min, image_max,
+        ImDrawList_AddImage(draw_list, (void *)(Iptr)iv->tex_id, image_min, image_max,
                             (ImVec2){0.0f, 0.0f}, (ImVec2){1.0f, 1.0f},
                             igGetColorU32U32(RGBA32_WHITE));
 
