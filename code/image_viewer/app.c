@@ -18,6 +18,8 @@
 
 #include "gui/gui.h"
 
+#include "gl/gload.h"
+
 #include "foundation/allocator.h"
 #include "foundation/color.h"
 #include "foundation/common.h"
@@ -49,6 +51,7 @@ typedef struct ImageView
     bool advanced;
     F32 zoom;
     I32 filter;
+    U32 texture;
 } ImageView;
 
 typedef enum ImageFileState
@@ -125,6 +128,55 @@ static bool appLoadImage(ImageFile *file, cfFileSystem *fs, cfAllocator *alloc);
 static THREAD_PROC(loadProc);
 
 //------------------------------------------------------------------------------
+
+// Simple helper functions to load an image into a OpenGL texture with common settings
+
+U32
+textureLoadFromImage(Image *image)
+{
+    // Create a OpenGL texture identifier
+    U32 texture = 0;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    // TODO (Matteo): Separate texture parameterization from loading
+
+    // Setup filtering parameters for display
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // These are required on WebGL for non power-of-two textures
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Upload pixels into texture
+#if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image->width, image->height, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, image->data);
+
+    return texture;
+}
+
+void
+textureSetFilter(U32 texture, ImageFilter filter)
+{
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    I32 value = (filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
+}
+
+void
+textureUnload(U32 *texture)
+{
+    glDeleteTextures(1, texture);
+    *texture = 0;
+}
+
+//------------------------------------------------------------------------------
 // Application creation/destruction
 
 APP_API AppState *
@@ -156,7 +208,7 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
     guiInit(plat->gui);
 
     // Init image loading
-    imageInit(plat->gl);
+    gloadInit(plat->gl);
 
     Threading *threading = app->plat->threading;
     app->queue.alloc = app->alloc;
@@ -184,7 +236,7 @@ appDestroy(AppState *app)
 {
     for (U32 i = 0; i < app->images.num_files; ++i)
     {
-        imageUnload(&app->images.files[i].image);
+        imageUnload(&app->images.files[i].image, app->alloc);
     }
 
     cfVmRelease(app->images.vm, app->images.files, app->images.bytes_reserved);
@@ -269,7 +321,7 @@ appLoadFromFile(AppState *state, char const *full_name)
 
     for (U32 i = 0; i < images->num_files; ++i)
     {
-        imageUnload(&images->files[i].image);
+        imageUnload(&images->files[i].image, state->alloc);
     }
 
     images->num_files = 0;
@@ -292,7 +344,8 @@ appLoadFromFile(AppState *state, char const *full_name)
         if (appLoadImage(&file, state->plat->fs, state->alloc))
         {
             iv->zoom = 1.0f;
-            imageSetFilter(&file.image, iv->filter);
+            iv->texture = textureLoadFromImage(&file.image);
+            textureSetFilter(iv->texture, iv->filter);
         }
         else
         {
@@ -362,6 +415,24 @@ static THREAD_PROC(loadProc)
 }
 
 static void
+loadQueueItem(LoadQueue *queue, ImageFile *file)
+{
+    Threading *api = queue->api;
+
+    api->mutexAcquire(&queue->mutex);
+    {
+        CF_ASSERT(queue->len < QUEUE_SIZE, "Queue is full!");
+
+        U16 write_pos = (queue->pos + queue->len) % QUEUE_SIZE;
+        queue->buf[write_pos] = file;
+        queue->len++;
+
+        api->cvSignalOne(&queue->wake);
+    }
+    api->mutexRelease(&queue->mutex);
+}
+
+static void
 appImageView(AppState *state)
 {
     F32 const min_zoom = 1.0f;
@@ -401,8 +472,6 @@ appImageView(AppState *state)
     igGetItemRectMin(&view_min);
     igGetItemRectMax(&view_max);
 
-    Image image = {0};
-
     if (state->curr_file != U32_MAX)
     {
         ImageFile *curr_file = state->images.files + state->curr_file;
@@ -424,100 +493,77 @@ appImageView(AppState *state)
             if (state->curr_file != next)
             {
                 state->curr_file = next;
-
-                ImageFile *file = state->images.files + next;
-
-#if 0
-                Threading *api = state->plat->threading;
-
-                api->mutexAcquire(&state->queue.mutex);
-                {
-                    CF_ASSERT(state->queue.len < QUEUE_SIZE, "Queue is full!");
-
-                    U16 write_pos = (state->queue.pos + state->queue.len) % QUEUE_SIZE;
-                    state->queue.buf[write_pos] = file;
-                    state->queue.len++;
-
-                    api->cvSignalOne(&state->queue.wake);
-                }
-                api->mutexRelease(&state->queue.mutex);
-#else
-
-                if (appLoadImage(file, state->plat->fs, state->alloc))
-                {
-                    image = file->image;
-                    iv->zoom = 1.0f;
-                    imageSetFilter(&image, iv->filter);
-                    update_filter = false;
-                }
-#endif
+                loadQueueItem(&state->queue, state->images.files + next);
+                textureUnload(&iv->texture);
             }
-            else
+            else if (curr_file->state == ImageFileState_Loaded && iv->texture == 0)
             {
-                image = curr_file->image;
+                iv->texture = textureLoadFromImage(&curr_file->image);
+                update_filter = true;
             }
         }
-    }
 
-    ImGuiIO *io = igGetIO();
+        ImGuiIO *io = igGetIO();
 
-    if (igIsItemHovered(0) && io->KeyCtrl)
-    {
-        iv->zoom = cfClamp(iv->zoom + io->MouseWheel, min_zoom, max_zoom);
-    }
+        if (igIsItemHovered(0) && io->KeyCtrl)
+        {
+            iv->zoom = cfClamp(iv->zoom + io->MouseWheel, min_zoom, max_zoom);
+        }
 
-    // 3. Draw the image properly scaled to fit the view
-    // TODO (Matteo): Fix zoom behavior
+        // 3. Draw the image properly scaled to fit the view
+        // TODO (Matteo): Fix zoom behavior
 
-    // NOTE (Matteo): in case of more precision required
-    // I32 v = (I32)(1000 / *zoom);
-    // I32 d = (1000 - v) / 2;
-    // F32 uv = (F32)d * 0.001f;
+        // NOTE (Matteo): in case of more precision required
+        // I32 v = (I32)(1000 / *zoom);
+        // I32 d = (1000 - v) / 2;
+        // F32 uv = (F32)d * 0.001f;
 
-    // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
-    // ratio at zoom level == 1; then zoom is applied
+        // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
+        // ratio at zoom level == 1; then zoom is applied
 
-    F32 image_w = (F32)image.width;
-    F32 image_h = (F32)image.height;
-    F32 image_aspect = image_w / image_h;
+        F32 image_w = (F32)curr_file->image.width;
+        F32 image_h = (F32)curr_file->image.height;
+        F32 image_aspect = image_w / image_h;
 
-    if (image_w > view_size.x)
-    {
-        image_w = view_size.x;
-        image_h = image_w / image_aspect;
-    }
+        if (image_w > view_size.x)
+        {
+            image_w = view_size.x;
+            image_h = image_w / image_aspect;
+        }
 
-    if (image_h > view_size.y)
-    {
-        image_h = view_size.y;
-        image_w = image_h * image_aspect;
-    }
+        if (image_h > view_size.y)
+        {
+            image_h = view_size.y;
+            image_w = image_h * image_aspect;
+        }
 
-    // NOTE (Matteo): Round image bounds to nearest pixel for stable rendering
+        // NOTE (Matteo): Round image bounds to nearest pixel for stable rendering
 
-    image_w = cfRound(image_w * iv->zoom);
-    image_h = cfRound(image_h * iv->zoom);
+        image_w = cfRound(image_w * iv->zoom);
+        image_h = cfRound(image_h * iv->zoom);
 
-    ImVec2 image_min = {cfRound(view_min.x + 0.5f * (view_size.x - image_w)),
-                        cfRound(view_min.y + 0.5f * (view_size.y - image_h))};
+        ImVec2 image_min = {cfRound(view_min.x + 0.5f * (view_size.x - image_w)),
+                            cfRound(view_min.y + 0.5f * (view_size.y - image_h))};
 
-    ImVec2 image_max = {image_min.x + image_w, //
-                        image_min.y + image_h};
+        ImVec2 image_max = {image_min.x + image_w, //
+                            image_min.y + image_h};
 
-    // NOTE (Matteo): Apply filtering if required
-    if (update_filter) imageSetFilter(&image, iv->filter);
+        // NOTE (Matteo): Apply filtering if required
+        if (update_filter) textureSetFilter(iv->texture, iv->filter);
 
-    ImDrawList *draw_list = igGetWindowDrawList();
-    ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
-    ImDrawList_AddImage(draw_list, (void *)(Iptr)image.texture, image_min, image_max,
-                        (ImVec2){0.0f, 0.0f}, (ImVec2){1.0f, 1.0f}, igGetColorU32U32(RGBA32_WHITE));
+        ImDrawList *draw_list = igGetWindowDrawList();
+        ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
+        ImDrawList_AddImage(draw_list, (void *)(Iptr)iv->texture, image_min, image_max,
+                            (ImVec2){0.0f, 0.0f}, (ImVec2){1.0f, 1.0f},
+                            igGetColorU32U32(RGBA32_WHITE));
 
-    if (iv->advanced)
-    {
-        // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
-        ImU32 debug_color = igGetColorU32Vec4((ImVec4){1, 0, 1, 1});
-        ImDrawList_AddRect(draw_list, image_min, image_max, debug_color, 0.0f, 0, 1.0f);
-        ImDrawList_AddRect(draw_list, view_min, view_max, debug_color, 0.0f, 0, 1.0f);
+        if (iv->advanced)
+        {
+            // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
+            ImU32 debug_color = igGetColorU32Vec4((ImVec4){1, 0, 1, 1});
+            ImDrawList_AddRect(draw_list, image_min, image_max, debug_color, 0.0f, 0, 1.0f);
+            ImDrawList_AddRect(draw_list, view_min, view_max, debug_color, 0.0f, 0, 1.0f);
+        }
     }
 }
 

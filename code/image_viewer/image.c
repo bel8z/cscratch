@@ -40,65 +40,31 @@ static void stbiFree(void *mem);
 // Image API implementation
 
 bool
-imageInit(GlApi *api)
-{
-    return gloadInit(api);
-}
-
-static void
-image__processData(U8 *data, I32 width, I32 height, Image *image)
-{
-    // Create a OpenGL texture identifier
-    U32 image_texture;
-    glGenTextures(1, &image_texture);
-    glBindTexture(GL_TEXTURE_2D, image_texture);
-
-    // TODO (Matteo): Separate texture parameterization from loading
-
-    // Setup filtering parameters for display
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // These are required on WebGL for non power-of-two textures
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    // Upload pixels into texture
-#if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-#endif
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-    image->texture = image_texture;
-    image->width = width;
-    image->height = height;
-}
-
-bool
 imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
 {
     CF_ASSERT_NOT_NULL(alloc);
     CF_ASSERT_NOT_NULL(image);
     CF_ASSERT_NOT_NULL(filename);
 
+    CF_ASSERT(!image->data, "overwriting valid image");
+
     // Setup allocator for stbi
     g_alloc = alloc;
 
     // Load from file
-    I32 width = 0;
-    I32 height = 0;
-    U8 *data = stbi_load(filename, &width, &height, NULL, 4);
-    bool result = false;
-
-    if (data)
-    {
-        result = true;
-        image__processData(data, width, height, image);
-        stbi_image_free(data);
-    }
+    image->width = 0;
+    image->height = 0;
+    U8 *data = stbi_load(filename, &image->width, &image->height, NULL, 4);
 
     g_alloc = NULL;
 
-    return result;
+    if (data)
+    {
+        image->data = (Rgba32 *)data;
+        return true;
+    }
+
+    return false;
 }
 
 bool
@@ -111,41 +77,37 @@ imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAlloc
     // Setup allocator for stbi
     g_alloc = alloc;
 
-    // Load from file
-    I32 width = 0;
-    I32 height = 0;
-    U8 *data = stbi_load_from_memory(in_data, (I32)in_data_size, &width, &height, NULL, 4);
-    bool result = false;
-
-    if (data)
-    {
-        result = true;
-        image__processData(data, width, height, image);
-        stbi_image_free(data);
-    }
+    image->width = 0;
+    image->height = 0;
+    U8 *data =
+        stbi_load_from_memory(in_data, (I32)in_data_size, &image->width, &image->height, NULL, 4);
 
     g_alloc = NULL;
 
-    return result;
+    if (data)
+    {
+        image->data = (Rgba32 *)data;
+        return true;
+    }
+
+    return false;
 }
 
 void
-imageSetFilter(Image *image, ImageFilter filter)
+imageUnload(Image *image, cfAllocator *alloc)
 {
     CF_ASSERT_NOT_NULL(image);
+    CF_ASSERT_NOT_NULL(alloc);
 
-    glBindTexture(GL_TEXTURE_2D, image->texture);
+    g_alloc = alloc;
 
-    I32 value = (filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
+    stbiFree(image->data);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
-}
+    image->data = NULL;
+    image->height = 0;
+    image->width = 0;
 
-void
-imageUnload(Image *image)
-{
-    glDeleteTextures(1, &image->texture);
+    g_alloc = NULL;
 }
 
 //------------------------------------------------------------------------------
