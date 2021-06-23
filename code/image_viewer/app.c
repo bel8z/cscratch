@@ -405,35 +405,57 @@ appImageView(AppState *state)
 
     if (state->curr_file != U32_MAX)
     {
-        U32 next = state->curr_file;
+        ImageFile *curr_file = state->images.files + state->curr_file;
 
-        if (guiKeyPressed(ImGuiKey_LeftArrow))
+        if (curr_file->state != ImageFileState_Loading)
         {
-            if (next-- == 0) next = state->images.num_files - 1;
-        }
+            U32 next = state->curr_file;
 
-        if (guiKeyPressed(ImGuiKey_RightArrow))
-        {
-            if (++next == state->images.num_files) next = 0;
-        }
-
-        if (state->curr_file != next)
-        {
-            state->curr_file = next;
-
-            ImageFile *file = state->images.files + next;
-
-            if (appLoadImage(file, state->plat->fs, state->alloc))
+            if (guiKeyPressed(ImGuiKey_LeftArrow))
             {
-                image = file->image;
-                iv->zoom = 1.0f;
-                imageSetFilter(&image, iv->filter);
-                update_filter = false;
+                if (next-- == 0) next = state->images.num_files - 1;
             }
-        }
-        else
-        {
-            image = state->images.files[state->curr_file].image;
+
+            if (guiKeyPressed(ImGuiKey_RightArrow))
+            {
+                if (++next == state->images.num_files) next = 0;
+            }
+
+            if (state->curr_file != next)
+            {
+                state->curr_file = next;
+
+                ImageFile *file = state->images.files + next;
+
+#if 0
+                Threading *api = state->plat->threading;
+
+                api->mutexAcquire(&state->queue.mutex);
+                {
+                    CF_ASSERT(state->queue.len < QUEUE_SIZE, "Queue is full!");
+
+                    U16 write_pos = (state->queue.pos + state->queue.len) % QUEUE_SIZE;
+                    state->queue.buf[write_pos] = file;
+                    state->queue.len++;
+
+                    api->cvSignalOne(&state->queue.wake);
+                }
+                api->mutexRelease(&state->queue.mutex);
+#else
+
+                if (appLoadImage(file, state->plat->fs, state->alloc))
+                {
+                    image = file->image;
+                    iv->zoom = 1.0f;
+                    imageSetFilter(&image, iv->filter);
+                    update_filter = false;
+                }
+#endif
+            }
+            else
+            {
+                image = curr_file->image;
+            }
         }
     }
 
