@@ -89,12 +89,16 @@ win32threadCreate(ThreadParms *parms)
                                        parms_copy, CREATE_SUSPENDED, NULL);
     }
 
-    if (thread.handle && parms->debug_name)
+    if (thread.handle)
     {
-        WCHAR buffer[1024];
-        I32 size = MultiByteToWideChar(CP_UTF8, 0, parms->debug_name, -1, buffer, 1024);
-        CF_ASSERT(size > 0 || size < 1024, "Thread debug name is too long");
-        SetThreadDescription((HANDLE)thread.handle, buffer);
+        if (parms->debug_name)
+        {
+            WCHAR buffer[1024];
+            I32 size = MultiByteToWideChar(CP_UTF8, 0, parms->debug_name, -1, buffer, 1024);
+            CF_ASSERT(size > 0 || size < 1024, "Thread debug name is too long");
+            SetThreadDescription((HANDLE)thread.handle, buffer);
+        }
+
         ResumeThread((HANDLE)thread.handle);
     }
 
