@@ -46,7 +46,6 @@ enum
 
 typedef struct ImageView
 {
-    Image image;
     bool advanced;
     F32 zoom;
     I32 filter;
@@ -137,19 +136,6 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
     if (argc > 1)
     {
         appLoadFromFile(app, argv[1]);
-    }
-    else
-    {
-        // TODO (Matteo): Remove - kind of demo, but should not be kept
-
-        ImageFile file = {0};
-        strPrintf(app->curr_dir, CURR_DIR_SIZE, "%s", plat->paths->data);
-        strPrintf(file.filename, FILENAME_SIZE, "Opaque.png");
-        if (appLoadImage(app, &file))
-        {
-            app->iv.image = file.image;
-            imageSetFilter(&app->iv.image, app->iv.filter);
-        }
     }
 
     return app;
@@ -269,9 +255,8 @@ appLoadFromFile(AppState *state, char const *filename)
 
         if (appLoadImage(state, &file))
         {
-            iv->image = file.image;
             iv->zoom = 1.0f;
-            imageSetFilter(&iv->image, iv->filter);
+            imageSetFilter(&file.image, iv->filter);
         }
         else
         {
@@ -317,18 +302,24 @@ appImageView(AppState *state)
 
     ImageView *iv = &state->iv;
 
+    bool update_filter = false;
+
     // Image scaling settings
 
     // TODO (Matteo): Maybe this can get cleaner?
     if (iv->advanced)
     {
-        igRadioButtonIntPtr("Nearest", &iv->filter, ImageFilter_Nearest);
+        if (igRadioButtonIntPtr("Nearest", &iv->filter, ImageFilter_Nearest))
+        {
+            update_filter = true;
+        }
         guiSameLine();
-        igRadioButtonIntPtr("Linear", &iv->filter, ImageFilter_Linear);
+        if (igRadioButtonIntPtr("Linear", &iv->filter, ImageFilter_Linear))
+        {
+            update_filter = true;
+        }
         guiSameLine();
         igSliderFloat("zoom", &iv->zoom, min_zoom, max_zoom, "%.3f", 0);
-
-        imageSetFilter(&iv->image, iv->filter);
     }
 
     // Use the available content area as the image view; an invisible button
@@ -342,6 +333,8 @@ appImageView(AppState *state)
     igInvisibleButton("Image viewer##Area", view_size, 0);
     igGetItemRectMin(&view_min);
     igGetItemRectMax(&view_max);
+
+    Image image = {0};
 
     if (state->curr_file != U32_MAX)
     {
@@ -365,10 +358,15 @@ appImageView(AppState *state)
 
             if (appLoadImage(state, file))
             {
-                iv->image = file->image;
+                image = file->image;
                 iv->zoom = 1.0f;
-                imageSetFilter(&iv->image, iv->filter);
+                imageSetFilter(&image, iv->filter);
+                update_filter = false;
             }
+        }
+        else
+        {
+            image = state->images.files[state->curr_file].image;
         }
     }
 
@@ -390,8 +388,8 @@ appImageView(AppState *state)
     // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
     // ratio at zoom level == 1; then zoom is applied
 
-    F32 image_w = (F32)iv->image.width;
-    F32 image_h = (F32)iv->image.height;
+    F32 image_w = (F32)image.width;
+    F32 image_h = (F32)image.height;
     F32 image_aspect = image_w / image_h;
 
     if (image_w > view_size.x)
@@ -417,9 +415,12 @@ appImageView(AppState *state)
     ImVec2 image_max = {image_min.x + image_w, //
                         image_min.y + image_h};
 
+    // NOTE (Matteo): Apply filtering if required
+    if (update_filter) imageSetFilter(&image, iv->filter);
+
     ImDrawList *draw_list = igGetWindowDrawList();
     ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
-    ImDrawList_AddImage(draw_list, (void *)(Iptr)iv->image.texture, image_min, image_max,
+    ImDrawList_AddImage(draw_list, (void *)(Iptr)image.texture, image_min, image_max,
                         (ImVec2){0.0f, 0.0f}, (ImVec2){1.0f, 1.0f}, igGetColorU32U32(RGBA32_WHITE));
 
     if (iv->advanced)
