@@ -25,6 +25,7 @@
 #include "foundation/maths.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"
+#include "foundation/threading.h"
 #include "foundation/vm.h"
 
 static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
@@ -40,7 +41,6 @@ typedef struct AppWindows
 
 enum
 {
-    CURR_DIR_SIZE = 256,
     FILENAME_SIZE = 256,
 };
 
@@ -78,6 +78,29 @@ typedef struct ImageList
     U32 num_files;
 } ImageList;
 
+enum
+{
+    QUEUE_SIZE = 16
+};
+
+typedef struct LoadQueue
+{
+    // Dependencies
+    Threading *api;
+    cfFileSystem *fs;
+    cfAllocator *alloc;
+
+    // Sync
+    Mutex mutex;
+    ConditionVariable wake;
+
+    // Data
+    ImageFile *buf[QUEUE_SIZE];
+    U16 pos;
+    U16 len;
+    bool stop;
+} LoadQueue;
+
 struct AppState
 {
     cfPlatform *plat;
@@ -85,10 +108,11 @@ struct AppState
 
     FileDlgFilter filter;
     U32 curr_file;
-    char curr_dir[CURR_DIR_SIZE];
     ImageList images;
 
     ImageView iv;
+
+    LoadQueue queue;
 
     AppWindows windows;
 };
@@ -96,7 +120,9 @@ struct AppState
 //------------------------------------------------------------------------------
 
 static void appLoadFromFile(AppState *state, char const *filename);
-static bool appLoadImage(AppState *state, ImageFile *file);
+static bool appLoadImage(ImageFile *file, cfFileSystem *fs, cfAllocator *alloc);
+
+static THREAD_PROC(loadProc);
 
 //------------------------------------------------------------------------------
 // Application creation/destruction
@@ -120,7 +146,6 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
     app->filter.extensions = g_supported_ext;
     app->filter.num_extensions = CF_ARRAY_SIZE(g_supported_ext);
     app->curr_file = U32_MAX;
-    cfMemClear(app->curr_dir, CURR_DIR_SIZE);
 
     Usize const images_vm = CF_GB(1);
     app->images.vm = plat->vm;
@@ -132,6 +157,19 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
 
     // Init image loading
     imageInit(plat->gl);
+
+    Threading *threading = app->plat->threading;
+    app->queue.alloc = app->alloc;
+    app->queue.fs = app->plat->fs;
+    app->queue.api = threading;
+
+    threading->cvInit(&app->queue.wake);
+    threading->mutexInit(&app->queue.mutex);
+
+    Thread load_thread =
+        threading->threadCreate(&(ThreadParms){.proc = loadProc, .args = &app->queue});
+    // TODO (Matteo): Detach or monitor thread?
+    CF_UNUSED(load_thread);
 
     if (argc > 1)
     {
@@ -171,33 +209,30 @@ appIsFileSupported(char const *path)
 }
 
 static bool
-appLoadImage(AppState *state, ImageFile *file)
+appLoadImage(ImageFile *file, cfFileSystem *fs, cfAllocator *alloc)
 {
     bool result = false;
 
-    if (file->state == ImageFileState_Loaded)
+    switch (file->state)
     {
-        result = true;
-    }
-    else
-    {
-        char filename[CURR_DIR_SIZE];
-        bool ok = strPrintf(filename, CURR_DIR_SIZE, "%s/%s", state->curr_dir, file->filename);
+        case ImageFileState_Loading: break;
+        case ImageFileState_Loaded: result = true; break;
+        default:
+            file->state = ImageFileState_Loading;
 
-        CF_ASSERT(ok, "path is too long!");
+            FileContent fc = fs->read_file(file->filename, alloc);
 
-        FileContent fc = state->plat->fs->read_file(filename, state->alloc);
-
-        if (fc.data)
-        {
-            file->state = ImageFileState_Loaded;
-            result = imageLoadFromMemory(&file->image, fc.data, fc.size, state->alloc);
-            cfFree(state->alloc, fc.data, fc.size);
-        }
-        else
-        {
-            file->state = ImageFileState_Failed;
-        }
+            if (fc.data)
+            {
+                file->state = ImageFileState_Loaded;
+                result = imageLoadFromMemory(&file->image, fc.data, fc.size, alloc);
+                cfFree(alloc, fc.data, fc.size);
+            }
+            else
+            {
+                file->state = ImageFileState_Failed;
+            }
+            break;
     }
 
     return result;
@@ -226,7 +261,7 @@ appPushImageFile(ImageList *images)
 }
 
 static void
-appLoadFromFile(AppState *state, char const *filename)
+appLoadFromFile(AppState *state, char const *full_name)
 {
     cfFileSystem const *fs = state->plat->fs;
     ImageList *images = &state->images;
@@ -240,20 +275,21 @@ appLoadFromFile(AppState *state, char const *filename)
     images->num_files = 0;
     state->curr_file = U32_MAX;
 
-    if (filename)
+    if (full_name)
     {
-        char const *name = pathSplitName(filename);
-        Isize dir_size = name - filename;
+        Usize full_size = strSize(full_name);
+        CF_ASSERT(full_size <= FILENAME_SIZE, "filename is too long!");
 
-        CF_ASSERT(0 <= dir_size && dir_size < CURR_DIR_SIZE, "Directory path too big");
+        char const *name = pathSplitName(full_name);
+        char dir_name[FILENAME_SIZE] = {0};
+
+        cfMemCopy(full_name, dir_name, (Usize)(name - full_name));
 
         ImageFile file = {0};
 
-        cfMemClear(state->curr_dir, CURR_DIR_SIZE);
-        cfMemCopy(filename, state->curr_dir, (Usize)dir_size);
-        cfMemCopy(name, file.filename, strSize(name));
+        cfMemCopy(full_name, file.filename, full_size);
 
-        if (appLoadImage(state, &file))
+        if (appLoadImage(&file, state->plat->fs, state->alloc))
         {
             iv->zoom = 1.0f;
             imageSetFilter(&file.image, iv->filter);
@@ -263,7 +299,7 @@ appLoadFromFile(AppState *state, char const *filename)
             state->windows.unsupported = true;
         }
 
-        DirIter *it = fs->dir_iter_start(state->curr_dir, state->alloc);
+        DirIter *it = fs->dir_iter_start(dir_name, state->alloc);
 
         if (it)
         {
@@ -275,7 +311,8 @@ appLoadFromFile(AppState *state, char const *filename)
                 if (appIsFileSupported(path))
                 {
                     ImageFile *tmp = appPushImageFile(images);
-                    cfMemCopy(path, tmp->filename, strSize(path));
+                    bool ok = strPrintf(tmp->filename, FILENAME_SIZE, "%s%s", dir_name, path);
+                    CF_ASSERT(ok, "path is too long!");
                 }
             }
 
@@ -284,13 +321,43 @@ appLoadFromFile(AppState *state, char const *filename)
 
         for (U32 index = 0; index < images->num_files; ++index)
         {
-            if (strEqualInsensitive(name, state->images.files[index].filename))
+            if (strEqualInsensitive(full_name, state->images.files[index].filename))
             {
                 state->curr_file = index;
                 state->images.files[index] = file;
                 break;
             }
         }
+    }
+}
+
+static THREAD_PROC(loadProc)
+{
+    LoadQueue *queue = args;
+    Threading *api = queue->api;
+
+    while (true)
+    {
+        api->mutexAcquire(&queue->mutex);
+
+        while (!queue->stop && queue->len == 0)
+        {
+            api->cvWaitMutex(&queue->wake, &queue->mutex, TIME_INFINITE);
+        }
+
+        if (queue->stop)
+        {
+            api->mutexRelease(&queue->mutex);
+            break;
+        }
+
+        ImageFile *file = queue->buf[queue->pos];
+        if (++queue->pos == QUEUE_SIZE) queue->pos = 0;
+        queue->len--;
+
+        api->mutexRelease(&queue->mutex);
+
+        appLoadImage(file, queue->fs, queue->alloc);
     }
 }
 
@@ -356,7 +423,7 @@ appImageView(AppState *state)
 
             ImageFile *file = state->images.files + next;
 
-            if (appLoadImage(state, file))
+            if (appLoadImage(file, state->plat->fs, state->alloc))
             {
                 image = file->image;
                 iv->zoom = 1.0f;
