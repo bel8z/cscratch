@@ -221,6 +221,21 @@ typedef double F64;
 // Allocator abstract interface
 typedef struct cfAllocator cfAllocator;
 
+/// Macro to define a typed dynamic array (variable or typedef)
+/// Functionality is implemented in array.h
+#define cfArray(Type)                                                                              \
+    struct                                                                                         \
+    {                                                                                              \
+        /* Allocator used for growing the array dynamically */                                     \
+        cfAllocator *alloc;                                                                        \
+        /* Actual array storage */                                                                 \
+        Type *buf;                                                                                 \
+        /* Size of the array (number of stored items) */                                           \
+        Usize len;                                                                                 \
+        /* Capacity of the array (number of elements that can be stored before the array grows) */ \
+        Usize cap;                                                                                 \
+    }
+
 //---------------
 // Vectors
 //---------------
