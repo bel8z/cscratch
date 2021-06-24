@@ -8,12 +8,6 @@
 // * Implement a file queue for browsing
 // * Implement image rotation
 
-typedef enum ImageFilter
-{
-    ImageFilter_Nearest,
-    ImageFilter_Linear,
-} ImageFilter;
-
 typedef struct Image
 {
     Rgba32 *data;

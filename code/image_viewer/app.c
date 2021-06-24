@@ -49,6 +49,12 @@ enum
     FILENAME_SIZE = 256,
 };
 
+typedef enum ImageFilter
+{
+    ImageFilter_Nearest,
+    ImageFilter_Linear,
+} ImageFilter;
+
 typedef struct ImageView
 {
     bool advanced;
