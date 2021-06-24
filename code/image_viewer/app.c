@@ -144,21 +144,24 @@ static bool appLoadImage(ImageFile *file, cfFileSystem *fs, cfAllocator *alloc);
 static void
 loadQueuePush(LoadQueue *queue, ImageFile *file)
 {
-    Threading *api = queue->api;
-
-    api->mutexAcquire(&queue->mutex);
+    if (file->state == ImageFileState_Idle)
     {
-        CF_ASSERT(queue->len < LoadQueue_Size, "Queue is full!");
+        Threading *api = queue->api;
 
-        U16 write_pos = (queue->pos + queue->len) % LoadQueue_Size;
-        queue->buf[write_pos] = file;
-        queue->len++;
+        api->mutexAcquire(&queue->mutex);
+        {
+            CF_ASSERT(queue->len < LoadQueue_Size, "Queue is full!");
 
-        file->state = ImageFileState_Queued;
+            U16 write_pos = (queue->pos + queue->len) % LoadQueue_Size;
+            queue->buf[write_pos] = file;
+            queue->len++;
 
-        api->cvSignalOne(&queue->wake);
+            file->state = ImageFileState_Queued;
+
+            api->cvSignalOne(&queue->wake);
+        }
+        api->mutexRelease(&queue->mutex);
     }
-    api->mutexRelease(&queue->mutex);
 }
 
 static void
@@ -772,6 +775,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
     if (state->windows.stats)
     {
         F64 framerate = (F64)igGetIO()->Framerate;
+        ImageStats is = imageGetStats();
 
         igBegin("Application stats", &state->windows.stats, 0);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
@@ -781,6 +785,8 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igSeparator();
         igText("App base path:%s", state->plat->paths->base);
         igText("App data path:%s", state->plat->paths->data);
+        igSeparator();
+        igText("Loaded images: %zu", is.loaded);
         igEnd();
     }
 
