@@ -62,10 +62,10 @@ typedef struct ImageView
 typedef enum ImageFileState
 {
     ImageFileState_Idle = 0,
+    ImageFileState_Queued,
     ImageFileState_Loading,
     ImageFileState_Loaded,
     ImageFileState_Failed,
-    ImageFileState_Viewing,
 } ImageFileState;
 
 typedef struct ImageFile
@@ -89,7 +89,7 @@ typedef struct ImageList
 
 enum
 {
-    QUEUE_SIZE = 16
+    LoadQueue_Size = 16
 };
 
 typedef struct LoadQueue
@@ -100,11 +100,12 @@ typedef struct LoadQueue
     cfAllocator *alloc;
 
     // Sync
+    Thread thread;
     Mutex mutex;
     ConditionVariable wake;
 
     // Data
-    ImageFile *buf[QUEUE_SIZE];
+    ImageFile *buf[LoadQueue_Size];
     U16 pos;
     U16 len;
     bool stop;
@@ -131,10 +132,74 @@ struct AppState
 static void appLoadFromFile(AppState *state, char const *filename);
 static bool appLoadImage(ImageFile *file, cfFileSystem *fs, cfAllocator *alloc);
 
-static THREAD_PROC(loadProc);
+//------------------------------------------------------------------------------
+// Async file loading
+
+static void
+loadQueuePush(LoadQueue *queue, ImageFile *file)
+{
+    Threading *api = queue->api;
+
+    api->mutexAcquire(&queue->mutex);
+    {
+        CF_ASSERT(queue->len < LoadQueue_Size, "Queue is full!");
+
+        U16 write_pos = (queue->pos + queue->len) % LoadQueue_Size;
+        queue->buf[write_pos] = file;
+        queue->len++;
+
+        file->state = ImageFileState_Queued;
+
+        api->cvSignalOne(&queue->wake);
+    }
+    api->mutexRelease(&queue->mutex);
+}
+
+static void
+loadQueueStop(LoadQueue *queue)
+{
+    Threading *api = queue->api;
+    api->mutexAcquire(&queue->mutex);
+    {
+        queue->stop = true;
+        api->cvSignalOne(&queue->wake);
+    }
+    api->mutexRelease(&queue->mutex);
+
+    api->threadWait(queue->thread, TIME_INFINITE);
+}
+
+static THREAD_PROC(loadQueueProc)
+{
+    LoadQueue *queue = args;
+    Threading *api = queue->api;
+
+    for (;;)
+    {
+        api->mutexAcquire(&queue->mutex);
+
+        while (!queue->stop && queue->len == 0)
+        {
+            api->cvWaitMutex(&queue->wake, &queue->mutex, TIME_INFINITE);
+        }
+
+        if (queue->stop)
+        {
+            api->mutexRelease(&queue->mutex);
+            break;
+        }
+
+        ImageFile *file = queue->buf[queue->pos];
+        if (++queue->pos == LoadQueue_Size) queue->pos = 0;
+        queue->len--;
+
+        api->mutexRelease(&queue->mutex);
+
+        appLoadImage(file, queue->fs, queue->alloc);
+    }
+}
 
 //------------------------------------------------------------------------------
-
 // Simple helper functions to load an image into a OpenGL texture with common settings
 
 void
@@ -180,10 +245,9 @@ imageViewSetFilter(ImageView *iv, ImageFilter filter)
     {
         iv->filter = filter;
 
-        glBindTexture(GL_TEXTURE_2D, iv->tex_id);
-
         I32 value = (filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
 
+        glBindTexture(GL_TEXTURE_2D, iv->tex_id);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
     }
@@ -192,6 +256,8 @@ imageViewSetFilter(ImageView *iv, ImageFilter filter)
 void
 imageViewUpdate(ImageView *iv, Image const *image)
 {
+    glBindTexture(GL_TEXTURE_2D, iv->tex_id);
+
     if (image->height > iv->tex_height || image->width > iv->tex_width)
     {
         iv->tex_height = cfMax(image->height, iv->tex_height);
@@ -206,6 +272,29 @@ imageViewUpdate(ImageView *iv, Image const *image)
 
 //------------------------------------------------------------------------------
 // Application creation/destruction
+
+static void
+appClearImageList(AppState *app)
+{
+    for (U32 i = 0; i < app->images.num_files; ++i)
+    {
+        ImageFile *file = app->images.files + i;
+
+        CF_ASSERT(file->state != ImageFileState_Queued, "Leaking queued files");
+
+        if (file->state == ImageFileState_Loaded)
+        {
+            imageUnload(&file->image, app->alloc);
+        }
+        else
+        {
+            CF_ASSERT(file->image.data == NULL, "Invalid file state");
+        }
+    }
+
+    app->images.num_files = 0;
+    app->curr_file = U32_MAX;
+}
 
 APP_API AppState *
 appCreate(cfPlatform *plat, char const *argv[], I32 argc)
@@ -248,10 +337,11 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
     threading->cvInit(&app->queue.wake);
     threading->mutexInit(&app->queue.mutex);
 
-    Thread load_thread =
-        threading->threadCreate(&(ThreadParms){.proc = loadProc, .args = &app->queue});
-    // TODO (Matteo): Detach or monitor thread?
-    CF_UNUSED(load_thread);
+    app->queue.thread = threading->threadCreate(&(ThreadParms){
+        .proc = loadQueueProc,
+        .args = &app->queue,
+        .debug_name = "Load queue",
+    });
 
     if (argc > 1)
     {
@@ -264,11 +354,8 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
 APP_API void
 appDestroy(AppState *app)
 {
-    for (U32 i = 0; i < app->images.num_files; ++i)
-    {
-        imageUnload(&app->images.files[i].image, app->alloc);
-    }
-
+    loadQueueStop(&app->queue);
+    appClearImageList(app);
     cfVmRelease(app->images.vm, app->images.files, app->images.bytes_reserved);
     cfFree(app->alloc, app, sizeof(*app));
 }
@@ -297,10 +384,7 @@ appLoadImage(ImageFile *file, cfFileSystem *fs, cfAllocator *alloc)
 
     switch (file->state)
     {
-        case ImageFileState_Loading: break;
-        case ImageFileState_Loaded:
-        case ImageFileState_Viewing: result = true; break;
-        default:
+        case ImageFileState_Queued:
             file->state = ImageFileState_Loading;
 
             FileContent fc = fs->read_file(file->filename, alloc);
@@ -316,6 +400,10 @@ appLoadImage(ImageFile *file, cfFileSystem *fs, cfAllocator *alloc)
                 file->state = ImageFileState_Failed;
             }
             break;
+
+        case ImageFileState_Loaded: result = true; break;
+
+        default: break;
     }
 
     return result;
@@ -344,19 +432,26 @@ appPushImageFile(ImageList *images)
 }
 
 static void
+appQueueLoadFiles(AppState *app)
+{
+    // NOTE (Matteo): improve browsing performance by pre-loading previous and next files
+    U32 curr = app->curr_file;
+    U32 next = (curr == app->images.num_files - 1) ? 0 : curr + 1;
+    U32 prev = (curr == 0) ? app->images.num_files - 1 : curr - 1;
+
+    loadQueuePush(&app->queue, app->images.files + curr);
+    if (next != curr) loadQueuePush(&app->queue, app->images.files + next);
+    if (prev != next) loadQueuePush(&app->queue, app->images.files + prev);
+}
+
+static void
 appLoadFromFile(AppState *state, char const *full_name)
 {
     cfFileSystem const *fs = state->plat->fs;
     ImageList *images = &state->images;
     ImageView *iv = &state->iv;
 
-    for (U32 i = 0; i < images->num_files; ++i)
-    {
-        imageUnload(&images->files[i].image, state->alloc);
-    }
-
-    images->num_files = 0;
-    state->curr_file = U32_MAX;
+    appClearImageList(state);
 
     if (full_name)
     {
@@ -371,16 +466,6 @@ appLoadFromFile(AppState *state, char const *full_name)
         ImageFile file = {0};
 
         cfMemCopy(full_name, file.filename, full_size);
-
-        if (appLoadImage(&file, state->plat->fs, state->alloc))
-        {
-            iv->zoom = 1.0f;
-            imageViewUpdate(iv, &file.image);
-        }
-        else
-        {
-            state->windows.unsupported = true;
-        }
 
         DirIter *it = fs->dir_iter_start(dir_name, state->alloc);
 
@@ -411,57 +496,10 @@ appLoadFromFile(AppState *state, char const *full_name)
                 break;
             }
         }
+
+        iv->zoom = 1.0f;
+        appQueueLoadFiles(state);
     }
-}
-
-static THREAD_PROC(loadProc)
-{
-    LoadQueue *queue = args;
-    Threading *api = queue->api;
-
-    while (true)
-    {
-        api->mutexAcquire(&queue->mutex);
-
-        while (!queue->stop && queue->len == 0)
-        {
-            api->cvWaitMutex(&queue->wake, &queue->mutex, TIME_INFINITE);
-        }
-
-        if (queue->stop)
-        {
-            api->mutexRelease(&queue->mutex);
-            break;
-        }
-
-        ImageFile *file = queue->buf[queue->pos];
-        if (++queue->pos == QUEUE_SIZE) queue->pos = 0;
-        queue->len--;
-
-        api->mutexRelease(&queue->mutex);
-
-        appLoadImage(file, queue->fs, queue->alloc);
-    }
-}
-
-static void
-loadQueueItem(LoadQueue *queue, ImageFile *file)
-{
-    Threading *api = queue->api;
-
-    api->mutexAcquire(&queue->mutex);
-    {
-        CF_ASSERT(queue->len < QUEUE_SIZE, "Queue is full!");
-
-        U16 write_pos = (queue->pos + queue->len) % QUEUE_SIZE;
-        queue->buf[write_pos] = file;
-        queue->len++;
-
-        file->state = ImageFileState_Loading;
-
-        api->cvSignalOne(&queue->wake);
-    }
-    api->mutexRelease(&queue->mutex);
 }
 
 static void
@@ -486,7 +524,7 @@ appImageView(AppState *state)
         imageViewSetFilter(iv, filter);
     }
 
-    // Use the available content area as the image view; an invisible button
+    // NOTE (Matteo): Use the available content area as the image view; an invisible button
     // is used in order to catch input.
 
     ImVec2 view_size, view_min, view_max;
@@ -501,8 +539,28 @@ appImageView(AppState *state)
     if (state->curr_file != U32_MAX)
     {
         ImageFile *curr_file = state->images.files + state->curr_file;
+        bool process_input = true;
 
-        if (curr_file->state != ImageFileState_Loading)
+        switch (curr_file->state)
+        {
+            case ImageFileState_Loading:
+            case ImageFileState_Queued:
+                // Do nothing
+                process_input = false;
+                break;
+
+            case ImageFileState_Loaded:
+                // Update texture and proceed with input
+                imageViewUpdate(iv, &curr_file->image);
+                break;
+
+            case ImageFileState_Failed:
+                // Signal error
+                state->windows.unsupported = true;
+                break;
+        }
+
+        if (process_input)
         {
             U32 next = state->curr_file;
 
@@ -519,20 +577,7 @@ appImageView(AppState *state)
             if (state->curr_file != next)
             {
                 state->curr_file = next;
-                loadQueueItem(&state->queue, state->images.files + next);
-
-                // NOTE (Matteo): improve browsing performance by pre-loading previous and next file
-
-                U32 n = (next == state->images.num_files - 1) ? 0 : next + 1;
-                U32 p = (next == 0) ? state->images.num_files - 1 : next - 1;
-
-                if (n != next) loadQueueItem(&state->queue, state->images.files + n);
-                if (p != n) loadQueueItem(&state->queue, state->images.files + p);
-            }
-            else if (curr_file->state == ImageFileState_Loaded)
-            {
-                curr_file->state = ImageFileState_Viewing;
-                imageViewUpdate(iv, &curr_file->image);
+                appQueueLoadFiles(state);
             }
         }
 
@@ -543,19 +588,21 @@ appImageView(AppState *state)
             iv->zoom = cfClamp(iv->zoom + io->MouseWheel, min_zoom, max_zoom);
         }
 
-        // 3. Draw the image properly scaled to fit the view
+        // NOTE (Matteo): Draw the image properly scaled to fit the view
         // TODO (Matteo): Fix zoom behavior
-
-        // NOTE (Matteo): in case of more precision required
-        // I32 v = (I32)(1000 / *zoom);
-        // I32 d = (1000 - v) / 2;
-        // F32 uv = (F32)d * 0.001f;
-
-        // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
-        // ratio at zoom level == 1; then zoom is applied
 
         F32 image_w = (F32)curr_file->image.width;
         F32 image_h = (F32)curr_file->image.height;
+
+        // NOTE (Matteo): Clamp the displayed portion of the texture to the actual image size, since
+        // the texture could be larger in order to be reused
+        ImVec2 clamp_uv = {
+            image_w / (F32)iv->tex_width,
+            image_h / (F32)iv->tex_height,
+        };
+
+        // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
+        // ratio at zoom level == 1; then zoom is applied
         F32 image_aspect = image_w / image_h;
 
         if (image_w > view_size.x)
@@ -571,7 +618,6 @@ appImageView(AppState *state)
         }
 
         // NOTE (Matteo): Round image bounds to nearest pixel for stable rendering
-
         image_w = cfRound(image_w * iv->zoom);
         image_h = cfRound(image_h * iv->zoom);
 
@@ -584,8 +630,7 @@ appImageView(AppState *state)
         ImDrawList *draw_list = igGetWindowDrawList();
         ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
         ImDrawList_AddImage(draw_list, (void *)(Iptr)iv->tex_id, image_min, image_max,
-                            (ImVec2){0.0f, 0.0f}, (ImVec2){1.0f, 1.0f},
-                            igGetColorU32U32(RGBA32_WHITE));
+                            (ImVec2){0.0f, 0.0f}, clamp_uv, igGetColorU32U32(RGBA32_WHITE));
 
         if (iv->advanced)
         {
