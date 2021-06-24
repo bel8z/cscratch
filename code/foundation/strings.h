@@ -1,5 +1,6 @@
 #pragma once
 
+#include "array.h"
 #include "common.h"
 
 // Compute the size of the string buffer (including the null terminator)
@@ -23,7 +24,9 @@ strLength(char const *str)
 char *strPrintfAlloc(cfAllocator *alloc, Usize *out_size, char const *fmt, ...);
 
 /// Print formatted string on the given dynamic buffer
-bool strPrintfBuffer(cfArray(char) * buffer, char const *fmt, ...);
+typedef cfArray(char) StrBuffer;
+
+bool strPrintfBuffer(StrBuffer *buffer, char const *fmt, ...);
 
 /// Print formatted string on the given static buffer
 bool strPrintf(char *buffer, Usize buffer_size, char const *fmt, ...);

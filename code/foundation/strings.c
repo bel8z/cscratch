@@ -47,7 +47,7 @@ strPrintfAlloc(cfAllocator *alloc, Usize *out_size, char const *fmt, ...)
 
 CF_PRINTF_LIKE(1, 2)
 bool
-strPrintfBuffer(cfArray(char) * array, char const *fmt, ...)
+strPrintfBuffer(StrBuffer *array, char const *fmt, ...)
 {
     va_list args, args_copy;
 
@@ -65,11 +65,11 @@ strPrintfBuffer(cfArray(char) * array, char const *fmt, ...)
     };
 
     Usize req_size = (Usize)len + 1;
-    Usize arr_size = cfArraySize(*array);
+    Usize arr_size = array->len;
 
-    cfArrayResize(*array, req_size);
+    cfArrayResize(array, req_size);
 
-    vsnprintf(*array + arr_size, req_size, fmt, args); // NOLINT
+    vsnprintf(array->buf + arr_size, req_size, fmt, args); // NOLINT
 
     va_end(args);
 

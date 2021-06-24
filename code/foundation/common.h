@@ -218,9 +218,6 @@ typedef double F64;
 // "Abstract" types are forward declared
 //------------------------------------------------------------------------------
 
-// Macro for declaring a dynamic array (e.g. cfArray(I32) ints;) - see array.h
-#define cfArray(Type) Type *
-
 // Allocator abstract interface
 typedef struct cfAllocator cfAllocator;
 
