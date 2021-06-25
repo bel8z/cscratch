@@ -271,6 +271,11 @@ union Vec3
     {
         F32 x, y, z;
     };
+    struct
+    {
+        Vec2 xy;
+        F32 _;
+    };
     F32 elem[3];
 };
 
@@ -279,6 +284,11 @@ union Vec4
     struct
     {
         F32 x, y, z, w;
+    };
+    struct
+    {
+        Vec3 xyz;
+        F32 _;
     };
     F32 elem[4];
 };
@@ -302,6 +312,11 @@ union IVec3
     {
         I32 x, y, z;
     };
+    struct
+    {
+        Vec2 xy;
+        I32 _;
+    };
     I32 elem[3];
 };
 
@@ -311,6 +326,12 @@ union IVec4
     {
         I32 x, y, z, w;
     };
+    struct
+    {
+        IVec3 xyz;
+        I32 _;
+    };
+
     I32 elem[4];
 };
 
