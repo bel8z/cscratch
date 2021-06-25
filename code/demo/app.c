@@ -61,6 +61,45 @@ APP_API APP_DESTROY(appDestroy)
 //------------------------------------------------------------------------------
 
 static void
+fxDraw(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
+{
+    CF_UNUSED(p1);
+    CF_UNUSED(size);
+    CF_UNUSED(mouse_data);
+
+    char buffer[1024];
+    strPrintf(buffer, 1024, "%f", time);
+
+    ImDrawList_AddTextVec2(draw_list, p0, RGBA32(255, 0, 0, 255), buffer,
+                           buffer + strLength(buffer));
+}
+
+static void
+fxWindow()
+{
+    ImGuiIO *io = igGetIO();
+    igBegin("FX", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+    ImVec2 size = {320.0f, 180.0f};
+    igInvisibleButton("canvas", size, ImGuiButtonFlags_None);
+    ImVec2 p0, p1;
+    igGetItemRectMin(&p0);
+    igGetItemRectMax(&p1);
+
+    ImVec4 mouse_data;
+    mouse_data.x = (io->MousePos.x - p0.x) / size.x;
+    mouse_data.y = (io->MousePos.y - p0.y) / size.y;
+    mouse_data.z = io->MouseDownDuration[0];
+    mouse_data.w = io->MouseDownDuration[1];
+
+    ImDrawList *draw_list = igGetWindowDrawList();
+    ImDrawList_PushClipRect(draw_list, p0, p1, true);
+    fxDraw(draw_list, p0, p1, size, mouse_data, igGetTime());
+    ImDrawList_PopClipRect(draw_list);
+
+    igEnd();
+}
+
+static void
 guiClock(Time time)
 {
     I64 const secs_per_hour = 60 * 60;
@@ -146,6 +185,8 @@ APP_API APP_UPDATE(appUpdate)
     igColorEdit4("clear color", app->clear_color.channel, 0);
     guiClock(app->plat->clock());
     igEnd();
+
+    fxWindow();
 
     result.back_color = rgbaPack32(app->clear_color);
 
