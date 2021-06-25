@@ -7,7 +7,6 @@
 //------------------------------------------------------------------------------
 // Custom memory management for stbi
 static cfAllocator *g_alloc = NULL;
-static U32 g_loaded = 0;
 
 static void *stbiRealloc(void *mem, Usize size);
 static void stbiFree(void *mem);
@@ -61,7 +60,6 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
 
     if (data)
     {
-        g_loaded++;
         image->data = (Rgba32 *)data;
         return true;
     }
@@ -88,7 +86,6 @@ imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAlloc
 
     if (data)
     {
-        g_loaded++;
         image->data = (Rgba32 *)data;
         return true;
     }
@@ -104,23 +101,13 @@ imageUnload(Image *image, cfAllocator *alloc)
 
     g_alloc = alloc;
 
-    if (image->data)
-    {
-        g_loaded--;
-        stbiFree(image->data);
-    }
+    stbiFree(image->data);
 
     image->data = NULL;
     image->height = 0;
     image->width = 0;
 
     g_alloc = NULL;
-}
-
-ImageStats
-imageGetStats(void)
-{
-    return (ImageStats){.loaded = g_loaded};
 }
 
 //------------------------------------------------------------------------------

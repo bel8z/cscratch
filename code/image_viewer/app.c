@@ -55,14 +55,20 @@ typedef enum ImageFilter
     ImageFilter_Linear,
 } ImageFilter;
 
+typedef struct ImageTex
+{
+    U32 id;
+    I32 width;
+    I32 height;
+} ImageTex;
+
 typedef struct ImageView
 {
     bool advanced;
     F32 zoom;
     I32 filter;
-    U32 tex_id;
-    I32 tex_width;
-    I32 tex_height;
+    ImageTex tex[2];
+    U8 tex_index;
 } ImageView;
 
 typedef enum ImageFileState
@@ -211,17 +217,13 @@ static THREAD_PROC(loadQueueProc)
 //------------------------------------------------------------------------------
 // Simple helper functions to load an image into a OpenGL texture with common settings
 
-void
-imageViewInit(ImageView *iv)
+static ImageTex
+imageTexCreate(I32 width, I32 height)
 {
-    iv->advanced = false;
-    iv->filter = ImageFilter_Nearest;
-    iv->tex_id = 0;
-    iv->tex_height = 4096;
-    iv->tex_width = 4096;
+    ImageTex tex = {.width = width, .height = height};
 
-    glGenTextures(1, &iv->tex_id);
-    glBindTexture(GL_TEXTURE_2D, iv->tex_id);
+    glGenTextures(1, &tex.id);
+    glBindTexture(GL_TEXTURE_2D, tex.id);
 
     // TODO (Matteo): Separate texture parameterization from loading
 
@@ -236,45 +238,60 @@ imageViewInit(ImageView *iv)
 #if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, iv->tex_width, iv->tex_height, 0, GL_RGBA,
-                 GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex.width, tex.height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 NULL);
+
+    return tex;
+}
+
+void
+imageViewInit(ImageView *iv)
+{
+    iv->advanced = false;
+    iv->zoom = 1.0f;
+    iv->filter = ImageFilter_Nearest;
+    iv->tex[0] = imageTexCreate(4096, 4096);
+    iv->tex[1] = imageTexCreate(4096, 4096);
+    iv->tex_index = 0;
 }
 
 void
 imageViewShutdown(ImageView *iv)
 {
-    glDeleteTextures(1, &iv->tex_id);
-    iv->tex_id = 0;
+    glDeleteTextures(1, &iv->tex[0].id);
+    glDeleteTextures(1, &iv->tex[1].id);
+
+    iv->tex[0].id = 0;
+    iv->tex[1].id = 0;
 }
 
-void
-imageViewSetFilter(ImageView *iv, ImageFilter filter)
+static inline ImageTex *
+imageViewCurrTex(ImageView *iv)
 {
-    if (filter != iv->filter)
-    {
-        iv->filter = filter;
-
-        I32 value = (filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
-
-        glBindTexture(GL_TEXTURE_2D, iv->tex_id);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
-    }
+    return iv->tex + iv->tex_index;
 }
 
 void
 imageViewUpdate(ImageView *iv, Image const *image)
 {
-    glBindTexture(GL_TEXTURE_2D, iv->tex_id);
+    // NOTE (Matteo): Swap textures by incrementing index modulo 2 (no. of textures)
+    iv->tex_index = (iv->tex_index + 1) & 1;
 
-    if (image->height > iv->tex_height || image->width > iv->tex_width)
+    ImageTex *tex = iv->tex + iv->tex_index;
+
+    glBindTexture(GL_TEXTURE_2D, tex->id);
+
+    if (image->height > tex->height || image->width > tex->width)
     {
-        iv->tex_height = cfMax(image->height, iv->tex_height);
-        iv->tex_width = cfMax(image->width, iv->tex_width);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, iv->tex_width, iv->tex_height, 0, GL_RGBA,
+        tex->height = cfMax(image->height, tex->height);
+        tex->width = cfMax(image->width, tex->width);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex->width, tex->height, 0, GL_RGBA,
                      GL_UNSIGNED_BYTE, NULL);
     }
 
+    I32 value = (iv->filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->width, image->height, GL_RGBA, GL_UNSIGNED_BYTE,
                     image->data);
 }
@@ -524,13 +541,11 @@ appImageView(AppState *state)
     // TODO (Matteo): Maybe this can get cleaner?
     if (iv->advanced)
     {
-        I32 filter = iv->filter;
-        igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
+        igRadioButtonIntPtr("Nearest", &iv->filter, ImageFilter_Nearest);
         guiSameLine();
-        igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
+        igRadioButtonIntPtr("Linear", &iv->filter, ImageFilter_Linear);
         guiSameLine();
         igSliderFloat("zoom", &iv->zoom, min_zoom, max_zoom, "%.3f", 0);
-        imageViewSetFilter(iv, filter);
     }
 
     // NOTE (Matteo): Use the available content area as the image view; an invisible button
@@ -587,6 +602,7 @@ appImageView(AppState *state)
             {
                 state->curr_file = next;
                 appQueueLoadFiles(state);
+                iv->zoom = 1.0f;
             }
         }
 
@@ -602,12 +618,13 @@ appImageView(AppState *state)
 
         F32 image_w = (F32)curr_file->image.width;
         F32 image_h = (F32)curr_file->image.height;
+        ImageTex *tex = imageViewCurrTex(iv);
 
         // NOTE (Matteo): Clamp the displayed portion of the texture to the actual image size, since
         // the texture could be larger in order to be reused
         ImVec2 clamp_uv = {
-            image_w / (F32)iv->tex_width,
-            image_h / (F32)iv->tex_height,
+            image_w / (F32)tex->width,
+            image_h / (F32)tex->height,
         };
 
         // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
@@ -638,7 +655,7 @@ appImageView(AppState *state)
 
         ImDrawList *draw_list = igGetWindowDrawList();
         ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
-        ImDrawList_AddImage(draw_list, (void *)(Iptr)iv->tex_id, image_min, image_max,
+        ImDrawList_AddImage(draw_list, (void *)(Iptr)tex->id, image_min, image_max,
                             (ImVec2){0.0f, 0.0f}, clamp_uv, igGetColorU32U32(RGBA32_WHITE));
 
         if (iv->advanced)
@@ -775,7 +792,6 @@ appUpdate(AppState *state, FontOptions *font_opts)
     if (state->windows.stats)
     {
         F64 framerate = (F64)igGetIO()->Framerate;
-        ImageStats is = imageGetStats();
 
         igBegin("Application stats", &state->windows.stats, 0);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
@@ -785,8 +801,6 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igSeparator();
         igText("App base path:%s", state->plat->paths->base);
         igText("App data path:%s", state->plat->paths->data);
-        igSeparator();
-        igText("Loaded images: %zu", is.loaded);
         igEnd();
     }
 
