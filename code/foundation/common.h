@@ -451,6 +451,16 @@ typedef struct Time
 #define cfMin(l, r) ((l) < (r) ? (l) : (r))
 #define cfMax(l, r) ((l) > (r) ? (l) : (r))
 
+/// Actual integer modulo operation (% is a remainder operation and as such can produce negative
+/// values)
+#define cfMod(val, len) ((val % len + len) % len)
+
+/// Increment value wrapping on the given length
+#define cfWrapInc(val, len) (val == (len - 1) ? 0 : (val + 1)) // ((val + 1) % len)
+
+/// Decrement value wrapping on the given length
+#define cfWrapDec(val, len) (val == 0 ? (len - 1) : (val - 1)) // ((val + len - 1) % len)
+
 //---------------------------
 // Expansion / token pasting
 //---------------------------

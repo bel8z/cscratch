@@ -594,12 +594,12 @@ appImageView(AppState *state)
 
             if (guiKeyPressed(ImGuiKey_LeftArrow))
             {
-                if (next-- == 0) next = state->images.num_files - 1;
+                next = cfWrapDec(next, state->images.num_files);
             }
 
             if (guiKeyPressed(ImGuiKey_RightArrow))
             {
-                if (++next == state->images.num_files) next = 0;
+                next = cfWrapInc(next, state->images.num_files);
             }
 
             if (state->curr_file != next)
