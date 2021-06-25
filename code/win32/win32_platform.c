@@ -5,7 +5,6 @@
 
 #include "foundation/common.h"
 
-#include "foundation/allocator.h"
 #include "foundation/fs.h"
 #include "foundation/maths.h"
 #include "foundation/path.h"
@@ -78,7 +77,7 @@ static cfPlatform g_platform = {
         },
     .heap =
         &(cfAllocator){
-            .reallocate = win32Alloc,
+            .func = win32Alloc,
         },
     .fs =
         &(cfFileSystem){

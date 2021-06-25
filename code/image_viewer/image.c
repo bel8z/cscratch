@@ -1,7 +1,5 @@
 #include "image.h"
 
-#include "foundation/allocator.h"
-
 #include "gl/gload.h"
 
 //------------------------------------------------------------------------------

@@ -26,7 +26,6 @@
 
 #include "gl/gload.h"
 
-#include "foundation/allocator.h"
 #include "foundation/color.h"
 #include "foundation/common.h"
 #include "foundation/fs.h"

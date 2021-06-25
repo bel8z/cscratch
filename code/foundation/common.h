@@ -1,5 +1,9 @@
 #pragma once
 
+// This is the base layer of the library, and should be the only header included by other header
+// files
+// TODO (Matteo): This is growing fast and maybe should be trimmed
+
 #include <assert.h>
 #include <float.h>
 #include <stdbool.h>
@@ -218,8 +222,21 @@ typedef double F64;
 // "Abstract" types are forward declared
 //------------------------------------------------------------------------------
 
-// Allocator abstract interface
-typedef struct cfAllocator cfAllocator;
+/// Definition of the main allocation function
+#define CF_ALLOCATOR_FUNC(name) \
+    void *name(void *state, void *memory, Usize old_size, Usize new_size)
+
+/// Generic allocator interface
+/// The memory provided by this interface should already be cleared to 0
+typedef struct cfAllocator
+{
+    void *state;
+    CF_ALLOCATOR_FUNC((*func));
+} cfAllocator;
+
+#define cfAlloc(a, size) (a)->func((a)->state, NULL, 0, size)
+#define cfRealloc(a, mem, old_size, new_size) (a)->func((a)->state, (mem), (old_size), (new_size))
+#define cfFree(a, mem, size) (a)->func((a)->state, (void *)(mem), (size), 0)
 
 /// Macro to define a typed dynamic array (variable or typedef)
 /// Functionality is implemented in array.h

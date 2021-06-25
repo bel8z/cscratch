@@ -1,6 +1,5 @@
 #include "strings.h"
 
-#include "allocator.h"
 #include "array.h"
 
 #include <stdarg.h>

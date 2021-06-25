@@ -2,7 +2,6 @@
 
 #include "foundation/common.h"
 
-#include "foundation/allocator.h"
 #include "foundation/threading.h"
 
 //------------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 #include "string_list.h"
 
-#include "allocator.h"
+#include "common.h"
 #include "strings.h"
 #include "util.h"
 

@@ -2,9 +2,9 @@
 
 #include "gui/gui.h"
 
-#include "foundation/allocator.h"
-#include "foundation/color.h"
 #include "foundation/common.h"
+
+#include "foundation/color.h"
 #include "foundation/maths.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"

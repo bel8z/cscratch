@@ -1,6 +1,6 @@
 #pragma once
 
-#include "foundation/allocator.h"
+#include "foundation/common.h"
 
 #include <stdlib.h>
 
@@ -18,5 +18,5 @@ static CF_ALLOCATOR_FUNC(std__realloc)
 static inline cfAllocator
 stdAllocator()
 {
-    return (cfAllocator){.reallocate = std__realloc};
+    return (cfAllocator){.func = std__realloc};
 }

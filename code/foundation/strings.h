@@ -1,7 +1,8 @@
 #pragma once
 
-#include "array.h"
 #include "common.h"
+
+#include "array.h"
 
 // Compute the size of the string buffer (including the null terminator)
 static inline Usize

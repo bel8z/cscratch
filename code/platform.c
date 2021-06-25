@@ -15,9 +15,9 @@
 #endif
 
 // Foundation library
-#include "foundation/allocator.h"
-#include "foundation/color.h"
 #include "foundation/common.h"
+
+#include "foundation/color.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"
 
