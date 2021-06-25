@@ -13,12 +13,14 @@ typedef struct Arena
     U32 allocated;
     U8 *memory;
     cfVirtualMemory *vm;
+    U32 save_stack;
 } Arena;
 
 typedef struct ArenaTempState
 {
     Arena *arena;
     U32 allocated;
+    U32 stack_id;
 } ArenaTempState;
 
 /// Initialize the arena by reserving a block of virtual memory of the required size
@@ -80,7 +82,7 @@ void arenaFree(Arena *arena, void const *memory, U32 size);
 #define arenaFreeArray(arena, Type, count, ptr) arenaFree(arena, ptr, count * sizeof(Type))
 
 ArenaTempState arenaSave(Arena *arena);
-void arenaRestore(Arena *arena, ArenaTempState);
+void arenaRestore(ArenaTempState state);
 
 #define ARENA_TEMP_BEGIN(arena) ArenaTempState ARENA_TEMP_END_NOT_CALLED = arenaSave(arena)
-#define ARENA_TEMP_END(arena) arenaRestore(arena, ARENA_TEMP_END_NOT_CALLED)
+#define ARENA_TEMP_END(arena) arenaRestore(ARENA_TEMP_END_NOT_CALLED)

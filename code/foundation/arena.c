@@ -18,6 +18,7 @@ arenaInitVm(Arena *arena, cfVirtualMemory *vm, U32 reserved_size)
     arena->memory = buffer;
     arena->reserved = rounded;
     arena->allocated = 0;
+    arena->save_stack = 0;
 
     return true;
 }
@@ -31,6 +32,7 @@ arenaInitBuffer(Arena *arena, U8 *buffer, U32 buffer_size)
     arena->memory = buffer;
     arena->reserved = buffer_size;
     arena->allocated = 0;
+    arena->save_stack = 0;
 }
 
 void
@@ -173,14 +175,20 @@ ArenaTempState
 arenaSave(Arena *arena)
 {
     CF_ASSERT_NOT_NULL(arena);
-    return (ArenaTempState){.allocated = arena->allocated, .arena = arena};
+    return (ArenaTempState){
+        .arena = arena,
+        .allocated = arena->allocated,
+        .stack_id = ++arena->save_stack,
+    };
 }
 
 void
-arenaRestore(Arena *arena, ArenaTempState state)
+arenaRestore(ArenaTempState state)
 {
+    Arena *arena = state.arena;
+
     CF_ASSERT_NOT_NULL(arena);
-    CF_ASSERT(arena == state.arena, "Restoring invalid state");
+    CF_ASSERT(arena->save_stack == state.stack_id, "Restoring invalid state");
     CF_ASSERT(arena->allocated >= state.allocated, "Restoring invalid state");
 
 #if CF_MEMORY_PROTECTION
@@ -192,4 +200,5 @@ arenaRestore(Arena *arena, ArenaTempState state)
 #endif
 
     arena->allocated = state.allocated;
+    arena->save_stack--;
 }
