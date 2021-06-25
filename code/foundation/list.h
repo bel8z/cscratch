@@ -12,11 +12,14 @@ struct cfList
 };
 
 #define cfListItem(node, Type, member) (Type *)((U8 *)(node)-offsetof(Type, member))
-#define cfListPrevItem(node, type, member) cfListItem((node)->prev, type, member)
-#define cfListNextItem(node, type, member) cfListItem((node)->next, type, member)
+#define cfListPrevItem(node, Type, member) cfListItem((node)->prev, Type, member)
+#define cfListNextItem(node, Type, member) cfListItem((node)->next, Type, member)
 
-cfList cfListCreate(cfList *head);
-void cfListInit(cfList *list);
+inline void
+cfListInit(cfList *list)
+{
+    list->next = list->prev = list;
+}
 
 bool cfListEmpty(cfList const *head);
 

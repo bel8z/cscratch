@@ -1,17 +1,5 @@
 #include "list.h"
 
-cfList
-cfListCreate(cfList *head)
-{
-    return (cfList){.next = head, .prev = head};
-}
-
-void
-cfListInit(cfList *list)
-{
-    list->next = list->prev = list;
-}
-
 bool
 cfListEmpty(cfList const *head)
 {
