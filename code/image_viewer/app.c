@@ -3,15 +3,18 @@
 // ******************************
 //
 // TODO (Matteo): missing features
-// - Drag after zoom
+// ! Unload least-recently-browsed files; this can be achieved in 2 ways:
+//   * image allocator which can free blocks when a certain memory limit is reached
+//   * keep a moving window for browsing, quite similar to what is currently implemented but with
+//   additional unloading of files that exit the window (probably it should be larger than 3
+//   elements, maybe 5 or 7)
+// ! Display transparent images properly
+// ! Drag after zoom
 // - Animated GIF support
+// - Cleanup loading code
 // - Bounded tool windows ?
 // - Better memory allocation strategy based on actual usage patterns
 //   (i.e. less usage of the heap allocator)
-// - Cleanup loading code
-// - Cache texture for image loading (create a new texture only if bigger size is required)
-//   This will prevent some flickering
-// - Display transparent images properly
 //
 // ******************************
 
