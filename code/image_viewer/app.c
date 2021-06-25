@@ -220,6 +220,8 @@ static THREAD_PROC(loadQueueProc)
 //------------------------------------------------------------------------------
 // Simple helper functions to load an image into a OpenGL texture with common settings
 
+#define IMAGE_TEX_INTERNAL_FORMAT GL_COMPRESSED_RGBA
+
 static ImageTex
 imageTexCreate(I32 width, I32 height)
 {
@@ -241,8 +243,8 @@ imageTexCreate(I32 width, I32 height)
 #if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex.width, tex.height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
-                 NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, IMAGE_TEX_INTERNAL_FORMAT, tex.width, tex.height, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, NULL);
 
     return tex;
 }
@@ -253,8 +255,8 @@ imageViewInit(ImageView *iv)
     iv->advanced = false;
     iv->zoom = 1.0f;
     iv->filter = ImageFilter_Nearest;
-    iv->tex[0] = imageTexCreate(4096, 4096);
-    iv->tex[1] = imageTexCreate(4096, 4096);
+    iv->tex[0] = imageTexCreate(4920, 3264);
+    iv->tex[1] = imageTexCreate(4920, 3264);
     iv->tex_index = 0;
 }
 
@@ -288,8 +290,8 @@ imageViewUpdate(ImageView *iv, Image const *image)
     {
         tex->height = cfMax(image->height, tex->height);
         tex->width = cfMax(image->width, tex->width);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex->width, tex->height, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, IMAGE_TEX_INTERNAL_FORMAT, tex->width, tex->height, 0,
+                     GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     }
 
     I32 value = (iv->filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
