@@ -142,9 +142,9 @@ struct AppState
 };
 
 //------------------------------------------------------------------------------
+// Image loading prototypes (those functions are commonly used)
 
 static void appLoadFromFile(AppState *state, char const *filename);
-static bool appLoadImage(ImageFile *file, cfFileSystem *fs, cfAllocator *alloc);
 
 //------------------------------------------------------------------------------
 // Async file loading
@@ -193,26 +193,44 @@ static THREAD_PROC(loadQueueProc)
 
     for (;;)
     {
+        ImageFile *file = NULL;
+
+        // Wait and dequeue file
         api->mutexAcquire(&queue->mutex);
-
-        while (!queue->stop && queue->len == 0)
         {
-            api->cvWaitMutex(&queue->wake, &queue->mutex, TIME_INFINITE);
+            while (!queue->stop && queue->len == 0)
+            {
+                api->cvWaitMutex(&queue->wake, &queue->mutex, TIME_INFINITE);
+            }
+
+            if (queue->stop)
+            {
+                api->mutexRelease(&queue->mutex);
+                break;
+            }
+
+            file = queue->buf[queue->pos];
+            if (++queue->pos == LoadQueue_Size) queue->pos = 0;
+            queue->len--;
         }
-
-        if (queue->stop)
-        {
-            api->mutexRelease(&queue->mutex);
-            break;
-        }
-
-        ImageFile *file = queue->buf[queue->pos];
-        if (++queue->pos == LoadQueue_Size) queue->pos = 0;
-        queue->len--;
-
         api->mutexRelease(&queue->mutex);
 
-        appLoadImage(file, queue->fs, queue->alloc);
+        // Process file
+        CF_ASSERT_NOT_NULL(file);
+
+        if (file->state == ImageFileState_Queued)
+        {
+            file->state = ImageFileState_Loading;
+
+            if (imageLoadFromFile(&file->image, file->filename, queue->alloc))
+            {
+                file->state = ImageFileState_Loaded;
+            }
+            else
+            {
+                file->state = ImageFileState_Failed;
+            }
+        }
     }
 }
 
@@ -248,7 +266,7 @@ imageTexCreate(I32 width, I32 height)
     return tex;
 }
 
-void
+static void
 imageViewInit(ImageView *iv)
 {
     iv->advanced = false;
@@ -259,7 +277,7 @@ imageViewInit(ImageView *iv)
     iv->tex_index = 0;
 }
 
-void
+static void
 imageViewShutdown(ImageView *iv)
 {
     glDeleteTextures(1, &iv->tex[0].id);
@@ -275,7 +293,7 @@ imageViewCurrTex(ImageView *iv)
     return iv->tex + iv->tex_index;
 }
 
-void
+static void
 imageViewUpdate(ImageView *iv, Image const *image)
 {
     // NOTE (Matteo): Swap textures by incrementing index modulo 2 (no. of textures)
@@ -302,29 +320,6 @@ imageViewUpdate(ImageView *iv, Image const *image)
 
 //------------------------------------------------------------------------------
 // Application creation/destruction
-
-static void
-appClearImages(AppState *app)
-{
-    for (U32 i = 0; i < app->images.num_files; ++i)
-    {
-        ImageFile *file = app->images.files + i;
-
-        CF_ASSERT(file->state != ImageFileState_Queued, "Leaking queued files");
-
-        if (file->state == ImageFileState_Loaded)
-        {
-            imageUnload(&file->image, app->alloc);
-        }
-        else
-        {
-            CF_ASSERT(file->image.bytes == NULL, "Invalid file state");
-        }
-    }
-
-    app->images.num_files = 0;
-    app->curr_file = U32_MAX;
-}
 
 APP_API AppState *
 appCreate(cfPlatform *plat, char const *argv[], I32 argc)
@@ -378,6 +373,29 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
     return app;
 }
 
+static void
+appClearImages(AppState *app)
+{
+    for (U32 i = 0; i < app->images.num_files; ++i)
+    {
+        ImageFile *file = app->images.files + i;
+
+        CF_ASSERT(file->state != ImageFileState_Queued, "Leaking queued files");
+
+        if (file->state == ImageFileState_Loaded)
+        {
+            imageUnload(&file->image, app->alloc);
+        }
+        else
+        {
+            CF_ASSERT(file->image.bytes == NULL, "Invalid file state");
+        }
+    }
+
+    app->images.num_files = 0;
+    app->curr_file = U32_MAX;
+}
+
 APP_API void
 appDestroy(AppState *app)
 {
@@ -402,38 +420,6 @@ appIsFileSupported(char const *path)
     }
 
     return false;
-}
-
-static bool
-appLoadImage(ImageFile *file, cfFileSystem *fs, cfAllocator *alloc)
-{
-    bool result = false;
-
-    switch (file->state)
-    {
-        case ImageFileState_Queued:
-            file->state = ImageFileState_Loading;
-
-            FileContent fc = fs->read_file(file->filename, alloc);
-
-            if (fc.data)
-            {
-                file->state = ImageFileState_Loaded;
-                result = imageLoadFromMemory(&file->image, fc.data, fc.size, alloc);
-                cfFree(alloc, fc.data, fc.size);
-            }
-            else
-            {
-                file->state = ImageFileState_Failed;
-            }
-            break;
-
-        case ImageFileState_Loaded: result = true; break;
-
-        default: break;
-    }
-
-    return result;
 }
 
 static ImageFile *
