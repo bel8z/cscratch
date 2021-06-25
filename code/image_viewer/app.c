@@ -304,7 +304,7 @@ imageViewUpdate(ImageView *iv, Image const *image)
 // Application creation/destruction
 
 static void
-appClearImageList(AppState *app)
+appClearImages(AppState *app)
 {
     for (U32 i = 0; i < app->images.num_files; ++i)
     {
@@ -367,11 +367,8 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
     threading->cvInit(&app->queue.wake);
     threading->mutexInit(&app->queue.mutex);
 
-    app->queue.thread = threading->threadCreate(&(ThreadParms){
-        .proc = loadQueueProc,
-        .args = &app->queue,
-        .debug_name = "Load queue",
-    });
+    app->queue.thread =
+        threadStart(threading, loadQueueProc, .args = &app->queue, .debug_name = "Load queue");
 
     if (argc > 1)
     {
@@ -385,7 +382,7 @@ APP_API void
 appDestroy(AppState *app)
 {
     loadQueueStop(&app->queue);
-    appClearImageList(app);
+    appClearImages(app);
     cfVmRelease(app->images.vm, app->images.files, app->images.bytes_reserved);
     cfFree(app->alloc, app, sizeof(*app));
 }
@@ -481,7 +478,7 @@ appLoadFromFile(AppState *state, char const *full_name)
     ImageList *images = &state->images;
     ImageView *iv = &state->iv;
 
-    appClearImageList(state);
+    appClearImages(state);
 
     if (full_name)
     {

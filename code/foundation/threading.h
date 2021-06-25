@@ -3,7 +3,7 @@
 #include "common.h"
 
 #if !defined(THREADING_DEBUG)
-#define THREADING_DEBUG 1
+#    define THREADING_DEBUG 1
 #endif
 
 /// Thread handle
@@ -107,3 +107,8 @@ threadingCheckApi(Threading *api)
     THREADING_API(CHECK_ENTRY_FN)
 #undef CHECK_ENTRY_FN
 }
+
+/// Wrapper around threadCreate that allows a more convenient syntax for optional
+/// parameters
+#define threadStart(api, thread_proc, ...) \
+    api->threadCreate(&(ThreadParms){.proc = thread_proc, __VA_ARGS__})
