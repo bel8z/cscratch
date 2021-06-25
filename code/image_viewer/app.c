@@ -298,7 +298,7 @@ imageViewUpdate(ImageView *iv, Image const *image)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->width, image->height, GL_RGBA, GL_UNSIGNED_BYTE,
-                    image->data);
+                    image->bytes);
 }
 
 //------------------------------------------------------------------------------
@@ -319,7 +319,7 @@ appClearImageList(AppState *app)
         }
         else
         {
-            CF_ASSERT(file->image.data == NULL, "Invalid file state");
+            CF_ASSERT(file->image.bytes == NULL, "Invalid file state");
         }
     }
 

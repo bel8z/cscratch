@@ -46,7 +46,7 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
     CF_ASSERT_NOT_NULL(image);
     CF_ASSERT_NOT_NULL(filename);
 
-    CF_ASSERT(!image->data, "overwriting valid image");
+    CF_ASSERT(!image->bytes, "overwriting valid image");
 
     // Setup allocator for stbi
     g_alloc = alloc;
@@ -54,17 +54,11 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
     // Load from file
     image->width = 0;
     image->height = 0;
-    U8 *data = stbi_load(filename, &image->width, &image->height, NULL, 4);
+    image->bytes = stbi_load(filename, &image->width, &image->height, NULL, 4);
 
     g_alloc = NULL;
 
-    if (data)
-    {
-        image->data = (Rgba32 *)data;
-        return true;
-    }
-
-    return false;
+    return (image->bytes != NULL);
 }
 
 bool
@@ -79,18 +73,12 @@ imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAlloc
 
     image->width = 0;
     image->height = 0;
-    U8 *data =
+    image->bytes =
         stbi_load_from_memory(in_data, (I32)in_data_size, &image->width, &image->height, NULL, 4);
 
     g_alloc = NULL;
 
-    if (data)
-    {
-        image->data = (Rgba32 *)data;
-        return true;
-    }
-
-    return false;
+    return (image->bytes != NULL);
 }
 
 void
@@ -101,9 +89,9 @@ imageUnload(Image *image, cfAllocator *alloc)
 
     g_alloc = alloc;
 
-    stbiFree(image->data);
+    stbiFree(image->bytes);
 
-    image->data = NULL;
+    image->bytes = NULL;
     image->height = 0;
     image->width = 0;
 

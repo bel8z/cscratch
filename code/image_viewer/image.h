@@ -10,7 +10,11 @@
 
 typedef struct Image
 {
-    Rgba32 *data;
+    union
+    {
+        Rgba32 *pixels;
+        U8 *bytes;
+    };
     I32 width;
     I32 height;
 } Image;
