@@ -80,15 +80,15 @@ fxDraw(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_da
 
     ImVec2 points[1024] = {0};
 
-    F32 const amp = size.y / 4;
+    F32 const amp = cfMin(size.x, size.y) / 4;
 
     F32 const x_offset = 2 * amp;
     F32 const x_space = size.x - x_offset;
+    F32 const x_step = x_space / (CF_ARRAY_SIZE(points) - 1);
     F32 const y_offset = size.y / 2;
 
-    F32 const x_step = x_space / (CF_ARRAY_SIZE(points) - 1);
     F32 const pi2 = 2 * cfAcos(-1.0f);
-    F32 const rad_step = pi2 / (CF_ARRAY_SIZE(points) - 1);
+    F32 const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
     F32 const phase = pi2 * (F32)time;
 
     ImVec2 const center = {p0.x + amp, p0.y + y_offset};
@@ -118,22 +118,26 @@ fxDraw(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_da
                        RGBA32_PURPLE, 1.0f);
     ImDrawList_AddLine(draw_list, (ImVec2){p0.x + 2 * amp, p0.y}, (ImVec2){p0.x + 2 * amp, p1.y},
                        RGBA32_PURPLE, 1.0f);
+
+    ImDrawList_AddCircleFilled(draw_list, (ImVec2){mouse_data.x, mouse_data.y}, 5.0f,
+                               RGBA32_ORANGE_RED, 0);
 }
 
 static void
 fxWindow()
 {
     ImGuiIO *io = igGetIO();
-    igBegin("FX", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-    ImVec2 size = {320.0f, 180.0f};
+    ImVec2 size, p0, p1;
+    igSetNextWindowSize((ImVec2){320, 180}, ImGuiCond_Once);
+    igBegin("FX", NULL, 0);
+    igGetContentRegionAvail(&size);
     igInvisibleButton("canvas", size, ImGuiButtonFlags_None);
-    ImVec2 p0, p1;
     igGetItemRectMin(&p0);
     igGetItemRectMax(&p1);
 
     ImVec4 mouse_data;
-    mouse_data.x = (io->MousePos.x - p0.x) / size.x;
-    mouse_data.y = (io->MousePos.y - p0.y) / size.y;
+    mouse_data.x = io->MousePos.x; // (io->MousePos.x - p0.x) / size.x;
+    mouse_data.y = io->MousePos.y; // (io->MousePos.y - p0.y) / size.y;
     mouse_data.z = io->MouseDownDuration[0];
     mouse_data.w = io->MouseDownDuration[1];
 
