@@ -70,7 +70,12 @@ typedef struct ImageView
     F32 zoom;
     I32 filter;
     ImageTex tex[2];
-    U8 tex_index;
+    struct // FLAGS
+    {
+        U8 tex_index : 1;
+        U8 dirty     : 1;
+        U8 _         : 6;
+    };
 } ImageView;
 
 typedef enum ImageFileState
@@ -288,6 +293,7 @@ imageViewInit(ImageView *iv)
 {
     iv->advanced = false;
     iv->zoom = 1.0f;
+    iv->dirty = true;
     iv->filter = ImageFilter_Nearest;
     iv->tex[0] = imageTexCreate(4920, 3264);
     iv->tex[1] = imageTexCreate(4920, 3264);
@@ -312,26 +318,33 @@ imageViewCurrTex(ImageView *iv)
 static void
 imageViewUpdate(ImageView *iv, Image const *image)
 {
-    // NOTE (Matteo): Swap textures by incrementing index modulo 2 (no. of textures)
-    iv->tex_index = (iv->tex_index + 1) & 1;
-
-    ImageTex *tex = iv->tex + iv->tex_index;
-
-    if (image->width > tex->width || image->height > tex->height)
+    if (iv->dirty)
     {
-        glDeleteTextures(1, &tex->id);
-        tex->id = 0;
-        tex->width = cfMax(image->width, tex->width);
-        tex->height = cfMax(image->height, tex->height);
-        imageTexBuild(tex);
-    }
+        // NOTE (Matteo): Using a "dirty" flag to avoid redundant GPU uploads.
+        // TODO (Matteo): Does this make texture double buffering useless?
+        iv->dirty = false;
 
-    I32 value = (iv->filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
-    glBindTexture(GL_TEXTURE_2D, tex->id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->width, image->height, GL_RGBA, GL_UNSIGNED_BYTE,
-                    image->bytes);
+        // NOTE (Matteo): Swap textures by incrementing index modulo 2 (no. of textures)
+        iv->tex_index = (iv->tex_index + 1) & 1;
+
+        ImageTex *tex = iv->tex + iv->tex_index;
+
+        if (image->width > tex->width || image->height > tex->height)
+        {
+            glDeleteTextures(1, &tex->id);
+            tex->id = 0;
+            tex->width = cfMax(image->width, tex->width);
+            tex->height = cfMax(image->height, tex->height);
+            imageTexBuild(tex);
+        }
+
+        I32 value = (iv->filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
+        glBindTexture(GL_TEXTURE_2D, tex->id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->width, image->height, GL_RGBA,
+                        GL_UNSIGNED_BYTE, image->bytes);
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -345,11 +358,6 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
 
     app->plat = plat;
     app->alloc = plat->heap;
-
-    app->iv = (ImageView){
-        .zoom = 1.0f,
-        .filter = ImageFilter_Nearest,
-    };
 
     // Init file list management
     app->filter.name = "Image files";
@@ -526,8 +534,9 @@ appLoadFromFile(AppState *state, char const *full_name)
             }
         }
 
-        iv->zoom = 1.0f;
         appQueueLoadFiles(state);
+        iv->dirty = true;
+        iv->zoom = 1.0f;
     }
 }
 
@@ -544,11 +553,14 @@ appImageView(AppState *state)
     // TODO (Matteo): Maybe this can get cleaner?
     if (iv->advanced)
     {
-        igRadioButtonIntPtr("Nearest", &iv->filter, ImageFilter_Nearest);
+        I32 filter = iv->filter;
+        igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
         guiSameLine();
-        igRadioButtonIntPtr("Linear", &iv->filter, ImageFilter_Linear);
+        igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
         guiSameLine();
         igSliderFloat("zoom", &iv->zoom, min_zoom, max_zoom, "%.3f", 0);
+        iv->dirty = filter != iv->filter;
+        iv->filter = filter;
     }
 
     // NOTE (Matteo): Use the available content area as the image view; an invisible button
@@ -605,6 +617,7 @@ appImageView(AppState *state)
             {
                 state->curr_file = next;
                 appQueueLoadFiles(state);
+                iv->dirty = true;
                 iv->zoom = 1.0f;
             }
         }
