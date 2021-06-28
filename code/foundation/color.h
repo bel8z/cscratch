@@ -4,6 +4,9 @@
 #include "maths.h"
 #include "util.h"
 
+//--------------------------------------------------------------------------------------------------
+// Packed RGBA 32 bit format implementation
+
 #if CF_LITTLE_ENDIAN
 // NOTE (Matteo): Technically, the integer content is ABGR, but the byte order on little endian
 // systems is RGBA
@@ -32,6 +35,7 @@
 
 #define RGBA32_SOLID(R, G, B) RGBA32(R, G, B, 0xFF)
 
+//--------------------------------------------------------------------------------------------------
 // Common colors definition based on X11 names (see https://en.wikipedia.org/wiki/X11_color_names)
 
 #define RGBA32_TRANSPARENT RGBA32(0x00, 0x00, 0x00, 0x00)
@@ -185,6 +189,9 @@
 #define RGBA32_YELLOW_GREEN        RGBA32_SOLID(0x9A, 0xCD, 0x32)
 // clang-format on
 
+//--------------------------------------------------------------------------------------------------
+// Color space manipulation utilities
+
 static inline Rgba
 rgbaUnpack32(Rgba32 in)
 {
@@ -323,3 +330,173 @@ hsvaToRgba(Hsva in)
 
     return out;
 }
+
+//--------------------------------------------------------------------------------------------------
+// Macros for automatic generation of arrays storing the common color names and values
+
+#define CF__COLOR_LIST(X)  \
+    X(ALICE_BLUE)          \
+    X(ANTIQUE_WHITE)       \
+    X(AQUA)                \
+    X(AQUAMARINE)          \
+    X(AZURE)               \
+    X(BEIGE)               \
+    X(BISQUE)              \
+    X(BLACK)               \
+    X(BLANCHED_ALMOND)     \
+    X(BLUE)                \
+    X(BLUE_VIOLET)         \
+    X(BROWN)               \
+    X(BURLYWOOD)           \
+    X(CADET_BLUE)          \
+    X(CHARTREUSE)          \
+    X(CHOCOLATE)           \
+    X(CORAL)               \
+    X(CORNFLOWER_BLUE)     \
+    X(CORNSILK)            \
+    X(CRIMSON)             \
+    X(CYAN)                \
+    X(DARK_BLUE)           \
+    X(DARK_CYAN)           \
+    X(DARK_GOLDENROD)      \
+    X(DARK_GRAY)           \
+    X(DARK_GREEN)          \
+    X(DARK_KHAKI)          \
+    X(DARK_MAGENTA)        \
+    X(DARK_OLIVE_GREEN)    \
+    X(DARK_ORANGE)         \
+    X(DARK_ORCHID)         \
+    X(DARK_RED)            \
+    X(DARK_SALMON)         \
+    X(DARK_SEA_GREEN)      \
+    X(DARK_SILVER)         \
+    X(DARK_SLATE_BLUE)     \
+    X(DARK_SLATE_GRAY)     \
+    X(DARK_TURQUOISE)      \
+    X(DARK_VIOLET)         \
+    X(DEEP_PINK)           \
+    X(DEEP_SKY_BLUE)       \
+    X(DIM_GRAY)            \
+    X(DODGER_BLUE)         \
+    X(FIREBRICK)           \
+    X(FLORAL_WHITE)        \
+    X(FOREST_GREEN)        \
+    X(FUCHSIA)             \
+    X(GAINSBORO)           \
+    X(GHOST_WHITE)         \
+    X(GOLD)                \
+    X(GOLDENROD)           \
+    X(GRAY)                \
+    X(WEB_GRAY)            \
+    X(GREEN)               \
+    X(WEB_GREEN)           \
+    X(GREEN_YELLOW)        \
+    X(HONEYDEW)            \
+    X(HOT_PINK)            \
+    X(INDIAN_RED)          \
+    X(INDIGO)              \
+    X(IVORY)               \
+    X(KHAKI)               \
+    X(LAVENDER)            \
+    X(LAVENDER_BLUSH)      \
+    X(LAWN_GREEN)          \
+    X(LEMON_CHIFFON)       \
+    X(LIGHT_BLUE)          \
+    X(LIGHT_CORAL)         \
+    X(LIGHT_CYAN)          \
+    X(LIGHT_GOLDENROD)     \
+    X(LIGHT_GRAY)          \
+    X(LIGHT_GREEN)         \
+    X(LIGHT_PINK)          \
+    X(LIGHT_SALMON)        \
+    X(LIGHT_SEA_GREEN)     \
+    X(LIGHT_SKY_BLUE)      \
+    X(LIGHT_SLATE_GRAY)    \
+    X(LIGHT_STEEL_BLUE)    \
+    X(LIGHT_YELLOW)        \
+    X(LIME)                \
+    X(LIME_GREEN)          \
+    X(LINEN)               \
+    X(MAGENTA)             \
+    X(MAROON)              \
+    X(WEB_MAROON)          \
+    X(MEDIUM_AQUAMARINE)   \
+    X(MEDIUM_BLUE)         \
+    X(MEDIUM_ORCHID)       \
+    X(MEDIUM_PURPLE)       \
+    X(MEDIUM_SEA_GREEN)    \
+    X(MEDIUM_SLATE_BLUE)   \
+    X(MEDIUM_SPRING_GREEN) \
+    X(MEDIUM_TURQUOISE)    \
+    X(MEDIUM_VIOLET_RED)   \
+    X(MIDNIGHT_BLUE)       \
+    X(MINT_CREAM)          \
+    X(MISTY_ROSE)          \
+    X(MOCCASIN)            \
+    X(NAVAJO_WHITE)        \
+    X(NAVY_BLUE)           \
+    X(OLD_LACE)            \
+    X(OLIVE)               \
+    X(OLIVE_DRAB)          \
+    X(ORANGE)              \
+    X(ORANGE_RED)          \
+    X(ORCHID)              \
+    X(PALE_GOLDENROD)      \
+    X(PALE_GREEN)          \
+    X(PALE_TURQUOISE)      \
+    X(PALE_VIOLET_RED)     \
+    X(PAPAYA_WHIP)         \
+    X(PEACH_PUFF)          \
+    X(PERU)                \
+    X(PINK)                \
+    X(PLUM)                \
+    X(POWDER_BLUE)         \
+    X(PURPLE)              \
+    X(WEB_PURPLE)          \
+    X(REBECCA_PURPLE)      \
+    X(RED)                 \
+    X(ROSY_BROWN)          \
+    X(ROYAL_BLUE)          \
+    X(SADDLE_BROWN)        \
+    X(SALMON)              \
+    X(SANDY_BROWN)         \
+    X(SEA_GREEN)           \
+    X(SEASHELL)            \
+    X(SIENNA)              \
+    X(SILVER)              \
+    X(SKY_BLUE)            \
+    X(SLATE_BLUE)          \
+    X(SLATE_GRAY)          \
+    X(SNOW)                \
+    X(SPRING_GREEN)        \
+    X(STEEL_BLUE)          \
+    X(TAN)                 \
+    X(TEAL)                \
+    X(THISTLE)             \
+    X(TOMATO)              \
+    X(TRANSPARENT)         \
+    X(TURQUOISE)           \
+    X(VIOLET)              \
+    X(WHEAT)               \
+    X(WHITE)               \
+    X(WHITE_SMOKE)         \
+    X(YELLOW)              \
+    X(YELLOW_GREEN)
+
+#define CF__COLOR_ENUM_ENTRY(name, ...) RGBA32__##name,
+#define CF__COLOR_VALUE(name, ...) [RGBA32__##name] = RGBA32_##name,
+#define CF__COLOR_STRING(name, ...) CF_STRINGIFY(name),
+
+enum
+{
+    CF__COLOR_LIST(CF__COLOR_ENUM_ENTRY)
+};
+
+#define CF_COLOR_NAMES                   \
+    {                                    \
+        CF__COLOR_LIST(CF__COLOR_STRING) \
+    }
+#define CF_COLOR_VALUES                 \
+    {                                   \
+        CF__COLOR_LIST(CF__COLOR_VALUE) \
+    }
