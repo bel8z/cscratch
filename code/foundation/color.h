@@ -14,16 +14,23 @@
     (((Rgba32)(A) << RGBA32_A_SHIFT) | ((Rgba32)(B) << RGBA32_B_SHIFT) | \
      ((Rgba32)(G) << RGBA32_G_SHIFT) | ((Rgba32)(R) << RGBA32_R_SHIFT))
 
-#define RGBA32_SOLID(R, G, B) RGBA32(R, G, B, 255)
-
-#define RGBA32_WHITE RGBA32(0xFF, 0xFF, 0xFF, 0xFF) // Opaque white = 0xFFFFFFFF
-#define RGBA32_BLACK RGBA32(0x00, 0x00, 0x00, 0xFF) // Opaque black
-#define RGBA32_TRANS RGBA32(0x00, 0x00, 0x00, 0x00) // Transparent black = 0x00000000
-
 #define RGBA32_R(col) ((col >> RGBA32_R_SHIFT) & 0xFF)
 #define RGBA32_G(col) ((col >> RGBA32_G_SHIFT) & 0xFF)
 #define RGBA32_B(col) ((col >> RGBA32_B_SHIFT) & 0xFF)
 #define RGBA32_A(col) ((col >> RGBA32_A_SHIFT) & 0xFF)
+
+#define RGBA32_SOLID(R, G, B) RGBA32(R, G, B, 0xFF)
+
+// clang-format off
+#define RGBA32_TRANS  RGBA32(0x00, 0x00, 0x00, 0x00) // Transparent black = 0x00000000
+#define RGBA32_WHITE  RGBA32_SOLID(0xFF, 0xFF, 0xFF) // Opaque white = 0xFFFFFFFF
+#define RGBA32_BLACK  RGBA32_SOLID(0x00, 0x00, 0x00) // Opaque black
+#define RGBA32_RED    RGBA32_SOLID(0xFF, 0x00, 0x00)
+#define RGBA32_GREEN  RGBA32_SOLID(0x00, 0xFF, 0x00)
+#define RGBA32_BLUE   RGBA32_SOLID(0x00, 0x00, 0xFF)
+#define RGBA32_PURPLE RGBA32_SOLID(0xFF, 0x00, 0xFF)
+#define RGBA32_YELLOW RGBA32_SOLID(0xFF, 0xFF, 0x00)
+// clang-format on
 
 static inline Rgba
 rgbaUnpack32(Rgba32 in)
