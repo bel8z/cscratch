@@ -68,15 +68,56 @@ APP_API APP_DESTROY(appDestroy)
 static void
 fxDraw(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
 {
-    CF_UNUSED(p1);
-    CF_UNUSED(size);
     CF_UNUSED(mouse_data);
+
+    ImDrawList_AddRect(draw_list, p0, p1, RGBA32_PURPLE, 0.0f, 0, 1.0f);
 
     char buffer[1024];
     strPrintf(buffer, 1024, "%f", time);
+    ImDrawList_AddTextVec2(draw_list, p0, RGBA32_RED, buffer, buffer + strLength(buffer));
 
-    ImDrawList_AddTextVec2(draw_list, p0, RGBA32(255, 0, 0, 255), buffer,
-                           buffer + strLength(buffer));
+    // 1 Hz sinusoid, YAY!
+
+    ImVec2 points[1024] = {0};
+
+    F32 const amp = size.y / 4;
+
+    F32 const x_offset = 2 * amp;
+    F32 const x_space = size.x - x_offset;
+    F32 const y_offset = size.y / 2;
+
+    F32 const x_step = x_space / (CF_ARRAY_SIZE(points) - 1);
+    F32 const pi2 = 2 * cfAcos(-1.0f);
+    F32 const rad_step = pi2 / (CF_ARRAY_SIZE(points) - 1);
+    F32 const phase = pi2 * (F32)time;
+
+    ImVec2 const center = {p0.x + amp, p0.y + y_offset};
+    ImVec2 polar = {0};
+
+    for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
+    {
+        F32 rad = i * rad_step + phase;
+        F32 sin = amp * cfSin(rad);
+        F32 cos = amp * cfCos(rad);
+
+        points[i].x = p0.x + x_offset + x_step * i;
+        points[i].y = p0.y + y_offset + sin;
+
+        polar.x = center.x + cos;
+        polar.y = center.y + sin;
+    }
+
+    ImDrawList_AddCircle(draw_list, center, amp, RGBA32_YELLOW, 0, 1.0f);
+    ImDrawList_AddLine(draw_list, center, polar, RGBA32_YELLOW, 1.0f);
+    ImDrawList_AddLine(draw_list, polar, points[0], RGBA32_YELLOW, 1.0f);
+    ImDrawList_AddPolyline(draw_list, points, CF_ARRAY_SIZE(points), RGBA32_YELLOW, 0, 1.0f);
+
+    ImDrawList_AddLine(draw_list, (ImVec2){p0.x, p0.y + y_offset}, (ImVec2){p1.x, p0.y + y_offset},
+                       RGBA32_PURPLE, 1.0f);
+    ImDrawList_AddLine(draw_list, (ImVec2){p0.x + amp, p0.y}, (ImVec2){p0.x + amp, p1.y},
+                       RGBA32_PURPLE, 1.0f);
+    ImDrawList_AddLine(draw_list, (ImVec2){p0.x + 2 * amp, p0.y}, (ImVec2){p0.x + 2 * amp, p1.y},
+                       RGBA32_PURPLE, 1.0f);
 }
 
 static void
