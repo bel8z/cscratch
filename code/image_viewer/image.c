@@ -4,14 +4,18 @@
 
 //------------------------------------------------------------------------------
 // Custom memory management for stbi
+#define STBI_CUSTOM_ALLOC 0
+
+#if STBI_CUSTOM_ALLOC
 static cfAllocator *g_alloc = NULL;
 
 static void *stbiRealloc(void *mem, Usize size);
 static void stbiFree(void *mem);
 
-#define STBI_MALLOC(size) stbiRealloc(NULL, size)
-#define STBI_REALLOC(mem, size) stbiRealloc(mem, size)
-#define STBI_FREE(mem) stbiFree(mem)
+#    define STBI_MALLOC(size) stbiRealloc(NULL, size)
+#    define STBI_REALLOC(mem, size) stbiRealloc(mem, size)
+#    define STBI_FREE(mem) stbiFree(mem)
+#endif
 
 // Custom assertions for stbi
 #define STBI_ASSERT(x) CF_ASSERT(x, "stb image assert")
@@ -49,15 +53,21 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
 
     CF_ASSERT(!image->bytes, "overwriting valid image");
 
+#if STBI_CUSTOM_ALLOC
     // Setup allocator for stbi
     g_alloc = alloc;
+#else
+    CF_UNUSED(alloc);
+#endif
 
     // Load from file
     image->width = 0;
     image->height = 0;
     image->bytes = stbi_load(filename, &image->width, &image->height, NULL, 4);
 
+#if STBI_CUSTOM_ALLOC
     g_alloc = NULL;
+#endif
 
     if (image->bytes)
     {
@@ -77,15 +87,21 @@ imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAlloc
     CF_ASSERT_NOT_NULL(image);
     CF_ASSERT_NOT_NULL(in_data);
 
+#if STBI_CUSTOM_ALLOC
     // Setup allocator for stbi
     g_alloc = alloc;
+#else
+    CF_UNUSED(alloc);
+#endif
 
     image->width = 0;
     image->height = 0;
     image->bytes =
         stbi_load_from_memory(in_data, (I32)in_data_size, &image->width, &image->height, NULL, 4);
 
+#if STBI_CUSTOM_ALLOC
     g_alloc = NULL;
+#endif
 
     if (image->bytes)
     {
@@ -104,9 +120,14 @@ imageUnload(Image *image, cfAllocator *alloc)
     CF_ASSERT_NOT_NULL(image);
     CF_ASSERT_NOT_NULL(alloc);
 
+#if STBI_CUSTOM_ALLOC
+    // Setup allocator for stbi
     g_alloc = alloc;
+#else
+    CF_UNUSED(alloc);
+#endif
 
-    stbiFree(image->bytes);
+    stbi_image_free(image->bytes);
 
     image->bytes = NULL;
     image->height = 0;
@@ -114,7 +135,9 @@ imageUnload(Image *image, cfAllocator *alloc)
 
     --g_load_count;
 
+#if STBI_CUSTOM_ALLOC
     g_alloc = NULL;
+#endif
 }
 
 U32
@@ -125,6 +148,8 @@ imageLoadCount(void)
 
 //------------------------------------------------------------------------------
 // stbi memory management
+
+#if STBI_CUSTOM_ALLOC
 
 void *
 stbiRealloc(void *mem, Usize size)
@@ -165,5 +190,7 @@ stbiFree(void *mem)
         cfFree(g_alloc, buf, old_size);
     }
 }
+
+#endif
 
 //------------------------------------------------------------------------------

@@ -5,6 +5,8 @@
 // TODO (Matteo): missing features
 // ! Display transparent images properly
 // ! Drag after zoom
+// ! Fix race condition on stb image global allocator
+// ! Properly handle loading files that go out of window
 // - Animated GIF support
 // - Cleanup loading code
 // - Bounded tool windows ?
