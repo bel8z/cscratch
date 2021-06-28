@@ -4,11 +4,22 @@
 #include "maths.h"
 #include "util.h"
 
-#define RGBA32_R_SHIFT 0
-#define RGBA32_G_SHIFT 8
-#define RGBA32_B_SHIFT 16
-#define RGBA32_A_SHIFT 24
-#define RGBA32_A_MASK 0xFF000000
+#if CF_LITTLE_ENDIAN
+// NOTE (Matteo): Technically, the integer content is ABGR, but the byte order on little endian
+// systems is RGBA
+#    define RGBA32_R_SHIFT 0
+#    define RGBA32_G_SHIFT 8
+#    define RGBA32_B_SHIFT 16
+#    define RGBA32_A_SHIFT 24
+#    define RGBA32_A_MASK 0xFF000000
+#else
+// TODO (Matteo): How does this interact with OpenGL/DearImgui?
+#    define RGBA32_R_SHIFT 24
+#    define RGBA32_G_SHIFT 16
+#    define RGBA32_B_SHIFT 8
+#    define RGBA32_A_SHIFT 0
+#    define RGBA32_A_MASK 0x000000FF
+#endif
 
 #define RGBA32(R, G, B, A)                                               \
     (((Rgba32)(A) << RGBA32_A_SHIFT) | ((Rgba32)(B) << RGBA32_B_SHIFT) | \
@@ -22,6 +33,8 @@
 #define RGBA32_SOLID(R, G, B) RGBA32(R, G, B, 0xFF)
 
 // Common colors definition based on X11 names (see https://en.wikipedia.org/wiki/X11_color_names)
+
+#define RGBA32_TRANSPARENT RGBA32(0x00, 0x00, 0x00, 0x00)
 
 // clang-format off
 #define RGBA32_ALICE_BLUE          RGBA32_SOLID(0xF0, 0xF8, 0xFF)
@@ -163,7 +176,6 @@
 #define RGBA32_TEAL                RGBA32_SOLID(0x00, 0x80, 0x80)
 #define RGBA32_THISTLE             RGBA32_SOLID(0xD8, 0xBF, 0xD8)
 #define RGBA32_TOMATO              RGBA32_SOLID(0xFF, 0x63, 0x47)
-#define RGBA32_TRANSPARENT         RGBA32_SOLID(0x00, 0x00, 0x00)
 #define RGBA32_TURQUOISE           RGBA32_SOLID(0x40, 0xE0, 0xD0)
 #define RGBA32_VIOLET              RGBA32_SOLID(0xEE, 0x82, 0xEE)
 #define RGBA32_WHEAT               RGBA32_SOLID(0xF5, 0xDE, 0xB3)
