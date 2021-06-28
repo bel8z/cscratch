@@ -10,6 +10,7 @@
 // - Bounded tool windows ?
 // - Better memory allocation strategy based on actual usage patterns
 //   (i.e. less usage of the heap allocator)
+// - Compress browsing code (too much duplication)
 //
 // ******************************
 
