@@ -3,11 +3,6 @@
 // ******************************
 //
 // TODO (Matteo): missing features
-// ! Unload least-recently-browsed files; this can be achieved in 2 ways:
-//   * image allocator which can free blocks when a certain memory limit is reached
-//   * keep a moving window for browsing, quite similar to what is currently implemented but with
-//   additional unloading of files that exit the window (probably it should be larger than 3
-//   elements, maybe 5 or 7)
 // ! Display transparent images properly
 // ! Drag after zoom
 // - Animated GIF support
@@ -37,6 +32,16 @@
 
 static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
 
+enum Constants
+{
+    FILENAME_SIZE = 256,
+    LoadQueue_Size = 16,
+    BrowseWidth = 5,
+};
+
+CF_STATIC_ASSERT(BrowseWidth & 1, "Browse width must be odd");
+CF_STATIC_ASSERT(BrowseWidth > 1, "Browse width must be > 1");
+
 typedef struct AppWindows
 {
     bool style;
@@ -45,11 +50,6 @@ typedef struct AppWindows
     bool metrics;
     bool unsupported;
 } AppWindows;
-
-enum
-{
-    FILENAME_SIZE = 256,
-};
 
 typedef enum ImageFilter
 {
@@ -106,11 +106,6 @@ typedef struct ImageList
     U32 num_files;
 } ImageList;
 
-enum
-{
-    LoadQueue_Size = 16
-};
-
 typedef struct LoadQueue
 {
     // Dependencies
@@ -136,6 +131,8 @@ struct AppState
     cfAllocator *alloc;
 
     FileDlgFilter filter;
+
+    U32 browse_width;
     U32 curr_file;
     ImageList images;
 
@@ -409,6 +406,7 @@ appClearImages(AppState *app)
         if (file->state == ImageFileState_Loaded)
         {
             imageUnload(&file->image, app->alloc);
+            file->state = ImageFileState_Idle;
         }
         else
         {
@@ -472,13 +470,98 @@ static void
 appQueueLoadFiles(AppState *app)
 {
     // NOTE (Matteo): improve browsing performance by pre-loading previous and next files
-    U32 curr = app->curr_file;
-    U32 next = (curr == app->images.num_files - 1) ? 0 : curr + 1;
-    U32 prev = (curr == 0) ? app->images.num_files - 1 : curr - 1;
 
-    loadQueuePush(&app->queue, app->images.files + curr);
-    if (next != curr) loadQueuePush(&app->queue, app->images.files + next);
-    if (prev != next) loadQueuePush(&app->queue, app->images.files + prev);
+    ImageFile *files = app->images.files;
+    U32 num_files = app->images.num_files;
+    U32 curr = app->curr_file;
+
+    loadQueuePush(&app->queue, files + curr);
+
+    if (app->browse_width == num_files)
+    {
+        for (U32 i = app->curr_file + 1; i < num_files; ++i)
+        {
+            loadQueuePush(&app->queue, files + i);
+        }
+
+        for (U32 i = 0; i < app->curr_file; ++i)
+        {
+            loadQueuePush(&app->queue, files + app->curr_file - 1 - i);
+        }
+    }
+    else
+    {
+        CF_ASSERT(app->browse_width > 1, "Window width must be > 1");
+        CF_ASSERT(app->browse_width & 1, "Window width must be odd");
+
+        U32 mid = app->browse_width / 2;
+        for (U32 i = 0; i < mid; ++i)
+        {
+            U32 next = cfMod(curr + i + 1, num_files);
+            U32 prev = cfMod(curr - i - 1, num_files);
+            CF_ASSERT(next != curr, "");
+            CF_ASSERT(next != prev, "");
+            CF_ASSERT(prev != curr, "");
+            loadQueuePush(&app->queue, files + next);
+            loadQueuePush(&app->queue, files + prev);
+        }
+    }
+
+    // NOTE (Matteo): Set view as dirty
+    app->iv.dirty = true;
+    app->iv.zoom = 1.0f;
+}
+
+static void
+appBrowseNext(AppState *app)
+{
+    CF_ASSERT(app->curr_file != U32_MAX, "Invalid browse command");
+
+    U32 next = cfWrapInc(app->curr_file, app->images.num_files);
+
+    if (app->browse_width != app->images.num_files)
+    {
+        U32 lru = cfMod(app->curr_file - app->browse_width / 2, app->images.num_files);
+        ImageFile *file = app->images.files + lru;
+        if (file->state == ImageFileState_Loaded)
+        {
+            imageUnload(&file->image, app->alloc);
+            file->state = ImageFileState_Idle;
+        }
+    }
+    else
+    {
+        CF_ASSERT(app->images.files[next].state != ImageFileState_Idle, "");
+    }
+
+    app->curr_file = next;
+    appQueueLoadFiles(app);
+}
+
+static void
+appBrowsePrev(AppState *app)
+{
+    CF_ASSERT(app->curr_file != U32_MAX, "Invalid browse command");
+
+    U32 prev = cfWrapDec(app->curr_file, app->images.num_files);
+
+    if (app->browse_width != app->images.num_files)
+    {
+        U32 lru = cfMod(app->curr_file + app->browse_width / 2, app->images.num_files);
+        ImageFile *file = app->images.files + lru;
+        if (file->state == ImageFileState_Loaded)
+        {
+            imageUnload(&file->image, app->alloc);
+            file->state = ImageFileState_Idle;
+        }
+    }
+    else
+    {
+        CF_ASSERT(app->images.files[prev].state != ImageFileState_Idle, "");
+    }
+
+    app->curr_file = prev;
+    appQueueLoadFiles(app);
 }
 
 static void
@@ -486,7 +569,6 @@ appLoadFromFile(AppState *state, char const *full_name)
 {
     cfFileSystem const *fs = state->plat->fs;
     ImageList *images = &state->images;
-    ImageView *iv = &state->iv;
 
     appClearImages(state);
 
@@ -534,9 +616,8 @@ appLoadFromFile(AppState *state, char const *full_name)
             }
         }
 
+        state->browse_width = cfMin(BrowseWidth, images->num_files);
         appQueueLoadFiles(state);
-        iv->dirty = true;
-        iv->zoom = 1.0f;
     }
 }
 
@@ -601,25 +682,8 @@ appImageView(AppState *state)
 
         if (process_input)
         {
-            U32 next = state->curr_file;
-
-            if (guiKeyPressed(ImGuiKey_LeftArrow))
-            {
-                next = cfWrapDec(next, state->images.num_files);
-            }
-
-            if (guiKeyPressed(ImGuiKey_RightArrow))
-            {
-                next = cfWrapInc(next, state->images.num_files);
-            }
-
-            if (state->curr_file != next)
-            {
-                state->curr_file = next;
-                appQueueLoadFiles(state);
-                iv->dirty = true;
-                iv->zoom = 1.0f;
-            }
+            if (guiKeyPressed(ImGuiKey_LeftArrow)) appBrowsePrev(state);
+            if (guiKeyPressed(ImGuiKey_RightArrow)) appBrowseNext(state);
         }
 
         ImGuiIO *io = igGetIO();
@@ -817,6 +881,8 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igSeparator();
         igText("App base path:%s", state->plat->paths->base);
         igText("App data path:%s", state->plat->paths->data);
+        igSeparator();
+        igText("Loaded images: %d", imageLoadCount());
         igEnd();
     }
 
