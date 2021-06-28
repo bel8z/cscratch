@@ -38,6 +38,26 @@ static void guiSetupStyle(F32 dpi);
 static void guiSetupFonts(ImFontAtlas *fonts, F32 dpi, char const *data_path);
 static void guiUpdateFonts(ImFontAtlas *fonts, FontOptions *font_opts);
 
+//------------------------------------------------------------------------------
+// OpenGL3 backend declarations
+//------------------------------------------------------------------------------
+
+extern bool ImGui_ImplOpenGL3_Init(const char *glsl_version);
+extern void ImGui_ImplOpenGL3_Shutdown();
+extern void ImGui_ImplOpenGL3_NewFrame();
+extern void ImGui_ImplOpenGL3_RenderDrawData(ImDrawData *draw_data);
+extern bool ImGui_ImplOpenGL3_CreateFontsTexture();
+extern void ImGui_ImplOpenGL3_DestroyFontsTexture();
+extern bool ImGui_ImplOpenGL3_CreateDeviceObjects();
+extern void ImGui_ImplOpenGL3_DestroyDeviceObjects();
+
+typedef struct GlVersion
+{
+    I32 major, minor;
+    /// Shader version for Dear Imgui OpenGL backend
+    char const *glsl;
+} GlVersion;
+
 #if SDL_BACKEND
 //------------------------------------------------------------------------------
 // SDL2 backend declarations
@@ -58,25 +78,68 @@ extern void ImGui_ImplGlfw_Shutdown();
 extern void ImGui_ImplGlfw_NewFrame();
 
 static void
-glfw_error_callback(int error, const char *description)
+glfwErrorCallback(int error, const char *description)
 {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
+// NOTE (Matteo):
+// The way GLFW initializes OpenGL context on windows is a bit peculiar.
+// To create a context of the most recent version supported by the driver, one must require
+// version 1.0 (which is also the default hint value); in this case the "forward compatibility" and
+// "core profile" flags are not supported, and window creation fails.
+// On the other side, setting a specific 3.0+ version is not merely an hint, because a context of
+// that same version is created (or window creation fails if not supported); not sure if this is a
+// GLFW or WGL bug (or feature? D: ).
+// Anyway, I work around this by trying some different versions in decreasing release
+// order (one per year or release), in order to benefit of the latest features available.
+
+static const GlVersion g_gl_versions[8] = {
+    {.major = 4, .minor = 6, .glsl = "#version 150"}, // 2017
+    {.major = 4, .minor = 5, .glsl = "#version 150"}, // 2014
+    {.major = 4, .minor = 4, .glsl = "#version 150"}, // 2013
+    {.major = 4, .minor = 3, .glsl = "#version 150"}, // 2012
+    {.major = 4, .minor = 2, .glsl = "#version 150"}, // 2011
+    {.major = 4, .minor = 1, .glsl = "#version 150"}, // 2010
+    {.major = 3, .minor = 2, .glsl = "#version 150"}, // 2009
+    {.major = 3, .minor = 0, .glsl = "#version 130"}, // 2008
+};
+
+static GLFWwindow *
+glfwCreateWinAndContext(char const *title, I32 width, I32 height, GlVersion *gl_version)
+{
+    GLFWwindow *window = NULL;
+
+    for (Usize i = 0; i < CF_ARRAY_SIZE(g_gl_versions); ++i)
+    {
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, g_gl_versions[i].major);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, g_gl_versions[i].minor);
+
+        if (g_gl_versions[i].major >= 3)
+        {
+            // TODO (Matteo): Make this OS specific? It doesn't seem to bring any penalty
+            // 3.0+ only, required on MAC
+            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+            if (g_gl_versions[i].minor >= 2)
+            {
+                // 3.2+ only
+                glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+            }
+        }
+
+        window = glfwCreateWindow(width, height, title, NULL, NULL);
+        if (window)
+        {
+            *gl_version = g_gl_versions[i];
+            break;
+        }
+    }
+
+    return window;
+}
+
 #endif
-
-//------------------------------------------------------------------------------
-// OpenGL3 backend declarations
-//------------------------------------------------------------------------------
-
-extern bool ImGui_ImplOpenGL3_Init(const char *glsl_version);
-extern void ImGui_ImplOpenGL3_Shutdown();
-extern void ImGui_ImplOpenGL3_NewFrame();
-extern void ImGui_ImplOpenGL3_RenderDrawData(ImDrawData *draw_data);
-extern bool ImGui_ImplOpenGL3_CreateFontsTexture();
-extern void ImGui_ImplOpenGL3_DestroyFontsTexture();
-extern bool ImGui_ImplOpenGL3_CreateDeviceObjects();
-extern void ImGui_ImplOpenGL3_DestroyDeviceObjects();
 
 //------------------------------------------------------------------------------
 // Application API
@@ -116,19 +179,19 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
     // Decide GL+GLSL versions
 #    ifdef __APPLE__
     // GL 3.2 Core + GLSL 150
-    const char *glsl_version = "#version 150";
+    GlVersion gl_ver = {.major = 3, .minor = 2, .glsl = "#version 150"};
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
                         SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG); // Always required on Mac
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, gl_ver.major);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, gl_ver.minor);
 #    else
     // GL 3.0 + GLSL 130
-    const char *glsl_version = "#version 130";
+    GlVersion gl_ver = {.major = 3, .minor = 0, .glsl = "#version 130"};
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, gl_ver.major);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, gl_ver.minor);
 #    endif
 
     // Create window with graphics context
@@ -145,35 +208,19 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
 
 #else
     // Setup window
-    glfwSetErrorCallback(glfw_error_callback);
+    glfwSetErrorCallback(glfwErrorCallback);
     if (!glfwInit()) return 1;
 
-        // Decide GL+GLSL versions
-#    ifdef __APPLE__
-    // GL 3.2 + GLSL 150
-    const char *glsl_version = "#version 150";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // 3.2+ only
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);           // Required on Mac
-#    else
-    // GL 3.0 + GLSL 130
-    const char *glsl_version = "#version 130";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
-#    endif
-
     // Create window with graphics context
-    GLFWwindow *window = glfwCreateWindow(1280, 720, "Dear ImGui template", NULL, NULL);
+    GlVersion gl_ver = {0};
+    GLFWwindow *window = glfwCreateWinAndContext("Dear ImGui template", 1280, 720, &gl_ver);
     if (window == NULL) return 1;
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
 #endif
 
     // Initialize OpenGL loader
-    if (!gloadInit(NULL))
+    if (!gloadInit(NULL) || !gloadIsSupported(gl_ver.major, gl_ver.minor))
     {
         fprintf(stderr, "Failed to initialize OpenGL loader!\n");
         return -2;
@@ -246,7 +293,7 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
 #else
     ImGui_ImplGlfw_InitForOpenGL(window, true);
 #endif
-    ImGui_ImplOpenGL3_Init(glsl_version);
+    ImGui_ImplOpenGL3_Init(gl_ver.glsl);
 
     // Main loop
     FontOptions font_opts = {
