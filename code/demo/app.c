@@ -2,6 +2,8 @@
 
 #include "gui/gui.h"
 
+#include "gl/gload.h"
+
 #include "foundation/common.h"
 
 #include "foundation/color.h"
@@ -49,6 +51,9 @@ APP_API APP_CREATE(appCreate)
 
     // Init Dear Imgui
     guiInit(plat->gui);
+
+    // Init OpenGl
+    gloadInit(plat->gl);
 
     return app;
 }
@@ -183,7 +188,12 @@ APP_API APP_UPDATE(appUpdate)
     igCheckbox("Demo Window", &app->windows.demo);
     igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
     igColorEdit4("clear color", app->clear_color.channel, 0);
+    igSeparator();
     guiClock(app->plat->clock());
+    igSeparator();
+    igText("OpenGL version:\t%s", glGetString(GL_VERSION));
+    igText("OpenGL renderer:\t%s", glGetString(GL_RENDERER));
+    igText("OpenGL shader version:\t%s", glGetString(GL_SHADING_LANGUAGE_VERSION));
     igEnd();
 
     fxWindow();
