@@ -13,15 +13,12 @@ set(CODE_DIR ${PARENT_DIR}/code)
 set(EXT_DIR ${PARENT_DIR}/ext)
 set(IMGUI_DIR ${EXT_DIR}/cimgui-1.82dock)
 set(BACKEND_DIR ${IMGUI_DIR}/imgui/backends)
-set(SDL2_DIR ${EXT_DIR}/SDL2-2.0.14)
 set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
 set(GLFW_DIR ${EXT_DIR}/glfw-3)
 
 #---------------------
 # Compilation options
 #---------------------
-
-option(BACKEND_SDL OFF)
 
 if (WIN32)
     add_definitions("-DIMGUI_IMPL_API=extern \"C\" __declspec\(dllexport\)")
@@ -77,11 +74,7 @@ set(BACKEND_SOURCES
     ${BACKEND_DIR}/imgui_impl_opengl3.cpp
     ${CODE_DIR}/gl/gload.c)
 
-if (BACKEND_SDL)
-    list(APPEND BACKEND_SOURCES ${BACKEND_DIR}/imgui_impl_sdl.cpp)
-else()
-    list(APPEND BACKEND_SOURCES ${BACKEND_DIR}/imgui_impl_glfw.cpp)
-endif()
+list(APPEND BACKEND_SOURCES ${BACKEND_DIR}/imgui_impl_glfw.cpp)
 
 add_library(${BACKEND_NAME} STATIC ${BACKEND_SOURCES})
 
@@ -93,11 +86,5 @@ target_link_libraries(${BACKEND_NAME} PUBLIC
     ${GUI_NAME} 
     ${OPENGL_gl_LIBRARY})
 
-if(BACKEND_SDL)
-    find_package(SDL2 REQUIRED PATHS ${SDL2_DIR})
-    target_link_libraries(${BACKEND_NAME} PUBLIC SDL2::SDL2-static)
-    target_compile_definitions(${BACKEND_NAME} INTERFACE "SDL_BACKEND=1")
-else()
-    target_link_libraries(${BACKEND_NAME} PUBLIC glfw)
-    target_compile_definitions(${BACKEND_NAME} INTERFACE "SDL_BACKEND=0")
-endif()
+target_link_libraries(${BACKEND_NAME} PUBLIC glfw)
+target_compile_definitions(${BACKEND_NAME} INTERFACE "SDL_BACKEND=0")

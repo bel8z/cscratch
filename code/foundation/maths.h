@@ -22,6 +22,10 @@
 #define cfSin(X) _Generic((X), default : sin, F32 : sinf)(X)
 #define cfTan(X) _Generic((X), default : tan, F32 : tanf)(X)
 
+#define cfAcos(X) _Generic((X), default : acos, F32 : acosf)(X)
+#define cfAsin(X) _Generic((X), default : asin, F32 : asinf)(X)
+#define cfAtan(X) _Generic((X), default : atan, F32 : atanf)(X)
+
 #define cfCosH(X) _Generic((X), default : cosh, F32 : coshf)(X)
 #define cfSinH(X) _Generic((X), default : sinh, F32 : sinhf)(X)
 #define cfTanH(X) _Generic((X), default : tanh, F32 : tanhf)(X)

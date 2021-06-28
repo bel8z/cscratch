@@ -34,6 +34,9 @@ static void stbiFree(void *mem);
 #    pragma clang diagnostic pop
 #endif
 
+// DEBUG (Matteo): loaded images counter
+static U32 g_load_count = 0;
+
 //------------------------------------------------------------------------------
 // Image API implementation
 
@@ -56,7 +59,15 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
 
     g_alloc = NULL;
 
-    return (image->bytes != NULL);
+    if (image->bytes)
+    {
+        ++g_load_count;
+        return true;
+    }
+
+    return false;
+
+    // return (image->bytes != NULL);
 }
 
 bool
@@ -76,7 +87,15 @@ imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAlloc
 
     g_alloc = NULL;
 
-    return (image->bytes != NULL);
+    if (image->bytes)
+    {
+        ++g_load_count;
+        return true;
+    }
+
+    return false;
+
+    // return (image->bytes != NULL);
 }
 
 void
@@ -93,7 +112,15 @@ imageUnload(Image *image, cfAllocator *alloc)
     image->height = 0;
     image->width = 0;
 
+    --g_load_count;
+
     g_alloc = NULL;
+}
+
+U32
+imageLoadCount(void)
+{
+    return g_load_count;
 }
 
 //------------------------------------------------------------------------------

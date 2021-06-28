@@ -3,11 +3,6 @@
 // ******************************
 //
 // TODO (Matteo): missing features
-// ! Unload least-recently-browsed files; this can be achieved in 2 ways:
-//   * image allocator which can free blocks when a certain memory limit is reached
-//   * keep a moving window for browsing, quite similar to what is currently implemented but with
-//   additional unloading of files that exit the window (probably it should be larger than 3
-//   elements, maybe 5 or 7)
 // ! Display transparent images properly
 // ! Drag after zoom
 // - Animated GIF support
@@ -15,6 +10,7 @@
 // - Bounded tool windows ?
 // - Better memory allocation strategy based on actual usage patterns
 //   (i.e. less usage of the heap allocator)
+// - Compress browsing code (too much duplication)
 //
 // ******************************
 
@@ -37,6 +33,16 @@
 
 static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
 
+enum Constants
+{
+    FILENAME_SIZE = 256,
+    LoadQueue_Size = 16,
+    BrowseWidth = 5,
+};
+
+CF_STATIC_ASSERT(BrowseWidth & 1, "Browse width must be odd");
+CF_STATIC_ASSERT(BrowseWidth > 1, "Browse width must be > 1");
+
 typedef struct AppWindows
 {
     bool style;
@@ -45,11 +51,6 @@ typedef struct AppWindows
     bool metrics;
     bool unsupported;
 } AppWindows;
-
-enum
-{
-    FILENAME_SIZE = 256,
-};
 
 typedef enum ImageFilter
 {
@@ -70,7 +71,12 @@ typedef struct ImageView
     F32 zoom;
     I32 filter;
     ImageTex tex[2];
-    U8 tex_index;
+    struct // FLAGS
+    {
+        U8 tex_index : 1;
+        U8 dirty     : 1;
+        U8 _         : 6;
+    };
 } ImageView;
 
 typedef enum ImageFileState
@@ -101,11 +107,6 @@ typedef struct ImageList
     U32 num_files;
 } ImageList;
 
-enum
-{
-    LoadQueue_Size = 16
-};
-
 typedef struct LoadQueue
 {
     // Dependencies
@@ -131,6 +132,8 @@ struct AppState
     cfAllocator *alloc;
 
     FileDlgFilter filter;
+
+    U32 browse_width;
     U32 curr_file;
     ImageList images;
 
@@ -237,21 +240,18 @@ static THREAD_PROC(loadQueueProc)
 //------------------------------------------------------------------------------
 // Simple helper functions to load an image into a OpenGL texture with common settings
 
-#define IMAGE_TEX_INTERNAL_FORMAT GL_COMPRESSED_RGBA
-
-static ImageTex
-imageTexCreate(I32 width, I32 height)
+static void
+imageTexBuild(ImageTex *tex)
 {
-    ImageTex tex = {.width = width, .height = height};
+    CF_ASSERT(tex->id == 0, "Overwriting an existing texture");
 
-    glGenTextures(1, &tex.id);
-    glBindTexture(GL_TEXTURE_2D, tex.id);
-
-    // TODO (Matteo): Separate texture parameterization from loading
+    glGenTextures(1, &tex->id);
+    glBindTexture(GL_TEXTURE_2D, tex->id);
 
     // Setup filtering parameters for display
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
     // These are required on WebGL for non power-of-two textures
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -260,9 +260,29 @@ imageTexCreate(I32 width, I32 height)
 #if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
-    glTexImage2D(GL_TEXTURE_2D, 0, IMAGE_TEX_INTERNAL_FORMAT, tex.width, tex.height, 0, GL_RGBA,
-                 GL_UNSIGNED_BYTE, NULL);
 
+    // NOTE (Matteo): The following is the official suggested way to create a complete texture with
+    // a single mipmap level (multiple levels are not needed for the purpose of these textures and
+    // are only a waste of memory and bandwidth)
+    // See: https://www.khronos.org/opengl/wiki/Common_Mistakes#Creating_a_complete_texture
+    if (gloadIsSupported(4, 2))
+    {
+        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, tex->width, tex->height);
+    }
+    else
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex->width, tex->height, 0, GL_RGBA,
+                     GL_UNSIGNED_BYTE, NULL);
+    }
+}
+
+static ImageTex
+imageTexCreate(I32 width, I32 height)
+{
+    ImageTex tex = {.width = width, .height = height};
+    imageTexBuild(&tex);
     return tex;
 }
 
@@ -271,6 +291,7 @@ imageViewInit(ImageView *iv)
 {
     iv->advanced = false;
     iv->zoom = 1.0f;
+    iv->dirty = true;
     iv->filter = ImageFilter_Nearest;
     iv->tex[0] = imageTexCreate(4920, 3264);
     iv->tex[1] = imageTexCreate(4920, 3264);
@@ -282,7 +303,6 @@ imageViewShutdown(ImageView *iv)
 {
     glDeleteTextures(1, &iv->tex[0].id);
     glDeleteTextures(1, &iv->tex[1].id);
-
     iv->tex[0].id = 0;
     iv->tex[1].id = 0;
 }
@@ -296,26 +316,33 @@ imageViewCurrTex(ImageView *iv)
 static void
 imageViewUpdate(ImageView *iv, Image const *image)
 {
-    // NOTE (Matteo): Swap textures by incrementing index modulo 2 (no. of textures)
-    iv->tex_index = (iv->tex_index + 1) & 1;
-
-    ImageTex *tex = iv->tex + iv->tex_index;
-
-    glBindTexture(GL_TEXTURE_2D, tex->id);
-
-    if (image->height > tex->height || image->width > tex->width)
+    if (iv->dirty)
     {
-        tex->height = cfMax(image->height, tex->height);
-        tex->width = cfMax(image->width, tex->width);
-        glTexImage2D(GL_TEXTURE_2D, 0, IMAGE_TEX_INTERNAL_FORMAT, tex->width, tex->height, 0,
-                     GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    }
+        // NOTE (Matteo): Using a "dirty" flag to avoid redundant GPU uploads.
+        // TODO (Matteo): Does this make texture double buffering useless?
+        iv->dirty = false;
 
-    I32 value = (iv->filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->width, image->height, GL_RGBA, GL_UNSIGNED_BYTE,
-                    image->bytes);
+        // NOTE (Matteo): Swap textures by incrementing index modulo 2 (no. of textures)
+        iv->tex_index = (iv->tex_index + 1) & 1;
+
+        ImageTex *tex = iv->tex + iv->tex_index;
+
+        if (image->width > tex->width || image->height > tex->height)
+        {
+            glDeleteTextures(1, &tex->id);
+            tex->id = 0;
+            tex->width = cfMax(image->width, tex->width);
+            tex->height = cfMax(image->height, tex->height);
+            imageTexBuild(tex);
+        }
+
+        I32 value = (iv->filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
+        glBindTexture(GL_TEXTURE_2D, tex->id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->width, image->height, GL_RGBA,
+                        GL_UNSIGNED_BYTE, image->bytes);
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -329,11 +356,6 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
 
     app->plat = plat;
     app->alloc = plat->heap;
-
-    app->iv = (ImageView){
-        .zoom = 1.0f,
-        .filter = ImageFilter_Nearest,
-    };
 
     // Init file list management
     app->filter.name = "Image files";
@@ -385,6 +407,7 @@ appClearImages(AppState *app)
         if (file->state == ImageFileState_Loaded)
         {
             imageUnload(&file->image, app->alloc);
+            file->state = ImageFileState_Idle;
         }
         else
         {
@@ -448,13 +471,98 @@ static void
 appQueueLoadFiles(AppState *app)
 {
     // NOTE (Matteo): improve browsing performance by pre-loading previous and next files
-    U32 curr = app->curr_file;
-    U32 next = (curr == app->images.num_files - 1) ? 0 : curr + 1;
-    U32 prev = (curr == 0) ? app->images.num_files - 1 : curr - 1;
 
-    loadQueuePush(&app->queue, app->images.files + curr);
-    if (next != curr) loadQueuePush(&app->queue, app->images.files + next);
-    if (prev != next) loadQueuePush(&app->queue, app->images.files + prev);
+    ImageFile *files = app->images.files;
+    U32 num_files = app->images.num_files;
+    U32 curr = app->curr_file;
+
+    loadQueuePush(&app->queue, files + curr);
+
+    if (app->browse_width == num_files)
+    {
+        for (U32 i = app->curr_file + 1; i < num_files; ++i)
+        {
+            loadQueuePush(&app->queue, files + i);
+        }
+
+        for (U32 i = 0; i < app->curr_file; ++i)
+        {
+            loadQueuePush(&app->queue, files + app->curr_file - 1 - i);
+        }
+    }
+    else
+    {
+        CF_ASSERT(app->browse_width > 1, "Window width must be > 1");
+        CF_ASSERT(app->browse_width & 1, "Window width must be odd");
+
+        U32 mid = app->browse_width / 2;
+        for (U32 i = 0; i < mid; ++i)
+        {
+            U32 next = cfMod(curr + i + 1, num_files);
+            U32 prev = cfMod(curr - i - 1, num_files);
+            CF_ASSERT(next != curr, "");
+            CF_ASSERT(next != prev, "");
+            CF_ASSERT(prev != curr, "");
+            loadQueuePush(&app->queue, files + next);
+            loadQueuePush(&app->queue, files + prev);
+        }
+    }
+
+    // NOTE (Matteo): Set view as dirty
+    app->iv.dirty = true;
+    app->iv.zoom = 1.0f;
+}
+
+static void
+appBrowseNext(AppState *app)
+{
+    CF_ASSERT(app->curr_file != U32_MAX, "Invalid browse command");
+
+    U32 next = cfWrapInc(app->curr_file, app->images.num_files);
+
+    if (app->browse_width != app->images.num_files)
+    {
+        U32 lru = cfMod(app->curr_file - app->browse_width / 2, app->images.num_files);
+        ImageFile *file = app->images.files + lru;
+        if (file->state == ImageFileState_Loaded)
+        {
+            imageUnload(&file->image, app->alloc);
+            file->state = ImageFileState_Idle;
+        }
+    }
+    else
+    {
+        CF_ASSERT(app->images.files[next].state != ImageFileState_Idle, "");
+    }
+
+    app->curr_file = next;
+    appQueueLoadFiles(app);
+}
+
+static void
+appBrowsePrev(AppState *app)
+{
+    CF_ASSERT(app->curr_file != U32_MAX, "Invalid browse command");
+
+    U32 prev = cfWrapDec(app->curr_file, app->images.num_files);
+
+    if (app->browse_width != app->images.num_files)
+    {
+        U32 lru = cfMod(app->curr_file + app->browse_width / 2, app->images.num_files);
+        ImageFile *file = app->images.files + lru;
+        if (file->state == ImageFileState_Loaded)
+        {
+            imageUnload(&file->image, app->alloc);
+            file->state = ImageFileState_Idle;
+        }
+    }
+    else
+    {
+        CF_ASSERT(app->images.files[prev].state != ImageFileState_Idle, "");
+    }
+
+    app->curr_file = prev;
+    appQueueLoadFiles(app);
 }
 
 static void
@@ -462,7 +570,6 @@ appLoadFromFile(AppState *state, char const *full_name)
 {
     cfFileSystem const *fs = state->plat->fs;
     ImageList *images = &state->images;
-    ImageView *iv = &state->iv;
 
     appClearImages(state);
 
@@ -510,7 +617,7 @@ appLoadFromFile(AppState *state, char const *full_name)
             }
         }
 
-        iv->zoom = 1.0f;
+        state->browse_width = cfMin(BrowseWidth, images->num_files);
         appQueueLoadFiles(state);
     }
 }
@@ -528,11 +635,14 @@ appImageView(AppState *state)
     // TODO (Matteo): Maybe this can get cleaner?
     if (iv->advanced)
     {
-        igRadioButtonIntPtr("Nearest", &iv->filter, ImageFilter_Nearest);
+        I32 filter = iv->filter;
+        igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
         guiSameLine();
-        igRadioButtonIntPtr("Linear", &iv->filter, ImageFilter_Linear);
+        igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
         guiSameLine();
         igSliderFloat("zoom", &iv->zoom, min_zoom, max_zoom, "%.3f", 0);
+        iv->dirty = filter != iv->filter;
+        iv->filter = filter;
     }
 
     // NOTE (Matteo): Use the available content area as the image view; an invisible button
@@ -573,24 +683,8 @@ appImageView(AppState *state)
 
         if (process_input)
         {
-            U32 next = state->curr_file;
-
-            if (guiKeyPressed(ImGuiKey_LeftArrow))
-            {
-                next = cfWrapDec(next, state->images.num_files);
-            }
-
-            if (guiKeyPressed(ImGuiKey_RightArrow))
-            {
-                next = cfWrapInc(next, state->images.num_files);
-            }
-
-            if (state->curr_file != next)
-            {
-                state->curr_file = next;
-                appQueueLoadFiles(state);
-                iv->zoom = 1.0f;
-            }
+            if (guiKeyPressed(ImGuiKey_LeftArrow)) appBrowsePrev(state);
+            if (guiKeyPressed(ImGuiKey_RightArrow)) appBrowseNext(state);
         }
 
         ImGuiIO *io = igGetIO();
@@ -788,6 +882,8 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igSeparator();
         igText("App base path:%s", state->plat->paths->base);
         igText("App data path:%s", state->plat->paths->data);
+        igSeparator();
+        igText("Loaded images: %d", imageLoadCount());
         igEnd();
     }
 

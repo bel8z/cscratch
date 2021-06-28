@@ -6,13 +6,7 @@
 
 // Backend libraries
 #include "gl/gload.h"
-
-#if SDL_BACKEND
-#    define SDL_MAIN_HANDLED
-#    include <SDL.h>
-#else
-#    include <GLFW/glfw3.h>
-#endif
+#include <GLFW/glfw3.h>
 
 // Foundation library
 #include "foundation/common.h"
@@ -38,33 +32,6 @@ static void guiSetupStyle(F32 dpi);
 static void guiSetupFonts(ImFontAtlas *fonts, F32 dpi, char const *data_path);
 static void guiUpdateFonts(ImFontAtlas *fonts, FontOptions *font_opts);
 
-#if SDL_BACKEND
-//------------------------------------------------------------------------------
-// SDL2 backend declarations
-//------------------------------------------------------------------------------
-
-extern bool ImGui_ImplSDL2_InitForOpenGL(SDL_Window *window, void *sdl_gl_context);
-extern void ImGui_ImplSDL2_Shutdown();
-extern void ImGui_ImplSDL2_NewFrame(SDL_Window *window);
-extern bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event *event);
-
-#else
-//------------------------------------------------------------------------------
-// GLFW backend declarations
-//------------------------------------------------------------------------------
-
-extern bool ImGui_ImplGlfw_InitForOpenGL(GLFWwindow *window, bool install_callbacks);
-extern void ImGui_ImplGlfw_Shutdown();
-extern void ImGui_ImplGlfw_NewFrame();
-
-static void
-glfw_error_callback(int error, const char *description)
-{
-    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
-}
-
-#endif
-
 //------------------------------------------------------------------------------
 // OpenGL3 backend declarations
 //------------------------------------------------------------------------------
@@ -77,6 +44,83 @@ extern bool ImGui_ImplOpenGL3_CreateFontsTexture();
 extern void ImGui_ImplOpenGL3_DestroyFontsTexture();
 extern bool ImGui_ImplOpenGL3_CreateDeviceObjects();
 extern void ImGui_ImplOpenGL3_DestroyDeviceObjects();
+
+typedef struct GlVersion
+{
+    I32 major, minor;
+    /// Shader version for Dear Imgui OpenGL backend
+    char const *glsl;
+} GlVersion;
+
+//------------------------------------------------------------------------------
+// GLFW backend declarations
+//------------------------------------------------------------------------------
+
+extern bool ImGui_ImplGlfw_InitForOpenGL(GLFWwindow *window, bool install_callbacks);
+extern void ImGui_ImplGlfw_Shutdown();
+extern void ImGui_ImplGlfw_NewFrame();
+
+static void
+glfwErrorCallback(int error, const char *description)
+{
+    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+}
+
+// NOTE (Matteo):
+// The way GLFW initializes OpenGL context on windows is a bit peculiar.
+// To create a context of the most recent version supported by the driver, one must require
+// version 1.0 (which is also the default hint value); in this case the "forward compatibility" and
+// "core profile" flags are not supported, and window creation fails.
+// On the other side, setting a specific 3.0+ version is not merely an hint, because a context of
+// that same version is created (or window creation fails if not supported); not sure if this is a
+// GLFW or WGL bug (or feature? D: ).
+// Anyway, I work around this by trying some different versions in decreasing release
+// order (one per year or release), in order to benefit of the latest features available.
+
+static const GlVersion g_gl_versions[8] = {
+    {.major = 4, .minor = 6, .glsl = "#version 150"}, // 2017
+    {.major = 4, .minor = 5, .glsl = "#version 150"}, // 2014
+    {.major = 4, .minor = 4, .glsl = "#version 150"}, // 2013
+    {.major = 4, .minor = 3, .glsl = "#version 150"}, // 2012
+    {.major = 4, .minor = 2, .glsl = "#version 150"}, // 2011
+    {.major = 4, .minor = 1, .glsl = "#version 150"}, // 2010
+    {.major = 3, .minor = 2, .glsl = "#version 150"}, // 2009
+    {.major = 3, .minor = 0, .glsl = "#version 130"}, // 2008
+};
+
+static GLFWwindow *
+glfwCreateWinAndContext(char const *title, I32 width, I32 height, GlVersion *gl_version)
+{
+    GLFWwindow *window = NULL;
+
+    for (Usize i = 0; i < CF_ARRAY_SIZE(g_gl_versions); ++i)
+    {
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, g_gl_versions[i].major);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, g_gl_versions[i].minor);
+
+        if (g_gl_versions[i].major >= 3)
+        {
+            // TODO (Matteo): Make this OS specific? It doesn't seem to bring any penalty
+            // 3.0+ only, required on MAC
+            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+            if (g_gl_versions[i].minor >= 2)
+            {
+                // 3.2+ only
+                glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+            }
+        }
+
+        window = glfwCreateWindow(width, height, title, NULL, NULL);
+        if (window)
+        {
+            *gl_version = g_gl_versions[i];
+            break;
+        }
+    }
+
+    return window;
+}
 
 //------------------------------------------------------------------------------
 // Application API
@@ -105,75 +149,19 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
     CF_UNUSED(argc);
     CF_UNUSED(argv);
 
-#if SDL_BACKEND
-    // Setup SDL
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
-    {
-        fprintf(stderr, "Failed to initialize SDL: %s\n", SDL_GetError());
-        return -1;
-    }
-
-    // Decide GL+GLSL versions
-#    ifdef __APPLE__
-    // GL 3.2 Core + GLSL 150
-    const char *glsl_version = "#version 150";
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
-                        SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG); // Always required on Mac
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-#    else
-    // GL 3.0 + GLSL 130
-    const char *glsl_version = "#version 130";
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#    endif
-
-    // Create window with graphics context
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    u32 window_flags =
-        (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    SDL_Window *window = SDL_CreateWindow("Dear ImGui template", SDL_WINDOWPOS_CENTERED,
-                                          SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
-    SDL_GLContext gl_context = SDL_GL_CreateContext(window);
-    SDL_GL_MakeCurrent(window, gl_context);
-    SDL_GL_SetSwapInterval(1); // Enable vsync
-
-#else
     // Setup window
-    glfwSetErrorCallback(glfw_error_callback);
+    glfwSetErrorCallback(glfwErrorCallback);
     if (!glfwInit()) return 1;
 
-        // Decide GL+GLSL versions
-#    ifdef __APPLE__
-    // GL 3.2 + GLSL 150
-    const char *glsl_version = "#version 150";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // 3.2+ only
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);           // Required on Mac
-#    else
-    // GL 3.0 + GLSL 130
-    const char *glsl_version = "#version 130";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
-#    endif
-
     // Create window with graphics context
-    GLFWwindow *window = glfwCreateWindow(1280, 720, "Dear ImGui template", NULL, NULL);
+    GlVersion gl_ver = {0};
+    GLFWwindow *window = glfwCreateWinAndContext("Dear ImGui template", 1280, 720, &gl_ver);
     if (window == NULL) return 1;
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
-#endif
 
     // Initialize OpenGL loader
-    if (!gloadInit(NULL))
+    if (!gloadInit(NULL) || !gloadIsSupported(gl_ver.major, gl_ver.minor))
     {
         fprintf(stderr, "Failed to initialize OpenGL loader!\n");
         return -2;
@@ -220,33 +208,18 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
     // Setup DPI handling
     F32 dpi_scale = 1.0f;
 
-#if SDL_BACKEND
-    F32 ddpi, hdpi, vdpi;
-    if (SDL_GetDisplayDPI(0, &ddpi, &hdpi, &vdpi) != 0)
-    {
-        fprintf(stderr, "Failed to obtain DPI information for display 0: %s\n", SDL_GetError());
-        return -3;
-    }
-    dpi_scale = ddpi / PLATFORM_DPI;
-
-#else
     F32 win_x_scale, win_y_scale;
     glfwGetWindowContentScale(window, &win_x_scale, &win_y_scale);
     // HACK How do I get the platform base DPI?
     dpi_scale = win_x_scale > win_y_scale ? win_y_scale : win_x_scale;
-#endif
 
     // Setup Dear ImGui style
     guiSetupStyle(dpi_scale);
     guiSetupFonts(io->Fonts, dpi_scale, platform->paths->data);
 
-// Setup Platform/Renderer backends
-#if SDL_BACKEND
-    ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-#else
+    // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-#endif
-    ImGui_ImplOpenGL3_Init(glsl_version);
+    ImGui_ImplOpenGL3_Init(gl_ver.glsl);
 
     // Main loop
     FontOptions font_opts = {
@@ -299,11 +272,7 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
-#if SDL_BACKEND
-        ImGui_ImplSDL2_NewFrame(window);
-#else
         ImGui_ImplGlfw_NewFrame();
-#endif
         igNewFrame();
 
         // Application frame update
@@ -312,13 +281,9 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
         // Rendering
         igRender();
 
-#if SDL_BACKEND
-        glViewport(0, 0, (i32)io->DisplaySize.x, (i32)io->DisplaySize.y);
-#else
-        int display_w, display_h;
+        I32 display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-#endif
 
         Rgba clear_color = rgbaMultiplyAlpha32(update_result.back_color);
         glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
@@ -331,45 +296,22 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
         // to make it easier to paste this code elsewhere.)
         if (io->ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
-#if SDL_BACKEND
-            SDL_Window *backup_current_window = SDL_GL_GetCurrentWindow();
-            SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
-            igUpdatePlatformWindows();
-            igRenderPlatformWindowsDefault(NULL, NULL);
-            SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
-
-#else
             GLFWwindow *backup_current_context = glfwGetCurrentContext();
             igUpdatePlatformWindows();
             igRenderPlatformWindowsDefault(NULL, NULL);
             glfwMakeContextCurrent(backup_current_context);
-#endif
         }
 
-#if SDL_BACKEND
-        SDL_GL_SwapWindow(window);
-#else
         glfwSwapBuffers(window);
-#endif
     }
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
-#if SDL_BACKEND
-    ImGui_ImplSDL2_Shutdown();
-#else
     ImGui_ImplGlfw_Shutdown();
-#endif
     igDestroyContext(platform->gui->ctx);
 
-#if SDL_BACKEND
-    SDL_GL_DeleteContext(gl_context);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-#else
     glfwDestroyWindow(window);
     glfwTerminate();
-#endif
 
     app_api.destroy(app);
 

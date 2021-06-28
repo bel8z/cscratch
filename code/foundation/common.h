@@ -69,6 +69,10 @@
 #    endif
 #endif
 
+// NOTE (Matteo): Currently only little-endian systems are supported
+#define CF_LITTLE_ENDIAN 1
+#define CF_BIG_ENDIAN 0
+
 #if !defined(CF_COMPILER_CLANG)
 #    define CF_COMPILER_CLANG 0
 #endif
