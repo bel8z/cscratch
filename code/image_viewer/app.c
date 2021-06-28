@@ -237,21 +237,18 @@ static THREAD_PROC(loadQueueProc)
 //------------------------------------------------------------------------------
 // Simple helper functions to load an image into a OpenGL texture with common settings
 
-#define IMAGE_TEX_INTERNAL_FORMAT GL_COMPRESSED_RGBA
-
-static ImageTex
-imageTexCreate(I32 width, I32 height)
+static void
+imageTexBuild(ImageTex *tex)
 {
-    ImageTex tex = {.width = width, .height = height};
+    CF_ASSERT(tex->id == 0, "Overwriting an existing texture");
 
-    glGenTextures(1, &tex.id);
-    glBindTexture(GL_TEXTURE_2D, tex.id);
-
-    // TODO (Matteo): Separate texture parameterization from loading
+    glGenTextures(1, &tex->id);
+    glBindTexture(GL_TEXTURE_2D, tex->id);
 
     // Setup filtering parameters for display
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
     // These are required on WebGL for non power-of-two textures
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -260,9 +257,29 @@ imageTexCreate(I32 width, I32 height)
 #if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
-    glTexImage2D(GL_TEXTURE_2D, 0, IMAGE_TEX_INTERNAL_FORMAT, tex.width, tex.height, 0, GL_RGBA,
-                 GL_UNSIGNED_BYTE, NULL);
 
+    // NOTE (Matteo): The following is the official suggested way to create a complete texture with
+    // a single mipmap level (multiple levels are not needed for the purpose of these textures and
+    // are only a waste of memory and bandwidth)
+    // See: https://www.khronos.org/opengl/wiki/Common_Mistakes#Creating_a_complete_texture
+    if (gloadIsSupported(4, 2))
+    {
+        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, tex->width, tex->height);
+    }
+    else
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex->width, tex->height, 0, GL_RGBA,
+                     GL_UNSIGNED_BYTE, NULL);
+    }
+}
+
+static ImageTex
+imageTexCreate(I32 width, I32 height)
+{
+    ImageTex tex = {.width = width, .height = height};
+    imageTexBuild(&tex);
     return tex;
 }
 
@@ -282,7 +299,6 @@ imageViewShutdown(ImageView *iv)
 {
     glDeleteTextures(1, &iv->tex[0].id);
     glDeleteTextures(1, &iv->tex[1].id);
-
     iv->tex[0].id = 0;
     iv->tex[1].id = 0;
 }
@@ -301,17 +317,17 @@ imageViewUpdate(ImageView *iv, Image const *image)
 
     ImageTex *tex = iv->tex + iv->tex_index;
 
-    glBindTexture(GL_TEXTURE_2D, tex->id);
-
-    if (image->height > tex->height || image->width > tex->width)
+    if (image->width > tex->width || image->height > tex->height)
     {
-        tex->height = cfMax(image->height, tex->height);
+        glDeleteTextures(1, &tex->id);
+        tex->id = 0;
         tex->width = cfMax(image->width, tex->width);
-        glTexImage2D(GL_TEXTURE_2D, 0, IMAGE_TEX_INTERNAL_FORMAT, tex->width, tex->height, 0,
-                     GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        tex->height = cfMax(image->height, tex->height);
+        imageTexBuild(tex);
     }
 
     I32 value = (iv->filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
+    glBindTexture(GL_TEXTURE_2D, tex->id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->width, image->height, GL_RGBA, GL_UNSIGNED_BYTE,
