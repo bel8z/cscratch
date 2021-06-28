@@ -14,6 +14,8 @@
     (((Rgba32)(A) << RGBA32_A_SHIFT) | ((Rgba32)(B) << RGBA32_B_SHIFT) | \
      ((Rgba32)(G) << RGBA32_G_SHIFT) | ((Rgba32)(R) << RGBA32_R_SHIFT))
 
+#define RGBA32_SOLID(R, G, B) RGBA32(R, G, B, 255)
+
 #define RGBA32_WHITE RGBA32(0xFF, 0xFF, 0xFF, 0xFF) // Opaque white = 0xFFFFFFFF
 #define RGBA32_BLACK RGBA32(0x00, 0x00, 0x00, 0xFF) // Opaque black
 #define RGBA32_TRANS RGBA32(0x00, 0x00, 0x00, 0x00) // Transparent black = 0x00000000
