@@ -2,12 +2,38 @@
 
 #include "foundation/color.h"
 
+static void *
+guiAlloc(Usize size, void *state)
+{
+    cfAllocator *alloc = state;
+    Usize *buf = cfAlloc(alloc, size + sizeof(*buf));
+
+    if (buf) *(buf++) = size;
+
+    return buf;
+}
+
+static void
+guiFree(void *mem, void *state)
+{
+    if (mem)
+    {
+        cfAllocator *alloc = state;
+        Usize *buf = mem;
+        buf--;
+        cfFree(alloc, buf, *buf + sizeof(*buf));
+    }
+}
+
 void
 guiInit(Gui *gui)
 {
+    CF_ASSERT_NOT_NULL(gui);
+    CF_ASSERT_NOT_NULL(gui->alloc);
+
     igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
                                      sizeof(ImVec4), sizeof(ImDrawVert), sizeof(ImDrawIdx));
-    igSetAllocatorFunctions(gui->alloc_func, gui->free_func, gui->alloc_state);
+    igSetAllocatorFunctions(guiAlloc, guiFree, gui->alloc);
 
     if (gui->ctx)
     {

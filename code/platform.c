@@ -26,8 +26,6 @@
 // Local function declarations
 //------------------------------------------------------------------------------
 
-static void *guiAlloc(Usize size, void *state);
-static void guiFree(void *mem, void *state);
 static void guiSetupStyle(F32 dpi);
 static void guiSetupFonts(ImFontAtlas *fonts, F32 dpi, char const *data_path);
 
@@ -171,12 +169,7 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
     platform->gl = gl;
 
     // Setup Dear ImGui context
-    platform->gui = &(Gui){
-        .alloc_func = guiAlloc,
-        .free_func = guiFree,
-        .alloc_state = platform->heap,
-    };
-
+    platform->gui = &(Gui){.alloc = platform->heap};
     guiInit(platform->gui);
 
     // Setup application
@@ -185,7 +178,6 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
     AppState *app = app_api.create(platform, argv, argc);
 
     // Configure Dear ImGui
-
     ImGuiIO *io = igGetIO();
 
     // NOTE (Matteo): Custom IMGUI ini file
@@ -369,40 +361,19 @@ appInit(AppApi *app, cfPlatform *platform)
 
 //------------------------------------------------------------------------------
 
-void *
-guiAlloc(Usize size, void *state)
-{
-    cfAllocator *alloc = state;
-    Usize *buf = cfAlloc(alloc, size + sizeof(*buf));
-
-    if (buf) *(buf++) = size;
-
-    return buf;
-}
-
-void
-guiFree(void *mem, void *state)
-{
-    if (mem)
-    {
-        cfAllocator *alloc = state;
-        Usize *buf = mem;
-        buf--;
-        cfFree(alloc, buf, *buf + sizeof(*buf));
-    }
-}
-
 static void
 guiSetupStyleSizes(ImGuiStyle *style)
 {
     // Main
     // **DEFAULT**
+
     // Borders
     style->WindowBorderSize = 1.0f;
     style->ChildBorderSize = 1.0f;
     style->PopupBorderSize = 1.0f;
     style->FrameBorderSize = 1.0f;
     style->TabBorderSize = 1.0f;
+
     // Rounding
     style->WindowRounding = 0.0f;
     style->ChildRounding = 0.0f;
@@ -412,6 +383,7 @@ guiSetupStyleSizes(ImGuiStyle *style)
     style->GrabRounding = style->FrameRounding;
     style->LogSliderDeadzone = 3.0f;
     style->TabRounding = 4.0f;
+
     // Alignment
     // **DEFAULT**
 }
