@@ -31,7 +31,7 @@ struct AppState
     cfAllocator *alloc;
 
     AppWindows windows;
-    Rgba clear_color;
+    Rgba32 clear_color;
 };
 
 //------------------------------------------------------------------------------
@@ -46,8 +46,7 @@ APP_API APP_CREATE(appCreate)
 
     app->plat = plat;
     app->alloc = plat->heap;
-
-    app->clear_color = (Rgba){.r = 0.45f, .g = 0.55f, .b = 0.60f, .a = 1.00f};
+    app->clear_color = RGBA32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
 
     // Init Dear Imgui
     guiInit(plat->gui);
@@ -195,7 +194,7 @@ APP_API APP_UPDATE(appUpdate)
     {
         igBegin("Font Options", &app->windows.fonts, 0);
 
-        if (guiFontOptions(opts))
+        if (guiFontOptionsEdit(opts))
         {
             result.flags |= AppUpdateFlags_RebuildFonts;
         }
@@ -232,7 +231,7 @@ APP_API APP_UPDATE(appUpdate)
 
     igCheckbox("Demo Window", &app->windows.demo);
     igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
-    igColorEdit4("clear color", app->clear_color.channel, 0);
+    guiColorEdit("clear color", &app->clear_color);
     igSeparator();
     guiClock(app->plat->clock());
     igSeparator();
@@ -243,7 +242,7 @@ APP_API APP_UPDATE(appUpdate)
 
     fxWindow();
 
-    result.back_color = rgbaPack32(app->clear_color);
+    result.back_color = app->clear_color;
 
     return result;
 }

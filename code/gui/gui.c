@@ -1,5 +1,7 @@
 #include "gui.h"
 
+#include "foundation/color.h"
+
 void
 guiInit(Gui *gui)
 {
@@ -46,7 +48,7 @@ guiEndFullScreen(void)
 }
 
 bool
-guiFontOptions(FontOptions *state)
+guiFontOptionsEdit(FontOptions *state)
 {
     bool rebuild_fonts = false;
 
@@ -103,6 +105,35 @@ guiFontOptions(FontOptions *state)
     return rebuild_fonts;
 }
 
+void
+guiUpdateAtlas(ImFontAtlas *fonts, FontOptions *font_opts)
+{
+    if (font_opts->tex_glyph_padding != 0)
+    {
+        fonts->TexGlyphPadding = font_opts->tex_glyph_padding;
+    }
+
+    for (I32 i = 0; i < fonts->ConfigData.Size; ++i)
+    {
+        fonts->ConfigData.Data[i].RasterizerMultiply = font_opts->rasterizer_multiply;
+        fonts->ConfigData.Data[i].OversampleH = font_opts->oversample_h;
+        fonts->ConfigData.Data[i].OversampleV = font_opts->oversample_v;
+    }
+
+    if (font_opts->freetype_enabled)
+    {
+        fonts->FontBuilderIO = ImGuiFreeType_GetBuilderForFreeType();
+        fonts->FontBuilderFlags = (U32)font_opts->freetype_flags;
+    }
+    else
+    {
+        fonts->FontBuilderIO = igImFontAtlasGetBuilderForStbTruetype();
+    }
+
+    ImFontAtlas_Build(fonts);
+
+    font_opts->tex_glyph_padding = fonts->TexGlyphPadding;
+}
 bool
 guiCenteredButton(char const *label)
 {
@@ -124,4 +155,65 @@ guiCenteredButton(char const *label)
     }
 
     return guiButton(label);
+}
+
+bool
+guiColorEdit(char const *label, Rgba32 *color)
+{
+    // TODO (Matteo): Fix redundant label
+
+    static const Rgba32 colors[] = CF_COLOR_VALUES;
+    static const char *names[] = CF_COLOR_NAMES;
+
+    bool color_changed = false;
+    Usize color_index = USIZE_MAX;
+    char const *color_name = NULL;
+    char label_buffer[1024];
+
+    // Test if the color is a known named one
+
+    for (Usize i = 0; i < CF_ARRAY_SIZE(colors) && color_index == USIZE_MAX; ++i)
+    {
+        if (colors[i] == *color)
+        {
+            color_index = i;
+            color_name = names[color_index];
+        }
+    }
+
+    // Combo box with named colors
+
+    strPrintf(label_buffer, CF_ARRAY_SIZE(label_buffer), "%s##Combo", label);
+
+    if (igBeginCombo(label_buffer, color_name, 0))
+    {
+        for (Usize i = 0; i < CF_ARRAY_SIZE(colors); ++i)
+        {
+            bool const selected = i == color_index;
+            if (igSelectableBool(names[i], selected, 0, (ImVec2){0}))
+            {
+                color_changed = color_index != i;
+                *color = colors[i];
+            }
+            if (selected) igSetItemDefaultFocus();
+        }
+
+        igEndCombo();
+    }
+
+    // Free color editing
+
+    strPrintf(label_buffer, CF_ARRAY_SIZE(label_buffer), "%s##Picker", label);
+
+    Rgba color4 = rgbaUnpack32(*color);
+    U32 edit_flags = ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf |
+                     ImGuiColorEditFlags_PickerHueWheel;
+
+    if (igColorEdit4(label_buffer, color4.channel, edit_flags))
+    {
+        *color = rgbaPack32(color4);
+        color_changed = true;
+    }
+
+    return color_changed;
 }

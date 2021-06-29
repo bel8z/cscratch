@@ -30,7 +30,6 @@ static void *guiAlloc(Usize size, void *state);
 static void guiFree(void *mem, void *state);
 static void guiSetupStyle(F32 dpi);
 static void guiSetupFonts(ImFontAtlas *fonts, F32 dpi, char const *data_path);
-static void guiUpdateFonts(ImFontAtlas *fonts, FontOptions *font_opts);
 
 //------------------------------------------------------------------------------
 // OpenGL3 backend declarations
@@ -264,7 +263,7 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
         // Rebuild font atlas if required
         if (update_result.flags & AppUpdateFlags_RebuildFonts)
         {
-            guiUpdateFonts(io->Fonts, &font_opts);
+            guiUpdateAtlas(io->Fonts, &font_opts);
             // Re-upload font texture on the GPU
             ImGui_ImplOpenGL3_DestroyDeviceObjects();
             ImGui_ImplOpenGL3_CreateDeviceObjects();
@@ -540,36 +539,6 @@ guiSetupFonts(ImFontAtlas *fonts, F32 dpi_scale, char const *data_path)
     {
         ImFontAtlas_AddFontDefault(fonts, NULL);
     }
-}
-
-void
-guiUpdateFonts(ImFontAtlas *fonts, FontOptions *font_opts)
-{
-    if (font_opts->tex_glyph_padding != 0)
-    {
-        fonts->TexGlyphPadding = font_opts->tex_glyph_padding;
-    }
-
-    for (I32 i = 0; i < fonts->ConfigData.Size; ++i)
-    {
-        fonts->ConfigData.Data[i].RasterizerMultiply = font_opts->rasterizer_multiply;
-        fonts->ConfigData.Data[i].OversampleH = font_opts->oversample_h;
-        fonts->ConfigData.Data[i].OversampleV = font_opts->oversample_v;
-    }
-
-    if (font_opts->freetype_enabled)
-    {
-        fonts->FontBuilderIO = ImGuiFreeType_GetBuilderForFreeType();
-        fonts->FontBuilderFlags = (U32)font_opts->freetype_flags;
-    }
-    else
-    {
-        fonts->FontBuilderIO = igImFontAtlasGetBuilderForStbTruetype();
-    }
-
-    ImFontAtlas_Build(fonts);
-
-    font_opts->tex_glyph_padding = fonts->TexGlyphPadding;
 }
 
 //------------------------------------------------------------------------------

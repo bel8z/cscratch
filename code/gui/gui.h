@@ -28,7 +28,16 @@
 // Gui utilities
 //------------------------------------------------------------------------------
 
-// Helper struct to tweak IMGUI font handling
+/// IMGUI state, used to initialize internal global variables
+typedef struct Gui
+{
+    ImGuiContext *ctx;
+    void *alloc_state;
+    void *(*alloc_func)(Usize size, void *state);
+    void (*free_func)(void *mem, void *state);
+} Gui;
+
+/// Helper struct to tweak IMGUI font handling
 typedef struct FontOptions
 {
     I32 tex_glyph_padding;
@@ -41,22 +50,23 @@ typedef struct FontOptions
     bool freetype_enabled;
 } FontOptions;
 
-typedef struct Gui
-{
-    ImGuiContext *ctx;
-    void *alloc_state;
-    void *(*alloc_func)(Usize size, void *state);
-    void (*free_func)(void *mem, void *state);
-} Gui;
-
+/// Initialize IMGUI global state
 void guiInit(Gui *gui);
 
 void guiBeginFullScreen(char *label, bool docking, bool menu_bar);
 void guiEndFullScreen(void);
 
-bool guiFontOptions(FontOptions *state);
+/// Widget for the editing of font options
+bool guiFontOptionsEdit(FontOptions *state);
+/// Update the given atlas with the given options
+void guiUpdateAtlas(ImFontAtlas *fonts, FontOptions *font_opts);
+/// Update the current font atlas with the given options
+#define guiUpdateFonts(font_opts) guiUpdateAtlas(igGetIO()->Fonts, font_opts)
 
 bool guiCenteredButton(char const *label);
+
+/// Custom color edit with an additional combobox for choosing X11 named colors
+bool guiColorEdit(char const *label, Rgba32 *color);
 
 //------------------------------------------------------------------------------
 // Inline utilities
@@ -65,7 +75,7 @@ bool guiCenteredButton(char const *label);
 static inline bool
 guiButton(char const *label)
 {
-    return igButton(label, (ImVec2){0, 0});
+    return igButton(label, (ImVec2){0});
 }
 
 static inline void

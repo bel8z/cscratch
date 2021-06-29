@@ -864,7 +864,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
     {
         igBegin("Font Options", &state->windows.fonts, 0);
 
-        if (guiFontOptions(font_opts))
+        if (guiFontOptionsEdit(font_opts))
         {
             result.flags |= AppUpdateFlags_RebuildFonts;
         }
