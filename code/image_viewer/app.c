@@ -34,6 +34,11 @@
 
 static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
 
+#define MAIN_WINDOW "Main"
+#define STYLE_WINDOW "Style Editor"
+#define FONTS_WINDOW "Font Options"
+#define STATS_WINDOW "Application Statistics"
+
 enum Constants
 {
     FILENAME_SIZE = 256,
@@ -795,8 +800,8 @@ appMenuBar(AppState *state)
         {
             igMenuItemBoolPtr("Advanced", NULL, &state->iv.advanced, true);
             igSeparator();
-            igMenuItemBoolPtr("Style editor", NULL, &state->windows.style, true);
-            igMenuItemBoolPtr("Font options", NULL, &state->windows.fonts, true);
+            igMenuItemBoolPtr(STYLE_WINDOW, NULL, &state->windows.style, true);
+            igMenuItemBoolPtr(FONTS_WINDOW, NULL, &state->windows.fonts, true);
             igSeparator();
             igMenuItemBoolPtr("Stats", NULL, &state->windows.stats, true);
             igMenuItemBoolPtr("Metrics", NULL, &state->windows.metrics, true);
@@ -814,6 +819,7 @@ appMenuBar(AppState *state)
 static void
 appMainWindow(AppState *state)
 {
+
     // NOTE (Matteo): Layout main window as a fixed dockspace that can host tool windows
     // ImGuiDockNodeFlags_NoDockingInCentralNode is used to prevent tool windows from hiding the
     // image view
@@ -821,12 +827,36 @@ appMainWindow(AppState *state)
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
         ImGuiWindowFlags_NoNavFocus;
+    ImGuiDockNodeFlags const dock_flags = ImGuiDockNodeFlags_NoDockingInCentralNode;
     ImGuiViewport const *viewport = igGetMainViewport();
-    ImGuiID const dock_id =
-        igDockSpaceOverViewport(viewport, ImGuiDockNodeFlags_NoDockingInCentralNode, NULL);
+    ImGuiID dock_id = igDockSpaceOverViewport(viewport, dock_flags, NULL);
 
-    igSetNextWindowDockID(dock_id, ImGuiCond_None);
-    igBegin("Main", 0, window_flags);
+    // TODO (Matteo): Why layout is not persisted???
+    // NOTE (Matteo): Layout code found on github, since the DockBuilder API is not documented.
+    // It works, but is better to build some more understanding of this API.
+    static bool perform_layout = true;
+    if (perform_layout)
+    {
+        perform_layout = false;
+        // clear any previous layout
+        igDockBuilderRemoveNode(dock_id);
+        igDockBuilderAddNode(dock_id, dock_flags | ImGuiDockNodeFlags_DockSpace);
+        igDockBuilderSetNodeSize(dock_id, viewport->Size);
+
+        ImGuiID dock_id_right =
+            igDockBuilderSplitNode(dock_id, ImGuiDir_Right, 0.25f, NULL, &dock_id);
+        ImGuiID dock_id_down =
+            igDockBuilderSplitNode(dock_id, ImGuiDir_Down, 0.25f, NULL, &dock_id);
+
+        // we now dock our windows into the docking node we made above
+        igDockBuilderDockWindow(MAIN_WINDOW, dock_id);
+        igDockBuilderDockWindow(STATS_WINDOW, dock_id_down);
+        igDockBuilderDockWindow(STYLE_WINDOW, dock_id_right);
+        igDockBuilderDockWindow(FONTS_WINDOW, dock_id_right);
+        igDockBuilderFinish(dock_id);
+    }
+
+    igBegin(MAIN_WINDOW, 0, window_flags);
 
     // NOTE (Matteo): Instruct the docking system to consider the window's node always as the
     // central one, thus not using it as a docking target (there's the backing dockspace already)
@@ -861,7 +891,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
 
     if (state->windows.fonts)
     {
-        igBegin("Font Options", &state->windows.fonts, 0);
+        igBegin(FONTS_WINDOW, &state->windows.fonts, 0);
 
         if (guiFontOptionsEdit(font_opts))
         {
@@ -875,7 +905,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
     {
         F64 framerate = (F64)igGetIO()->Framerate;
 
-        igBegin("Application stats", &state->windows.stats, 0);
+        igBegin(STATS_WINDOW, &state->windows.stats, 0);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
         igText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
         igText("Virtual memory reserved %.3fkb - committed %.3fkb", (F64)plat->reserved_size / 1024,
@@ -890,7 +920,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
 
     if (state->windows.style)
     {
-        igBegin("Style Editor", &state->windows.style, 0);
+        igBegin(STYLE_WINDOW, &state->windows.style, 0);
         igShowStyleEditor(NULL);
         igEnd();
     }
