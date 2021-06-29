@@ -738,7 +738,7 @@ appImageView(AppState *state)
 
         ImDrawList *draw_list = igGetWindowDrawList();
         ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
-        ImDrawList_AddImage(draw_list, (void *)(Iptr)tex->id, image_min, image_max,
+        ImDrawList_AddImage(draw_list, (ImTextureID)(Iptr)tex->id, image_min, image_max,
                             (ImVec2){0.0f, 0.0f}, clamp_uv, igGetColorU32U32(RGBA32_WHITE));
 
         if (iv->advanced)
