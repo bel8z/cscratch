@@ -135,13 +135,18 @@ typedef struct AppApi
     AppProc unload;
 
     AppUpdateProc update;
+
+    // TODO (Matteo): reduce redundancy
+    char src_file[Paths_Size];
+    char dst_file[Paths_Size];
 } AppApi;
 
 static APP_PROC(appProcStub);
 static APP_CREATE_PROC(appCreateStub);
 static APP_UPDATE_PROC(appUpdateStub);
 
-static void appInit(AppApi *app, cfPlatform *platform);
+static void appApiLoad(AppApi *api, cfPlatform *platform);
+static void appApiUpdate(AppApi *api, cfPlatform *platform, AppState *app);
 
 //------------------------------------------------------------------------------
 // Main
@@ -181,7 +186,7 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
 
     // Setup application
     AppApi app_api = {0};
-    appInit(&app_api, platform);
+    appApiLoad(&app_api, platform);
     AppState *app = app_api.create(platform, argv, argc);
 
     // Configure Dear ImGui
@@ -257,13 +262,8 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
     {
         glfwPollEvents();
 #endif
-
-        if (io->KeyCtrl && io->KeyAlt && igIsKeyPressed('R', true))
-        {
-            app_api.unload(app);
-            appInit(&app_api, platform);
-            app_api.load(app);
-        }
+        // NOTE (Matteo): Auto reloading of application library
+        appApiUpdate(&app_api, platform, app);
 
         // TODO (Matteo): Build a font atlas per-monitor (or DPI resolution)
 
@@ -348,40 +348,50 @@ static APP_UPDATE_PROC(appUpdateStub)
     return (AppUpdateResult){.flags = AppUpdateFlags_Quit};
 }
 
-static void
-appInit(AppApi *app, cfPlatform *platform)
+void
+appApiLoad(AppApi *api, cfPlatform *platform)
 {
-    if (app->lib)
+    if (api->lib)
     {
-        CF_ASSERT(app->create, "");
-        platform->libUnload(app->lib);
-        cfMemClear(app, sizeof(*app));
+        CF_ASSERT(api->create, "");
+        platform->libUnload(api->lib);
+        cfMemClear(api, sizeof(*api));
     }
 
-    char src_path[Paths_Size] = {0};
-    char dst_path[Paths_Size] = {0};
-    strPrintf(src_path, Paths_Size, "%s%s", platform->paths->base, platform->paths->lib_name);
-    strPrintf(dst_path, Paths_Size, "%s.tmp", src_path);
+    strPrintf(api->src_file, Paths_Size, "%s%s", platform->paths->base, platform->paths->lib_name);
+    strPrintf(api->dst_file, Paths_Size, "%s.tmp", api->src_file);
 
-    if (platform->fs->file_copy(src_path, dst_path, true))
+    if (platform->fs->file_copy(api->src_file, api->dst_file, true))
     {
-        app->lib = platform->libLoad(dst_path);
+        api->lib = platform->libLoad(api->dst_file);
     }
 
-    if (app->lib)
+    if (api->lib)
     {
-        app->create = (AppCreateProc)platform->libLoadProc(app->lib, "appCreate");
-        app->destroy = (AppProc)platform->libLoadProc(app->lib, "appDestroy");
-        app->load = (AppProc)platform->libLoadProc(app->lib, "appLoad");
-        app->unload = (AppProc)platform->libLoadProc(app->lib, "appUnload");
-        app->update = (AppUpdateProc)platform->libLoadProc(app->lib, "appUpdate");
+        api->create = (AppCreateProc)platform->libLoadProc(api->lib, "appCreate");
+        api->destroy = (AppProc)platform->libLoadProc(api->lib, "appDestroy");
+        api->load = (AppProc)platform->libLoadProc(api->lib, "appLoad");
+        api->unload = (AppProc)platform->libLoadProc(api->lib, "appUnload");
+        api->update = (AppUpdateProc)platform->libLoadProc(api->lib, "appUpdate");
     }
 
-    if (!app->create) app->create = appCreateStub;
-    if (!app->destroy) app->destroy = appProcStub;
-    if (!app->load) app->load = appProcStub;
-    if (!app->unload) app->unload = appProcStub;
-    if (!app->update) app->update = appUpdateStub;
+    if (!api->create) api->create = appCreateStub;
+    if (!api->destroy) api->destroy = appProcStub;
+    if (!api->load) api->load = appProcStub;
+    if (!api->unload) api->unload = appProcStub;
+    if (!api->update) api->update = appUpdateStub;
+}
+
+void
+appApiUpdate(AppApi *api, cfPlatform *platform, AppState *app)
+{
+    // TODO (Matteo): Are these operation too expensive to be performed every frame?
+    if (platform->fs->file_write_time(api->src_file) > platform->fs->file_write_time(api->dst_file))
+    {
+        api->unload(app);
+        appApiLoad(api, platform);
+        api->load(app);
+    }
 }
 
 //------------------------------------------------------------------------------

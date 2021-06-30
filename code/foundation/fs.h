@@ -34,6 +34,8 @@ typedef struct FileContent
     Usize size;
 } FileContent;
 
+typedef U64 FileTime;
+
 typedef struct cfFileSystem
 {
     // Create an iterator on the given directory contents (return NULL in case of failure)
@@ -50,7 +52,7 @@ typedef struct cfFileSystem
 
     FileContent (*file_read)(char const *filename, cfAllocator *alloc);
     bool (*file_copy)(char const *source, char const *dest, bool overwrite);
-
+    FileTime (*file_write_time)(char const *filename);
 } cfFileSystem;
 
 //------------------------------------------------------------------------------

@@ -46,6 +46,7 @@ static FileDlgResult win32OpenFileDlg(char const *filename_hint, FileDlgFilter *
 
 static FileContent win32FileRead(char const *filename, cfAllocator *alloc);
 static bool win32FileCopy(char const *source, char const *dest, bool overwrite);
+static FileTime win32FileWriteTime(char const *filename);
 
 // Timing
 static struct
@@ -91,6 +92,7 @@ static cfPlatform g_platform = {
             .open_file_dlg = win32OpenFileDlg,
             .file_read = win32FileRead,
             .file_copy = win32FileCopy,
+            .file_write_time = win32FileWriteTime,
         },
     .threading = &(Threading){0},
     .clock = win32Clock,
@@ -638,6 +640,27 @@ win32FileCopy(char const *source, char const *dest, bool overwrite)
 
     win32PrintLastError();
     return false;
+}
+
+static FileTime
+win32FileWriteTime(char const *filename)
+{
+    FileTime write_time = 0;
+
+    WCHAR wide_name[FILENAME_MAX] = {0};
+    win32Utf8To16(filename, -1, wide_name, FILENAME_MAX);
+
+    WIN32_FIND_DATAW find_data = {0};
+    HANDLE find_handle = FindFirstFileW(wide_name, &find_data);
+
+    if (find_handle != INVALID_HANDLE_VALUE)
+    {
+        FILETIME temp = find_data.ftLastWriteTime;
+        write_time = ((U64)temp.dwHighDateTime << 32) | temp.dwLowDateTime;
+        FindClose(find_handle);
+    }
+
+    return write_time;
 }
 
 //------------------------------------------------------------------------------
