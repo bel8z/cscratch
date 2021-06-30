@@ -820,7 +820,6 @@ appMenuBar(AppState *state)
 static void
 appMainWindow(AppState *state)
 {
-
     // NOTE (Matteo): Layout main window as a fixed dockspace that can host tool windows
     // ImGuiDockNodeFlags_NoDockingInCentralNode is used to prevent tool windows from hiding the
     // image view
@@ -832,24 +831,19 @@ appMainWindow(AppState *state)
     ImGuiViewport const *viewport = igGetMainViewport();
     ImGuiID dock_id = igDockSpaceOverViewport(viewport, dock_flags, NULL);
 
-    // TODO (Matteo): Why layout is not persisted???
-    // NOTE (Matteo): Layout code found on github, since the DockBuilder API is not documented.
-    // It works, but is better to build some more understanding of this API.
-    static bool perform_layout = true;
-    if (perform_layout)
+    // NOTE (Matteo): Setup docking layout on first run (if the dockspace node is already split the
+    // layout has been setup and maybe modified by the user).
+    // This code is partially copied from github since the DockBuilder API is not documented -
+    // understand it better!
+    ImGuiDockNode *dockspace_node = igDockBuilderGetNode(dock_id);
+    if (!dockspace_node || !ImGuiDockNode_IsSplitNode(dockspace_node))
     {
-        perform_layout = false;
-        // clear any previous layout
-        igDockBuilderRemoveNode(dock_id);
-        igDockBuilderAddNode(dock_id, dock_flags | ImGuiDockNodeFlags_DockSpace);
-        igDockBuilderSetNodeSize(dock_id, viewport->Size);
-
         ImGuiID dock_id_right =
             igDockBuilderSplitNode(dock_id, ImGuiDir_Right, 0.25f, NULL, &dock_id);
         ImGuiID dock_id_down =
             igDockBuilderSplitNode(dock_id, ImGuiDir_Down, 0.25f, NULL, &dock_id);
 
-        // we now dock our windows into the docking node we made above
+        // Pre-dock application windows in the created nodes
         igDockBuilderDockWindow(MAIN_WINDOW, dock_id);
         igDockBuilderDockWindow(STATS_WINDOW, dock_id_down);
         igDockBuilderDockWindow(STYLE_WINDOW, dock_id_right);
@@ -861,8 +855,8 @@ appMainWindow(AppState *state)
 
     // NOTE (Matteo): Instruct the docking system to consider the window's node always as the
     // central one, thus not using it as a docking target (there's the backing dockspace already)
-    ImGuiDockNode *dock_node = igGetWindowDockNode();
-    dock_node->LocalFlags |= ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_CentralNode;
+    ImGuiDockNode *main_node = igGetWindowDockNode();
+    main_node->LocalFlags |= ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_CentralNode;
 
     appImageView(state);
 
