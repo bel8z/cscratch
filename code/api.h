@@ -26,7 +26,7 @@ typedef struct Paths
     char base[Paths_Size];
     char data[Paths_Size];
     char exe_name[Paths_Size];
-    char dll_name[Paths_Size];
+    char lib_name[Paths_Size];
 } Paths;
 
 typedef struct cfPlatform

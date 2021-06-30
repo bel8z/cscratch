@@ -338,7 +338,7 @@ static void
 appInit(AppApi *app, cfPlatform *platform)
 {
     char path[Paths_Size] = {0};
-    strPrintf(path, Paths_Size, "%s%s", platform->paths->base, platform->paths->dll_name);
+    strPrintf(path, Paths_Size, "%s%s", platform->paths->base, platform->paths->lib_name);
 
     cfMemClear(app, sizeof(*app));
 

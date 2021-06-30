@@ -112,7 +112,8 @@ pathsInit(Paths *g_paths)
     Usize file_name_ofst = (Usize)(file_name - g_paths->base);
 
     cfMemCopy(file_name, g_paths->exe_name, base_size - file_name_ofst);
-    strPrintf(g_paths->dll_name, Paths_Size, "%.*s%s", (I32)(ext - file_name), file_name, ".dll");
+    strPrintf(g_paths->lib_name, Paths_Size, "%.*s%s", (I32)(ext - file_name), file_name,
+              "_lib.dll");
 
     g_paths->base[file_name_ofst] = 0;
     strPrintf(g_paths->data, Paths_Size, "%sdata\\", g_paths->base);

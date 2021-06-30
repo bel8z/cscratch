@@ -95,7 +95,7 @@ foreach(APP ${APP_LIST})
     message(STATUS "Configuring ${APP}")
 
     set(EXE_NAME ${APP})
-    set(DLL_NAME ${APP}_dll)
+    set(LIB_NAME ${APP}_lib)
 
     set(APP_SOURCES)
     set(APP_RESOURCES)
@@ -110,21 +110,21 @@ foreach(APP ${APP_LIST})
     set_source_files_properties(${APP_RESOURCES} PROPERTIES LANGUAGE RC)
 
     add_executable(${EXE_NAME} WIN32 ${PLATFORM_SOURCES} ${APP_RESOURCES})
-    add_library(${DLL_NAME} SHARED ${APP_SOURCES})
+    add_library(${LIB_NAME} SHARED ${APP_SOURCES})
 
     target_compile_features(${EXE_NAME} PUBLIC c_std_11)
-    target_compile_features(${DLL_NAME} PUBLIC c_std_11)
+    target_compile_features(${LIB_NAME} PUBLIC c_std_11)
 
     target_include_directories(${EXE_NAME} PUBLIC ${CODE_DIR})
-    target_include_directories(${DLL_NAME} PUBLIC ${CODE_DIR} ${EXT_DIR}/stb)
+    target_include_directories(${LIB_NAME} PUBLIC ${CODE_DIR} ${EXT_DIR}/stb)
 
     target_link_libraries(${EXE_NAME} PRIVATE foundation gui_backend)
-    target_link_libraries(${DLL_NAME} PRIVATE foundation gui ${OPENGL_gl_LIBRARY}) 
+    target_link_libraries(${LIB_NAME} PRIVATE foundation gui ${OPENGL_gl_LIBRARY}) 
 
     set_c_compile_flags(${EXE_NAME})
-    set_c_compile_flags(${DLL_NAME})
+    set_c_compile_flags(${LIB_NAME})
 
-    set_target_properties(${DLL_NAME} PROPERTIES OUTPUT_NAME ${EXE_NAME})
+    # set_target_properties(${LIB_NAME} PROPERTIES OUTPUT_NAME ${EXE_NAME})
 endforeach()
 
 #-----------
