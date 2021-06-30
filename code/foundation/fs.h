@@ -48,7 +48,8 @@ typedef struct cfFileSystem
     FileDlgResult (*open_file_dlg)(char const *filename_hint, FileDlgFilter *filters,
                                    Usize num_filters, cfAllocator *alloc);
 
-    FileContent (*read_file)(char const *filename, cfAllocator *alloc);
+    FileContent (*file_read)(char const *filename, cfAllocator *alloc);
+    bool (*file_copy)(char const *source, char const *dest, bool overwrite);
 
 } cfFileSystem;
 

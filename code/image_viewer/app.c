@@ -374,11 +374,8 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
     app->images.bytes_reserved = images_vm;
     app->images.files = cfVmReserve(plat->vm, images_vm);
 
-    // Init Dear Imgui
-    guiInit(plat->gui);
-
-    // Init image loading
-    gloadInit(plat->gl);
+    // NOTE (Matteo): Init global state (same as library re-load)
+    appLoad(app);
 
     imageViewInit(&app->iv);
 
@@ -399,6 +396,16 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
     }
 
     return app;
+}
+
+APP_API APP_PROC(appLoad)
+{
+    CF_ASSERT_NOT_NULL(app);
+    CF_ASSERT_NOT_NULL(app->plat);
+    // Init Dear Imgui
+    guiInit(app->plat->gui);
+    // Init image loading
+    gloadInit(app->plat->gl);
 }
 
 static void

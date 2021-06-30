@@ -44,7 +44,8 @@ static void win32DirIterClose(DirIter *self);
 static FileDlgResult win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters,
                                       Usize num_filters, cfAllocator *alloc);
 
-static FileContent win32ReadFile(char const *filename, cfAllocator *alloc);
+static FileContent win32FileRead(char const *filename, cfAllocator *alloc);
+static bool win32FileCopy(char const *source, char const *dest, bool overwrite);
 
 // Timing
 static struct
@@ -58,12 +59,15 @@ static struct
 static Time win32Clock(void);
 
 /// Dynamic loading
-static void *win32libLoad(char const *filename);
-static void *win32libLoadProc(void *restrict lib, char const *restrict name);
+static Library *win32libLoad(char const *filename);
+static void win32libUnload(Library *lib);
+static void *win32libLoadProc(Library *restrict lib, char const *restrict name);
 
 // UTF8<->UTF16 helpers
 static U32 win32Utf8To16(char const *str, I32 str_size, WCHAR *out, U32 out_size);
 static U32 win32Utf16To8(WCHAR const *str, I32 str_size, char *out, U32 out_size);
+
+static void win32PrintLastError(void);
 
 // Global platform API
 // NOTE (Matteo): a global here should be quite safe
@@ -85,12 +89,14 @@ static cfPlatform g_platform = {
             .dir_iter_next = win32DirIterNext,
             .dir_iter_close = win32DirIterClose,
             .open_file_dlg = win32OpenFileDlg,
-            .read_file = win32ReadFile,
+            .file_read = win32FileRead,
+            .file_copy = win32FileCopy,
         },
     .threading = &(Threading){0},
     .clock = win32Clock,
     .paths = &(Paths){0},
     .libLoad = win32libLoad,
+    .libUnload = win32libUnload,
     .libLoadProc = win32libLoadProc,
 };
 
@@ -243,8 +249,7 @@ VM_REVERT_FUNC(win32VmDecommit)
     }
     else
     {
-        U32 err = GetLastError();
-        CF_UNUSED(err);
+        win32PrintLastError();
         CF_ASSERT(false, "VM decommit failed");
     }
 }
@@ -262,8 +267,7 @@ VM_RELEASE_FUNC(win32VmRelease)
     }
     else
     {
-        U32 err = GetLastError();
-        CF_UNUSED(err);
+        win32PrintLastError();
         CF_ASSERT(false, "VM release failed");
     }
 }
@@ -574,7 +578,7 @@ win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, Usize num_fi
 }
 
 FileContent
-win32ReadFile(char const *filename, cfAllocator *alloc)
+win32FileRead(char const *filename, cfAllocator *alloc)
 {
     FileContent result = {0};
 
@@ -622,8 +626,19 @@ win32ReadFile(char const *filename, cfAllocator *alloc)
     return result;
 }
 
-//------------------------------------------------------------------------------
-// Threading API
+bool
+win32FileCopy(char const *source, char const *dest, bool overwrite)
+{
+    WCHAR ws[FILENAME_MAX] = {0};
+    WCHAR wd[FILENAME_MAX] = {0};
+    win32Utf8To16(source, -1, ws, FILENAME_MAX);
+    win32Utf8To16(dest, -1, wd, FILENAME_MAX);
+
+    if (CopyFileW(ws, wd, !overwrite)) return true;
+
+    win32PrintLastError();
+    return false;
+}
 
 //------------------------------------------------------------------------------
 Time
@@ -646,18 +661,36 @@ win32Clock(void)
 //------------------------------------------------------------------------------
 // Dynamic loading
 
-static void *
+Library *
 win32libLoad(char const *filename)
 {
     WCHAR buffer[1024];
     win32Utf8To16(filename, -1, buffer, 1024);
-    return LoadLibraryW(buffer);
+    Library *lib = (void *)LoadLibraryW(buffer);
+
+    if (!lib)
+    {
+        win32PrintLastError();
+        CF_ASSERT(FALSE, "LoadLibraryW FAILED");
+    }
+
+    return lib;
 }
 
-static void *
-win32libLoadProc(void *lib, char const *name)
+void
+win32libUnload(Library *lib)
 {
-    return (void *)GetProcAddress(lib, name);
+    if (!FreeLibrary((HMODULE)lib))
+    {
+        win32PrintLastError();
+        CF_ASSERT(FALSE, "FreeLibrary FAILED");
+    }
+}
+
+void *
+win32libLoadProc(Library *lib, char const *name)
+{
+    return (void *)GetProcAddress((HMODULE)lib, name);
 }
 
 //------------------------------------------------------------------------------
@@ -679,3 +712,16 @@ win32Utf16To8(WCHAR const *str, I32 str_size, char *out, U32 out_size)
 }
 
 //------------------------------------------------------------------------------
+
+void
+win32PrintLastError(void)
+{
+    DWORD error = GetLastError();
+    LPSTR msg = NULL;
+    FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                       FORMAT_MESSAGE_IGNORE_INSERTS,
+                   NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&msg, 0, NULL);
+    CF_DEBUG_BREAK();
+    fprintf(stderr, "%s\n", msg);
+    LocalFree(msg);
+}

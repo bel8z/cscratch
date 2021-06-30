@@ -12,6 +12,7 @@
 #include "foundation/common.h"
 
 #include "foundation/color.h"
+#include "foundation/fs.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"
 
@@ -125,14 +126,20 @@ glfwCreateWinAndContext(char const *title, I32 width, I32 height, GlVersion *gl_
 
 typedef struct AppApi
 {
+    Library *lib;
+
     AppCreateProc create;
-    AppDestroyProc destroy;
+    AppProc destroy;
+
+    AppProc load;
+    AppProc unload;
+
     AppUpdateProc update;
 } AppApi;
 
-static APP_CREATE(appCreateStub);
-static APP_DESTROY(appDestroyStub);
-static APP_UPDATE(appUpdateStub);
+static APP_PROC(appProcStub);
+static APP_CREATE_PROC(appCreateStub);
+static APP_UPDATE_PROC(appUpdateStub);
 
 static void appInit(AppApi *app, cfPlatform *platform);
 
@@ -173,7 +180,7 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
     guiInit(platform->gui);
 
     // Setup application
-    AppApi app_api;
+    AppApi app_api = {0};
     appInit(&app_api, platform);
     AppState *app = app_api.create(platform, argv, argc);
 
@@ -250,6 +257,14 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
     {
         glfwPollEvents();
 #endif
+
+        if (io->KeyCtrl && io->KeyAlt && igIsKeyPressed('R', true))
+        {
+            app_api.unload(app);
+            appInit(&app_api, platform);
+            app_api.load(app);
+        }
+
         // TODO (Matteo): Build a font atlas per-monitor (or DPI resolution)
 
         // Rebuild font atlas if required
@@ -313,7 +328,12 @@ platformMain(cfPlatform *platform, char const *argv[], I32 argc)
 // Internal functions
 //------------------------------------------------------------------------------
 
-static APP_CREATE(appCreateStub)
+static APP_PROC(appProcStub)
+{
+    CF_UNUSED(app);
+}
+
+static APP_CREATE_PROC(appCreateStub)
 {
     CF_UNUSED(plat);
     CF_UNUSED(argc);
@@ -321,13 +341,7 @@ static APP_CREATE(appCreateStub)
     return NULL;
 }
 
-static APP_DESTROY(appDestroyStub)
-{
-    CF_UNUSED(app);
-    CF_ASSERT(!app, "");
-}
-
-static APP_UPDATE(appUpdateStub)
+static APP_UPDATE_PROC(appUpdateStub)
 {
     CF_UNUSED(app);
     CF_UNUSED(opts);
@@ -337,26 +351,37 @@ static APP_UPDATE(appUpdateStub)
 static void
 appInit(AppApi *app, cfPlatform *platform)
 {
-    char path[Paths_Size] = {0};
-    strPrintf(path, Paths_Size, "%s%s", platform->paths->base, platform->paths->lib_name);
-
-    cfMemClear(app, sizeof(*app));
-
-    void *app_lib = platform->libLoad(path);
-
-    if (app_lib)
+    if (app->lib)
     {
-        app->create = (AppCreateProc)platform->libLoadProc(app_lib, "appCreate");
-        app->destroy = (AppDestroyProc)platform->libLoadProc(app_lib, "appDestroy");
-        app->update = (AppUpdateProc)platform->libLoadProc(app_lib, "appUpdate");
+        CF_ASSERT(app->create, "");
+        platform->libUnload(app->lib);
+        cfMemClear(app, sizeof(*app));
     }
 
-    if (!app->create || !app->destroy || !app->update)
+    char src_path[Paths_Size] = {0};
+    char dst_path[Paths_Size] = {0};
+    strPrintf(src_path, Paths_Size, "%s%s", platform->paths->base, platform->paths->lib_name);
+    strPrintf(dst_path, Paths_Size, "%s.tmp", src_path);
+
+    if (platform->fs->file_copy(src_path, dst_path, true))
     {
-        app->create = appCreateStub;
-        app->destroy = appDestroyStub;
-        app->update = appUpdateStub;
+        app->lib = platform->libLoad(dst_path);
     }
+
+    if (app->lib)
+    {
+        app->create = (AppCreateProc)platform->libLoadProc(app->lib, "appCreate");
+        app->destroy = (AppProc)platform->libLoadProc(app->lib, "appDestroy");
+        app->load = (AppProc)platform->libLoadProc(app->lib, "appLoad");
+        app->unload = (AppProc)platform->libLoadProc(app->lib, "appUnload");
+        app->update = (AppUpdateProc)platform->libLoadProc(app->lib, "appUpdate");
+    }
+
+    if (!app->create) app->create = appCreateStub;
+    if (!app->destroy) app->destroy = appProcStub;
+    if (!app->load) app->load = appProcStub;
+    if (!app->unload) app->unload = appProcStub;
+    if (!app->update) app->update = appUpdateStub;
 }
 
 //------------------------------------------------------------------------------

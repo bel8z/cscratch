@@ -36,7 +36,7 @@ struct AppState
 
 //------------------------------------------------------------------------------
 
-APP_API APP_CREATE(appCreate)
+APP_API APP_CREATE_PROC(appCreate)
 {
     CF_UNUSED(argv);
     CF_UNUSED(argc);
@@ -57,7 +57,7 @@ APP_API APP_CREATE(appCreate)
     return app;
 }
 
-APP_API APP_DESTROY(appDestroy)
+APP_API APP_PROC(appDestroy)
 {
     cfFree(app->alloc, app, sizeof(*app));
 }
@@ -165,7 +165,7 @@ guiClock(Time time)
     igText("%02d:%02d:%02d.%03d", hours, mins, final_secs, ms_remainder);
 }
 
-APP_API APP_UPDATE(appUpdate)
+APP_API APP_UPDATE_PROC(appUpdate)
 {
     AppUpdateResult result = {.flags = AppUpdateFlags_None};
 

@@ -29,6 +29,8 @@ typedef struct Paths
     char lib_name[Paths_Size];
 } Paths;
 
+typedef struct Library Library;
+
 typedef struct cfPlatform
 {
     /// Virtual memory services
@@ -65,8 +67,9 @@ typedef struct cfPlatform
     Paths *paths;
 
     /// Dynamic library loading
-    void *(*libLoad)(char const *filename);
-    void *(*libLoadProc)(void *restrict lib, char const *restrict name);
+    Library *(*libLoad)(char const *filename);
+    void (*libUnload)(Library *lib);
+    void *(*libLoadProc)(Library *restrict lib, char const *restrict name);
 
 } cfPlatform;
 
@@ -94,13 +97,13 @@ typedef struct AppUpdateResult
     Rgba32 back_color;
 } AppUpdateResult;
 
-#define APP_CREATE(name) AppState *name(cfPlatform *plat, char const *argv[], I32 argc)
-#define APP_DESTROY(name) void name(AppState *app)
-#define APP_UPDATE(name) AppUpdateResult name(AppState *app, FontOptions *opts)
+#define APP_PROC(name) void name(AppState *app)
+#define APP_CREATE_PROC(name) AppState *name(cfPlatform *plat, char const *argv[], I32 argc)
+#define APP_UPDATE_PROC(name) AppUpdateResult name(AppState *app, FontOptions *opts)
 
-typedef APP_CREATE((*AppCreateProc));
-typedef APP_DESTROY((*AppDestroyProc));
-typedef APP_UPDATE((*AppUpdateProc));
+typedef APP_PROC((*AppProc));
+typedef APP_CREATE_PROC((*AppCreateProc));
+typedef APP_UPDATE_PROC((*AppUpdateProc));
 
 #if CF_OS_WIN32
 #    define APP_API __declspec(dllexport)
@@ -108,6 +111,8 @@ typedef APP_UPDATE((*AppUpdateProc));
 #    define APP_API
 #endif
 
-APP_API APP_CREATE(appCreate);
-APP_API APP_DESTROY(appDestroy);
-APP_API APP_UPDATE(appUpdate);
+APP_API APP_CREATE_PROC(appCreate);
+APP_API APP_PROC(appDestroy);
+APP_API APP_PROC(appLoad);
+APP_API APP_PROC(appUnload);
+APP_API APP_UPDATE_PROC(appUpdate);
