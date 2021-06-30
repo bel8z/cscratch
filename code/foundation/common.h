@@ -4,27 +4,12 @@
 // files
 // TODO (Matteo): This is growing fast and maybe should be trimmed
 
-#include <assert.h>
 #include <float.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
-
-//------------------------------------------------------------------------------
-// Customization flags
-//------------------------------------------------------------------------------
-
-// NOTE (Matteo): Memory protection is on by default, and can be disabled as a compilation flag
-#if !defined(CF_MEMORY_PROTECTION)
-#    define CF_MEMORY_PROTECTION 1
-#endif
-
-// NOTE (Matteo): Asserts in release builds are enabled by default, and can be disabled as a
-// compilation flag
-#if !defined(CF_RELEASE_ASSERTS)
-#    define CF_RELEASE_ASSERTS 1
-#endif
 
 //------------------------------------------------------------------------------
 // Context defines
@@ -114,6 +99,35 @@
 #    define CF_MAX_ALIGN (sizeof(void *) * 2)
 #else
 #    define CF_MAX_ALIGN (alignof(max_align_t))
+#endif
+
+//------------------------------------------------------------------------------
+// Configuration defines
+//------------------------------------------------------------------------------
+
+#if !defined(CF_DEBUG)
+#    if CF_COMPILER_MSVC
+#        if defined(NDEBUG) && !defined(_DEBUG)
+#            define CF_DEBUG 0
+#        else
+#            define CF_DEBUG 1
+#        endif
+#    elif defined NDEBUG
+#        define CF_DEBUG 0
+#    else
+#        define CF_DEBUG 1
+#    endif
+#endif
+
+// NOTE (Matteo): Memory protection is on by default, and can be disabled as a compilation flag
+#if !defined(CF_MEMORY_PROTECTION)
+#    define CF_MEMORY_PROTECTION CF_DEBUG
+#endif
+
+// NOTE (Matteo): Asserts in release builds are enabled by default, and can be disabled as a
+// compilation flag
+#if !defined(CF_RELEASE_ASSERTS)
+#    define CF_RELEASE_ASSERTS 1
 #endif
 
 //------------------------------------------------------------------------------
@@ -475,21 +489,47 @@ typedef struct Time
 #define CF__STRINGIFY(x) #x
 #define CF_STRINGIFY(x) CF__STRINGIFY(x)
 
-//------------
-// Assertions
-//------------
+//-----------------------------
+// Assertions / Debug macros
+//-----------------------------
 
-#if CF_RELEASE_ASSERTS && defined(NDEBUG)
-#    define CF__RESTORE_NDEBUG
-#    undef NDEBUG
-#endif
-
+/// Compile time assertion
 #define CF_STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
 
-#if defined(NDEBUG)
-#    define CF_ASSERT(expr, msg) (CF_UNUSED(expr), CF_UNUSED(msg))
+#if CF_COMPILER_CLANG
+#    define CF_CRASH() __builtin_trap()
 #else
-#    define CF_ASSERT(expr, msg) (assert((expr) && (msg)))
+#    define CF_CRASH() *((int *)0) = 0
+#endif
+
+/// Break execution in debug mode
+
+#if CF_DEBUG
+#    if CF_COMPILER_MSVC
+#        define CF_DEBUG_BREAK() __debugbreak()
+#    elif CF_COMPILER_CLANG
+#        define CF_DEBUG_BREAK() __builtin_debugtrap()
+#    elif CF_COMPILER_GCC
+#        define CF_DEBUG_BREAK() __builtin_trap()
+#    else
+#        define CF_DEBUG_BREAK() CF_CRASH()
+#    endif
+#else
+#    define CF_DEBUG_BREAK()
+#endif
+
+/// CF_ASSERT
+/// Assertion macro, by default enabled in release builds (use CF_RELEASE_ASSERTS to disable)
+
+#define CF__ASSERT_PRINT(msg) \
+    fprintf(stderr, "Assertion failed: %s\nFile: %s\nLine: %d\n", msg, __FILE__, __LINE__)
+
+#if CF_DEBUG
+#    define CF_ASSERT(expr, msg) (!(expr) ? (CF__ASSERT_PRINT(msg), CF_DEBUG_BREAK(), 0) : 1)
+#elif CF_RELEASE_ASSERTS
+#    define CF_ASSERT(expr, msg) (!(expr) ? (CF__ASSERT_PRINT(msg), CF_CRASH(), 0) : 1)
+#else
+#    define CF_ASSERT(expr, msg) CF_UNUSED(expr)
 #endif
 
 #define CF_ASSERT_NOT_NULL(ptr) CF_ASSERT(ptr, #ptr " is null")
@@ -498,9 +538,11 @@ typedef struct Time
 
 #define CF_INVALID_CODE_PATH() CF_ASSERT(false, "Invalid code path")
 
-#if defined(CF__RESTORE_NDEBUG)
-#    define NDEBUG 1
-#    undef CF__RESTORE_NDEBUG
+/// Assertion macro enabled in debug builds only
+#if CF_DEBUG
+#    define CF_DEBUG_ASSERT(expr, msg) CF_ASSERT(expr)
+#else
+#    define CF_DEBUG_ASSERT(expr, msg) CF_UNUSED(expr)
 #endif
 
 //----------------------------

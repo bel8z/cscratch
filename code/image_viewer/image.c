@@ -43,7 +43,7 @@ static U32 g_load_count = 0;
 //------------------------------------------------------------------------------
 // Image API implementation
 
-#define imageSize(image) (4 * image->width * image->height)
+#define imageSize(image) (Usize)(4 * image->width * image->height)
 
 bool
 imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)

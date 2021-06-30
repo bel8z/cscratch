@@ -95,11 +95,11 @@ fxDraw(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_da
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
     {
-        F32 rad = i * rad_step + phase;
+        F32 rad = (F32)i * rad_step + phase;
         F32 sin = amp * cfSin(rad);
         F32 cos = amp * cfCos(rad);
 
-        points[i].x = p0.x + x_offset + x_step * i;
+        points[i].x = p0.x + x_offset + x_step * (F32)i;
         points[i].y = p0.y + y_offset + sin;
 
         polar.x = center.x + cos;

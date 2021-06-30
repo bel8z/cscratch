@@ -1,6 +1,7 @@
 #include "gui.h"
 
 #include "foundation/color.h"
+#include "foundation/strings.h"
 
 static void *
 guiAlloc(Usize size, void *state)

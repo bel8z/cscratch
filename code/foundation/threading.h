@@ -2,8 +2,8 @@
 
 #include "common.h"
 
-#if !defined(THREADING_DEBUG)
-#    define THREADING_DEBUG 1
+#if !defined(CF_THREADING_DEBUG)
+#    define CF_THREADING_DEBUG CF_DEBUG
 #endif
 
 /// Thread handle
@@ -32,7 +32,7 @@ typedef struct ThreadParms
 typedef struct Mutex
 {
     U8 data[sizeof(void *)];
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     U32 internal;
 #endif
 } Mutex;
@@ -43,7 +43,7 @@ typedef struct Mutex
 typedef struct RwLock
 {
     U8 data[sizeof(void *)];
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     U32 reserved0;
     U32 reserved1;
 #endif
@@ -59,7 +59,7 @@ typedef struct ConditionVariable
 // clang-format off
 /// Macro to generate the threading API struct/functions
 /// X(name, ReturnType, ...) where ... is the argument list
-#define THREADING_API(X)                                                           \
+#define CF_THREADING_API(X)                                                           \
     /*** Misc ***/                                                                 \
     X(sleep, void, Time timeout)                                                 \
     /*** Thread ***/                                                               \
@@ -95,17 +95,17 @@ typedef struct ConditionVariable
 /// Threading API
 typedef struct Threading
 {
-#define ENTRY_FN(name, ReturnType, ...) ReturnType (*name)(__VA_ARGS__);
-    THREADING_API(ENTRY_FN)
-#undef ENTRY_FN
+#define ENTRY_FN_(name, ReturnType, ...) ReturnType (*name)(__VA_ARGS__);
+    CF_THREADING_API(ENTRY_FN_)
+#undef ENTRY_FN_
 } Threading;
 
 static inline void
 threadingCheckApi(Threading *api)
 {
-#define CHECK_ENTRY_FN(name, ...) CF_ASSERT_NOT_NULL(api->name);
-    THREADING_API(CHECK_ENTRY_FN)
-#undef CHECK_ENTRY_FN
+#define CHECK_ENTRY_FN_(name, ...) CF_ASSERT_NOT_NULL(api->name);
+    CF_THREADING_API(CHECK_ENTRY_FN_)
+#undef CHECK_ENTRY_FN_
 }
 
 /// Wrapper around threadCreate that allows a more convenient syntax for optional

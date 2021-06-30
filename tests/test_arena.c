@@ -79,7 +79,7 @@ main()
 
     for (I32 i = 0; i < 1024; ++i)
     {
-        assert(ints[i] == i);
+        CF_ASSERT(ints[i] == i, "");
     }
 
     ARENA_TEMP_END(&arena);
@@ -93,7 +93,7 @@ main()
 
     for (I32 i = 0; i < 512; ++i)
     {
-        assert(ints[i] == i);
+        CF_ASSERT(ints[i] == i, "");
     }
 
     arenaShutdown(&arena);

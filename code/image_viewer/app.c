@@ -430,6 +430,7 @@ appDestroy(AppState *app)
 {
     loadQueueStop(&app->queue);
     appClearImages(app);
+    imageViewShutdown(&app->iv);
     cfVmRelease(app->images.vm, app->images.files, app->images.bytes_reserved);
     cfFree(app->alloc, app, sizeof(*app));
 }

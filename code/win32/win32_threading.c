@@ -9,7 +9,7 @@
 static cfAllocator *g_alloc = NULL;
 
 #define DECLARE_FN(name, ReturnType, ...) static ReturnType win32##name(__VA_ARGS__);
-THREADING_API(DECLARE_FN)
+CF_THREADING_API(DECLARE_FN)
 #undef DECLARE_FN
 
 //------------------------------------------------------------------------------
@@ -23,7 +23,7 @@ win32ThreadingInit(Threading *api, cfAllocator *allocator)
     g_alloc = allocator;
 
 #define ASSIGN_FN(name, ...) api->name = win32##name;
-    THREADING_API(ASSIGN_FN)
+    CF_THREADING_API(ASSIGN_FN)
 #undef ASSIGN_FN
 
     threadingCheckApi(api);
@@ -137,7 +137,7 @@ win32threadWaitAll(Thread *threads, Usize num_threads, Time timeout)
 
 // Internal implementation of exclusive locking, shared by Mutex and RwLock
 
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
 
 static bool
 win32tryLockExc(SRWLOCK *lock, U32 *owner_id)
@@ -193,7 +193,7 @@ win32mutexInit(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
     InitializeSRWLock((SRWLOCK *)(mutex->data));
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     mutex->internal = 0;
 #endif
 }
@@ -202,7 +202,7 @@ void
 win32mutexShutdown(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     CF_ASSERT(mutex->internal == 0, "Shutting down an acquired mutex");
 #endif
 }
@@ -211,7 +211,7 @@ bool
 win32mutexTryAcquire(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     return win32tryLockExc((SRWLOCK *)(mutex->data), &mutex->internal);
 #else
     return TryAcquireSRWLockExclusive((SRWLOCK *)(mutex->data));
@@ -222,7 +222,7 @@ void
 win32mutexAcquire(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     win32lockExc((SRWLOCK *)(mutex->data), &mutex->internal);
 #else
     AcquireSRWLockExclusive((SRWLOCK *)(mutex->data));
@@ -233,7 +233,7 @@ void
 win32mutexRelease(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     win32unlockExc((SRWLOCK *)(mutex->data), &mutex->internal);
 #else
     ReleaseSRWLockExclusive((SRWLOCK *)(mutex->data));
@@ -250,7 +250,7 @@ win32rwInit(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
     InitializeSRWLock((SRWLOCK *)(lock->data));
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     lock->reserved0 = 0;
     lock->reserved1 = 0;
 #endif
@@ -260,7 +260,7 @@ void
 win32rwShutdown(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     CF_ASSERT(lock->reserved0 == 0, "Shutting down an RwLock acquired for writing");
     CF_ASSERT(lock->reserved1 == 0, "Shutting down an RwLock acquired for reading");
 #endif
@@ -272,7 +272,7 @@ win32rwTryLockReader(RwLock *lock)
     CF_ASSERT_NOT_NULL(lock);
     if (TryAcquireSRWLockShared((SRWLOCK *)(lock->data)))
     {
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
         ++lock->reserved1;
 #endif
         return true;
@@ -285,7 +285,7 @@ win32rwLockReader(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
     AcquireSRWLockShared((SRWLOCK *)(lock->data));
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     ++lock->reserved1;
 #endif
 }
@@ -294,7 +294,7 @@ void
 win32rwUnlockReader(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     --lock->reserved1;
 #endif
     ReleaseSRWLockShared((SRWLOCK *)(lock->data));
@@ -304,7 +304,7 @@ bool
 win32rwTryLockWriter(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     return win32tryLockExc((SRWLOCK *)(lock->data), &lock->reserved0);
 #else
     return TryAcquireSRWLockExclusive((SRWLOCK *)(lock->data));
@@ -315,7 +315,7 @@ void
 win32rwLockWriter(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     win32lockExc((SRWLOCK *)(lock->data), &lock->reserved0);
 #else
     AcquireSRWLockExclusive((SRWLOCK *)(lock->data));
@@ -326,7 +326,7 @@ void
 win32rwUnlockWriter(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     win32unlockExc((SRWLOCK *)(lock->data), &lock->reserved0);
 #else
     ReleaseSRWLockExclusive((SRWLOCK *)(lock->data));
@@ -363,7 +363,7 @@ bool
 win32cvWaitMutex(ConditionVariable *cv, Mutex *mutex, Time timeout)
 {
     CF_ASSERT_NOT_NULL(mutex);
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     CF_ASSERT(mutex->internal != 0, "Attemped wait on unlocked Mutex");
 #endif
     return win32cvWait(cv, (SRWLOCK *)(mutex->data), timeout);
@@ -373,7 +373,7 @@ bool
 win32cvWaitRwLock(ConditionVariable *cv, RwLock *lock, Time timeout)
 {
     CF_ASSERT_NOT_NULL(lock);
-#if THREADING_DEBUG
+#if CF_THREADING_DEBUG
     CF_ASSERT(lock->reserved0 != 0 || lock->reserved1 != 0, "Attemped wait on unlocked RwLock");
 #endif
     return win32cvWait(cv, (SRWLOCK *)(lock->data), timeout);
