@@ -16,7 +16,7 @@ CF_THREADING_API(DECLARE_FN)
 // API initialization
 
 void
-win32ThreadingInit(Threading *api, cfAllocator *allocator)
+win32ThreadingInit(cfThreading *api, cfAllocator *allocator)
 {
     CF_ASSERT_NOT_NULL(allocator);
 

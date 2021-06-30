@@ -20,7 +20,7 @@
 // Cross-platform entry point
 //------------------------------------------------------------------------------
 
-I32 platformMain(cfPlatform *platform, char const *argv[], I32 argc);
+I32 platformMain(Platform *platform, char const *argv[], I32 argc);
 
 //------------------------------------------------------------------------------
 // Internal implementation
@@ -72,7 +72,7 @@ static void win32PrintLastError(void);
 
 // Global platform API
 // NOTE (Matteo): a global here should be quite safe
-static cfPlatform g_platform = {
+static Platform g_platform = {
     .vm =
         &(cfVirtualMemory){
             .reserve = win32VmReserve,
@@ -86,15 +86,15 @@ static cfPlatform g_platform = {
         },
     .fs =
         &(cfFileSystem){
-            .dir_iter_start = win32DirIterStart,
-            .dir_iter_next = win32DirIterNext,
-            .dir_iter_close = win32DirIterClose,
+            .dirIterStart = win32DirIterStart,
+            .dirIterNext = win32DirIterNext,
+            .dirIterClose = win32DirIterClose,
             .open_file_dlg = win32OpenFileDlg,
-            .file_read = win32FileRead,
-            .file_copy = win32FileCopy,
-            .file_write_time = win32FileWriteTime,
+            .fileRead = win32FileRead,
+            .fileCopy = win32FileCopy,
+            .fileWrite = win32FileWriteTime,
         },
-    .threading = &(Threading){0},
+    .threading = &(cfThreading){0},
     .clock = win32Clock,
     .paths = &(Paths){0},
     .libLoad = win32libLoad,

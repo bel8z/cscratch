@@ -2,8 +2,16 @@
 
 #include "common.h"
 
-// Iterates over directory entries
+/// Iterator over directory content
 typedef struct DirIter DirIter;
+
+typedef struct FileContent
+{
+    U8 *data;
+    Usize size;
+} FileContent;
+
+typedef U64 FileTime;
 
 typedef struct FileDlgFilter
 {
@@ -28,31 +36,33 @@ typedef struct FileDlgResult
     U8 code;
 } FileDlgResult;
 
-typedef struct FileContent
-{
-    U8 *data;
-    Usize size;
-} FileContent;
-
-typedef U64 FileTime;
-
+/// File system API
 typedef struct cfFileSystem
 {
-    // Create an iterator on the given directory contents (return NULL in case of failure)
-    DirIter *(*dir_iter_start)(char const *dir, cfAllocator *alloc);
-    // Advance the iterator and return the filename of the current entry, or NULL
-    // if the iteration is complete; NOTE that the current pointer is valid
-    // until the next call to this function (or the iterator is destroyed)
-    char const *(*dir_iter_next)(DirIter *iter);
-    // Shutdown the iteration
-    void (*dir_iter_close)(DirIter *iter);
+    // *** Directory operations ***
+
+    /// Create an iterator on the given directory contents (return NULL in case of failure)
+    DirIter *(*dirIterStart)(char const *dir, cfAllocator *alloc);
+    /// Advance the iterator and return the filename of the current entry, or NULL if the iteration
+    /// is complete; NOTE that the current pointer is valid until the next call to this function (or
+    /// the iterator is destroyed)
+    char const *(*dirIterNext)(DirIter *iter);
+    /// Shutdown the iteration
+    void (*dirIterClose)(DirIter *iter);
+
+    // *** File operations ***
+
+    FileContent (*fileRead)(char const *filename, cfAllocator *alloc);
+    bool (*fileCopy)(char const *source, char const *dest, bool overwrite);
+    FileTime (*fileWrite)(char const *filename);
+
+    // *** File dialogs ***
+
+    // TODO (Matteo): Is this the correct place for file dialogs?
 
     FileDlgResult (*open_file_dlg)(char const *filename_hint, FileDlgFilter *filters,
                                    Usize num_filters, cfAllocator *alloc);
 
-    FileContent (*file_read)(char const *filename, cfAllocator *alloc);
-    bool (*file_copy)(char const *source, char const *dest, bool overwrite);
-    FileTime (*file_write_time)(char const *filename);
 } cfFileSystem;
 
 //------------------------------------------------------------------------------

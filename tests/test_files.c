@@ -45,18 +45,18 @@ main(void)
 
     printf("Browsing dir:\n");
 
-    cfPlatform plat = cfPlatformCreate();
-    DirIter *iter = plat.fs.dir_iter_start(dirname, &plat.heap);
+    Platform plat = cfPlatformCreate();
+    DirIter *iter = plat.fs.dirIterStart(dirname, &plat.heap);
 
     if (iter)
     {
         char const *f = NULL;
-        while ((f = plat.fs.dir_iter_next(iter)))
+        while ((f = plat.fs.dirIterNext(iter)))
         {
             printf("%s\n", f);
         }
 
-        plat.fs.dir_iter_close(iter);
+        plat.fs.dirIterClose(iter);
     }
 
     U32 sz = 0;

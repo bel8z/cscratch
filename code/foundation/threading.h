@@ -93,15 +93,15 @@ typedef struct ConditionVariable
 // clang-format on
 
 /// Threading API
-typedef struct Threading
+typedef struct cfThreading
 {
 #define ENTRY_FN_(name, ReturnType, ...) ReturnType (*name)(__VA_ARGS__);
     CF_THREADING_API(ENTRY_FN_)
 #undef ENTRY_FN_
-} Threading;
+} cfThreading;
 
 static inline void
-threadingCheckApi(Threading *api)
+threadingCheckApi(cfThreading *api)
 {
 #define CHECK_ENTRY_FN_(name, ...) CF_ASSERT_NOT_NULL(api->name);
     CF_THREADING_API(CHECK_ENTRY_FN_)

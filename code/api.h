@@ -6,14 +6,16 @@
 // Platform interface
 //------------------------------------------------------------------------------
 
+// Foundation interfaces
 typedef struct cfVirtualMemory cfVirtualMemory;
 typedef struct cfAllocator cfAllocator;
 typedef struct cfFileSystem cfFileSystem;
-typedef struct Threading Threading;
+typedef struct cfThreading cfThreading;
 
+// Additional platform interfaces
 typedef struct GlApi GlApi;
-
 typedef struct Gui Gui;
+typedef struct Library Library;
 
 enum
 {
@@ -29,34 +31,36 @@ typedef struct Paths
     char lib_name[Paths_Size];
 } Paths;
 
-typedef struct Library Library;
-
-typedef struct cfPlatform
+typedef struct Platform
 {
     /// Virtual memory services
     cfVirtualMemory *vm;
     /// Reserved VM size in bytes
-    Usize reserved_size; // TODO (Matteo): Should be a pointer?
+    // TODO (Matteo): Should be a pointer?
+    Usize reserved_size;
     /// Committed VM size in bytes
-    Usize committed_size; // TODO (Matteo): Should be a pointer?
+    // TODO (Matteo): Should be a pointer?
+    Usize committed_size;
 
     /// System heap allocator
     cfAllocator *heap;
     /// Number of blocks allocated by the heap allocator
-    Usize heap_blocks; // TODO (Matteo): Should be a pointer?
+    // TODO (Matteo): Should be a pointer?
+    Usize heap_blocks;
     // Total size in bytes of the allocation provided by the heap
-    Usize heap_size; // TODO (Matteo): Should be a pointer?
+    // TODO (Matteo): Should be a pointer?
+    Usize heap_size;
 
     /// File system services
     cfFileSystem *fs;
 
     /// Threading API
-    Threading *threading;
+    cfThreading *threading;
 
     /// OpenGL API
     GlApi *gl;
 
-    //
+    // Dear Imgui state
     Gui *gui;
 
     /// Return the amount of nanoseconds elapsed since the start of the application
@@ -71,7 +75,7 @@ typedef struct cfPlatform
     void (*libUnload)(Library *lib);
     void *(*libLoadProc)(Library *restrict lib, char const *restrict name);
 
-} cfPlatform;
+} Platform;
 
 //------------------------------------------------------------------------------
 // Application interface
@@ -98,7 +102,7 @@ typedef struct AppUpdateResult
 } AppUpdateResult;
 
 #define APP_PROC(name) void name(AppState *app)
-#define APP_CREATE_PROC(name) AppState *name(cfPlatform *plat, char const *argv[], I32 argc)
+#define APP_CREATE_PROC(name) AppState *name(Platform *plat, char const *argv[], I32 argc)
 #define APP_UPDATE_PROC(name) AppUpdateResult name(AppState *app, FontOptions *opts)
 
 typedef APP_PROC((*AppProc));

@@ -27,7 +27,7 @@ enum
 
 struct AppState
 {
-    cfPlatform *plat;
+    Platform *plat;
     cfAllocator *alloc;
 
     AppWindows windows;
@@ -204,7 +204,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
 
     if (app->windows.stats)
     {
-        cfPlatform *plat = app->plat;
+        Platform *plat = app->plat;
         F64 framerate = (F64)igGetIO()->Framerate;
 
         igBegin("Application stats stats", &app->windows.stats, 0);

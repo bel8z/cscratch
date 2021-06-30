@@ -34,7 +34,7 @@ typedef struct Queue
 
 typedef struct Data
 {
-    Threading *api;
+    cfThreading *api;
     Queue *queue;
 } Data;
 
@@ -42,7 +42,7 @@ static THREAD_PROC(producerProc)
 {
     Data *d = args;
     Queue *queue = d->queue;
-    Threading *api = d->api;
+    cfThreading *api = d->api;
 
     while (true)
     {
@@ -77,7 +77,7 @@ static THREAD_PROC(consumerProc)
 {
     Data *d = args;
     Queue *queue = d->queue;
-    Threading *api = d->api;
+    cfThreading *api = d->api;
 
     while (true)
     {
@@ -108,7 +108,7 @@ main(void)
 {
     cfAllocator alloc = stdAllocator();
 
-    Threading api = {0};
+    cfThreading api = {0};
     win32ThreadingInit(&api, &alloc);
 
     Queue queue = {0};

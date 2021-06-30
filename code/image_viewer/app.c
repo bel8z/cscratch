@@ -116,7 +116,7 @@ typedef struct ImageList
 typedef struct LoadQueue
 {
     // Dependencies
-    Threading *api;
+    cfThreading *api;
     cfFileSystem *fs;
     cfAllocator *alloc;
 
@@ -134,7 +134,7 @@ typedef struct LoadQueue
 
 struct AppState
 {
-    cfPlatform *plat;
+    Platform *plat;
     cfAllocator *alloc;
 
     FileDlgFilter filter;
@@ -163,7 +163,7 @@ loadQueuePush(LoadQueue *queue, ImageFile *file)
 {
     if (file->state == ImageFileState_Idle)
     {
-        Threading *api = queue->api;
+        cfThreading *api = queue->api;
 
         api->mutexAcquire(&queue->mutex);
         {
@@ -184,7 +184,7 @@ loadQueuePush(LoadQueue *queue, ImageFile *file)
 static void
 loadQueueStop(LoadQueue *queue)
 {
-    Threading *api = queue->api;
+    cfThreading *api = queue->api;
     api->mutexAcquire(&queue->mutex);
     {
         queue->stop = true;
@@ -198,7 +198,7 @@ loadQueueStop(LoadQueue *queue)
 static THREAD_PROC(loadQueueProc)
 {
     LoadQueue *queue = args;
-    Threading *api = queue->api;
+    cfThreading *api = queue->api;
 
     for (;;)
     {
@@ -355,7 +355,7 @@ imageViewUpdate(ImageView *iv, Image const *image)
 // Application creation/destruction
 
 APP_API AppState *
-appCreate(cfPlatform *plat, char const *argv[], I32 argc)
+appCreate(Platform *plat, char const *argv[], I32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
     AppState *app = cfAlloc(plat->heap, sizeof(*app));
@@ -379,7 +379,7 @@ appCreate(cfPlatform *plat, char const *argv[], I32 argc)
 
     imageViewInit(&app->iv);
 
-    Threading *threading = app->plat->threading;
+    cfThreading *threading = app->plat->threading;
     app->queue.alloc = app->alloc;
     app->queue.fs = app->plat->fs;
     app->queue.api = threading;
@@ -601,14 +601,14 @@ appLoadFromFile(AppState *state, char const *full_name)
 
         cfMemCopy(full_name, file.filename, full_size);
 
-        DirIter *it = fs->dir_iter_start(dir_name, state->alloc);
+        DirIter *it = fs->dirIterStart(dir_name, state->alloc);
 
         if (it)
         {
             char const *path = NULL;
 
             // NOTE (Matteo): Explicit test against NULL is required for compiling with /W4 on MSVC
-            while ((path = fs->dir_iter_next(it)) != NULL)
+            while ((path = fs->dirIterNext(it)) != NULL)
             {
                 if (appIsFileSupported(path))
                 {
@@ -618,7 +618,7 @@ appLoadFromFile(AppState *state, char const *full_name)
                 }
             }
 
-            fs->dir_iter_close(it);
+            fs->dirIterClose(it);
         }
 
         for (U32 index = 0; index < images->num_files; ++index)
@@ -766,7 +766,7 @@ appImageView(AppState *state)
 static bool
 appOpenFile(AppState *state)
 {
-    cfPlatform *plat = state->plat;
+    Platform *plat = state->plat;
     bool result = true;
 
     char const *hint =
@@ -873,7 +873,7 @@ appMainWindow(AppState *state)
 APP_API AppUpdateResult
 appUpdate(AppState *state, FontOptions *font_opts)
 {
-    cfPlatform *plat = state->plat;
+    Platform *plat = state->plat;
 
     AppUpdateResult result = {
         .flags = AppUpdateFlags_None,

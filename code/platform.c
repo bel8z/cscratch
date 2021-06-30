@@ -145,15 +145,15 @@ static APP_PROC(appProcStub);
 static APP_CREATE_PROC(appCreateStub);
 static APP_UPDATE_PROC(appUpdateStub);
 
-static void appApiLoad(AppApi *api, cfPlatform *platform);
-static void appApiUpdate(AppApi *api, cfPlatform *platform, AppState *app);
+static void appApiLoad(AppApi *api, Platform *platform);
+static void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
 
 //------------------------------------------------------------------------------
 // Main
 //------------------------------------------------------------------------------
 
 I32
-platformMain(cfPlatform *platform, char const *argv[], I32 argc)
+platformMain(Platform *platform, char const *argv[], I32 argc)
 {
     CF_UNUSED(argc);
     CF_UNUSED(argv);
@@ -349,7 +349,7 @@ static APP_UPDATE_PROC(appUpdateStub)
 }
 
 void
-appApiLoad(AppApi *api, cfPlatform *platform)
+appApiLoad(AppApi *api, Platform *platform)
 {
     if (api->lib)
     {
@@ -361,7 +361,7 @@ appApiLoad(AppApi *api, cfPlatform *platform)
     strPrintf(api->src_file, Paths_Size, "%s%s", platform->paths->base, platform->paths->lib_name);
     strPrintf(api->dst_file, Paths_Size, "%s.tmp", api->src_file);
 
-    if (platform->fs->file_copy(api->src_file, api->dst_file, true))
+    if (platform->fs->fileCopy(api->src_file, api->dst_file, true))
     {
         api->lib = platform->libLoad(api->dst_file);
     }
@@ -383,10 +383,10 @@ appApiLoad(AppApi *api, cfPlatform *platform)
 }
 
 void
-appApiUpdate(AppApi *api, cfPlatform *platform, AppState *app)
+appApiUpdate(AppApi *api, Platform *platform, AppState *app)
 {
     // TODO (Matteo): Are these operation too expensive to be performed every frame?
-    if (platform->fs->file_write_time(api->src_file) > platform->fs->file_write_time(api->dst_file))
+    if (platform->fs->fileWrite(api->src_file) > platform->fs->fileWrite(api->dst_file))
     {
         api->unload(app);
         appApiLoad(api, platform);

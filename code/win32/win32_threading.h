@@ -2,6 +2,6 @@
 
 #include "foundation/common.h"
 
-typedef struct Threading Threading;
+typedef struct cfThreading cfThreading;
 
-void win32ThreadingInit(Threading *threading, cfAllocator *allocator);
+void win32ThreadingInit(cfThreading *threading, cfAllocator *allocator);
