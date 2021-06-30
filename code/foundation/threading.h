@@ -59,36 +59,36 @@ typedef struct ConditionVariable
 // clang-format off
 /// Macro to generate the threading API struct/functions
 /// X(name, ReturnType, ...) where ... is the argument list
-#define CF_THREADING_API(X)                                                           \
-    /*** Misc ***/                                                                 \
+#define CF_THREADING_API(X)                                                      \
+    /*** Misc ***/                                                               \
     X(sleep, void, Time timeout)                                                 \
-    /*** Thread ***/                                                               \
-    X(threadCreate,    Thread, ThreadParms *parms)                                 \
-    X(threadDestroy,   void,   Thread thread)                                      \
-    X(threadIsRunning, bool,   Thread thread)                                      \
+    /*** Thread ***/                                                             \
+    X(threadCreate,    Thread, ThreadParms *parms)                               \
+    X(threadDestroy,   void,   Thread thread)                                    \
+    X(threadIsRunning, bool,   Thread thread)                                    \
     X(threadWait,      bool,   Thread thread, Time timeout)                      \
     X(threadWaitAll,   bool,   Thread *threads, Usize num_threads, Time timeout) \
-    /*** Mutex ***/                                                                \
-    X(mutexInit,       void, Mutex *mutex)                                         \
-    X(mutexShutdown,   void, Mutex *mutex)                                         \
-    X(mutexTryAcquire, bool, Mutex *mutex)                                         \
-    X(mutexAcquire,    void, Mutex *mutex)                                         \
-    X(mutexRelease,    void, Mutex *mutex)                                         \
-    /*** RwLock ***/                                                               \
-    X(rwInit,          void, RwLock *lock)                                         \
-    X(rwShutdown,      void, RwLock *lock)                                         \
-    X(rwTryLockReader, bool, RwLock *lock)                                         \
-    X(rwTryLockWriter, bool, RwLock *lock)                                         \
-    X(rwLockReader,    void, RwLock *lock)                                         \
-    X(rwLockWriter,    void, RwLock *lock)                                         \
-    X(rwUnlockReader,  void, RwLock *lock)                                         \
-    X(rwUnlockWriter,  void, RwLock *lock)                                         \
-    /*** ConditionVariable ***/                                                    \
-    X(cvInit,       void, ConditionVariable *cv)                                   \
-    X(cvShutdown,   void, ConditionVariable *cv)                                   \
+    /*** Mutex ***/                                                              \
+    X(mutexInit,       void, Mutex *mutex)                                       \
+    X(mutexShutdown,   void, Mutex *mutex)                                       \
+    X(mutexTryAcquire, bool, Mutex *mutex)                                       \
+    X(mutexAcquire,    void, Mutex *mutex)                                       \
+    X(mutexRelease,    void, Mutex *mutex)                                       \
+    /*** RwLock ***/                                                             \
+    X(rwInit,          void, RwLock *lock)                                       \
+    X(rwShutdown,      void, RwLock *lock)                                       \
+    X(rwTryLockReader, bool, RwLock *lock)                                       \
+    X(rwTryLockWriter, bool, RwLock *lock)                                       \
+    X(rwLockReader,    void, RwLock *lock)                                       \
+    X(rwLockWriter,    void, RwLock *lock)                                       \
+    X(rwUnlockReader,  void, RwLock *lock)                                       \
+    X(rwUnlockWriter,  void, RwLock *lock)                                       \
+    /*** ConditionVariable ***/                                                  \
+    X(cvInit,       void, ConditionVariable *cv)                                 \
+    X(cvShutdown,   void, ConditionVariable *cv)                                 \
     X(cvWaitMutex,  bool, ConditionVariable *cv, Mutex *mutex, Time timeout)     \
     X(cvWaitRwLock, bool, ConditionVariable *cv, RwLock *lock, Time timeout)     \
-    X(cvSignalOne,  void, ConditionVariable *cv)                                   \
+    X(cvSignalOne,  void, ConditionVariable *cv)                                 \
     X(cvSignalAll,  void, ConditionVariable *cv)
 // clang-format on
 
