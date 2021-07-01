@@ -22,6 +22,3 @@ typedef struct Image
 bool imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc);
 bool imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAllocator *alloc);
 void imageUnload(Image *image, cfAllocator *alloc);
-
-// DEBUG (Matteo): loaded images counter
-U32 imageLoadCount(void);

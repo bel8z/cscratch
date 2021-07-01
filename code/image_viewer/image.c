@@ -37,9 +37,6 @@
 #    pragma clang diagnostic pop
 #endif
 
-// DEBUG (Matteo): loaded images counter
-static U32 g_load_count = 0;
-
 //------------------------------------------------------------------------------
 // Image API implementation
 
@@ -61,11 +58,7 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
     {
         Usize size = imageSize(image);
         image->bytes = cfAlloc(alloc, size);
-        if (image->bytes)
-        {
-            cfMemCopy(data, image->bytes, size);
-            ++g_load_count;
-        }
+        if (image->bytes) cfMemCopy(data, image->bytes, size);
         stbi_image_free(data);
     }
 
@@ -89,11 +82,7 @@ imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAlloc
     {
         Usize size = imageSize(image);
         image->bytes = cfAlloc(alloc, size);
-        if (image->bytes)
-        {
-            cfMemCopy(data, image->bytes, size);
-            ++g_load_count;
-        }
+        if (image->bytes) cfMemCopy(data, image->bytes, size);
         stbi_image_free(data);
     }
 
@@ -111,14 +100,6 @@ imageUnload(Image *image, cfAllocator *alloc)
     image->bytes = NULL;
     image->height = 0;
     image->width = 0;
-
-    --g_load_count;
-}
-
-U32
-imageLoadCount(void)
-{
-    return g_load_count;
 }
 
 //------------------------------------------------------------------------------

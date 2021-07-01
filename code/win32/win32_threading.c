@@ -33,7 +33,7 @@ win32ThreadingInit(cfThreading *api, cfAllocator *allocator)
 // Misc implementation
 
 static inline DWORD
-timeoutMs(Time timeout)
+win32TimeoutMs(Time timeout)
 {
     if (TIME_IS_INFINITE(timeout)) return INFINITE;
     CF_ASSERT(timeout.nanoseconds >= 0, "Negative timeout given");
@@ -41,10 +41,10 @@ timeoutMs(Time timeout)
     return (DWORD)ms;
 }
 
-static void
+static inline void
 win32sleep(Time timeout)
 {
-    Sleep(timeoutMs(timeout));
+    Sleep(win32TimeoutMs(timeout));
 }
 
 //------------------------------------------------------------------------------
@@ -121,7 +121,7 @@ bool
 win32threadWait(Thread thread, Time timeout)
 {
     return (thread.handle &&
-            WAIT_OBJECT_0 == WaitForSingleObject((HANDLE)thread.handle, timeoutMs(timeout)));
+            WAIT_OBJECT_0 == WaitForSingleObject((HANDLE)thread.handle, win32TimeoutMs(timeout)));
 }
 
 bool
@@ -129,7 +129,7 @@ win32threadWaitAll(Thread *threads, Usize num_threads, Time timeout)
 {
     CF_ASSERT(num_threads <= U32_MAX, "Given number of threads is too large");
     DWORD count = (DWORD)num_threads;
-    DWORD code = WaitForMultipleObjects(count, (HANDLE *)threads, true, timeoutMs(timeout));
+    DWORD code = WaitForMultipleObjects(count, (HANDLE *)threads, true, win32TimeoutMs(timeout));
     return (code < WAIT_OBJECT_0 + count);
 }
 
@@ -343,7 +343,8 @@ static inline bool
 win32cvWait(ConditionVariable *cv, SRWLOCK *lock, Time timeout)
 {
     CF_ASSERT_NOT_NULL(cv);
-    return SleepConditionVariableSRW((CONDITION_VARIABLE *)(cv->data), lock, timeoutMs(timeout), 0);
+    return SleepConditionVariableSRW((CONDITION_VARIABLE *)(cv->data), lock,
+                                     win32TimeoutMs(timeout), 0);
 }
 
 void

@@ -181,20 +181,6 @@ loadQueuePush(LoadQueue *queue, ImageFile *file)
     }
 }
 
-static void
-loadQueueStop(LoadQueue *queue)
-{
-    cfThreading *api = queue->api;
-    api->mutexAcquire(&queue->mutex);
-    {
-        queue->stop = true;
-        api->cvSignalOne(&queue->wake);
-    }
-    api->mutexRelease(&queue->mutex);
-
-    api->threadWait(queue->thread, TIME_INFINITE);
-}
-
 static THREAD_PROC(loadQueueProc)
 {
     LoadQueue *queue = args;
@@ -241,6 +227,32 @@ static THREAD_PROC(loadQueueProc)
             }
         }
     }
+}
+
+static void
+loadQueueStart(LoadQueue *queue)
+{
+    CF_ASSERT_NOT_NULL(queue);
+    CF_ASSERT(!queue->thread.handle, "Load queue thread is running");
+
+    queue->stop = false;
+    queue->thread =
+        threadStart(queue->api, loadQueueProc, .args = queue, .debug_name = "Load queue");
+}
+
+static void
+loadQueueStop(LoadQueue *queue)
+{
+    cfThreading *api = queue->api;
+    api->mutexAcquire(&queue->mutex);
+    {
+        queue->stop = true;
+        api->cvSignalOne(&queue->wake);
+    }
+    api->mutexRelease(&queue->mutex);
+
+    api->threadWait(queue->thread, TIME_INFINITE);
+    queue->thread.handle = 0;
 }
 
 //------------------------------------------------------------------------------
@@ -374,11 +386,6 @@ appCreate(Platform *plat, char const *argv[], I32 argc)
     app->images.bytes_reserved = images_vm;
     app->images.files = cfVmReserve(plat->vm, images_vm);
 
-    // NOTE (Matteo): Init global state (same as library re-load)
-    appLoad(app);
-
-    imageViewInit(&app->iv);
-
     cfThreading *threading = app->plat->threading;
     app->queue.alloc = app->alloc;
     app->queue.fs = app->plat->fs;
@@ -387,8 +394,10 @@ appCreate(Platform *plat, char const *argv[], I32 argc)
     threading->cvInit(&app->queue.wake);
     threading->mutexInit(&app->queue.mutex);
 
-    app->queue.thread =
-        threadStart(threading, loadQueueProc, .args = &app->queue, .debug_name = "Load queue");
+    // NOTE (Matteo): Init global state (same as library re-load)
+    appLoad(app);
+
+    imageViewInit(&app->iv);
 
     if (argc > 1)
     {
@@ -406,6 +415,13 @@ APP_API APP_PROC(appLoad)
     guiInit(app->plat->gui);
     // Init image loading
     gloadInit(app->plat->gl);
+
+    loadQueueStart(&app->queue);
+}
+
+APP_API APP_PROC(appUnload)
+{
+    loadQueueStop(&app->queue);
 }
 
 static void
@@ -435,7 +451,7 @@ appClearImages(AppState *app)
 APP_API void
 appDestroy(AppState *app)
 {
-    loadQueueStop(&app->queue);
+    appUnload(app);
     appClearImages(app);
     imageViewShutdown(&app->iv);
     cfVmRelease(app->images.vm, app->images.files, app->images.bytes_reserved);
@@ -915,8 +931,8 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igSeparator();
         igText("App base path:%s", state->plat->paths->base);
         igText("App data path:%s", state->plat->paths->data);
-        igSeparator();
-        igText("Loaded images: %d", imageLoadCount());
+        // igSeparator();
+        // igText("Loaded images: %d", imageLoadCount());
         igEnd();
     }
 
