@@ -172,7 +172,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     // ** Init threading **
 
-    win32ThreadingInit(g_platform.threading, g_platform.heap);
+    win32ThreadingInit(g_platform.threading);
 
     // ** Init timing **
 

@@ -1,10 +1,7 @@
 #include "win32/win32_threading.h"
 
 #include "foundation/common.h"
-
 #include "foundation/threading.h"
-
-#include "std_allocator.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -106,10 +103,8 @@ static THREAD_PROC(consumerProc)
 int
 main(void)
 {
-    cfAllocator alloc = stdAllocator();
-
     cfThreading api = {0};
-    win32ThreadingInit(&api, &alloc);
+    win32ThreadingInit(&api);
 
     Queue queue = {0};
     Data data = {.api = &api, .queue = &queue};

@@ -1,12 +1,9 @@
 #include "win32.h"
 
 #include "foundation/common.h"
-
 #include "foundation/threading.h"
 
 //------------------------------------------------------------------------------
-
-static cfAllocator *g_alloc = NULL;
 
 #define DECLARE_FN(name, ReturnType, ...) static ReturnType win32##name(__VA_ARGS__);
 CF_THREADING_API(DECLARE_FN)
@@ -16,16 +13,11 @@ CF_THREADING_API(DECLARE_FN)
 // API initialization
 
 void
-win32ThreadingInit(cfThreading *api, cfAllocator *allocator)
+win32ThreadingInit(cfThreading *api)
 {
-    CF_ASSERT_NOT_NULL(allocator);
-
-    g_alloc = allocator;
-
 #define ASSIGN_FN(name, ...) api->name = win32##name;
     CF_THREADING_API(ASSIGN_FN)
 #undef ASSIGN_FN
-
     threadingCheckApi(api);
 }
 
@@ -53,15 +45,21 @@ win32sleep(Time timeout)
 CF_STATIC_ASSERT(sizeof(Thread) == sizeof(HANDLE), "Thread and HANDLE size must be equal");
 CF_STATIC_ASSERT(alignof(Thread) == alignof(HANDLE), "Thread must be aligned as HANDLE");
 
+typedef struct Win32ThreadArgs
+{
+    ThreadProc proc;
+    void *args;
+    bool started;
+} Win32ThreadArgs;
+
 static U32 WINAPI
 win32threadProc(void *data)
 {
-    ThreadParms *parms = data;
-
+    Win32ThreadArgs *parms = data;
     ThreadProc proc = parms->proc;
     void *args = parms->args;
 
-    cfFree(g_alloc, parms, sizeof(*parms));
+    parms->started = true;
 
     proc(args);
 
@@ -73,20 +71,15 @@ win32threadProc(void *data)
 Thread
 win32threadCreate(ThreadParms *parms)
 {
+    CF_ASSERT_NOT_NULL(parms);
+
     Thread thread = {0};
+    Win32ThreadArgs args = {.proc = parms->proc, .args = parms->args, .started = false};
 
-    // TODO (Matteo): Use dedicated, lighter, data structure?
-    ThreadParms *parms_copy = cfAlloc(g_alloc, sizeof(*parms_copy));
+    CF_ASSERT(parms->stack_size <= U32_MAX, "Required stack size is too large");
 
-    if (parms_copy)
-    {
-        *parms_copy = *parms;
-
-        CF_ASSERT(parms_copy->stack_size <= U32_MAX, "Required stack size is too large");
-
-        thread.handle = _beginthreadex(NULL, (U32)parms_copy->stack_size, win32threadProc,
-                                       parms_copy, CREATE_SUSPENDED, NULL);
-    }
+    thread.handle = _beginthreadex(NULL, (U32)parms->stack_size, win32threadProc, &args,
+                                   CREATE_SUSPENDED, NULL);
 
     if (thread.handle)
     {
@@ -99,6 +92,11 @@ win32threadCreate(ThreadParms *parms)
         }
 
         ResumeThread((HANDLE)thread.handle);
+
+        while (!args.started)
+        {
+            // TODO (Matteo): Use a sync primitive instead of a spin wait?
+        }
     }
 
     return thread;
