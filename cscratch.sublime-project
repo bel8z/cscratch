@@ -1,0 +1,456 @@
+{
+    "folders":
+    [
+        {
+            "path": ".",
+        }
+	],
+    "settings":
+    {
+        "cmake":
+        {
+            "build_folder": "${project_path}/build",
+            "generator": "Ninja",
+        },
+        "ecc_flags_sources":
+		[
+		    {
+		        "file": "compile_commands.json",
+		        "search_in": "${project_path}/build",
+		    }
+		],
+		"ClangFormat": {
+      		"format_on_save": true,
+      		"style": "File",
+    	},
+    },
+    "build_systems":
+    [
+		{
+		    "file_regex": "^(.+)\\((\\d+)\\):() (.+)$",
+			"name": "cscratch (Windows)",
+			"shell_cmd": "cmake --build .",
+			"syntax": "Packages/CMakeBuilder/Syntax/Ninja+CL.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "Continuous",
+					"shell_cmd": "cmake --build . --target Continuous",
+				},
+				{
+					"name": "NightlyTest",
+					"shell_cmd": "cmake --build . --target NightlyTest",
+				},
+				{
+					"name": "Nightly",
+					"shell_cmd": "cmake --build . --target Nightly",
+				},
+				{
+					"name": "NightlySubmit",
+					"shell_cmd": "cmake --build . --target NightlySubmit",
+				},
+				{
+					"name": "NightlyBuild",
+					"shell_cmd": "cmake --build . --target NightlyBuild",
+				},
+				{
+					"name": "NightlyConfigure",
+					"shell_cmd": "cmake --build . --target NightlyConfigure",
+				},
+				{
+					"name": "Debug/demo_lib.lib: CXX_SHARED_LIBRARY_LINKER__demo_lib_Debug",
+					"shell_cmd": "cmake --build . --target Debug/demo_lib.lib: CXX_SHARED_LIBRARY_LINKER__demo_lib_Debug",
+				},
+				{
+					"name": "Debug/image_viewer_lib.lib: CXX_SHARED_LIBRARY_LINKER__image_viewer_lib_Debug",
+					"shell_cmd": "cmake --build . --target Debug/image_viewer_lib.lib: CXX_SHARED_LIBRARY_LINKER__image_viewer_lib_Debug",
+				},
+				{
+					"name": "NightlyMemoryCheck",
+					"shell_cmd": "cmake --build . --target NightlyMemoryCheck",
+				},
+				{
+					"name": "Experimental",
+					"shell_cmd": "cmake --build . --target Experimental",
+				},
+				{
+					"name": "NightlyStart",
+					"shell_cmd": "cmake --build . --target NightlyStart",
+				},
+				{
+					"name": "NightlyUpdate",
+					"shell_cmd": "cmake --build . --target NightlyUpdate",
+				},
+				{
+					"name": "NightlyCoverage",
+					"shell_cmd": "cmake --build . --target NightlyCoverage",
+				},
+				{
+					"name": "NightlyMemCheck",
+					"shell_cmd": "cmake --build . --target NightlyMemCheck",
+				},
+				{
+					"name": "ExperimentalBuild",
+					"shell_cmd": "cmake --build . --target ExperimentalBuild",
+				},
+				{
+					"name": "ExperimentalStart",
+					"shell_cmd": "cmake --build . --target ExperimentalStart",
+				},
+				{
+					"name": "ExperimentalUpdate",
+					"shell_cmd": "cmake --build . --target ExperimentalUpdate",
+				},
+				{
+					"name": "ContinuousMemCheck",
+					"shell_cmd": "cmake --build . --target ContinuousMemCheck",
+				},
+				{
+					"name": "ExperimentalConfigure",
+					"shell_cmd": "cmake --build . --target ExperimentalConfigure",
+				},
+				{
+					"name": "ExperimentalTest",
+					"shell_cmd": "cmake --build . --target ExperimentalTest",
+				},
+				{
+					"name": "package_source",
+					"shell_cmd": "cmake --build . --target package_source",
+				},
+				{
+					"name": "ExperimentalCoverage",
+					"shell_cmd": "cmake --build . --target ExperimentalCoverage",
+				},
+				{
+					"name": "ExperimentalMemCheck",
+					"shell_cmd": "cmake --build . --target ExperimentalMemCheck",
+				},
+				{
+					"name": "ExperimentalSubmit",
+					"shell_cmd": "cmake --build . --target ExperimentalSubmit",
+				},
+				{
+					"name": "ContinuousStart",
+					"shell_cmd": "cmake --build . --target ContinuousStart",
+				},
+				{
+					"name": "ContinuousUpdate",
+					"shell_cmd": "cmake --build . --target ContinuousUpdate",
+				},
+				{
+					"name": "ContinuousSubmit",
+					"shell_cmd": "cmake --build . --target ContinuousSubmit",
+				},
+				{
+					"name": "ContinuousConfigure",
+					"shell_cmd": "cmake --build . --target ContinuousConfigure",
+				},
+				{
+					"name": "ContinuousBuild",
+					"shell_cmd": "cmake --build . --target ContinuousBuild",
+				},
+				{
+					"name": "ContinuousTest",
+					"shell_cmd": "cmake --build . --target ContinuousTest",
+				},
+				{
+					"name": "ContinuousCoverage",
+					"shell_cmd": "cmake --build . --target ContinuousCoverage",
+				},
+				{
+					"name": "package",
+					"shell_cmd": "cmake --build . --target package",
+				},
+				{
+					"name": "test",
+					"shell_cmd": "cmake --build . --target test",
+				},
+				{
+					"name": "rebuild_cache",
+					"shell_cmd": "cmake --build . --target rebuild_cache",
+				},
+				{
+					"name": "list_install_components",
+					"shell_cmd": "cmake --build . --target list_install_components",
+				},
+				{
+					"name": "install/local",
+					"shell_cmd": "cmake --build . --target install/local",
+				},
+				{
+					"name": "install",
+					"shell_cmd": "cmake --build . --target install",
+				},
+				{
+					"name": "install/strip",
+					"shell_cmd": "cmake --build . --target install/strip",
+				},
+				{
+					"name": "code/foundation/package",
+					"shell_cmd": "cmake --build . --target code/foundation/package",
+				},
+				{
+					"name": "code/foundation/package_source",
+					"shell_cmd": "cmake --build . --target code/foundation/package_source",
+				},
+				{
+					"name": "code/foundation/rebuild_cache",
+					"shell_cmd": "cmake --build . --target code/foundation/rebuild_cache",
+				},
+				{
+					"name": "code/foundation/test",
+					"shell_cmd": "cmake --build . --target code/foundation/test",
+				},
+				{
+					"name": "code/foundation/install/local",
+					"shell_cmd": "cmake --build . --target code/foundation/install/local",
+				},
+				{
+					"name": "code/foundation/install",
+					"shell_cmd": "cmake --build . --target code/foundation/install",
+				},
+				{
+					"name": "code/foundation/list_install_components",
+					"shell_cmd": "cmake --build . --target code/foundation/list_install_components",
+				},
+				{
+					"name": "code/foundation/install/strip",
+					"shell_cmd": "cmake --build . --target code/foundation/install/strip",
+				},
+				{
+					"name": "code/gui/package",
+					"shell_cmd": "cmake --build . --target code/gui/package",
+				},
+				{
+					"name": "code/gui/package_source",
+					"shell_cmd": "cmake --build . --target code/gui/package_source",
+				},
+				{
+					"name": "code/gui/rebuild_cache",
+					"shell_cmd": "cmake --build . --target code/gui/rebuild_cache",
+				},
+				{
+					"name": "code/gui/test",
+					"shell_cmd": "cmake --build . --target code/gui/test",
+				},
+				{
+					"name": "code/gui/list_install_components",
+					"shell_cmd": "cmake --build . --target code/gui/list_install_components",
+				},
+				{
+					"name": "code/gui/install/local",
+					"shell_cmd": "cmake --build . --target code/gui/install/local",
+				},
+				{
+					"name": "code/gui/install",
+					"shell_cmd": "cmake --build . --target code/gui/install",
+				},
+				{
+					"name": "code/gui/install/strip",
+					"shell_cmd": "cmake --build . --target code/gui/install/strip",
+				},
+				{
+					"name": "cimgui-1.82dock/package",
+					"shell_cmd": "cmake --build . --target cimgui-1.82dock/package",
+				},
+				{
+					"name": "cimgui-1.82dock/package_source",
+					"shell_cmd": "cmake --build . --target cimgui-1.82dock/package_source",
+				},
+				{
+					"name": "cimgui-1.82dock/rebuild_cache",
+					"shell_cmd": "cmake --build . --target cimgui-1.82dock/rebuild_cache",
+				},
+				{
+					"name": "cimgui-1.82dock/test",
+					"shell_cmd": "cmake --build . --target cimgui-1.82dock/test",
+				},
+				{
+					"name": "cimgui-1.82dock/install/local",
+					"shell_cmd": "cmake --build . --target cimgui-1.82dock/install/local",
+				},
+				{
+					"name": "cimgui-1.82dock/install",
+					"shell_cmd": "cmake --build . --target cimgui-1.82dock/install",
+				},
+				{
+					"name": "cimgui-1.82dock/list_install_components",
+					"shell_cmd": "cmake --build . --target cimgui-1.82dock/list_install_components",
+				},
+				{
+					"name": "cimgui-1.82dock/install/strip",
+					"shell_cmd": "cmake --build . --target cimgui-1.82dock/install/strip",
+				},
+				{
+					"name": "glfw-3/package_source",
+					"shell_cmd": "cmake --build . --target glfw-3/package_source",
+				},
+				{
+					"name": "glfw-3/package",
+					"shell_cmd": "cmake --build . --target glfw-3/package",
+				},
+				{
+					"name": "glfw-3/rebuild_cache",
+					"shell_cmd": "cmake --build . --target glfw-3/rebuild_cache",
+				},
+				{
+					"name": "glfw-3/test",
+					"shell_cmd": "cmake --build . --target glfw-3/test",
+				},
+				{
+					"name": "glfw-3/install/local",
+					"shell_cmd": "cmake --build . --target glfw-3/install/local",
+				},
+				{
+					"name": "glfw-3/install",
+					"shell_cmd": "cmake --build . --target glfw-3/install",
+				},
+				{
+					"name": "glfw-3/list_install_components",
+					"shell_cmd": "cmake --build . --target glfw-3/list_install_components",
+				},
+				{
+					"name": "glfw-3/install/strip",
+					"shell_cmd": "cmake --build . --target glfw-3/install/strip",
+				},
+				{
+					"name": "glfw-3/src/rebuild_cache",
+					"shell_cmd": "cmake --build . --target glfw-3/src/rebuild_cache",
+				},
+				{
+					"name": "glfw-3/src/test",
+					"shell_cmd": "cmake --build . --target glfw-3/src/test",
+				},
+				{
+					"name": "glfw-3/src/package",
+					"shell_cmd": "cmake --build . --target glfw-3/src/package",
+				},
+				{
+					"name": "glfw-3/src/package_source",
+					"shell_cmd": "cmake --build . --target glfw-3/src/package_source",
+				},
+				{
+					"name": "glfw-3/src/install/local",
+					"shell_cmd": "cmake --build . --target glfw-3/src/install/local",
+				},
+				{
+					"name": "glfw-3/src/install",
+					"shell_cmd": "cmake --build . --target glfw-3/src/install",
+				},
+				{
+					"name": "glfw-3/src/list_install_components",
+					"shell_cmd": "cmake --build . --target glfw-3/src/list_install_components",
+				},
+				{
+					"name": "glfw-3/src/install/strip",
+					"shell_cmd": "cmake --build . --target glfw-3/src/install/strip",
+				},
+				{
+					"name": "cimgui",
+					"shell_cmd": "cmake --build . --target cimgui",
+				},
+				{
+					"name": "cimgui.lib",
+					"shell_cmd": "cmake --build . --target cimgui.lib",
+				},
+				{
+					"name": "demo",
+					"shell_cmd": "cmake --build . --target demo",
+				},
+				{
+					"name": "demo.exe",
+					"shell_cmd": "cmake --build . --target demo.exe",
+				},
+				{
+					"name": "demo_lib",
+					"shell_cmd": "cmake --build . --target demo_lib",
+				},
+				{
+					"name": "demo_lib.dll",
+					"shell_cmd": "cmake --build . --target demo_lib.dll",
+				},
+				{
+					"name": "foundation",
+					"shell_cmd": "cmake --build . --target foundation",
+				},
+				{
+					"name": "foundation.lib",
+					"shell_cmd": "cmake --build . --target foundation.lib",
+				},
+				{
+					"name": "glfw",
+					"shell_cmd": "cmake --build . --target glfw",
+				},
+				{
+					"name": "glfw3.lib",
+					"shell_cmd": "cmake --build . --target glfw3.lib",
+				},
+				{
+					"name": "gui",
+					"shell_cmd": "cmake --build . --target gui",
+				},
+				{
+					"name": "gui.lib",
+					"shell_cmd": "cmake --build . --target gui.lib",
+				},
+				{
+					"name": "gui_backend",
+					"shell_cmd": "cmake --build . --target gui_backend",
+				},
+				{
+					"name": "gui_backend.lib",
+					"shell_cmd": "cmake --build . --target gui_backend.lib",
+				},
+				{
+					"name": "image_viewer",
+					"shell_cmd": "cmake --build . --target image_viewer",
+				},
+				{
+					"name": "image_viewer.exe",
+					"shell_cmd": "cmake --build . --target image_viewer.exe",
+				},
+				{
+					"name": "image_viewer_lib",
+					"shell_cmd": "cmake --build . --target image_viewer_lib",
+				},
+				{
+					"name": "image_viewer_lib.dll",
+					"shell_cmd": "cmake --build . --target image_viewer_lib.dll",
+				},
+				{
+					"name": "test_arena",
+					"shell_cmd": "cmake --build . --target test_arena",
+				},
+				{
+					"name": "test_arena.exe",
+					"shell_cmd": "cmake --build . --target test_arena.exe",
+				},
+				{
+					"name": "test_array",
+					"shell_cmd": "cmake --build . --target test_array",
+				},
+				{
+					"name": "test_array.exe",
+					"shell_cmd": "cmake --build . --target test_array.exe",
+				},
+				{
+					"name": "test_win32_threads",
+					"shell_cmd": "cmake --build . --target test_win32_threads",
+				},
+				{
+					"name": "test_win32_threads.exe",
+					"shell_cmd": "cmake --build . --target test_win32_threads.exe",
+				},
+				{
+					"name": "uninstall",
+					"shell_cmd": "cmake --build . --target uninstall",
+				},
+				{
+					"name": "clean",
+					"shell_cmd": "cmake --build . --target clean",
+				}
+			],
+			"working_dir": "${project_path}/build",
+		}
+	],
+}

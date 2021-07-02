@@ -1,15 +1,11 @@
 #include "api.h"
-
-#include "gui/gui.h"
-
-#include "gl/gload.h"
-
-#include "foundation/common.h"
-
 #include "foundation/color.h"
+#include "foundation/common.h"
 #include "foundation/maths.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"
+#include "gl/gload.h"
+#include "gui/gui.h"
 
 typedef struct AppWindows
 {
