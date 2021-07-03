@@ -451,6 +451,20 @@ typedef struct Time
 #define timeAdd(a, b) ((Time){.nanoseconds = a.nanoseconds + b.nanoseconds})
 #define timeSub(a, b) ((Time){.nanoseconds = a.nanoseconds - b.nanoseconds})
 
+//---------
+// Strings
+//---------
+
+/// Dynamic string buffer
+typedef cfArray(char) StrBuffer;
+
+/// Better(ish) string representation (not necessarily null terminated)
+typedef struct Str 
+{
+    char *buf; // Pointer to string data 
+    Usize len; // Lenght in chars of the string (not including terminators)
+} Str;
+
 //------------------------------------------------------------------------------
 // Helper macros
 //------------------------------------------------------------------------------

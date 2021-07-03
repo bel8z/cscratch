@@ -23,7 +23,15 @@
       		"format_on_save": true,
       		"style": "File",
     	},
-    },
+    
+		"LSP":
+		{
+			"clangd":
+			{
+				"enabled": true,
+			},
+		},
+	},
     "build_systems":
     [
 		{
@@ -452,5 +460,14 @@
 			],
 			"working_dir": "${project_path}/build",
 		}
+	],
+	"debugger_configurations":
+	[
+		{			
+			"name": "C++ Launch (Windows)",
+  			"type": "lldb",
+  			"request": "launch",
+  			"program":  "${project_path}/build/Debug/demo.exe"
+		},
 	],
 }
