@@ -255,8 +255,9 @@ typedef struct cfAllocator
 #define cfAllocAlign(a, size, align) (a)->func((a)->state, NULL, 0, size, CF_MAX_ALIGN)
 #define cfReallocAlign(a, mem, old_size, new_size, align) \
     (a)->func((a)->state, (mem), (old_size), (new_size), align)
-#define cfAlloc(a, size) cfAllocAlign(size, CF_MAX_ALIGN)
-#define cfRealloc(a, mem, old_size, new_size) cfRealloc((mem), (old_size), (new_size), CF_MAX_ALIGN)
+#define cfAlloc(a, size) cfAllocAlign(a, size, CF_MAX_ALIGN)
+#define cfRealloc(a, mem, old_size, new_size) \
+    cfRealloc((a), (mem), (old_size), (new_size), CF_MAX_ALIGN)
 #define cfFree(a, mem, size) (a)->func((a)->state, (void *)(mem), (size), 0, 0)
 
 /// Macro to define a typed dynamic array (variable or typedef)
