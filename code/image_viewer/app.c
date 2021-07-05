@@ -23,6 +23,7 @@
 
 #include "gl/gload.h"
 
+#include "foundation/arena.h"
 #include "foundation/array.h"
 #include "foundation/color.h"
 #include "foundation/common.h"
@@ -129,7 +130,8 @@ struct AppState
 {
     Platform *plat;
 
-    cfAllocator alloc;
+    Arena *arena;
+    cfAllocator heap;
 
     FileDlgFilter filter;
 
@@ -364,10 +366,12 @@ APP_API AppState *
 appCreate(Platform *plat, char const *argv[], I32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
-    AppState *app = cfAlloc(plat->heap, sizeof(*app));
+    Arena *arena = arenaBootstrap(plat->vm, CF_GB(1));
+    AppState *app = arenaAllocStruct(arena, AppState);
 
     app->plat = plat;
-    app->alloc = plat->heap;
+    app->heap = plat->heap;
+    app->arena = arena;
 
     // Init file list management
     app->filter.name = "Image files";
@@ -376,10 +380,10 @@ appCreate(Platform *plat, char const *argv[], I32 argc)
     app->curr_file = USIZE_MAX;
 
     // Usize const images_vm = CF_GB(1);
-    cfArrayInit(&app->images, app->alloc);
+    cfArrayInit(&app->images, arenaAllocator(arena));
 
     cfThreading *threading = app->plat->threading;
-    app->queue.alloc = app->alloc;
+    app->queue.alloc = app->heap;
     app->queue.fs = app->plat->fs;
     app->queue.api = threading;
 
@@ -427,7 +431,7 @@ appClearImages(AppState *app)
 
         if (file->state == ImageFileState_Loaded)
         {
-            imageUnload(&file->image, app->alloc);
+            imageUnload(&file->image, app->heap);
             file->state = ImageFileState_Idle;
         }
         else
@@ -448,7 +452,7 @@ appDestroy(AppState *app)
     appClearImages(app);
     imageViewShutdown(&app->iv);
     cfArrayFree(&app->images);
-    cfFree(app->alloc, app, sizeof(*app));
+    arenaShutdown(app->arena);
 }
 
 //------------------------------------------------------------------------------
@@ -534,7 +538,7 @@ appBrowseNext(AppState *app)
         ImageFile *file = app->images.buf + lru;
         if (file->state == ImageFileState_Loaded)
         {
-            imageUnload(&file->image, app->alloc);
+            imageUnload(&file->image, app->heap);
             file->state = ImageFileState_Idle;
         }
     }
@@ -560,7 +564,7 @@ appBrowsePrev(AppState *app)
         ImageFile *file = app->images.buf + lru;
         if (file->state == ImageFileState_Loaded)
         {
-            imageUnload(&file->image, app->alloc);
+            imageUnload(&file->image, app->heap);
             file->state = ImageFileState_Idle;
         }
     }
@@ -595,7 +599,7 @@ appLoadFromFile(AppState *state, char const *full_name)
 
         cfMemCopy(full_name, file.filename, full_size);
 
-        DirIter *it = fs->dirIterStart(dir_name, state->alloc);
+        DirIter *it = fs->dirIterStart(dir_name, state->heap);
 
         if (it)
         {
@@ -766,7 +770,7 @@ appOpenFile(AppState *state)
     char const *hint =
         (state->curr_file != USIZE_MAX ? state->images.buf[state->curr_file].filename : NULL);
 
-    FileDlgResult dlg_result = plat->fs->open_file_dlg(hint, &state->filter, 1, state->alloc);
+    FileDlgResult dlg_result = plat->fs->open_file_dlg(hint, &state->filter, 1, state->heap);
 
     switch (dlg_result.code)
     {
@@ -774,7 +778,7 @@ appOpenFile(AppState *state)
         case FileDlgResult_Error: result = false; break;
     }
 
-    cfFree(state->alloc, dlg_result.filename, dlg_result.filename_size);
+    cfFree(state->heap, dlg_result.filename, dlg_result.filename_size);
 
     return result;
 }
