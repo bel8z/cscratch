@@ -30,6 +30,8 @@ bool arenaInitVm(Arena *arena, cfVirtualMemory *vm, U32 reserved_size);
 /// Initialize the arena with a fixed size buffer
 void arenaInitBuffer(Arena *arena, U8 *buffer, U32 buffer_size);
 
+Arena *arenaBootstrap(cfVirtualMemory *vm, U32 allocation_size);
+
 /// Free all the memory allocated by the arena and render it unable to provide
 /// any memory after this call.
 void arenaShutdown(Arena *arena);
@@ -62,7 +64,7 @@ arenaRealloc(Arena *arena, void *memory, U32 old_size, U32 new_size)
 
 /// Returns a block of the given size to the top of the arena stack; this is
 /// effective only if the block matches with the last allocation
-void arenaFree(Arena *arena, void const *memory, U32 size);
+void arenaFree(Arena *arena, void *memory, U32 size);
 
 /// Allocates a block which fits the given struct on top of the arena stack
 #define arenaAllocStruct(arena, Type) (Type *)arenaAllocAlign(arena, sizeof(Type), alignof(Type))

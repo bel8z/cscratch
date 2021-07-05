@@ -4,6 +4,45 @@
 #include "util.h"
 #include "vm.h"
 
+static void
+arenaCommitVm(Arena *arena)
+{
+    CF_ASSERT_NOT_NULL(arena);
+
+    if (arena->vm && arena->allocated > arena->committed)
+    {
+        U32 max_commit_size = arena->reserved - arena->allocated;
+        U32 commit_size = cfMin(
+            max_commit_size, cfRoundUp(arena->allocated - arena->committed, arena->vm->page_size));
+        cfVmCommit(arena->vm, arena->memory + arena->committed, commit_size);
+        arena->committed += commit_size;
+    }
+}
+
+static void
+arenaDecommitVm(Arena *arena)
+{
+    if (arena->vm && arena->committed > arena->allocated)
+    {
+        // NOTE (Matteo): Since VM decommit acts on full pages, I need to align the block to be
+        // decommitted 1 page up in order to preserve the last page which is partially filled
+
+        Usize page_size = arena->vm->page_size;
+        CF_ASSERT((page_size & (page_size - 1)) == 0, "Page size is not a power of 2");
+
+        // Align base pointer forward
+        Uptr ptr = (Uptr)(arena->memory + arena->allocated);
+        // Same as (ptr % page_size) but faster as page_size is a power of 2
+        Uptr modulo = ptr & (page_size - 1);
+        Uptr offset = ptr + page_size - modulo - (Uptr)arena->memory;
+
+        if (offset < arena->committed)
+        {
+            cfVmRevert(arena->vm, arena->memory + offset, arena->committed - offset);
+        }
+    }
+}
+
 bool
 arenaInitVm(Arena *arena, cfVirtualMemory *vm, U32 reserved_size)
 {
@@ -37,36 +76,61 @@ arenaInitBuffer(Arena *arena, U8 *buffer, U32 buffer_size)
     arena->save_stack = 0;
 }
 
+Arena *
+arenaBootstrap(cfVirtualMemory *vm, U32 allocation_size)
+{
+    CF_ASSERT(allocation_size > sizeof(Arena), "Cannot bootstrap arena from smaller allocation");
+    Arena *arena = cfVmReserve(vm, allocation_size);
+
+    if (arena)
+    {
+        U32 commit_size = cfMin(allocation_size, cfRoundUp(sizeof(Arena), vm->page_size));
+        cfVmCommit(vm, arena, commit_size);
+
+        arena->vm = vm;
+        arena->memory = (U8 *)arena;
+        arena->reserved = allocation_size;
+        arena->allocated = sizeof(Arena);
+        arena->committed = commit_size;
+        arena->save_stack = 0;
+    }
+
+    return arena;
+}
+
 void
 arenaShutdown(Arena *arena)
 {
     CF_ASSERT_NOT_NULL(arena);
-    if (arena->vm) cfVmRelease(arena->vm, arena->memory, arena->reserved);
-    // Make the arena unusable
-    *arena = (Arena){0};
+    bool bootstrapped = false;
+
+    if (arena->vm)
+    {
+        bootstrapped = ((U8 *)arena == arena->memory);
+        cfVmRelease(arena->vm, arena->memory, arena->reserved);
+    }
+
+    // NOTE (Matteo): Make the arena unusable (if bootstrapped, accessing it causes an access
+    // violation already)
+    if (!bootstrapped) *arena = (Arena){0};
 }
 
 void
 arenaFreeAll(Arena *arena)
 {
     CF_ASSERT_NOT_NULL(arena);
-    if (arena->vm) cfVmRevert(arena->vm, arena->memory, arena->reserved);
-    arena->allocated = 0;
-}
 
-static void
-arenaCommitVm(Arena *arena)
-{
-    CF_ASSERT_NOT_NULL(arena);
-
-    if (arena->vm && arena->committed > arena->allocated)
+    if (arena->vm && arena->memory == (U8 *)arena)
     {
-        U32 max_commit_size = arena->reserved - arena->allocated;
-        U32 commit_size = cfMin(
-            max_commit_size, cfRoundUp(arena->allocated - arena->committed, arena->vm->page_size));
-        cfVmCommit(arena->vm, arena->memory + arena->committed, commit_size);
-        arena->committed += commit_size;
+        // Arena is bootstrapped, so I need to preserve its allocation
+        arena->allocated = sizeof(Arena);
     }
+    else
+    {
+        arena->allocated = 0;
+    }
+
+    arenaDecommitVm(arena);
 }
 
 void *
@@ -144,7 +208,7 @@ arenaReallocAlign(Arena *arena, void *memory, U32 old_size, U32 new_size, U32 al
 }
 
 void
-arenaFree(Arena *arena, void const *memory, U32 size)
+arenaFree(Arena *arena, void *memory, U32 size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -163,11 +227,11 @@ arenaFree(Arena *arena, void const *memory, U32 size)
         // released
         if (block_end == alloc_end)
         {
+            arena->allocated -= size;
 #if CF_MEMORY_PROTECTION
             // NOTE (Matteo): Decommit unused memory to trigger access violations
-            if (arena->vm) cfVmRevert(arena->vm, arena->memory + arena->allocated, size);
+            arenaDecommitVm(arena);
 #endif
-            arena->allocated -= size;
         }
     }
     else
@@ -196,16 +260,13 @@ arenaRestore(ArenaTempState state)
     CF_ASSERT(arena->save_stack == state.stack_id, "Restoring invalid state");
     CF_ASSERT(arena->allocated >= state.allocated, "Restoring invalid state");
 
-#if CF_MEMORY_PROTECTION
-    // NOTE (Matteo): Decommit unused memory to trigger access violations
-    if (arena->vm)
-    {
-        cfVmRevert(arena->vm, arena->memory + arena->allocated, arena->allocated - state.allocated);
-    }
-#endif
-
     arena->allocated = state.allocated;
     arena->save_stack--;
+
+#if CF_MEMORY_PROTECTION
+    // NOTE (Matteo): Decommit unused memory to trigger access violations
+    arenaDecommitVm(arena);
+#endif
 }
 
 bool
@@ -242,16 +303,10 @@ static CF_ALLOCATOR_FUNC(arenaAllocProc)
 {
     Arena *arena = state;
 
-    if (new_size)
-    {
-        CF_ASSERT(memory || !old_size, "Invalid allocation request");
-        return arenaReallocAlign(arena, memory, old_size, new_size, align);
-    }
+    CF_ASSERT(memory || !old_size, "Invalid allocation request");
 
-    CF_ASSERT(memory && old_size, "Invalid allocation request");
-
-    arenaFree(arena, memory, old_size);
-    return NULL;
+    return new_size ? arenaReallocAlign(arena, memory, old_size, new_size, align)
+                    : (arenaFree(arena, memory, old_size), NULL);
 }
 
 cfAllocator
