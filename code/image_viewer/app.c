@@ -23,16 +23,16 @@
 
 #include "gl/gload.h"
 
-#include "foundation/arena.h"
+#include "foundation/core.h"
+
 #include "foundation/array.h"
 #include "foundation/color.h"
-#include "foundation/core.h"
 #include "foundation/fs.h"
 #include "foundation/maths.h"
+#include "foundation/memory.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"
 #include "foundation/threading.h"
-#include "foundation/vm.h"
 
 static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
 

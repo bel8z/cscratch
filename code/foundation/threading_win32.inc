@@ -1,5 +1,6 @@
 #include "core.h"
 #include "threading.h"
+#include "time.h"
 
 #pragma warning(push)
 #pragma warning(disable : 5105)
@@ -19,7 +20,7 @@
 static inline DWORD
 win32TimeoutMs(Time timeout)
 {
-    if (TIME_IS_INFINITE(timeout)) return INFINITE;
+    if (timeIsInfinite(timeout)) return INFINITE;
     CF_ASSERT(timeout.nanoseconds >= 0, "Negative timeout given");
     I64 ms = timeout.nanoseconds / 1000000;
     return (DWORD)ms;

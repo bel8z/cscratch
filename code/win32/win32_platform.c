@@ -6,9 +6,9 @@
 
 #include "foundation/fs.h"
 #include "foundation/maths.h"
+#include "foundation/memory.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"
-#include "foundation/vm.h"
 
 #if !CF_OS_WIN32
 #    error "Win32 platform not supported"

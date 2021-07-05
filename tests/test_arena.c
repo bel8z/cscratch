@@ -1,6 +1,5 @@
 
-#include "foundation/arena.h"
-#include "foundation/vm.h"
+#include "foundation/memory.h"
 
 #include "win32/win32.h"
 

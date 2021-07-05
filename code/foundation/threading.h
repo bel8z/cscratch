@@ -1,18 +1,23 @@
 #pragma once
 
+/// Foundation threading support
+/// This is an API header and as such the only included header must be "core.h"
+
 #include "core.h"
 
 #if !defined(CF_THREADING_DEBUG)
 #    define CF_THREADING_DEBUG CF_DEBUG
 #endif
 
-//------------------------------------------------------------------------------
-// Threading API
-//------------------------------------------------------------------------------
+//---------------------//
+//   Basic utilities   //
+//---------------------//
 
 void threadSleep(Time timeout);
 
-//------------------------------------------------------------------------------
+//------------//
+//   Thread   //
+//------------//
 
 /// Thread handle
 typedef struct Thread
@@ -45,7 +50,9 @@ bool threadWaitAll(Thread *threads, Usize num_threads, Time timeout);
 /// parameters
 #define threadStart(thread_proc, ...) threadCreate(&(ThreadParms){.proc = thread_proc, __VA_ARGS__})
 
-//------------------------------------------------------------------------------
+//-----------//
+//   Mutex   //
+//-----------//
 
 /// Lightweight syncronization primitive which offers exclusive access to a resource.
 /// This mutex cannot be acquired recursively.
@@ -64,6 +71,10 @@ void mutexAcquire(Mutex *mutex);
 void mutexRelease(Mutex *mutex);
 
 //------------------------------------------------------------------------------
+
+//------------------------//
+//   Reader/writer lock   //
+//------------------------//
 
 /// Lightweight syncronization primitive which offers shared access to readers and
 /// exclusive access to writers of a resource.
@@ -86,7 +97,9 @@ void rwLockWriter(RwLock *lock);
 void rwUnlockReader(RwLock *lock);
 void rwUnlockWriter(RwLock *lock);
 
-//------------------------------------------------------------------------------
+//-------------------------//
+//   Condition variables   //
+//-------------------------//
 
 /// Condition variables are synchronization primitives that enable threads to wait until a
 /// particular condition occurs.

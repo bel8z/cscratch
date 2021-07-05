@@ -1,8 +1,10 @@
 #pragma once
 
-// Misc utilities (basically wrapper on common standard library functions as memset and memcpy)
+/// Foundation miscellaneous utility
+/// This is not an API header, include it in implementation files only
 
 #include "core.h"
+#include "memory.h"
 
 static inline U32
 cfRoundUp(U32 block_size, U32 page_size)

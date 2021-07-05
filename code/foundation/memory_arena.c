@@ -1,8 +1,6 @@
-#include "arena.h"
-
 #include "core.h"
+#include "memory.h"
 #include "util.h"
-#include "vm.h"
 
 static void
 arenaCommitVm(Arena *arena)

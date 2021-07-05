@@ -1,6 +1,10 @@
 #pragma once
 
+/// Foundation dynamic array implementation
+/// This is not an API header, include it in implementation files only
+
 #include "core.h"
+#include "memory.h"
 
 #define cfArrayInit(array, allocator) \
     do                                \

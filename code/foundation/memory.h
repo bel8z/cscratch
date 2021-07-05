@@ -1,9 +1,66 @@
 #pragma once
 
-// Dependencies
+/// Foundation memory services
+/// This is not an API header, include it in implementation files only
+
 #include "core.h"
 
-typedef struct cfVirtualMemory cfVirtualMemory;
+#include <string.h>
+
+//----------------------------//
+//   Basic memory utilities   //
+//----------------------------//
+
+#define cfAlloc(a, size) cfAllocAlign(a, size, CF_MAX_ALIGN)
+#define cfAllocAlign(a, size, align) (a).func((a).state, NULL, 0, (size), (align))
+
+#define cfReallocAlign(a, mem, old_size, new_size, align) \
+    (a).func((a).state, (mem), (old_size), (new_size), (align))
+#define cfRealloc(a, mem, old_size, new_size) \
+    cfReallocAlign(a, mem, old_size, new_size, CF_MAX_ALIGN)
+
+#define cfFree(a, mem, size) (a).func((a).state, (void *)(mem), (size), 0, 0)
+
+#define cfMemClear(mem, count) memset(mem, 0, count)        // NOLINT
+#define cfMemCopy(from, to, count) memmove(to, from, count) // NOLINT
+#define cfMemCopySafe(from, from_size, to, to_size) memmove_s(to, to_size, from, from_size)
+
+static inline void
+cfMemWrite(U8 *mem, U8 value, Usize count)
+{
+    memset(mem, value, count); // NOLINT
+}
+
+//------------------------//
+//   Virtual memory API   //
+//------------------------//
+
+// NOTE (Matteo): The implementation of this API must be provided by the platform layer
+
+#define VM_RESERVE_FUNC(name) void *name(Usize size)
+#define VM_RELEASE_FUNC(name) void name(void *memory, Usize size)
+
+#define VM_COMMIT_FUNC(name) bool name(void *memory, Usize size)
+#define VM_REVERT_FUNC(name) void name(void *memory, Usize size)
+
+typedef struct cfVirtualMemory
+{
+    VM_RESERVE_FUNC((*reserve));
+    VM_RELEASE_FUNC((*release));
+    VM_COMMIT_FUNC((*commit));
+    VM_REVERT_FUNC((*revert));
+
+    Usize page_size;
+} cfVirtualMemory;
+
+#define cfVmReserve(vm, size) vm->reserve(size)
+#define cfVmRelease(vm, mem, size) vm->release(mem, size)
+#define cfVmCommit(vm, mem, size) vm->commit(mem, size)
+#define cfVmRevert(vm, mem, size) vm->revert(mem, size)
+
+//------------------//
+//   Memory arena   //
+//------------------//
 
 /// Linear arena allocator that can use either a fixed size buffer or virtual
 /// memory as a backing store
