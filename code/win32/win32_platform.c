@@ -338,6 +338,7 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 CF_ALLOCATOR_FUNC(win32Alloc)
 {
     CF_UNUSED(state);
+    CF_UNUSED(align);
 
     HANDLE heap = GetProcessHeap();
     void *old_mem = memory;
