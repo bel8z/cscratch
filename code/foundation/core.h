@@ -12,6 +12,10 @@
 /// Foundation utility macros that are at the base of the library and should be part
 /// of the public API
 
+// Note (Matteo): These are kept almost at top because are keywords
+#define alignof _Alignof
+#define alignas _Alignas
+
 #define CF_UNUSED(var) (void)(var)
 
 //-------------------//
@@ -67,12 +71,12 @@
 #    define CF_COMPILER_CLANG 0
 #endif
 
-#if !defined(CF_COMPILER_GCC)
-#    define CF_COMPILER_GCC 0
-#endif
-
 #if !defined(CF_COMPILER_MSVC)
 #    define CF_COMPILER_MSVC 0
+#endif
+
+#if !defined(CF_COMPILER_GCC)
+#    define CF_COMPILER_GCC 0
 #endif
 
 #if !defined(CF_OS_WIN32)
@@ -94,11 +98,6 @@
 #if !defined(CF_ARCH_X86)
 #    define CF_ARCH_X86 0
 #endif
-
-// Note (Matteo): These are kept almost at top because are keywords
-
-#define alignof _Alignof
-#define alignas _Alignas
 
 #if CF_COMPILER_MSVC
 #    define CF_MAX_ALIGN (sizeof(void *) * 2)
@@ -123,6 +122,9 @@
 #        define CF_DEBUG 1
 #    endif
 #endif
+
+// NOTE (Matteo): Redundant but useful (maybe?)
+#define CF_RELEASE !CF_DEBUG
 
 // NOTE (Matteo): Memory protection is on by default, and can be disabled as a compilation flag
 #if !defined(CF_MEMORY_PROTECTION)
