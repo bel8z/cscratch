@@ -14,7 +14,7 @@
 
 CF_PRINTF_LIKE(2, 3)
 char *
-strPrintfAlloc(cfAllocator *alloc, Usize *out_size, char const *fmt, ...)
+strPrintfAlloc(cfAllocator alloc, Usize *out_size, char const *fmt, ...)
 {
     va_list args, args_copy;
 

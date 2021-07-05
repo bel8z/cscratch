@@ -39,7 +39,7 @@ APP_API APP_CREATE_PROC(appCreate)
     CF_UNUSED(argc);
 
     // NOTE (Matteo): Memory comes cleared to 0
-    AppState *app = cfAlloc(&plat->heap, sizeof(*app));
+    AppState *app = cfAlloc(plat->heap, sizeof(*app));
 
     app->plat = plat;
     app->alloc = plat->heap;
@@ -56,7 +56,7 @@ APP_API APP_CREATE_PROC(appCreate)
 
 APP_API APP_PROC(appDestroy)
 {
-    cfFree(&app->alloc, app, sizeof(*app));
+    cfFree(app->alloc, app, sizeof(*app));
 }
 
 //------------------------------------------------------------------------------

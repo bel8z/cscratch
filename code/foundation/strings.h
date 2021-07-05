@@ -20,7 +20,7 @@ strLength(char const *str)
 }
 
 /// Print formatted string on a buffer allocated by the given allocator
-char *strPrintfAlloc(cfAllocator *alloc, Usize *out_size, char const *fmt, ...);
+char *strPrintfAlloc(cfAllocator alloc, Usize *out_size, char const *fmt, ...);
 
 /// Print formatted string on the given dynamic buffer
 bool strPrintfBuffer(StrBuffer *buffer, char const *fmt, ...);

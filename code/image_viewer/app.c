@@ -364,7 +364,7 @@ APP_API AppState *
 appCreate(Platform *plat, char const *argv[], I32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
-    AppState *app = cfAlloc(&plat->heap, sizeof(*app));
+    AppState *app = cfAlloc(plat->heap, sizeof(*app));
 
     app->plat = plat;
     app->alloc = plat->heap;
@@ -448,7 +448,7 @@ appDestroy(AppState *app)
     appClearImages(app);
     imageViewShutdown(&app->iv);
     cfArrayFree(&app->images);
-    cfFree(&app->alloc, app, sizeof(*app));
+    cfFree(app->alloc, app, sizeof(*app));
 }
 
 //------------------------------------------------------------------------------
@@ -667,7 +667,7 @@ appImageView(AppState *state)
 
     if (state->curr_file != USIZE_MAX)
     {
-        ImageFile *curr_file = state->images.files + state->curr_file;
+        ImageFile *curr_file = state->images.buf + state->curr_file;
         bool process_input = true;
 
         switch (curr_file->state)
@@ -774,7 +774,7 @@ appOpenFile(AppState *state)
         case FileDlgResult_Error: result = false; break;
     }
 
-    cfFree(&state->alloc, dlg_result.filename, dlg_result.filename_size);
+    cfFree(state->alloc, dlg_result.filename, dlg_result.filename_size);
 
     return result;
 }
