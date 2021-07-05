@@ -1,9 +1,15 @@
 #pragma once
 
+/// Foundation linked list utilty
+/// This is an API header and as such the only included header must be "core.h"
+
 #include "core.h"
 
-// Intrusive doubly-linked list
-
+/// Intrusive, circular, doubly-linked list node.
+/// In order for a struct to be added to a list, it must contain (at least) a cfList member; this
+/// member would have both its next and prev pointer members point to itself when the item is not
+/// part of a list.
+/// This design allow for simpler code and less memory allocations.
 typedef struct cfList cfList;
 
 struct cfList
