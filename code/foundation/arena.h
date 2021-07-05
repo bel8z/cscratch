@@ -11,9 +11,10 @@ typedef struct Arena
 {
     U32 reserved;
     U32 allocated;
+    U32 committed;
+    U32 save_stack;
     U8 *memory;
     cfVirtualMemory *vm;
-    U32 save_stack;
 } Arena;
 
 typedef struct ArenaTempState
@@ -86,3 +87,7 @@ void arenaRestore(ArenaTempState state);
 
 #define ARENA_TEMP_BEGIN(arena) ArenaTempState ARENA_TEMP_END_NOT_CALLED = arenaSave(arena)
 #define ARENA_TEMP_END(arena) arenaRestore(ARENA_TEMP_END_NOT_CALLED)
+
+bool arenaSplit(Arena *arena, Arena *split, U32 size);
+
+cfAllocator arenaAllocator(Arena *arena);

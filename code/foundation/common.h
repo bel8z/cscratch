@@ -242,7 +242,7 @@ typedef double F64;
 
 /// Definition of the main allocation function
 #define CF_ALLOCATOR_FUNC(name) \
-    void *name(void *state, void *memory, Usize old_size, Usize new_size)
+    void *name(void *state, void *memory, Usize old_size, Usize new_size, Usize align)
 
 /// Generic allocator interface
 /// The memory provided by this interface should already be cleared to 0
@@ -252,9 +252,12 @@ typedef struct cfAllocator
     CF_ALLOCATOR_FUNC((*func));
 } cfAllocator;
 
-#define cfAlloc(a, size) (a)->func((a)->state, NULL, 0, size)
-#define cfRealloc(a, mem, old_size, new_size) (a)->func((a)->state, (mem), (old_size), (new_size))
-#define cfFree(a, mem, size) (a)->func((a)->state, (void *)(mem), (size), 0)
+#define cfAllocAlign(a, size, align) (a)->func((a)->state, NULL, 0, size, CF_MAX_ALIGN)
+#define cfReallocAlign(a, mem, old_size, new_size, align) \
+    (a)->func((a)->state, (mem), (old_size), (new_size), align)
+#define cfAlloc(a, size) cfAllocAlign(size, CF_MAX_ALIGN)
+#define cfRealloc(a, mem, old_size, new_size) cfRealloc((mem), (old_size), (new_size), CF_MAX_ALIGN)
+#define cfFree(a, mem, size) (a)->func((a)->state, (void *)(mem), (size), 0, 0)
 
 /// Macro to define a typed dynamic array (variable or typedef)
 /// Functionality is implemented in array.h
@@ -459,9 +462,9 @@ typedef struct Time
 typedef cfArray(char) StrBuffer;
 
 /// Better(ish) string representation (not necessarily null terminated)
-typedef struct Str 
+typedef struct Str
 {
-    char *buf; // Pointer to string data 
+    char *buf; // Pointer to string data
     Usize len; // Lenght in chars of the string (not including terminators)
 } Str;
 

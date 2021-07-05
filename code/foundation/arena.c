@@ -18,6 +18,7 @@ arenaInitVm(Arena *arena, cfVirtualMemory *vm, U32 reserved_size)
     arena->memory = buffer;
     arena->reserved = rounded;
     arena->allocated = 0;
+    arena->committed = 0;
     arena->save_stack = 0;
 
     return true;
@@ -32,6 +33,7 @@ arenaInitBuffer(Arena *arena, U8 *buffer, U32 buffer_size)
     arena->memory = buffer;
     arena->reserved = buffer_size;
     arena->allocated = 0;
+    arena->committed = 0;
     arena->save_stack = 0;
 }
 
@@ -57,10 +59,13 @@ arenaCommitVm(Arena *arena)
 {
     CF_ASSERT_NOT_NULL(arena);
 
-    if (arena->vm)
+    if (arena->vm && arena->committed > arena->allocated)
     {
-        U32 commit_size = cfRoundUp(arena->allocated, arena->vm->page_size);
-        cfVmCommit(arena->vm, arena->memory, commit_size);
+        U32 max_commit_size = arena->reserved - arena->allocated;
+        U32 commit_size = cfMin(
+            max_commit_size, cfRoundUp(arena->allocated - arena->committed, arena->vm->page_size));
+        cfVmCommit(arena->vm, arena->memory + arena->committed, commit_size);
+        arena->committed += commit_size;
     }
 }
 
@@ -201,4 +206,59 @@ arenaRestore(ArenaTempState state)
 
     arena->allocated = state.allocated;
     arena->save_stack--;
+}
+
+bool
+arenaSplit(Arena *arena, Arena *split, U32 size)
+{
+    CF_ASSERT(!split->memory, "split is expected to be 0-initialized");
+
+    // NOTE(Matteo): This can overflow, thus the additional test below
+    U32 new_reserved = arena->reserved - size;
+    if (size > arena->reserved || new_reserved < arena->allocated)
+    {
+        return false;
+    }
+
+    split->vm = arena->vm;
+    split->memory = arena->memory + new_reserved;
+    split->reserved = size;
+    split->allocated = 0;
+    split->committed = 0;
+    split->save_stack = 0;
+
+    if (arena->vm && arena->committed > new_reserved)
+    {
+        split->committed = arena->committed - new_reserved;
+        arena->committed = new_reserved;
+    }
+
+    arena->reserved = new_reserved;
+
+    return true;
+}
+
+static CF_ALLOCATOR_FUNC(arenaAllocProc)
+{
+    Arena *arena = state;
+
+    if (new_size)
+    {
+        CF_ASSERT(memory || !old_size, "Invalid allocation request");
+        return arenaReallocAlign(arena, memory, old_size, new_size, align);
+    }
+
+    CF_ASSERT(memory && old_size, "Invalid allocation request");
+
+    arenaFree(arena, memory, old_size);
+    return NULL;
+}
+
+cfAllocator
+arenaAllocator(Arena *arena)
+{
+    return (cfAllocator){
+        .state = arena,
+        .func = arenaAllocProc,
+    };
 }

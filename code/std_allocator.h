@@ -6,8 +6,9 @@
 
 static CF_ALLOCATOR_FUNC(std__realloc)
 {
-    (void)(state);
-    (void)(old_size);
+    CF_UNUSED(state);
+    CF_UNUSED(old_size);
+    CF_UNUSED(align);
 
     if (new_size) return realloc(memory, new_size);
 

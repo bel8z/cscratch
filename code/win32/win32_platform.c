@@ -289,6 +289,10 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 {
     CF_UNUSED(state);
 
+    // TODO (Matteo): Handle alignment? Since this is a replacement of the heap
+    // functions I don't think it's necessary to do so.
+    CF_UNUSED(align);
+
     void *new_mem = NULL;
 
     if (new_size)
