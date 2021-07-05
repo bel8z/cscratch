@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.15.0)
 file(GLOB_RECURSE LIB_SOURCES  "*.c")
 add_library(foundation STATIC ${LIB_SOURCES})
 
+message(STATUS "foundation sources: ${LIB_SOURCES}")
+
 get_directory_property(PARENT_DIR PARENT_DIRECTORY)
 message(STATUS "foundation parent directory: ${PARENT_DIR}")
 

@@ -79,8 +79,7 @@ endif()
 
 set(PLATFORM_SOURCES 
     ${CODE_DIR}/platform.c
-    ${CODE_DIR}/win32/win32_platform.c
-    ${CODE_DIR}/win32/win32_threading.c)
+    ${CODE_DIR}/win32/win32_platform.c)
 
 set_source_files_properties(${PLATFORM_SOURCES} PROPERTIES LANGUAGE C)
 
@@ -139,12 +138,12 @@ target_link_libraries(test_array PRIVATE foundation)
 target_include_directories(test_array PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_array)
 
-add_executable(test_win32_threads 
-    ${CODE_DIR}/win32/win32_threading.c
-    ${TESTS_DIR}/test_win32_threads.c)
-target_link_libraries(test_win32_threads PRIVATE foundation)
-target_include_directories(test_win32_threads PRIVATE ${CODE_DIR})
-set_c_compile_flags(test_win32_threads)
+# add_executable(test_win32_threads 
+#     ${CODE_DIR}/win32/win32_threading.c
+#     ${TESTS_DIR}/test_win32_threads.c)
+# target_link_libraries(test_win32_threads PRIVATE foundation)
+# target_include_directories(test_win32_threads PRIVATE ${CODE_DIR})
+# set_c_compile_flags(test_win32_threads)
 
 add_executable(test_arena ${TESTS_DIR}/test_arena.c)
 target_link_libraries(test_arena PRIVATE foundation)

@@ -1,5 +1,4 @@
 #include "win32.h"
-#include "win32_threading.h"
 
 #include "api.h"
 
@@ -9,7 +8,6 @@
 #include "foundation/maths.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"
-#include "foundation/threading.h"
 #include "foundation/vm.h"
 
 #if !CF_OS_WIN32
@@ -94,7 +92,6 @@ static Platform g_platform = {
             .fileCopy = win32FileCopy,
             .fileWrite = win32FileWriteTime,
         },
-    .threading = &(cfThreading){0},
     .clock = win32Clock,
     .paths = &(Paths){0},
     .libLoad = win32libLoad,
@@ -169,10 +166,6 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
     g_vm_page_size = sysinfo.dwPageSize;
     g_platform.vm->page_size = g_vm_page_size;
     g_platform.heap.state = &g_platform;
-
-    // ** Init threading **
-
-    win32ThreadingInit(g_platform.threading);
 
     // ** Init timing **
 

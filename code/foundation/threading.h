@@ -6,6 +6,14 @@
 #    define CF_THREADING_DEBUG CF_DEBUG
 #endif
 
+//------------------------------------------------------------------------------
+// Threading API
+//------------------------------------------------------------------------------
+
+void threadSleep(Time timeout);
+
+//------------------------------------------------------------------------------
+
 /// Thread handle
 typedef struct Thread
 {
@@ -27,6 +35,18 @@ typedef struct ThreadParms
     Usize stack_size;
 } ThreadParms;
 
+Thread threadCreate(ThreadParms *parms);
+void threadDestroy(Thread thread);
+bool threadIsRunning(Thread thread);
+bool threadWait(Thread thread, Time timeout);
+bool threadWaitAll(Thread *threads, Usize num_threads, Time timeout);
+
+/// Wrapper around threadCreate that allows a more convenient syntax for optional
+/// parameters
+#define threadStart(thread_proc, ...) threadCreate(&(ThreadParms){.proc = thread_proc, __VA_ARGS__})
+
+//------------------------------------------------------------------------------
+
 /// Lightweight syncronization primitive which offers exclusive access to a resource.
 /// This mutex cannot be acquired recursively.
 typedef struct Mutex
@@ -36,6 +56,14 @@ typedef struct Mutex
     U32 internal;
 #endif
 } Mutex;
+
+void mutexInit(Mutex *mutex);
+void mutexShutdown(Mutex *mutex);
+bool mutexTryAcquire(Mutex *mutex);
+void mutexAcquire(Mutex *mutex);
+void mutexRelease(Mutex *mutex);
+
+//------------------------------------------------------------------------------
 
 /// Lightweight syncronization primitive which offers shared access to readers and
 /// exclusive access to writers of a resource.
@@ -49,6 +77,17 @@ typedef struct RwLock
 #endif
 } RwLock;
 
+void rwInit(RwLock *lock);
+void rwShutdown(RwLock *lock);
+bool rwTryLockReader(RwLock *lock);
+bool rwTryLockWriter(RwLock *lock);
+void rwLockReader(RwLock *lock);
+void rwLockWriter(RwLock *lock);
+void rwUnlockReader(RwLock *lock);
+void rwUnlockWriter(RwLock *lock);
+
+//------------------------------------------------------------------------------
+
 /// Condition variables are synchronization primitives that enable threads to wait until a
 /// particular condition occurs.
 typedef struct ConditionVariable
@@ -56,59 +95,11 @@ typedef struct ConditionVariable
     U8 data[sizeof(void *)];
 } ConditionVariable;
 
-// clang-format off
-/// Macro to generate the threading API struct/functions
-/// X(name, ReturnType, ...) where ... is the argument list
-#define CF_THREADING_API(X)                                                      \
-    /*** Misc ***/                                                               \
-    X(sleep, void, Time timeout)                                                 \
-    /*** Thread ***/                                                             \
-    X(threadCreate,    Thread, ThreadParms *parms)                               \
-    X(threadDestroy,   void,   Thread thread)                                    \
-    X(threadIsRunning, bool,   Thread thread)                                    \
-    X(threadWait,      bool,   Thread thread, Time timeout)                      \
-    X(threadWaitAll,   bool,   Thread *threads, Usize num_threads, Time timeout) \
-    /*** Mutex ***/                                                              \
-    X(mutexInit,       void, Mutex *mutex)                                       \
-    X(mutexShutdown,   void, Mutex *mutex)                                       \
-    X(mutexTryAcquire, bool, Mutex *mutex)                                       \
-    X(mutexAcquire,    void, Mutex *mutex)                                       \
-    X(mutexRelease,    void, Mutex *mutex)                                       \
-    /*** RwLock ***/                                                             \
-    X(rwInit,          void, RwLock *lock)                                       \
-    X(rwShutdown,      void, RwLock *lock)                                       \
-    X(rwTryLockReader, bool, RwLock *lock)                                       \
-    X(rwTryLockWriter, bool, RwLock *lock)                                       \
-    X(rwLockReader,    void, RwLock *lock)                                       \
-    X(rwLockWriter,    void, RwLock *lock)                                       \
-    X(rwUnlockReader,  void, RwLock *lock)                                       \
-    X(rwUnlockWriter,  void, RwLock *lock)                                       \
-    /*** ConditionVariable ***/                                                  \
-    X(cvInit,       void, ConditionVariable *cv)                                 \
-    X(cvShutdown,   void, ConditionVariable *cv)                                 \
-    X(cvWaitMutex,  bool, ConditionVariable *cv, Mutex *mutex, Time timeout)     \
-    X(cvWaitRwLock, bool, ConditionVariable *cv, RwLock *lock, Time timeout)     \
-    X(cvSignalOne,  void, ConditionVariable *cv)                                 \
-    X(cvSignalAll,  void, ConditionVariable *cv)
-// clang-format on
+void cvInit(ConditionVariable *cv);
+void cvShutdown(ConditionVariable *cv);
+bool cvWaitMutex(ConditionVariable *cv, Mutex *mutex, Time timeout);
+bool cvWaitRwLock(ConditionVariable *cv, RwLock *lock, Time timeout);
+void cvSignalOne(ConditionVariable *cv);
+void cvSignalAll(ConditionVariable *cv);
 
-/// Threading API
-typedef struct cfThreading
-{
-#define ENTRY_FN_(name, ReturnType, ...) ReturnType (*name)(__VA_ARGS__);
-    CF_THREADING_API(ENTRY_FN_)
-#undef ENTRY_FN_
-} cfThreading;
-
-static inline void
-threadingCheckApi(cfThreading *api)
-{
-#define CHECK_ENTRY_FN_(name, ...) CF_ASSERT_NOT_NULL(api->name);
-    CF_THREADING_API(CHECK_ENTRY_FN_)
-#undef CHECK_ENTRY_FN_
-}
-
-/// Wrapper around threadCreate that allows a more convenient syntax for optional
-/// parameters
-#define threadStart(api, thread_proc, ...) \
-    api->threadCreate(&(ThreadParms){.proc = thread_proc, __VA_ARGS__})
+//------------------------------------------------------------------------------

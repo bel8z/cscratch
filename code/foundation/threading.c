@@ -1,25 +1,19 @@
-#include "win32.h"
+#include "threading.h"
+#include "common.h"
 
-#include "foundation/common.h"
-#include "foundation/threading.h"
+#ifdef CF_OS_WIN32
 
-//------------------------------------------------------------------------------
+#    pragma warning(push)
+#    pragma warning(disable : 5105)
 
-#define DECLARE_FN(name, ReturnType, ...) static ReturnType win32##name(__VA_ARGS__);
-CF_THREADING_API(DECLARE_FN)
-#undef DECLARE_FN
+#    define NOMINMAX 1
+#    define VC_EXTRALEAN 1
+#    define WIN32_LEAN_AND_MEAN 1
+#    include <windows.h>
+// Must be included AFTER <windows.h>
+#    include <process.h>
 
-//------------------------------------------------------------------------------
-// API initialization
-
-void
-win32ThreadingInit(cfThreading *api)
-{
-#define ASSIGN_FN(name, ...) api->name = win32##name;
-    CF_THREADING_API(ASSIGN_FN)
-#undef ASSIGN_FN
-    threadingCheckApi(api);
-}
+#    pragma warning(pop)
 
 //------------------------------------------------------------------------------
 // Misc implementation
@@ -33,8 +27,8 @@ win32TimeoutMs(Time timeout)
     return (DWORD)ms;
 }
 
-static inline void
-win32sleep(Time timeout)
+void
+threadSleep(Time timeout)
 {
     Sleep(win32TimeoutMs(timeout));
 }
@@ -69,7 +63,7 @@ win32threadProc(void *data)
 }
 
 Thread
-win32threadCreate(ThreadParms *parms)
+threadCreate(ThreadParms *parms)
 {
     CF_ASSERT_NOT_NULL(parms);
 
@@ -103,27 +97,27 @@ win32threadCreate(ThreadParms *parms)
 }
 
 void
-win32threadDestroy(Thread thread)
+threadDestroy(Thread thread)
 {
     if (thread.handle) CloseHandle((HANDLE)thread.handle);
 }
 
 bool
-win32threadIsRunning(Thread thread)
+threadIsRunning(Thread thread)
 {
     DWORD code = 0;
     return (GetExitCodeThread((HANDLE)thread.handle, &code) && code == STILL_ACTIVE);
 }
 
 bool
-win32threadWait(Thread thread, Time timeout)
+threadWait(Thread thread, Time timeout)
 {
     return (thread.handle &&
             WAIT_OBJECT_0 == WaitForSingleObject((HANDLE)thread.handle, win32TimeoutMs(timeout)));
 }
 
 bool
-win32threadWaitAll(Thread *threads, Usize num_threads, Time timeout)
+threadWaitAll(Thread *threads, Usize num_threads, Time timeout)
 {
     CF_ASSERT(num_threads <= U32_MAX, "Given number of threads is too large");
     DWORD count = (DWORD)num_threads;
@@ -135,7 +129,7 @@ win32threadWaitAll(Thread *threads, Usize num_threads, Time timeout)
 
 // Internal implementation of exclusive locking, shared by Mutex and RwLock
 
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
 
 static bool
 win32tryLockExc(SRWLOCK *lock, U32 *owner_id)
@@ -179,7 +173,7 @@ win32unlockExc(SRWLOCK *lock, U32 *owner_id)
     ReleaseSRWLockExclusive(lock);
 }
 
-#endif
+#    endif
 
 //------------------------------------------------------------------------------
 // Mutex implementation
@@ -187,55 +181,55 @@ win32unlockExc(SRWLOCK *lock, U32 *owner_id)
 CF_STATIC_ASSERT(sizeof(((Mutex *)0)->data) == sizeof(SRWLOCK), "Invalid Mutex internal size");
 
 void
-win32mutexInit(Mutex *mutex)
+mutexInit(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
     InitializeSRWLock((SRWLOCK *)(mutex->data));
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     mutex->internal = 0;
-#endif
+#    endif
 }
 
 void
-win32mutexShutdown(Mutex *mutex)
+mutexShutdown(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     CF_ASSERT(mutex->internal == 0, "Shutting down an acquired mutex");
-#endif
+#    endif
 }
 
 bool
-win32mutexTryAcquire(Mutex *mutex)
+mutexTryAcquire(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     return win32tryLockExc((SRWLOCK *)(mutex->data), &mutex->internal);
-#else
+#    else
     return TryAcquireSRWLockExclusive((SRWLOCK *)(mutex->data));
-#endif
+#    endif
 }
 
 void
-win32mutexAcquire(Mutex *mutex)
+mutexAcquire(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     win32lockExc((SRWLOCK *)(mutex->data), &mutex->internal);
-#else
+#    else
     AcquireSRWLockExclusive((SRWLOCK *)(mutex->data));
-#endif
+#    endif
 }
 
 void
-win32mutexRelease(Mutex *mutex)
+mutexRelease(Mutex *mutex)
 {
     CF_ASSERT_NOT_NULL(mutex);
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     win32unlockExc((SRWLOCK *)(mutex->data), &mutex->internal);
-#else
+#    else
     ReleaseSRWLockExclusive((SRWLOCK *)(mutex->data));
-#endif
+#    endif
 }
 
 //------------------------------------------------------------------------------
@@ -244,24 +238,24 @@ win32mutexRelease(Mutex *mutex)
 CF_STATIC_ASSERT(sizeof(((RwLock *)0)->data) == sizeof(SRWLOCK), "Invalid RwLock internal size");
 
 void
-win32rwInit(RwLock *lock)
+rwInit(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
     InitializeSRWLock((SRWLOCK *)(lock->data));
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     lock->reserved0 = 0;
     lock->reserved1 = 0;
-#endif
+#    endif
 }
 
 void
-win32rwShutdown(RwLock *lock)
+rwShutdown(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     CF_ASSERT(lock->reserved0 == 0, "Shutting down an RwLock acquired for writing");
     CF_ASSERT(lock->reserved1 == 0, "Shutting down an RwLock acquired for reading");
-#endif
+#    endif
 }
 
 bool
@@ -270,65 +264,65 @@ win32rwTryLockReader(RwLock *lock)
     CF_ASSERT_NOT_NULL(lock);
     if (TryAcquireSRWLockShared((SRWLOCK *)(lock->data)))
     {
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
         ++lock->reserved1;
-#endif
+#    endif
         return true;
     }
     return false;
 }
 
 void
-win32rwLockReader(RwLock *lock)
+rwLockReader(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
     AcquireSRWLockShared((SRWLOCK *)(lock->data));
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     ++lock->reserved1;
-#endif
+#    endif
 }
 
 void
-win32rwUnlockReader(RwLock *lock)
+rwUnlockReader(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     --lock->reserved1;
-#endif
+#    endif
     ReleaseSRWLockShared((SRWLOCK *)(lock->data));
 }
 
 bool
-win32rwTryLockWriter(RwLock *lock)
+rwTryLockWriter(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     return win32tryLockExc((SRWLOCK *)(lock->data), &lock->reserved0);
-#else
+#    else
     return TryAcquireSRWLockExclusive((SRWLOCK *)(lock->data));
-#endif
+#    endif
 }
 
 void
-win32rwLockWriter(RwLock *lock)
+rwLockWriter(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     win32lockExc((SRWLOCK *)(lock->data), &lock->reserved0);
-#else
+#    else
     AcquireSRWLockExclusive((SRWLOCK *)(lock->data));
-#endif
+#    endif
 }
 
 void
-win32rwUnlockWriter(RwLock *lock)
+rwUnlockWriter(RwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     win32unlockExc((SRWLOCK *)(lock->data), &lock->reserved0);
-#else
+#    else
     ReleaseSRWLockExclusive((SRWLOCK *)(lock->data));
-#endif
+#    endif
 }
 
 //------------------------------------------------------------------------------
@@ -346,48 +340,50 @@ win32cvWait(ConditionVariable *cv, SRWLOCK *lock, Time timeout)
 }
 
 void
-win32cvInit(ConditionVariable *cv)
+cvInit(ConditionVariable *cv)
 {
     CF_ASSERT_NOT_NULL(cv);
     InitializeConditionVariable((CONDITION_VARIABLE *)(cv->data));
 }
 
 void
-win32cvShutdown(ConditionVariable *cv)
+cvShutdown(ConditionVariable *cv)
 {
     CF_ASSERT_NOT_NULL(cv);
 }
 
 bool
-win32cvWaitMutex(ConditionVariable *cv, Mutex *mutex, Time timeout)
+cvWaitMutex(ConditionVariable *cv, Mutex *mutex, Time timeout)
 {
     CF_ASSERT_NOT_NULL(mutex);
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     CF_ASSERT(mutex->internal != 0, "Attemped wait on unlocked Mutex");
-#endif
+#    endif
     return win32cvWait(cv, (SRWLOCK *)(mutex->data), timeout);
 }
 
 bool
-win32cvWaitRwLock(ConditionVariable *cv, RwLock *lock, Time timeout)
+cvWaitRwLock(ConditionVariable *cv, RwLock *lock, Time timeout)
 {
     CF_ASSERT_NOT_NULL(lock);
-#if CF_THREADING_DEBUG
+#    if CF_THREADING_DEBUG
     CF_ASSERT(lock->reserved0 != 0 || lock->reserved1 != 0, "Attemped wait on unlocked RwLock");
-#endif
+#    endif
     return win32cvWait(cv, (SRWLOCK *)(lock->data), timeout);
 }
 
 void
-win32cvSignalOne(ConditionVariable *cv)
+cvSignalOne(ConditionVariable *cv)
 {
     CF_ASSERT_NOT_NULL(cv);
     WakeConditionVariable((CONDITION_VARIABLE *)(cv->data));
 }
 
 void
-win32cvSignalAll(ConditionVariable *cv)
+cvSignalAll(ConditionVariable *cv)
 {
     CF_ASSERT_NOT_NULL(cv);
     WakeAllConditionVariable((CONDITION_VARIABLE *)(cv->data));
 }
+
+#endif
