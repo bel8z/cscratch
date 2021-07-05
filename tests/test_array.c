@@ -32,10 +32,9 @@ main(int32_t argc, char **argv)
     (void)argv;
 
     cfAllocator std_alloc = stdAllocator();
-    cfAllocator *alloc = &std_alloc;
 
     MyArray array = {0};
-    cfArrayInit(&array, alloc);
+    cfArrayInit(&array, std_alloc);
 
     cfArrayPush(&array, 0);
     cfArrayPush(&array, 1);

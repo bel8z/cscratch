@@ -266,7 +266,7 @@ typedef struct cfAllocator
     struct                                                                                         \
     {                                                                                              \
         /* Allocator used for growing the array dynamically */                                     \
-        cfAllocator *alloc;                                                                        \
+        cfAllocator alloc;                                                                         \
         /* Actual array storage */                                                                 \
         Type *buf;                                                                                 \
         /* Size of the array (number of stored items) */                                           \
