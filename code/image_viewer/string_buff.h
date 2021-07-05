@@ -1,4 +1,4 @@
-#include "foundation/common.h"
+#include "foundation/core.h"
 #include "foundation/strings.h"
 
 enum

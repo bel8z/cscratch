@@ -1,6 +1,6 @@
 #include "string_list.h"
 
-#include "common.h"
+#include "core.h"
 #include "strings.h"
 #include "util.h"
 

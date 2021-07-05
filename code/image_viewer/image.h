@@ -1,6 +1,6 @@
 #pragma once
 
-#include "foundation/common.h"
+#include "foundation/core.h"
 
 // TODO (Matteo):
 // * Keep image bits around (for querying/manipulation)?

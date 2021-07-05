@@ -2,7 +2,7 @@
 
 // Misc utilities (basically wrapper on common standard library functions as memset and memcpy)
 
-#include "common.h"
+#include "core.h"
 
 static inline U32
 cfRoundUp(U32 block_size, U32 page_size)

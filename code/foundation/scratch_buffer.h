@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "core.h"
 
 typedef struct cfScratchBuffer
 {

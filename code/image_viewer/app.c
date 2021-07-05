@@ -26,7 +26,7 @@
 #include "foundation/arena.h"
 #include "foundation/array.h"
 #include "foundation/color.h"
-#include "foundation/common.h"
+#include "foundation/core.h"
 #include "foundation/fs.h"
 #include "foundation/maths.h"
 #include "foundation/path.h"

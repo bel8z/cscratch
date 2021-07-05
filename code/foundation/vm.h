@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "core.h"
 
 // Platform provided virtual memory API
 

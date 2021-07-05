@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "core.h"
 
 /// Iterator over directory content
 typedef struct DirIter DirIter;

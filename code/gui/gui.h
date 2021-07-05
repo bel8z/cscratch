@@ -4,7 +4,7 @@
 // Safely include cimgui.h with C declarations
 //------------------------------------------------------------------------------
 
-#include "foundation/common.h"
+#include "foundation/core.h"
 
 #if CF_COMPILER_MSVC
 #    pragma warning(push)

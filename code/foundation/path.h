@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "core.h"
 
 char const *pathSplitName(char const *path);
 char const *pathSplitExt(char const *path);

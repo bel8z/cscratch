@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "foundation/core.h"
+
 #include "foundation/array.h"
-#include "foundation/common.h"
 
 #include "std_allocator.h"
 

@@ -1,6 +1,6 @@
 #include "api.h"
 #include "foundation/color.h"
-#include "foundation/common.h"
+#include "foundation/core.h"
 #include "foundation/maths.h"
 #include "foundation/path.h"
 #include "foundation/strings.h"

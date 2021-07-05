@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "core.h"
 
 #define cfArrayInit(array, allocator) \
     do                                \
@@ -45,11 +45,11 @@
     {                                                                                         \
         if (cfArrayFull(array))                                                               \
         {                                                                                     \
-            Usize CF__NEW_CAP = (array)->cap ? (array)->cap << 1 : 2;                         \
+            Usize CF_MACRO_VAR(new_cap) = (array)->cap ? (array)->cap << 1 : 2;               \
             (array)->buf =                                                                    \
                 cfRealloc((array)->alloc, (array)->buf, sizeof(*(array)->buf) * (array)->cap, \
-                          sizeof(*(array)->buf) * CF__NEW_CAP);                               \
-            (array)->cap = CF__NEW_CAP;                                                       \
+                          sizeof(*(array)->buf) * CF_MACRO_VAR(new_cap));                     \
+            (array)->cap = CF_MACRO_VAR(new_cap);                                             \
         }                                                                                     \
         (array)->buf[(array)->len++] = item;                                                  \
     } while (0)

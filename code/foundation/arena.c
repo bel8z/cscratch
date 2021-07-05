@@ -1,6 +1,6 @@
 #include "arena.h"
 
-#include "common.h"
+#include "core.h"
 #include "util.h"
 #include "vm.h"
 

@@ -1,6 +1,6 @@
 #include "path.h"
 
-#include "common.h"
+#include "core.h"
 #include "strings.h"
 
 #include <string.h>

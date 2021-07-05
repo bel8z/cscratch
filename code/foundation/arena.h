@@ -1,7 +1,7 @@
 #pragma once
 
 // Dependencies
-#include "common.h"
+#include "core.h"
 
 typedef struct cfVirtualMemory cfVirtualMemory;
 

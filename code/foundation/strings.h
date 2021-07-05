@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "core.h"
 
 // Compute the size of the string buffer (including the null terminator)
 static inline Usize

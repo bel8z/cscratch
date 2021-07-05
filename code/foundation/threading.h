@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "core.h"
 
 #if !defined(CF_THREADING_DEBUG)
 #    define CF_THREADING_DEBUG CF_DEBUG
