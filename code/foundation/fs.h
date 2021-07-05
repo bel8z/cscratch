@@ -42,7 +42,7 @@ typedef struct cfFileSystem
     // *** Directory operations ***
 
     /// Create an iterator on the given directory contents (return NULL in case of failure)
-    DirIter *(*dirIterStart)(char const *dir, cfAllocator *alloc);
+    DirIter *(*dirIterStart)(char const *dir, cfAllocator alloc);
     /// Advance the iterator and return the filename of the current entry, or NULL if the iteration
     /// is complete; NOTE that the current pointer is valid until the next call to this function (or
     /// the iterator is destroyed)
@@ -52,7 +52,7 @@ typedef struct cfFileSystem
 
     // *** File operations ***
 
-    FileContent (*fileRead)(char const *filename, cfAllocator *alloc);
+    FileContent (*fileRead)(char const *filename, cfAllocator alloc);
     bool (*fileCopy)(char const *source, char const *dest, bool overwrite);
     FileTime (*fileWrite)(char const *filename);
 
@@ -61,7 +61,7 @@ typedef struct cfFileSystem
     // TODO (Matteo): Is this the correct place for file dialogs?
 
     FileDlgResult (*open_file_dlg)(char const *filename_hint, FileDlgFilter *filters,
-                                   Usize num_filters, cfAllocator *alloc);
+                                   Usize num_filters, cfAllocator alloc);
 
 } cfFileSystem;
 

@@ -37,14 +37,14 @@ static VM_RELEASE_FUNC(win32VmRelease);
 static CF_ALLOCATOR_FUNC(win32Alloc);
 
 // File system
-static DirIter *win32DirIterStart(char const *dir, cfAllocator *alloc);
+static DirIter *win32DirIterStart(char const *dir, cfAllocator alloc);
 static char const *win32DirIterNext(DirIter *self);
 static void win32DirIterClose(DirIter *self);
 
 static FileDlgResult win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters,
-                                      Usize num_filters, cfAllocator *alloc);
+                                      Usize num_filters, cfAllocator alloc);
 
-static FileContent win32FileRead(char const *filename, cfAllocator *alloc);
+static FileContent win32FileRead(char const *filename, cfAllocator alloc);
 static bool win32FileCopy(char const *source, char const *dest, bool overwrite);
 static FileTime win32FileWriteTime(char const *filename);
 
@@ -81,7 +81,7 @@ static Platform g_platform = {
             .revert = win32VmDecommit,
         },
     .heap =
-        &(cfAllocator){
+        {
             .func = win32Alloc,
         },
     .fs =
@@ -168,7 +168,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     g_vm_page_size = sysinfo.dwPageSize;
     g_platform.vm->page_size = g_vm_page_size;
-    g_platform.heap->state = &g_platform;
+    g_platform.heap.state = &g_platform;
 
     // ** Init threading **
 
@@ -200,11 +200,11 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     Usize cmd_line_size;
     I32 argc;
-    char **argv = win32GetCommandLineArgs(g_platform.heap, &argc, &cmd_line_size);
+    char **argv = win32GetCommandLineArgs(&g_platform.heap, &argc, &cmd_line_size);
 
     I32 result = platformMain(&g_platform, (char const **)argv, argc);
 
-    cfFree(g_platform.heap, argv, cmd_line_size);
+    cfFree(&g_platform.heap, argv, cmd_line_size);
 
     CF_ASSERT(g_platform.heap_blocks == 0, "Potential memory leak");
     CF_ASSERT(g_platform.heap_size == 0, "Potential memory leak");
@@ -384,7 +384,7 @@ typedef enum Win32DirIterState
 
 struct DirIter
 {
-    cfAllocator *alloc;
+    cfAllocator alloc;
 
     HANDLE finder;
     char buffer[MAX_PATH];
@@ -393,11 +393,11 @@ struct DirIter
 };
 
 DirIter *
-win32DirIterStart(char const *dir, cfAllocator *alloc)
+win32DirIterStart(char const *dir, cfAllocator alloc)
 {
     // TODO (Matteo): Handle UTF8 by converting to WCHAR string
 
-    DirIter *self = cfAlloc(alloc, sizeof(*self));
+    DirIter *self = cfAlloc(&alloc, sizeof(*self));
     if (!self) return NULL;
 
     strPrintf(self->buffer, MAX_PATH, "%s/*", dir);
@@ -414,7 +414,7 @@ win32DirIterStart(char const *dir, cfAllocator *alloc)
         return self;
     }
 
-    cfFree(alloc, self, sizeof(*self));
+    cfFree(&alloc, self, sizeof(*self));
     return NULL;
 }
 
@@ -456,7 +456,7 @@ win32DirIterClose(DirIter *self)
         FindClose(self->finder);
     }
 
-    cfFree(self->alloc, self, sizeof(*self));
+    cfFree(&self->alloc, self, sizeof(*self));
 }
 
 static WCHAR *
@@ -529,7 +529,7 @@ win32BuildFilterString(FileDlgFilter *filters, Usize num_filters, cfAllocator *a
 
 FileDlgResult
 win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, Usize num_filters,
-                 cfAllocator *alloc)
+                 cfAllocator alloc)
 {
     FileDlgResult result = {.code = FileDlgResult_Error};
 
@@ -543,7 +543,7 @@ win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, Usize num_fi
     }
 
     U32 filt_size = 0;
-    WCHAR *filt = win32BuildFilterString(filters, num_filters, alloc, &filt_size);
+    WCHAR *filt = win32BuildFilterString(filters, num_filters, &alloc, &filt_size);
 
     OPENFILENAMEW ofn = {0};
     ofn.lStructSize = sizeof(ofn);
@@ -560,7 +560,7 @@ win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, Usize num_fi
     if (GetOpenFileNameW(&ofn))
     {
         U32 result_size = win32Utf16To8(ofn.lpstrFile, -1, NULL, 0);
-        result.filename = cfAlloc(alloc, result_size);
+        result.filename = cfAlloc(&alloc, result_size);
 
         if (result.filename)
         {
@@ -574,13 +574,13 @@ win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, Usize num_fi
         result.code = FileDlgResult_Cancel;
     }
 
-    cfFree(alloc, filt, filt_size);
+    cfFree(&alloc, filt, filt_size);
 
     return result;
 }
 
 FileContent
-win32FileRead(char const *filename, cfAllocator *alloc)
+win32FileRead(char const *filename, cfAllocator alloc)
 {
     FileContent result = {0};
 
@@ -608,7 +608,7 @@ win32FileRead(char const *filename, cfAllocator *alloc)
             DWORD read_size = (DWORD)(file_size.QuadPart);
             DWORD read;
 
-            result.data = cfAlloc(alloc, read_size);
+            result.data = cfAlloc(&alloc, read_size);
 
             if (result.data && ReadFile(file, result.data, read_size, &read, NULL) &&
                 read == read_size)
@@ -617,7 +617,7 @@ win32FileRead(char const *filename, cfAllocator *alloc)
             }
             else
             {
-                cfFree(alloc, result.data, read_size);
+                cfFree(&alloc, result.data, read_size);
                 result.data = NULL;
             }
 

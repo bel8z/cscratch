@@ -43,9 +43,8 @@
 #define imageSize(image) (Usize)(4 * image->width * image->height)
 
 bool
-imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
+imageLoadFromFile(Image *image, const char *filename, cfAllocator alloc)
 {
-    CF_ASSERT_NOT_NULL(alloc);
     CF_ASSERT_NOT_NULL(image);
     CF_ASSERT_NOT_NULL(filename);
     CF_ASSERT(!image->bytes, "overwriting valid image");
@@ -57,7 +56,7 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
     if (data)
     {
         Usize size = imageSize(image);
-        image->bytes = cfAlloc(alloc, size);
+        image->bytes = cfAlloc(&alloc, size);
         if (image->bytes) cfMemCopy(data, image->bytes, size);
         stbi_image_free(data);
     }
@@ -66,9 +65,8 @@ imageLoadFromFile(Image *image, const char *filename, cfAllocator *alloc)
 }
 
 bool
-imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAllocator *alloc)
+imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAllocator alloc)
 {
-    CF_ASSERT_NOT_NULL(alloc);
     CF_ASSERT_NOT_NULL(image);
     CF_ASSERT_NOT_NULL(in_data);
     CF_ASSERT(!image->bytes, "overwriting valid image");
@@ -81,7 +79,7 @@ imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAlloc
     if (data)
     {
         Usize size = imageSize(image);
-        image->bytes = cfAlloc(alloc, size);
+        image->bytes = cfAlloc(&alloc, size);
         if (image->bytes) cfMemCopy(data, image->bytes, size);
         stbi_image_free(data);
     }
@@ -90,12 +88,11 @@ imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAlloc
 }
 
 void
-imageUnload(Image *image, cfAllocator *alloc)
+imageUnload(Image *image, cfAllocator alloc)
 {
     CF_ASSERT_NOT_NULL(image);
-    CF_ASSERT_NOT_NULL(alloc);
 
-    cfFree(alloc, image->bytes, imageSize(image));
+    cfFree(&alloc, image->bytes, imageSize(image));
 
     image->bytes = NULL;
     image->height = 0;

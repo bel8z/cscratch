@@ -118,7 +118,7 @@ typedef struct LoadQueue
     // Dependencies
     cfThreading *api;
     cfFileSystem *fs;
-    cfAllocator *alloc;
+    cfAllocator alloc;
 
     // Sync
     Thread thread;
@@ -135,7 +135,8 @@ typedef struct LoadQueue
 struct AppState
 {
     Platform *plat;
-    cfAllocator *alloc;
+
+    cfAllocator alloc;
 
     FileDlgFilter filter;
 
@@ -370,7 +371,7 @@ APP_API AppState *
 appCreate(Platform *plat, char const *argv[], I32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
-    AppState *app = cfAlloc(plat->heap, sizeof(*app));
+    AppState *app = cfAlloc(&plat->heap, sizeof(*app));
 
     app->plat = plat;
     app->alloc = plat->heap;
@@ -455,7 +456,7 @@ appDestroy(AppState *app)
     appClearImages(app);
     imageViewShutdown(&app->iv);
     cfVmRelease(app->images.vm, app->images.files, app->images.bytes_reserved);
-    cfFree(app->alloc, app, sizeof(*app));
+    cfFree(&app->alloc, app, sizeof(*app));
 }
 
 //------------------------------------------------------------------------------
@@ -796,7 +797,7 @@ appOpenFile(AppState *state)
         case FileDlgResult_Error: result = false; break;
     }
 
-    cfFree(state->alloc, dlg_result.filename, dlg_result.filename_size);
+    cfFree(&state->alloc, dlg_result.filename, dlg_result.filename_size);
 
     return result;
 }

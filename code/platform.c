@@ -181,7 +181,7 @@ platformMain(Platform *platform, char const *argv[], I32 argc)
     platform->gl = gl;
 
     // Setup Dear ImGui context
-    platform->gui = &(Gui){.alloc = platform->heap};
+    platform->gui = &(Gui){.alloc = &platform->heap};
     guiInit(platform->gui);
 
     // Setup application

@@ -43,7 +43,7 @@ typedef struct Platform
     Usize committed_size;
 
     /// System heap allocator
-    cfAllocator *heap;
+    cfAllocator heap;
     /// Number of blocks allocated by the heap allocator
     // TODO (Matteo): Should be a pointer?
     Usize heap_blocks;
