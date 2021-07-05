@@ -1,15 +1,18 @@
 #pragma once
 
-// This is the base layer of the library, and should be the only header included by other header
-// files
+/// Foundation core layer
+/// This is the main API header, and is the only one that other API headers are allowed to include
+
 // TODO (Matteo): This is growing fast and maybe should be trimmed
 
-#define CF_UNUSED(var) (void)(var)
-
+//------------------------------------------------------------------------------
+//   MACROS
 //------------------------------------------------------------------------------
 
 /// Foundation utility macros that are at the base of the library and should be part
 /// of the public API
+
+#define CF_UNUSED(var) (void)(var)
 
 //-------------------//
 // Context defines   //
@@ -230,6 +233,8 @@
 /// Decrement value wrapping on the given length
 #define cfWrapDec(val, len) (val == 0 ? (len - 1) : (val - 1)) // ((val + len - 1) % len)
 
+//------------------------------------------------------------------------------
+//   TYPES
 //------------------------------------------------------------------------------
 
 /// Foundation types that can be used in API headers
