@@ -147,8 +147,3 @@ strContains(Str str, char c)
 
     return false;
 }
-
-Usize
-strJoin(Str a, Str b, char *out)
-{
-}

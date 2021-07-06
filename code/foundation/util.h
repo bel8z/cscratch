@@ -37,7 +37,9 @@ cfSwapBytes(void *l, void *r, Usize size)
 
     while (size--)
     {
-        temp = lbuf[size], lbuf[size] = rbuf[size], rbuf[size] = temp;
+        temp = lbuf[size];
+        lbuf[size] = rbuf[size];
+        rbuf[size] = temp;
     }
 }
 

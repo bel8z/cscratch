@@ -126,13 +126,13 @@ pathsInit(Paths *g_paths)
     g_paths->base.len -= g_paths->exe_name.len;
 
     // Build library filename
-    strPrintf(g_paths->lib_name.buf, Paths_Size, "%.*s%s", (I32)(g_paths->exe_name.len - ext.len),
-              g_paths->exe_name.buf, "_lib.dll");
+    strPrintf((char *)g_paths->lib_name.buf, Paths_Size, "%.*s%s",
+              (I32)(g_paths->exe_name.len - ext.len), g_paths->exe_name.buf, "_lib.dll");
 
     g_paths->lib_name.len = strLength(g_paths->lib_name.buf);
 
     // Build data path from base path
-    strPrintf(g_paths->data.buf, Paths_Size, "%.*sdata\\", (I32)g_paths->base.len,
+    strPrintf((char *)g_paths->data.buf, Paths_Size, "%.*sdata\\", (I32)g_paths->base.len,
               g_paths->base.buf);
     g_paths->data.len = strLength(g_paths->data.buf);
 }

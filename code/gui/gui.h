@@ -18,9 +18,9 @@
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include "cimgui.h"
 
-#if CF_COMP_MSVC
+#if CF_COMPILER_MSVC
 #    pragma warning(pop)
-#elif CF_COMP_CLANG
+#elif CF_COMPILER_CLANG
 #    pragma clang diagnostic pop
 #endif
 

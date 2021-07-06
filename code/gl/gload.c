@@ -835,8 +835,8 @@ gl__LoadProcs(GlApi *api)
 }
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN 1
-#include <windows.h>
+#    define WIN32_LEAN_AND_MEAN 1
+#    include <Windows.h>
 
 static HMODULE libgl;
 
@@ -860,7 +860,7 @@ gl__GetProc(const char *proc)
     return res;
 }
 #elif defined(__APPLE__) || defined(__APPLE_CC__)
-#include <Carbon/Carbon.h>
+#    include <Carbon/Carbon.h>
 
 CFBundleRef bundle;
 CFURLRef bundleURL;
@@ -895,8 +895,8 @@ gl__GetProc(const char *proc)
     return res;
 }
 #else
-#include <GL/glx.h>
-#include <dlfcn.h>
+#    include <GL/glx.h>
+#    include <dlfcn.h>
 
 static void *libgl;
 

@@ -15,7 +15,7 @@
 
 /// Build a string view from a C string
 #define strFromC(str) \
-    (Str) { .len = strLength(str), .buf = (char *)str }
+    (Str) { .len = strLength(str), .buf = str }
 
 /// Compute the length of the C string (null terminator ignored)
 static inline Usize
@@ -62,5 +62,3 @@ bool strEqualInsensitive(Str l, Str r);
 bool strContains(Str str, char c);
 Usize strFindFirst(Str haystack, Str needle);
 Usize strFindLast(Str haystack, Str needle);
-
-Usize strJoin(Str a, Str b, char *out);

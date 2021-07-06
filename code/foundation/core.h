@@ -413,11 +413,12 @@ typedef struct cfAllocator
 // TODO (Matteo): Make a separate type for better API separation?
 typedef cfArray(char) StrBuffer;
 
-/// Better(ish) string representation (not necessarily null terminated)
+/// Immutable string slice/view. Not guaranteed to be null terminated.
+/// Prefer it over C strings (safety, better API in progress)
 typedef struct Str
 {
-    char *buf; // Pointer to string data
-    Usize len; // Lenght in chars of the string (not including terminators)
+    char const *buf; // Pointer to string data
+    Usize len;       // Lenght in chars of the string (not including terminators)
 } Str;
 
 //-------------//
