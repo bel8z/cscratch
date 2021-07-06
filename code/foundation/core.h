@@ -3,6 +3,14 @@
 /// Foundation core layer
 /// This is the main API header, and is the only one that other API headers are allowed to include
 
+#include <float.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+// TODO (Matteo): Get rid of it?
+// At the moment it is required for printing assertion failures to stderr
+#include <stdio.h>
+
 // TODO (Matteo): This is growing fast and maybe should be trimmed
 
 //------------------------------------------------------------------------------
@@ -153,10 +161,6 @@
 //   Assertions / Debug macros   //
 //-------------------------------//
 
-// TODO (Matteo): Get rid of it?
-// At the moment it is required for printing assertion failures to stderr
-#include <stdio.h>
-
 /// Compile time assertion
 #define CF_STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
 
@@ -242,11 +246,6 @@
 /// Foundation types that can be used in API headers
 /// Keep more specific types (e.g. arena allocators, threading primitives) in dedicated headers and
 /// forward-declare them in API headers if required
-
-#include <float.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 
 //-------------//
 //   Boolean   //
