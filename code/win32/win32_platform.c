@@ -42,9 +42,9 @@ static void win32DirIterClose(DirIter *self);
 static FileDlgResult win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters,
                                       Usize num_filters, cfAllocator alloc);
 
-static FileContent win32FileRead(char const *filename, cfAllocator alloc);
-static bool win32FileCopy(char const *source, char const *dest, bool overwrite);
-static FileTime win32FileWriteTime(char const *filename);
+static FileContent win32FileRead(Str filename, cfAllocator alloc);
+static bool win32FileCopy(Str source, Str dest, bool overwrite);
+static FileTime win32FileWriteTime(Str filename);
 
 // Timing
 static struct
@@ -90,7 +90,7 @@ static Platform g_platform = {
             .open_file_dlg = win32OpenFileDlg,
             .fileRead = win32FileRead,
             .fileCopy = win32FileCopy,
-            .fileWrite = win32FileWriteTime,
+            .fileWriteTime = win32FileWriteTime,
         },
     .clock = win32Clock,
     .paths = &(Paths){0},
@@ -591,20 +591,20 @@ win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, Usize num_fi
 }
 
 FileContent
-win32FileRead(char const *filename, cfAllocator alloc)
+win32FileRead(Str filename, cfAllocator alloc)
 {
     FileContent result = {0};
 
     WCHAR path[MAX_PATH] = {0};
-    U32 path_size = win32Utf8To16(filename, -1, NULL, 0);
+    U32 path_len = win32Utf8To16(filename.buf, (I32)filename.len, NULL, 0);
 
-    if (path_size > MAX_PATH)
+    if (path_len >= MAX_PATH)
     {
         CF_ASSERT(false, "filename is too long");
     }
     else
     {
-        win32Utf8To16(filename, -1, path, path_size);
+        win32Utf8To16(filename.buf, (I32)filename.len, path, MAX_PATH);
 
         HANDLE file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
                                   FILE_ATTRIBUTE_NORMAL, NULL);
@@ -640,12 +640,12 @@ win32FileRead(char const *filename, cfAllocator alloc)
 }
 
 bool
-win32FileCopy(char const *source, char const *dest, bool overwrite)
+win32FileCopy(Str source, Str dest, bool overwrite)
 {
-    WCHAR ws[FILENAME_MAX] = {0};
-    WCHAR wd[FILENAME_MAX] = {0};
-    win32Utf8To16(source, -1, ws, FILENAME_MAX);
-    win32Utf8To16(dest, -1, wd, FILENAME_MAX);
+    WCHAR ws[MAX_PATH] = {0};
+    WCHAR wd[MAX_PATH] = {0};
+    win32Utf8To16(source.buf, (I32)source.len, ws, MAX_PATH);
+    win32Utf8To16(dest.buf, (I32)dest.len, wd, MAX_PATH);
 
     if (CopyFileW(ws, wd, !overwrite)) return true;
 
@@ -654,12 +654,12 @@ win32FileCopy(char const *source, char const *dest, bool overwrite)
 }
 
 static FileTime
-win32FileWriteTime(char const *filename)
+win32FileWriteTime(Str filename)
 {
     FileTime write_time = 0;
 
-    WCHAR wide_name[FILENAME_MAX] = {0};
-    win32Utf8To16(filename, -1, wide_name, FILENAME_MAX);
+    WCHAR wide_name[MAX_PATH] = {0};
+    win32Utf8To16(filename.buf, (I32)filename.len, wide_name, MAX_PATH);
 
     WIN32_FIND_DATAW find_data = {0};
     HANDLE find_handle = FindFirstFileW(wide_name, &find_data);

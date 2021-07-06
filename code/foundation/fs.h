@@ -52,9 +52,9 @@ typedef struct cfFileSystem
 
     // *** File operations ***
 
-    FileContent (*fileRead)(char const *filename, cfAllocator alloc);
-    bool (*fileCopy)(char const *source, char const *dest, bool overwrite);
-    FileTime (*fileWrite)(char const *filename);
+    FileContent (*fileRead)(Str filename, cfAllocator alloc);
+    bool (*fileCopy)(Str source, Str dest, bool overwrite);
+    FileTime (*fileWriteTime)(Str filename);
 
     // *** File dialogs ***
 

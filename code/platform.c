@@ -373,7 +373,7 @@ appApiLoad(AppApi *api, Platform *platform)
               paths->lib_name.len, paths->lib_name.buf);
     strPrintf(api->dst_file, Paths_Size, "%s.tmp", api->src_file);
 
-    if (platform->fs->fileCopy(api->src_file, api->dst_file, true))
+    if (platform->fs->fileCopy(strFromC(api->src_file), strFromC(api->dst_file), true))
     {
         api->lib = platform->libLoad(api->dst_file);
     }
@@ -398,7 +398,8 @@ void
 appApiUpdate(AppApi *api, Platform *platform, AppState *app)
 {
     // TODO (Matteo): Are these operation too expensive to be performed every frame?
-    if (platform->fs->fileWrite(api->src_file) > platform->fs->fileWrite(api->dst_file))
+    if (platform->fs->fileWriteTime(strFromC(api->src_file)) >
+        platform->fs->fileWriteTime(strFromC(api->dst_file)))
     {
         api->unload(app);
         appApiLoad(api, platform);
