@@ -1,6 +1,52 @@
-#include "core.h"
 #include "memory.h"
+#include "core.h"
 #include "util.h"
+
+#include <string.h>
+
+//----------------------------//
+//   Basic memory utilities   //
+//----------------------------//
+
+void
+cfMemClear(void *mem, Usize count)
+{
+    memset(mem, 0, count); // NOLINT
+}
+
+void
+cfMemCopy(void const *from, void *to, Usize count)
+{
+    memmove(to, from, count); // NOLINT
+}
+
+void
+cfMemCopySafe(void const *from, Usize from_size, void *to, Usize to_size)
+{
+    memmove_s(to, to_size, from, from_size);
+}
+
+void
+cfMemWrite(U8 *mem, U8 value, Usize count)
+{
+    memset(mem, value, count); // NOLINT
+}
+
+I32
+cfMemCompare(void const *left, void const *right, Usize count)
+{
+    return memcmp(left, right, count);
+}
+
+bool
+cfMemMatch(void const *left, void const *right, Usize count)
+{
+    return !memcmp(left, right, count);
+}
+
+//------------------//
+//   Memory arena   //
+//------------------//
 
 static void
 arenaCommitVm(Arena *arena)

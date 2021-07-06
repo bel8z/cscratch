@@ -4,6 +4,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #if CF_COMPILER_CLANG
 #    define CF_PRINTF_LIKE(fmt_argno, variadic_argno) \
@@ -74,7 +75,7 @@ strPrintf(char *buffer, Usize buffer_size, char const *fmt, ...)
 I32
 strCompare(Str l, Str r)
 {
-    return memcmp(l.buf, r.buf, cfMin(l.len, r.len));
+    return cfMemCompare(l.buf, r.buf, cfMin(l.len, r.len));
 }
 
 static inline I32
@@ -93,7 +94,7 @@ strCompareInsensitive(Str l, Str r)
 bool
 strEqual(Str l, Str r)
 {
-    return (l.len == r.len && !memcmp(l.buf, r.buf, l.len));
+    return (l.len == r.len && cfMemMatch(l.buf, r.buf, l.len));
 }
 
 bool

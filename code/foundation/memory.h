@@ -5,8 +5,6 @@
 
 #include "core.h"
 
-#include <string.h>
-
 //----------------------------//
 //   Basic memory utilities   //
 //----------------------------//
@@ -21,15 +19,12 @@
 
 #define cfFree(a, mem, size) (a).func((a).state, (void *)(mem), (size), 0, 0)
 
-#define cfMemClear(mem, count) memset(mem, 0, count)        // NOLINT
-#define cfMemCopy(from, to, count) memmove(to, from, count) // NOLINT
-#define cfMemCopySafe(from, from_size, to, to_size) memmove_s(to, to_size, from, from_size)
-
-static inline void
-cfMemWrite(U8 *mem, U8 value, Usize count)
-{
-    memset(mem, value, count); // NOLINT
-}
+void cfMemClear(void *mem, Usize count);
+void cfMemCopy(void const *from, void *to, Usize count);
+void cfMemCopySafe(void const *from, Usize from_size, void *to, Usize to_size);
+void cfMemWrite(U8 *mem, U8 value, Usize count);
+I32 cfMemCompare(void const *left, void const *right, Usize count);
+bool cfMemMatch(void const *left, void const *right, Usize count);
 
 //------------------------//
 //   Virtual memory API   //
