@@ -13,7 +13,7 @@
 
 #include "foundation/color.h"
 #include "foundation/fs.h"
-#include "foundation/path.h"
+#include "foundation/paths.h"
 #include "foundation/strings.h"
 
 // Standard library
@@ -28,7 +28,7 @@
 //------------------------------------------------------------------------------
 
 static void guiSetupStyle(F32 dpi);
-static void guiSetupFonts(ImFontAtlas *fonts, F32 dpi, char const *data_path);
+static void guiSetupFonts(ImFontAtlas *fonts, F32 dpi, Str data_path);
 
 //------------------------------------------------------------------------------
 // OpenGL3 backend declarations
@@ -155,8 +155,7 @@ static void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
 I32
 platformMain(Platform *platform, char const *argv[], I32 argc)
 {
-    CF_UNUSED(argc);
-    CF_UNUSED(argv);
+    Paths *paths = platform->paths;
 
     // Setup window
     glfwSetErrorCallback(glfwErrorCallback);
@@ -192,12 +191,21 @@ platformMain(Platform *platform, char const *argv[], I32 argc)
     // Configure Dear ImGui
     ImGuiIO *io = igGetIO();
 
-    // NOTE (Matteo): Custom IMGUI ini file
+// NOTE (Matteo): Custom IMGUI ini file
+// TODO (Matteo): Clean up!
+#if CF_COMPILER_MSVC
+#    pragma warning(push)
+#    pragma warning(disable : 4221)
+#endif
     char gui_ini[Paths_Size] = {0};
-    strPrintf(gui_ini, Paths_Size, "%s%s", platform->paths->base, platform->paths->exe_name);
-    pathChangeExt(gui_ini, ".gui", gui_ini);
-
+    CF_ASSERT(paths->base.len + paths->exe_name.len < Paths_Size, "IMGUI ini file name too long");
+    cfMemCopy(paths->base.buf, gui_ini, paths->base.len);
+    cfMemCopy(paths->exe_name.buf, gui_ini + paths->base.len, paths->exe_name.len);
+    pathChangeExt(strFromC(gui_ini), strFromC(".gui"), gui_ini);
     io->IniFilename = gui_ini;
+#if CF_COMPILER_MSVC
+#    pragma warning(pop)
+#endif
 
     // Enable Keyboard Controls
     io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
@@ -218,7 +226,7 @@ platformMain(Platform *platform, char const *argv[], I32 argc)
 
     // Setup Dear ImGui style
     guiSetupStyle(dpi_scale);
-    guiSetupFonts(io->Fonts, dpi_scale, platform->paths->data);
+    guiSetupFonts(io->Fonts, dpi_scale, paths->data);
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -351,6 +359,8 @@ static APP_UPDATE_PROC(appUpdateStub)
 void
 appApiLoad(AppApi *api, Platform *platform)
 {
+    Paths *paths = platform->paths;
+
     if (api->lib)
     {
         CF_ASSERT(api->create, "");
@@ -358,7 +368,9 @@ appApiLoad(AppApi *api, Platform *platform)
         cfMemClear(api, sizeof(*api));
     }
 
-    strPrintf(api->src_file, Paths_Size, "%s%s", platform->paths->base, platform->paths->lib_name);
+    strPrintf(api->src_file, Paths_Size, "%.*s%.*s", //
+              paths->base.len, paths->base.buf,      //
+              paths->lib_name.len, paths->lib_name.buf);
     strPrintf(api->dst_file, Paths_Size, "%s.tmp", api->src_file);
 
     if (platform->fs->fileCopy(api->src_file, api->dst_file, true))
@@ -509,18 +521,16 @@ guiSetupStyle(F32 dpi_scale)
 }
 
 ImFont *
-guiLoadFont(ImFontAtlas *fonts, char const *data_path, char const *name, F32 font_size,
+guiLoadFont(ImFontAtlas *fonts, Str data_path, char const *name, F32 font_size,
             ImWchar const *ranges)
 {
     char buffer[1024] = {0};
-
-    snprintf(buffer, 1024, "%s%s.ttf", data_path, name);
-
+    snprintf(buffer, 1024, "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
     return ImFontAtlas_AddFontFromFileTTF(fonts, buffer, font_size, NULL, ranges);
 }
 
 void
-guiSetupFonts(ImFontAtlas *fonts, F32 dpi_scale, char const *data_path)
+guiSetupFonts(ImFontAtlas *fonts, F32 dpi_scale, Str data_path)
 {
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can

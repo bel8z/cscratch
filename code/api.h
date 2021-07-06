@@ -24,10 +24,8 @@ enum
 // TODO (Matteo): Maybe simplify a bit? I suspect that the full exe path is enough
 typedef struct Paths
 {
-    char base[Paths_Size];
-    char data[Paths_Size];
-    char exe_name[Paths_Size];
-    char lib_name[Paths_Size];
+    char buffer[3 * Paths_Size];
+    Str base, data, exe_name, lib_name;
 } Paths;
 
 typedef struct Platform

@@ -2,7 +2,6 @@
 #include "foundation/color.h"
 #include "foundation/core.h"
 #include "foundation/maths.h"
-#include "foundation/path.h"
 #include "foundation/strings.h"
 #include "gl/gload.h"
 #include "gui/gui.h"

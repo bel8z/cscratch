@@ -30,7 +30,7 @@
 #include "foundation/fs.h"
 #include "foundation/maths.h"
 #include "foundation/memory.h"
-#include "foundation/path.h"
+#include "foundation/paths.h"
 #include "foundation/strings.h"
 #include "foundation/threading.h"
 
@@ -148,7 +148,7 @@ struct AppState
 //------------------------------------------------------------------------------
 // Image loading prototypes (those functions are commonly used)
 
-static void appLoadFromFile(AppState *state, char const *filename);
+static void appLoadFromFile(AppState *state, Str filename);
 
 //------------------------------------------------------------------------------
 // Async file loading
@@ -385,10 +385,7 @@ appCreate(Platform *plat, char const *argv[], I32 argc)
 
     imageViewInit(&app->iv);
 
-    if (argc > 1)
-    {
-        appLoadFromFile(app, argv[1]);
-    }
+    if (argc > 1) appLoadFromFile(app, strFromC(argv[1]));
 
     return app;
 }
@@ -449,14 +446,14 @@ appDestroy(AppState *app)
 // Application update
 
 static bool
-appIsFileSupported(char const *path)
+appIsFileSupported(Str path)
 {
-    char const *ext = pathSplitExt(path);
-    if (!ext) return false;
+    Str ext = pathSplitExt(path);
+    if (!strValid(ext)) return false;
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(g_supported_ext); ++i)
     {
-        if (strEqualInsensitive(g_supported_ext[i], ext)) return true;
+        if (strEqualInsensitive(strFromC(g_supported_ext[i]), ext)) return true;
     }
 
     return false;
@@ -568,26 +565,24 @@ appBrowsePrev(AppState *app)
 }
 
 static void
-appLoadFromFile(AppState *state, char const *full_name)
+appLoadFromFile(AppState *state, Str full_name)
 {
     cfFileSystem const *fs = state->plat->fs;
     ImageList *images = &state->images;
 
     appClearImages(state);
 
-    if (full_name)
+    if (strValid(full_name))
     {
-        Usize full_size = strSize(full_name);
-        CF_ASSERT(full_size <= FILENAME_SIZE, "filename is too long!");
-
-        char const *name = pathSplitName(full_name);
-        char dir_name[FILENAME_SIZE] = {0};
-
-        cfMemCopy(full_name, dir_name, (Usize)(name - full_name));
+        CF_ASSERT(full_name.len < FILENAME_SIZE, "filename is too long!");
 
         ImageFile file = {0};
+        char dir_name[FILENAME_SIZE] = {0};
+        Str name = pathSplitName(full_name);
 
-        cfMemCopy(full_name, file.filename, full_size);
+        cfMemCopy(full_name.buf, dir_name, full_name.len - name.len);
+        cfMemCopy(full_name.buf, file.filename, full_name.len);
+        file.filename[full_name.len] = 0; // Null terminate the string
 
         DirIter *it = fs->dirIterStart(dir_name, state->heap);
 
@@ -598,7 +593,7 @@ appLoadFromFile(AppState *state, char const *full_name)
             // NOTE (Matteo): Explicit test against NULL is required for compiling with /W4 on MSVC
             while ((path = fs->dirIterNext(it)) != NULL)
             {
-                if (appIsFileSupported(path))
+                if (appIsFileSupported(strFromC(path)))
                 {
                     ImageFile *tmp = appPushImageFile(images);
                     bool ok = strPrintf(tmp->filename, FILENAME_SIZE, "%s%s", dir_name, path);
@@ -611,7 +606,8 @@ appLoadFromFile(AppState *state, char const *full_name)
 
         for (U32 index = 0; index < images->len; ++index)
         {
-            if (strEqualInsensitive(full_name, state->images.buf[index].filename))
+            Str temp_name = strFromC(state->images.buf[index].filename);
+            if (strEqualInsensitive(full_name, temp_name))
             {
                 state->curr_file = index;
                 state->images.buf[index] = file;
@@ -764,7 +760,7 @@ appOpenFile(AppState *state)
 
     switch (dlg_result.code)
     {
-        case FileDlgResult_Ok: appLoadFromFile(state, dlg_result.filename); break;
+        case FileDlgResult_Ok: appLoadFromFile(state, strFromC(dlg_result.filename)); break;
         case FileDlgResult_Error: result = false; break;
     }
 
@@ -901,8 +897,8 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igText("Virtual memory reserved %.3fkb - committed %.3fkb", (F64)plat->reserved_size / 1024,
                (F64)plat->committed_size / 1024);
         igSeparator();
-        igText("App base path:%s", state->plat->paths->base);
-        igText("App data path:%s", state->plat->paths->data);
+        igText("App base path:%.*s", state->plat->paths->base.len, state->plat->paths->base.buf);
+        igText("App data path:%.*s", state->plat->paths->data.len, state->plat->paths->data.buf);
         // igSeparator();
         // igText("Loaded images: %d", imageLoadCount());
         igEnd();

@@ -7,7 +7,7 @@
 #include "foundation/fs.h"
 #include "foundation/maths.h"
 #include "foundation/memory.h"
-#include "foundation/path.h"
+#include "foundation/paths.h"
 #include "foundation/strings.h"
 
 #if !CF_OS_WIN32
@@ -106,22 +106,35 @@ static Platform g_platform = {
 static void
 pathsInit(Paths *g_paths)
 {
-    Usize base_size = 1 + GetModuleFileNameA(0, g_paths->base, Paths_Size);
-    CF_ASSERT(base_size <= Paths_Size, "Executable path is too long");
+    // Clear shared buffer
+    cfMemClear(g_paths->buffer, CF_ARRAY_SIZE(g_paths->buffer));
 
-    char const *ext;
-    char const *file_name = pathSplitNameExt(g_paths->base, &ext);
-    CF_ASSERT_NOT_NULL(file_name);
-    CF_ASSERT_NOT_NULL(ext);
+    // Point string views to assigned positions
+    g_paths->base.buf = g_paths->buffer;
+    g_paths->lib_name.buf = g_paths->buffer + 1 * Paths_Size;
+    g_paths->data.buf = g_paths->buffer + 2 * Paths_Size;
 
-    Usize file_name_ofst = (Usize)(file_name - g_paths->base);
+    // Retrieve executable full path
+    g_paths->base.len = GetModuleFileNameA(0, g_paths->buffer, Paths_Size);
+    CF_ASSERT(g_paths->base.len < Paths_Size, "Executable path is too long");
 
-    cfMemCopy(file_name, g_paths->exe_name, base_size - file_name_ofst);
-    strPrintf(g_paths->lib_name, Paths_Size, "%.*s%s", (I32)(ext - file_name), file_name,
-              "_lib.dll");
+    // Split executable full path
+    Str ext;
+    g_paths->exe_name = pathSplitNameExt(g_paths->base, &ext);
+    CF_ASSERT(strValid(g_paths->exe_name), "Invalid executable file name");
+    CF_ASSERT(strValid(ext), "Invalid executable file name");
+    g_paths->base.len -= g_paths->exe_name.len;
 
-    g_paths->base[file_name_ofst] = 0;
-    strPrintf(g_paths->data, Paths_Size, "%sdata\\", g_paths->base);
+    // Build library filename
+    strPrintf(g_paths->lib_name.buf, Paths_Size, "%.*s%s", (I32)(g_paths->exe_name.len - ext.len),
+              g_paths->exe_name.buf, "_lib.dll");
+
+    g_paths->lib_name.len = strLength(g_paths->lib_name.buf);
+
+    // Build data path from base path
+    strPrintf(g_paths->data.buf, Paths_Size, "%.*sdata\\", (I32)g_paths->base.len,
+              g_paths->base.buf);
+    g_paths->data.len = strLength(g_paths->data.buf);
 }
 
 static char **

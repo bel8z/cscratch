@@ -12,41 +12,9 @@
 #    define CF_PRINTF_LIKE(fmt_argno, variadic_argno)
 #endif
 
-CF_PRINTF_LIKE(2, 3)
-char *
-strPrintfAlloc(cfAllocator alloc, Usize *out_size, char const *fmt, ...)
-{
-    va_list args, args_copy;
-
-    va_start(args, fmt);
-    va_copy(args_copy, args);
-
-    I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
-
-    va_end(args_copy);
-
-    if (len < 0)
-    {
-        va_end(args);
-        return NULL;
-    };
-
-    Usize size = (Usize)len + 1;
-    char *buf = cfAlloc(alloc, size);
-    if (buf)
-    {
-        vsnprintf(buf, size, fmt, args); // NOLINT
-        *out_size = size;
-    };
-
-    va_end(args);
-
-    return buf;
-}
-
 CF_PRINTF_LIKE(1, 2)
 bool
-strPrintfBuffer(StrBuffer *array, char const *fmt, ...)
+strBufferPrintf(StrBuffer *array, char const *fmt, ...)
 {
     va_list args, args_copy;
 
@@ -104,26 +72,83 @@ strPrintf(char *buffer, Usize buffer_size, char const *fmt, ...)
 }
 
 I32
-strCompare(char const *l, char const *r)
+strCompare(Str l, Str r)
 {
-    return strcmp(l, r);
+    return memcmp(l.buf, r.buf, cfMin(l.len, r.len));
+}
+
+static inline I32
+__strIComp(char const *l, char const *r, Usize size)
+{
+    // TODO (Matteo): replace with portable method
+    return _strnicmp(l, r, size);
 }
 
 I32
-strCompareInsensitive(char const *l, char const *r)
+strCompareInsensitive(Str l, Str r)
+{
+    return __strIComp(l.buf, r.buf, cfMin(l.len, r.len));
+}
+
+bool
+strEqual(Str l, Str r)
+{
+    return (l.len == r.len && !memcmp(l.buf, r.buf, l.len));
+}
+
+bool
+strEqualInsensitive(Str l, Str r)
 {
     // TODO (Matteo): replace with portable method
-    return _strcmpi(l, r);
+    return (l.len == r.len && !__strIComp(l.buf, r.buf, l.len));
+}
+
+Usize
+strFindFirst(Str haystack, Str needle)
+{
+    for (Usize h = 0; h < haystack.len; ++h)
+    {
+        for (Usize n = 0; n < needle.len; ++n)
+        {
+            if (haystack.buf[h] == needle.buf[n])
+            {
+                return h;
+            }
+        }
+    }
+
+    return USIZE_MAX;
+}
+
+Usize
+strFindLast(Str haystack, Str needle)
+{
+    for (Usize h = haystack.len; h > 0; --h)
+    {
+        for (Usize n = needle.len; n > 0; --n)
+        {
+            if (haystack.buf[h - 1] == needle.buf[n - 1])
+            {
+                return h - 1;
+            }
+        }
+    }
+
+    return USIZE_MAX;
 }
 
 bool
-strEqual(char const *l, char const *r)
+strContains(Str str, char c)
 {
-    return !strCompare(l, r);
+    for (Usize i = 0; i < str.len; ++i)
+    {
+        if (str.buf[i] == c) return true;
+    }
+
+    return false;
 }
 
-bool
-strEqualInsensitive(char const *l, char const *r)
+Usize
+strJoin(Str a, Str b, char *out)
 {
-    return !strCompareInsensitive(l, r);
 }
