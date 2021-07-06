@@ -45,7 +45,7 @@ typedef struct cfFileSystem
     /// Advance the iterator and return the filename of the current entry, or NULL if the iteration
     /// is complete; NOTE that the current pointer is valid until the next call to this function (or
     /// the iterator is destroyed)
-    char const *(*dirIterNext)(DirIter *iter);
+    bool (*dirIterNext)(DirIter *iter, Str *path);
     /// Shutdown the iteration
     void (*dirIterClose)(DirIter *iter);
 

@@ -586,15 +586,16 @@ appLoadFromFile(AppState *state, Str full_name)
 
         if (it)
         {
-            char const *path = NULL;
+            Str path = {0};
 
             // NOTE (Matteo): Explicit test against NULL is required for compiling with /W4 on MSVC
-            while ((path = fs->dirIterNext(it)) != NULL)
+            while (fs->dirIterNext(it, &path))
             {
-                if (appIsFileSupported(strFromCstr(path)))
+                if (appIsFileSupported(path))
                 {
                     ImageFile *tmp = appPushImageFile(images);
-                    bool ok = strPrintf(tmp->filename, FILENAME_SIZE, "%s%s", root_name, path);
+                    bool ok = strPrintf(tmp->filename, FILENAME_SIZE, "%s%.*s", root_name, path.len,
+                                        path.buf);
                     CF_ASSERT(ok, "path is too long!");
                 }
             }

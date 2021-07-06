@@ -36,7 +36,7 @@ static CF_ALLOCATOR_FUNC(win32Alloc);
 
 // File system
 static DirIter *win32DirIterStart(char const *dir, cfAllocator alloc);
-static char const *win32DirIterNext(DirIter *self);
+static bool win32DirIterNext(DirIter *self, Str *path);
 static void win32DirIterClose(DirIter *self);
 
 static FileDlgResult win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters,
@@ -429,14 +429,17 @@ win32DirIterStart(char const *dir, cfAllocator alloc)
     return NULL;
 }
 
-char const *
-win32DirIterNext(DirIter *self)
+bool
+win32DirIterNext(DirIter *self, Str *path)
 {
     CF_ASSERT_NOT_NULL(self);
 
     switch (self->state)
     {
-        case Win32DirIterState_Null: return NULL;
+        case Win32DirIterState_Null:
+        {
+            return false;
+        }
         case Win32DirIterState_Start:
         {
             self->state = Win32DirIterState_Next;
@@ -448,13 +451,14 @@ win32DirIterNext(DirIter *self)
             if (!FindNextFileA(self->finder, &data))
             {
                 self->state = Win32DirIterState_Null;
-                return NULL;
+                return false;
             }
             strncpy_s(self->buffer, MAX_PATH, data.cFileName, MAX_PATH);
         }
     }
 
-    return self->buffer;
+    *path = strFromCstr(self->buffer);
+    return true;
 }
 
 void
