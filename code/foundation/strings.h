@@ -14,8 +14,13 @@
 //----------------------//
 
 /// Build a string view from a C string
-#define strFromC(str) \
-    (Str) { .len = strLength(str), .buf = str }
+#define strFromCstr(cstr) \
+    (Str) { .buf = (cstr), .len = strLength(cstr), }
+
+/// Writes the string slice as a null-terminated C string on the given buffer
+/// Returns the number of bytes written, including the null terminator, or the required buffer size
+/// if NULL
+Usize strToCstr(Str str, char *buffer, Usize size);
 
 /// Compute the length of the C string (null terminator ignored)
 static inline Usize

@@ -39,8 +39,8 @@ static DirIter *win32DirIterStart(char const *dir, cfAllocator alloc);
 static char const *win32DirIterNext(DirIter *self);
 static void win32DirIterClose(DirIter *self);
 
-static FileDlgResult win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters,
-                                      Usize num_filters, cfAllocator alloc);
+static FileDlgResult win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters,
+                                      cfAllocator alloc);
 
 static FileContent win32FileRead(Str filename, cfAllocator alloc);
 static bool win32FileCopy(Str source, Str dest, bool overwrite);
@@ -539,18 +539,17 @@ win32BuildFilterString(FileDlgFilter *filters, Usize num_filters, cfAllocator al
 }
 
 FileDlgResult
-win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, Usize num_filters,
-                 cfAllocator alloc)
+win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters, cfAllocator alloc)
 {
     FileDlgResult result = {.code = FileDlgResult_Error};
 
     WCHAR name[MAX_PATH] = {0};
 
-    if (filename_hint)
+    if (strValid(filename_hint))
     {
-        U32 name_size = win32Utf8To16(filename_hint, -1, NULL, 0);
-        if (name_size > MAX_PATH) return result;
-        win32Utf8To16(filename_hint, -1, name, name_size);
+        U32 name_size = win32Utf8To16(filename_hint.buf, (I32)filename_hint.len, NULL, 0);
+        if (name_size >= MAX_PATH) return result;
+        win32Utf8To16(filename_hint.buf, (I32)filename_hint.len, name, name_size);
     }
 
     U32 filt_size = 0;
@@ -570,14 +569,17 @@ win32OpenFileDlg(char const *filename_hint, FileDlgFilter *filters, Usize num_fi
 
     if (GetOpenFileNameW(&ofn))
     {
-        U32 result_size = win32Utf16To8(ofn.lpstrFile, -1, NULL, 0);
-        result.filename = cfAlloc(alloc, result_size);
+        result.filename.len = win32Utf16To8(ofn.lpstrFile, -1, NULL, 0) - 1;
+        result.filename.buf = cfAlloc(alloc, result.filename.len);
 
-        if (result.filename)
+        if (result.filename.buf)
         {
             result.code = FileDlgResult_Ok;
-            result.filename_size = result_size;
-            win32Utf16To8(ofn.lpstrFile, -1, result.filename, result_size);
+            win32Utf16To8(ofn.lpstrFile, -1, (char *)result.filename.buf, (U32)result.filename.len);
+        }
+        else
+        {
+            result.filename.len = 0;
         }
     }
     else

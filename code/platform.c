@@ -201,7 +201,7 @@ platformMain(Platform *platform, char const *argv[], I32 argc)
     CF_ASSERT(paths->base.len + paths->exe_name.len < Paths_Size, "IMGUI ini file name too long");
     cfMemCopy(paths->base.buf, gui_ini, paths->base.len);
     cfMemCopy(paths->exe_name.buf, gui_ini + paths->base.len, paths->exe_name.len);
-    pathChangeExt(strFromC(gui_ini), strFromC(".gui"), gui_ini);
+    pathChangeExt(strFromCstr(gui_ini), strFromCstr(".gui"), gui_ini);
     io->IniFilename = gui_ini;
 #if CF_COMPILER_MSVC
 #    pragma warning(pop)
@@ -373,7 +373,7 @@ appApiLoad(AppApi *api, Platform *platform)
               paths->lib_name.len, paths->lib_name.buf);
     strPrintf(api->dst_file, Paths_Size, "%s.tmp", api->src_file);
 
-    if (platform->fs->fileCopy(strFromC(api->src_file), strFromC(api->dst_file), true))
+    if (platform->fs->fileCopy(strFromCstr(api->src_file), strFromCstr(api->dst_file), true))
     {
         api->lib = platform->libLoad(api->dst_file);
     }
@@ -398,8 +398,8 @@ void
 appApiUpdate(AppApi *api, Platform *platform, AppState *app)
 {
     // TODO (Matteo): Are these operation too expensive to be performed every frame?
-    if (platform->fs->fileWriteTime(strFromC(api->src_file)) >
-        platform->fs->fileWriteTime(strFromC(api->dst_file)))
+    if (platform->fs->fileWriteTime(strFromCstr(api->src_file)) >
+        platform->fs->fileWriteTime(strFromCstr(api->dst_file)))
     {
         api->unload(app);
         appApiLoad(api, platform);

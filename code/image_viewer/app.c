@@ -385,7 +385,7 @@ appCreate(Platform *plat, char const *argv[], I32 argc)
 
     imageViewInit(&app->iv);
 
-    if (argc > 1) appLoadFromFile(app, strFromC(argv[1]));
+    if (argc > 1) appLoadFromFile(app, strFromCstr(argv[1]));
 
     return app;
 }
@@ -453,7 +453,7 @@ appIsFileSupported(Str path)
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(g_supported_ext); ++i)
     {
-        if (strEqualInsensitive(strFromC(g_supported_ext[i]), ext)) return true;
+        if (strEqualInsensitive(strFromCstr(g_supported_ext[i]), ext)) return true;
     }
 
     return false;
@@ -577,14 +577,12 @@ appLoadFromFile(AppState *state, Str full_name)
         CF_ASSERT(full_name.len < FILENAME_SIZE, "filename is too long!");
 
         ImageFile file = {0};
-        char dir_name[FILENAME_SIZE] = {0};
-        Str name = pathSplitName(full_name);
+        char root_name[FILENAME_SIZE] = {0};
+        Str file_name = pathSplitName(full_name);
+        cfMemCopy(full_name.buf, root_name, full_name.len - file_name.len);
+        strToCstr(full_name, file.filename, FILENAME_SIZE);
 
-        cfMemCopy(full_name.buf, dir_name, full_name.len - name.len);
-        cfMemCopy(full_name.buf, file.filename, full_name.len);
-        file.filename[full_name.len] = 0; // Null terminate the string
-
-        DirIter *it = fs->dirIterStart(dir_name, state->heap);
+        DirIter *it = fs->dirIterStart(root_name, state->heap);
 
         if (it)
         {
@@ -593,10 +591,10 @@ appLoadFromFile(AppState *state, Str full_name)
             // NOTE (Matteo): Explicit test against NULL is required for compiling with /W4 on MSVC
             while ((path = fs->dirIterNext(it)) != NULL)
             {
-                if (appIsFileSupported(strFromC(path)))
+                if (appIsFileSupported(strFromCstr(path)))
                 {
                     ImageFile *tmp = appPushImageFile(images);
-                    bool ok = strPrintf(tmp->filename, FILENAME_SIZE, "%s%s", dir_name, path);
+                    bool ok = strPrintf(tmp->filename, FILENAME_SIZE, "%s%s", root_name, path);
                     CF_ASSERT(ok, "path is too long!");
                 }
             }
@@ -606,7 +604,7 @@ appLoadFromFile(AppState *state, Str full_name)
 
         for (U32 index = 0; index < images->len; ++index)
         {
-            Str temp_name = strFromC(state->images.buf[index].filename);
+            Str temp_name = strFromCstr(state->images.buf[index].filename);
             if (strEqualInsensitive(full_name, temp_name))
             {
                 state->curr_file = index;
@@ -753,18 +751,21 @@ appOpenFile(AppState *state)
     Platform *plat = state->plat;
     bool result = true;
 
-    char const *hint =
-        (state->curr_file != USIZE_MAX ? state->images.buf[state->curr_file].filename : NULL);
+    Str hint = {0};
+    if (state->curr_file != USIZE_MAX)
+    {
+        hint = strFromCstr(state->images.buf[state->curr_file].filename);
+    }
 
     FileDlgResult dlg_result = plat->fs->open_file_dlg(hint, &state->filter, 1, state->heap);
 
     switch (dlg_result.code)
     {
-        case FileDlgResult_Ok: appLoadFromFile(state, strFromC(dlg_result.filename)); break;
+        case FileDlgResult_Ok: appLoadFromFile(state, dlg_result.filename); break;
         case FileDlgResult_Error: result = false; break;
     }
 
-    cfFree(state->heap, dlg_result.filename, dlg_result.filename_size);
+    cfFree(state->heap, dlg_result.filename.buf, dlg_result.filename.len);
 
     return result;
 }

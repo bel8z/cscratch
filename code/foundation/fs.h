@@ -31,8 +31,7 @@ enum
 
 typedef struct FileDlgResult
 {
-    Usize filename_size;
-    char *filename;
+    Str filename;
     U8 code;
 } FileDlgResult;
 
@@ -60,8 +59,8 @@ typedef struct cfFileSystem
 
     // TODO (Matteo): Is this the correct place for file dialogs?
 
-    FileDlgResult (*open_file_dlg)(char const *filename_hint, FileDlgFilter *filters,
-                                   Usize num_filters, cfAllocator alloc);
+    FileDlgResult (*open_file_dlg)(Str filename_hint, FileDlgFilter *filters, Usize num_filters,
+                                   cfAllocator alloc);
 
 } cfFileSystem;
 
