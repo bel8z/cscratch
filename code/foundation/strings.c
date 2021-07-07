@@ -2,9 +2,9 @@
 
 #include "array.h"
 
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <string.h>
 
 #if CF_COMPILER_CLANG
 #    define CF_PRINTF_LIKE(fmt_argno, variadic_argno) \
@@ -93,8 +93,14 @@ strCompare(Str l, Str r)
 static inline I32
 __strIComp(char const *l, char const *r, Usize size)
 {
-    // TODO (Matteo): replace with portable method
-    return _strnicmp(l, r, size);
+    I32 diff = 0;
+
+    for (Usize i = 0; i < size && !diff; ++i)
+    {
+        diff = tolower(l[i]) - tolower(r[i]);
+    }
+
+    return diff;
 }
 
 I32
