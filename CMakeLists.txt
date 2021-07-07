@@ -155,6 +155,11 @@ target_link_libraries(test_arena PRIVATE foundation)
 target_include_directories(test_arena PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_arena)
 
+add_executable(dummy ${TESTS_DIR}/dummy.c)
+target_link_libraries(dummy PRIVATE foundation)
+target_include_directories(dummy PRIVATE ${CODE_DIR})
+set_c_compile_flags(dummy)
+
 add_test(test_array test_array)
 add_test(test_files test_files)
 add_test(test_win32_threads test_win32_threads)

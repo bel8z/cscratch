@@ -369,8 +369,8 @@ appApiLoad(AppApi *api, Platform *platform)
     }
 
     strPrintf(api->src_file, Paths_Size, "%.*s%.*s", //
-              paths->base.len, paths->base.buf,      //
-              paths->lib_name.len, paths->lib_name.buf);
+              (I32)paths->base.len, paths->base.buf, //
+              (I32)paths->lib_name.len, paths->lib_name.buf);
     strPrintf(api->dst_file, Paths_Size, "%s.tmp", api->src_file);
 
     Str dst_file = strFromCstr(api->dst_file);

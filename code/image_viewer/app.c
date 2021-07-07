@@ -594,8 +594,8 @@ appLoadFromFile(AppState *state, Str full_name)
                 if (appIsFileSupported(path))
                 {
                     ImageFile *tmp = appPushImageFile(images);
-                    bool ok = strPrintf(tmp->filename, FILENAME_SIZE, "%s%.*s", root_name, path.len,
-                                        path.buf);
+                    bool ok = strPrintf(tmp->filename, FILENAME_SIZE, "%s%.*s", root_name,
+                                        (I32)path.len, path.buf);
                     CF_ASSERT(ok, "path is too long!");
                 }
             }

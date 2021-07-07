@@ -425,7 +425,7 @@ win32DirIterStart(Str dir, cfAllocator alloc)
     DirIter *self = cfAlloc(alloc, sizeof(*self));
     if (!self) return NULL;
 
-    strPrintf(self->buffer, MAX_PATH, "%.*s/*", dir.len, dir.buf);
+    strPrintf(self->buffer, MAX_PATH, "%.*s/*", (I32)dir.len, dir.buf);
 
     WIN32_FIND_DATAA data = {0};
 

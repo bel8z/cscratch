@@ -6,13 +6,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#if CF_COMPILER_CLANG
-#    define CF_PRINTF_LIKE(fmt_argno, variadic_argno) \
-        __attribute__((__format__(__printf__, fmt_argno + 1, variadic_argno + 1)))
-#else
-#    define CF_PRINTF_LIKE(fmt_argno, variadic_argno)
-#endif
-
 Usize
 strToCstr(Str str, char *buffer, Usize size)
 {
@@ -25,7 +18,6 @@ strToCstr(Str str, char *buffer, Usize size)
     return len + 1;
 }
 
-CF_PRINTF_LIKE(1, 2)
 bool
 strBufferPrintf(StrBuffer *array, char const *fmt, ...)
 {
@@ -56,7 +48,6 @@ strBufferPrintf(StrBuffer *array, char const *fmt, ...)
     return true;
 }
 
-CF_PRINTF_LIKE(2, 3)
 bool
 strPrintf(char *buffer, Usize buffer_size, char const *fmt, ...)
 {

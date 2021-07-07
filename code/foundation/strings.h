@@ -43,12 +43,21 @@ strSize(char const *str)
 //   String formatting   //
 //-----------------------//
 
+#if CF_COMPILER_CLANG
+#    define CF_PRINTF_LIKE(fmt_argno, variadic_argno) \
+        __attribute__((__format__(__printf__, fmt_argno + 1, variadic_argno + 1)))
+#else
+#    define CF_PRINTF_LIKE(fmt_argno, variadic_argno)
+#endif
+
 /// Print formatted string on the given static buffer
 /// This does not take a Str because it represents a string view more than a char buffer.
 /// You can use a Str by explicitly calling strPrintf(str.buf, str.len, ...).
+CF_PRINTF_LIKE(2, 3)
 bool strPrintf(char *buffer, Usize buffer_size, char const *fmt, ...);
 
 /// Print formatted string on the given dynamic buffer
+CF_PRINTF_LIKE(1, 2)
 bool strBufferPrintf(StrBuffer *buffer, char const *fmt, ...);
 
 //------------------------------//
