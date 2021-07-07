@@ -373,9 +373,10 @@ appApiLoad(AppApi *api, Platform *platform)
               paths->lib_name.len, paths->lib_name.buf);
     strPrintf(api->dst_file, Paths_Size, "%s.tmp", api->src_file);
 
-    if (platform->fs->fileCopy(strFromCstr(api->src_file), strFromCstr(api->dst_file), true))
+    Str dst_file = strFromCstr(api->dst_file);
+    if (platform->fs->fileCopy(strFromCstr(api->src_file), dst_file, true))
     {
-        api->lib = platform->libLoad(api->dst_file);
+        api->lib = platform->libLoad(dst_file);
     }
 
     if (api->lib)

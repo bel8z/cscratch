@@ -582,7 +582,7 @@ appLoadFromFile(AppState *state, Str full_name)
         cfMemCopy(full_name.buf, root_name, full_name.len - file_name.len);
         strToCstr(full_name, file.filename, FILENAME_SIZE);
 
-        DirIter *it = fs->dirIterStart(root_name, state->heap);
+        DirIter *it = fs->dirIterStart(strFromCstr(root_name), state->heap);
 
         if (it)
         {

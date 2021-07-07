@@ -41,7 +41,7 @@ typedef struct cfFileSystem
     // *** Directory operations ***
 
     /// Create an iterator on the given directory contents (return NULL in case of failure)
-    DirIter *(*dirIterStart)(char const *dir, cfAllocator alloc);
+    DirIter *(*dirIterStart)(Str dir, cfAllocator alloc);
     /// Advance the iterator and return the filename of the current entry, or NULL if the iteration
     /// is complete; NOTE that the current pointer is valid until the next call to this function (or
     /// the iterator is destroyed)

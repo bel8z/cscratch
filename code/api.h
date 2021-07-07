@@ -65,7 +65,7 @@ typedef struct Platform
     Paths *paths;
 
     /// Dynamic library loading
-    Library *(*libLoad)(char const *filename);
+    Library *(*libLoad)(Str filename);
     void (*libUnload)(Library *lib);
     void *(*libLoadProc)(Library *restrict lib, char const *restrict name);
 
