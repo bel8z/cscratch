@@ -15,13 +15,13 @@
         (array)->len = 0;             \
     } while (0)
 
-#define cfArrayInitCap(array, allocator, capacity)       \
-    do                                                   \
-    {                                                    \
-        (array)->alloc = (allocator);                    \
-        (array)->buf = cfAlloc((allocator), (capacity)); \
-        (array)->cap = (capacity);                       \
-        (array)->len = 0;                                \
+#define cfArrayInitCap(array, allocator, capacity)                               \
+    do                                                                           \
+    {                                                                            \
+        (array)->alloc = (allocator);                                            \
+        (array)->buf = cfAlloc((allocator), sizeof(*(array)->buf) * (capacity)); \
+        (array)->cap = (capacity);                                               \
+        (array)->len = 0;                                                        \
     } while (0)
 
 #define cfArrayFree(array) \
