@@ -12,16 +12,16 @@
         (array)->alloc = (allocator); \
         (array)->buf = 0;             \
         (array)->cap = 0;             \
-        (array)->cap = 0;             \
+        (array)->len = 0;             \
     } while (0)
 
-#define cfArrayInitCap(array, allocator, cap)     \
-    do                                            \
-    {                                             \
-        (array)->alloc = (allocator);             \
-        (array)->buf = cfAlloc((allocator), cap); \
-        (array)->cap = cap;                       \
-        (array)->cap = 0;                         \
+#define cfArrayInitCap(array, allocator, capacity)       \
+    do                                                   \
+    {                                                    \
+        (array)->alloc = (allocator);                    \
+        (array)->buf = cfAlloc((allocator), (capacity)); \
+        (array)->cap = (capacity);                       \
+        (array)->len = 0;                                \
     } while (0)
 
 #define cfArrayFree(array) \
@@ -85,18 +85,24 @@
 /// last element of the array takes the place of the removed item)
 #define cfArraySwapRemove(array, index) ((array)->buf[(index)] = cfArrayPop(array))
 
-#define cfArrayResize(array, size)                                                            \
-    do                                                                                        \
-    {                                                                                         \
-        if ((array)->cap < size)                                                              \
-        {                                                                                     \
-            (array)->buf =                                                                    \
+/// Ensure the array have the requested capacity by growing it if needed
+// TODO (Matteo): Geometric growth here too?
+#define cfArrayEnsure(array, required_cap)                                                    \
+    ((array)->cap < required_cap                                                              \
+         ? ((array)->buf =                                                                    \
                 cfRealloc((array)->alloc, (array)->buf, sizeof(*(array)->buf) * (array)->cap, \
-                          sizeof(*(array)->buf) * size);                                      \
-            (array)->cap = size;                                                              \
-        }                                                                                     \
-        (array)->len = size;                                                                  \
-    } while (0)
+                          sizeof(*(array)->buf) * required_cap),                              \
+            (array)->cap = required_cap)                                                      \
+         : 0)
+
+/// Reserve capacity for the requested room
+#define cfArrayReserve(array, room) cfArrayEnsure(array, (array)->len + (room))
+
+/// Resize the array to the given number of elements
+#define cfArrayResize(array, size) (cfArrayEnsure(array, size), (array)->len = (size))
+
+/// Resize the array by adding the given amount of (0-initialized) elements
+#define cfArrayExtend(array, amount) cfArrayResize((array), ((array)->len + (amount)))
 
 // TODO (Matteo):
 // * Resize with geometric growth
