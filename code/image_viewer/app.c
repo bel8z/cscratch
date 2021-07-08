@@ -43,22 +43,19 @@ static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"}
 
 enum Constants
 {
+    /// Reasonable buffer size to store a file path
     FILENAME_SIZE = 256,
-    LoadQueue_Size = 16,
+    /// Width of the browsing window (number of images in a folder to keep loaded to reduce browsing
+    /// latency). Must be odd because the current image is at the center of the window, and there
+    /// are (n-1)/2 loaded images before and after.
     BrowseWidth = 5,
+    /// Number of buffered textures to use for image display
+    /// 1 texture = no buffering, 2 textures seems reasonable
+    NumTextures = 2,
 };
 
 CF_STATIC_ASSERT(BrowseWidth & 1, "Browse width must be odd");
 CF_STATIC_ASSERT(BrowseWidth > 1, "Browse width must be > 1");
-
-typedef struct AppWindows
-{
-    bool style;
-    bool fonts;
-    bool stats;
-    bool metrics;
-    bool unsupported;
-} AppWindows;
 
 typedef enum ImageFilter
 {
@@ -78,7 +75,7 @@ typedef struct ImageView
     bool advanced;
     F32 zoom;
     I32 filter;
-    ImageTex tex[2];
+    ImageTex tex[NumTextures];
     struct // FLAGS
     {
         U8 tex_index : 1;
@@ -119,11 +116,20 @@ typedef struct LoadQueue
     ConditionVariable wake;
 
     // Data
-    ImageFile *buf[LoadQueue_Size];
+    ImageFile *buf[16];
     U16 pos;
     U16 len;
     bool stop;
 } LoadQueue;
+
+typedef struct AppWindows
+{
+    bool style;
+    bool fonts;
+    bool stats;
+    bool metrics;
+    bool unsupported;
+} AppWindows;
 
 struct AppState
 {
@@ -160,9 +166,9 @@ loadQueuePush(LoadQueue *queue, ImageFile *file)
     {
         mutexAcquire(&queue->mutex);
         {
-            CF_ASSERT(queue->len < LoadQueue_Size, "Queue is full!");
+            CF_ASSERT(queue->len < CF_ARRAY_SIZE(queue->buf), "Queue is full!");
 
-            U16 write_pos = (queue->pos + queue->len) % LoadQueue_Size;
+            U16 write_pos = (queue->pos + queue->len) % CF_ARRAY_SIZE(queue->buf);
             queue->buf[write_pos] = file;
             queue->len++;
 
@@ -196,7 +202,7 @@ static THREAD_PROC(loadQueueProc)
             }
 
             file = queue->buf[queue->pos];
-            if (++queue->pos == LoadQueue_Size) queue->pos = 0;
+            if (++queue->pos == CF_ARRAY_SIZE(queue->buf)) queue->pos = 0;
             queue->len--;
         }
         mutexRelease(&queue->mutex);
@@ -300,18 +306,22 @@ imageViewInit(ImageView *iv)
     iv->zoom = 1.0f;
     iv->dirty = true;
     iv->filter = ImageFilter_Nearest;
-    iv->tex[0] = imageTexCreate(4920, 3264);
-    iv->tex[1] = imageTexCreate(4920, 3264);
     iv->tex_index = 0;
+
+    for (Usize i = 0; i < CF_ARRAY_SIZE(iv->tex); ++i)
+    {
+        iv->tex[i] = imageTexCreate(4920, 3264);
+    }
 }
 
 static void
 imageViewShutdown(ImageView *iv)
 {
-    glDeleteTextures(1, &iv->tex[0].id);
-    glDeleteTextures(1, &iv->tex[1].id);
-    iv->tex[0].id = 0;
-    iv->tex[1].id = 0;
+    for (Usize i = 0; i < CF_ARRAY_SIZE(iv->tex); ++i)
+    {
+        glDeleteTextures(1, &iv->tex[i].id);
+        iv->tex[i].id = 0;
+    }
 }
 
 static inline ImageTex *
@@ -329,8 +339,8 @@ imageViewUpdate(ImageView *iv, Image const *image)
         // TODO (Matteo): Does this make texture double buffering useless?
         iv->dirty = false;
 
-        // NOTE (Matteo): Swap textures by incrementing index modulo 2 (no. of textures)
-        iv->tex_index = (iv->tex_index + 1) & 1;
+        // NOTE (Matteo): Switch to next buffered texture
+        iv->tex_index = (iv->tex_index + 1) % CF_ARRAY_SIZE(iv->tex);
 
         ImageTex *tex = iv->tex + iv->tex_index;
 
