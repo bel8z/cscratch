@@ -167,8 +167,9 @@ loadQueuePush(LoadQueue *queue, ImageFile *file)
         mutexAcquire(&queue->mutex);
         {
             CF_ASSERT(queue->len < CF_ARRAY_SIZE(queue->buf), "Queue is full!");
-
-            U16 write_pos = (queue->pos + queue->len) % CF_ARRAY_SIZE(queue->buf);
+            // FIXME (Matteo): Investigate why not declaring a local size fails
+            U16 queue_size = CF_ARRAY_SIZE(queue->buf);
+            U16 write_pos = (queue->pos + queue->len) % queue_size;
             queue->buf[write_pos] = file;
             queue->len++;
 
@@ -469,13 +470,6 @@ appIsFileSupported(Str path)
     return false;
 }
 
-static ImageFile *
-appPushImageFile(ImageList *images)
-{
-    cfArrayPush(images, (ImageFile){.state = ImageFileState_Idle});
-    return cfArrayLast(images);
-}
-
 static void
 appQueueLoadFiles(AppState *app)
 {
@@ -603,9 +597,9 @@ appLoadFromFile(AppState *state, Str full_name)
             {
                 if (appIsFileSupported(path))
                 {
-                    ImageFile *tmp = appPushImageFile(images);
-                    bool ok = strPrintf(tmp->filename, FILENAME_SIZE, "%s%.*s", root_name,
-                                        (I32)path.len, path.buf);
+                    cfArrayPush(images, (ImageFile){.state = ImageFileState_Idle});
+                    bool ok = strPrintf(cfArrayLast(images)->filename, FILENAME_SIZE, "%s%.*s",
+                                        root_name, (I32)path.len, path.buf);
                     CF_ASSERT(ok, "path is too long!");
                 }
             }
