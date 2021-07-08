@@ -167,9 +167,8 @@ loadQueuePush(LoadQueue *queue, ImageFile *file)
         mutexAcquire(&queue->mutex);
         {
             CF_ASSERT(queue->len < CF_ARRAY_SIZE(queue->buf), "Queue is full!");
-            // FIXME (Matteo): Investigate why not declaring a local size fails
-            U16 queue_size = CF_ARRAY_SIZE(queue->buf);
-            U16 write_pos = (queue->pos + queue->len) % queue_size;
+
+            U16 write_pos = (queue->pos + queue->len) % CF_ARRAY_SIZE(queue->buf);
             queue->buf[write_pos] = file;
             queue->len++;
 

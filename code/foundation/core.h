@@ -217,7 +217,7 @@
 // Basic utility macros  //
 //-----------------------//
 
-#define CF_ARRAY_SIZE(a) sizeof(a) / sizeof(a[0])
+#define CF_ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 #define CF_KB(x) ((U64)1024 * (x))
 #define CF_MB(x) ((U64)1024 * CF_KB(x))
