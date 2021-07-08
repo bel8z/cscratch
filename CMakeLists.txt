@@ -88,7 +88,8 @@ set_source_files_properties(${PLATFORM_SOURCES} PROPERTIES LANGUAGE C)
 #--------------------------
 set(APP_LIST
     demo 
-    image_viewer)
+    image_viewer
+    learn_opengl)
 
 foreach(APP ${APP_LIST})  
     message(STATUS "Configuring ${APP}")
