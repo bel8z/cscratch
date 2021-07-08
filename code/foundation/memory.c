@@ -189,10 +189,9 @@ arenaAllocAlign(Arena *arena, U32 size, U32 align)
     Uptr modulo = ptr & (align - 1);
     Uptr offset = ptr + align - modulo - (Uptr)arena->memory;
 
-    if (arena->reserved - offset < size) return NULL;
+    if (offset > arena->reserved || arena->reserved - offset < size) return NULL;
 
     U8 *result = arena->memory + offset;
-
     arena->allocated = offset + size;
 
     arenaCommitVm(arena);
@@ -316,6 +315,8 @@ arenaRestore(ArenaTempState state)
 bool
 arenaSplit(Arena *arena, Arena *split, U32 size)
 {
+    // TODO (Matteo): Split on VM page boundaries!
+
     CF_ASSERT(!split->memory, "split is expected to be 0-initialized");
 
     // NOTE(Matteo): This can overflow, thus the additional test below
