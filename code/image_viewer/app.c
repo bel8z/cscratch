@@ -567,7 +567,7 @@ appBrowsePrev(AppState *app)
     appQueueLoadFiles(app);
 }
 
-static void
+void
 appLoadFromFile(AppState *state, Str full_name)
 {
     cfFileSystem const *fs = state->plat->fs;
