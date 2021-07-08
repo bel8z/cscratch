@@ -40,7 +40,7 @@ CF_STATIC_ASSERT(alignof(CfThread) == alignof(HANDLE), "Thread must be aligned a
 
 typedef struct Win32ThreadArgs
 {
-    ThreadProc proc;
+    CfThreadProc proc;
     void *args;
     bool started;
 } Win32ThreadArgs;
@@ -49,7 +49,7 @@ static U32 WINAPI
 win32threadProc(void *data)
 {
     Win32ThreadArgs *parms = data;
-    ThreadProc proc = parms->proc;
+    CfThreadProc proc = parms->proc;
     void *args = parms->args;
 
     parms->started = true;

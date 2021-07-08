@@ -31,12 +31,12 @@ typedef struct CfThread
 #define CF_THREAD_PROC(name) void name(void *args)
 
 /// Pointer to thread procedure
-typedef CF_THREAD_PROC((*ThreadProc));
+typedef CF_THREAD_PROC((*CfThreadProc));
 
 /// Thread creation parameters
 typedef struct CfThreadParms
 {
-    ThreadProc proc;
+    CfThreadProc proc;
     void *args;
     char const *debug_name;
     Usize stack_size;
