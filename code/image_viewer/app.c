@@ -111,9 +111,9 @@ typedef struct LoadQueue
     cfAllocator alloc;
 
     // Sync
-    Thread thread;
-    Mutex mutex;
-    ConditionVariable wake;
+    CfThread thread;
+    CfMutex mutex;
+    CfConditionVariable wake;
 
     // Data
     ImageFile *buf[16];
@@ -164,7 +164,7 @@ loadQueuePush(LoadQueue *queue, ImageFile *file)
 {
     if (file->state == ImageFileState_Idle)
     {
-        mutexAcquire(&queue->mutex);
+        cfMutexAcquire(&queue->mutex);
         {
             CF_ASSERT(queue->len < CF_ARRAY_SIZE(queue->buf), "Queue is full!");
 
@@ -174,13 +174,13 @@ loadQueuePush(LoadQueue *queue, ImageFile *file)
 
             file->state = ImageFileState_Queued;
 
-            cvSignalOne(&queue->wake);
+            cfCvSignalOne(&queue->wake);
         }
-        mutexRelease(&queue->mutex);
+        cfMutexRelease(&queue->mutex);
     }
 }
 
-static THREAD_PROC(loadQueueProc)
+static CF_THREAD_PROC(loadQueueProc)
 {
     LoadQueue *queue = args;
     for (;;)
@@ -188,16 +188,16 @@ static THREAD_PROC(loadQueueProc)
         ImageFile *file = NULL;
 
         // Wait and dequeue file
-        mutexAcquire(&queue->mutex);
+        cfMutexAcquire(&queue->mutex);
         {
             while (!queue->stop && queue->len == 0)
             {
-                cvWaitMutex(&queue->wake, &queue->mutex, TIME_INFINITE);
+                cfCvWaitMutex(&queue->wake, &queue->mutex, TIME_INFINITE);
             }
 
             if (queue->stop)
             {
-                mutexRelease(&queue->mutex);
+                cfMutexRelease(&queue->mutex);
                 break;
             }
 
@@ -205,7 +205,7 @@ static THREAD_PROC(loadQueueProc)
             if (++queue->pos == CF_ARRAY_SIZE(queue->buf)) queue->pos = 0;
             queue->len--;
         }
-        mutexRelease(&queue->mutex);
+        cfMutexRelease(&queue->mutex);
 
         // Process file
         CF_ASSERT_NOT_NULL(file);
@@ -233,20 +233,20 @@ loadQueueStart(LoadQueue *queue)
     CF_ASSERT(!queue->thread.handle, "Load queue thread is running");
 
     queue->stop = false;
-    queue->thread = threadStart(loadQueueProc, .args = queue, .debug_name = "Load queue");
+    queue->thread = cfThreadStart(loadQueueProc, .args = queue, .debug_name = "Load queue");
 }
 
 static void
 loadQueueStop(LoadQueue *queue)
 {
-    mutexAcquire(&queue->mutex);
+    cfMutexAcquire(&queue->mutex);
     {
         queue->stop = true;
-        cvSignalOne(&queue->wake);
+        cfCvSignalOne(&queue->wake);
     }
-    mutexRelease(&queue->mutex);
+    cfMutexRelease(&queue->mutex);
 
-    threadWait(queue->thread, TIME_INFINITE);
+    cfThreadWait(queue->thread, TIME_INFINITE);
     queue->thread.handle = 0;
 }
 
@@ -387,8 +387,8 @@ appCreate(Platform *plat, char const *argv[], I32 argc)
 
     app->queue.alloc = app->heap;
     app->queue.fs = app->plat->fs;
-    cvInit(&app->queue.wake);
-    mutexInit(&app->queue.mutex);
+    cfCvInit(&app->queue.wake);
+    cfMutexInit(&app->queue.mutex);
 
     // NOTE (Matteo): Init global state (same as library re-load)
     appLoad(app);

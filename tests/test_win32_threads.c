@@ -35,7 +35,7 @@ typedef struct Data
     Queue *queue;
 } Data;
 
-static THREAD_PROC(producerProc)
+static CF_THREAD_PROC(producerProc)
 {
     Data *d = args;
     Queue *queue = d->queue;
@@ -70,7 +70,7 @@ static THREAD_PROC(producerProc)
     }
 }
 
-static THREAD_PROC(consumerProc)
+static CF_THREAD_PROC(consumerProc)
 {
     Data *d = args;
     Queue *queue = d->queue;
