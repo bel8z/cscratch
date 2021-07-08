@@ -9,9 +9,7 @@
 #include <GLFW/glfw3.h>
 
 // Foundation library
-#include "foundation/core.h"
-
-#include "foundation/color.h"
+#include "foundation/colors.h"
 #include "foundation/fs.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"

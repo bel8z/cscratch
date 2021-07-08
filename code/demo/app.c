@@ -1,9 +1,11 @@
 #include "api.h"
-#include "foundation/color.h"
-#include "foundation/core.h"
+
+#include "foundation/colors.h"
 #include "foundation/maths.h"
 #include "foundation/strings.h"
+
 #include "gl/gload.h"
+
 #include "gui/gui.h"
 
 typedef struct AppWindows

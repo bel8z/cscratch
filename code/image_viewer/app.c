@@ -26,7 +26,7 @@
 #include "foundation/core.h"
 
 #include "foundation/array.h"
-#include "foundation/color.h"
+#include "foundation/colors.h"
 #include "foundation/fs.h"
 #include "foundation/maths.h"
 #include "foundation/memory.h"

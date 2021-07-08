@@ -1,6 +1,6 @@
 #include "gui.h"
 
-#include "foundation/color.h"
+#include "foundation/colors.h"
 #include "foundation/memory.h"
 #include "foundation/strings.h"
 
