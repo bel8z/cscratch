@@ -88,6 +88,12 @@ Arena *arenaBootstrap(cfVirtualMemory *vm, U32 allocation_size);
 /// any memory after this call.
 void arenaShutdown(Arena *arena);
 
+inline U32
+arenaRemaining(Arena *arena)
+{
+    return arena->reserved - arena->allocated;
+}
+
 /// Free all the memory allocated by the arena. In case of a virtual memory backing
 /// store, the memory is decommitted (returned to the OS)
 void arenaFreeAll(Arena *arena);
