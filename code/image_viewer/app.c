@@ -72,16 +72,12 @@ typedef struct ImageTex
 
 typedef struct ImageView
 {
-    bool advanced;
+    ImageTex tex[NumTextures];
     F32 zoom;
     I32 filter;
-    ImageTex tex[NumTextures];
-    struct // FLAGS
-    {
-        I32 tex_index : 1;
-        I32 dirty     : 1;
-        I32 _         : 30;
-    };
+    U32 tex_index;
+    bool dirty;
+    bool advanced;
 } ImageView;
 
 typedef enum ImageFileState
