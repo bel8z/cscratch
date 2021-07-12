@@ -87,7 +87,9 @@ arenaDecommitVm(Arena *arena)
 
         if (offset < arena->committed)
         {
-            cfVmRevert(arena->vm, arena->memory + offset, arena->committed - offset);
+            Usize decommit_size = arena->committed - offset;
+            cfVmRevert(arena->vm, arena->memory + offset, decommit_size);
+            arena->committed -= decommit_size;
         }
     }
 }
