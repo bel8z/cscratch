@@ -19,6 +19,6 @@ typedef struct Image
     I32 height;
 } Image;
 
-bool imageLoadFromFile(Image *image, const char *filename, cfAllocator alloc);
-bool imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size, cfAllocator alloc);
-void imageUnload(Image *image, cfAllocator alloc);
+bool imageLoadFromFile(Image *image, const char *filename);
+bool imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size);
+void imageUnload(Image *image);

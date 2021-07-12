@@ -5,12 +5,12 @@
 // TODO (Matteo): missing features
 // ! Display transparent images properly
 // ! Drag after zoom
-// ! Properly handle loading files that go out of window
+// ! Better synchronization between browsing and loading
 // - Animated GIF support
 // - Cleanup loading code
 // - Bounded tool windows ?
 // - Better memory allocation strategy based on actual usage patterns
-//   (i.e. less usage of the heap allocator)
+//   (i.e. replace the heap allocator with a custom solution)
 // - Compress browsing code (too much duplication)
 //
 // ******************************
@@ -108,7 +108,6 @@ typedef struct LoadQueue
 {
     // Dependencies
     cfFileSystem *fs;
-    cfAllocator alloc;
 
     // Sync
     CfThread thread;
@@ -214,7 +213,7 @@ static CF_THREAD_PROC(loadQueueProc)
         {
             file->state = ImageFileState_Loading;
 
-            if (imageLoadFromFile(&file->image, file->filename, queue->alloc))
+            if (imageLoadFromFile(&file->image, file->filename))
             {
                 file->state = ImageFileState_Loaded;
             }
@@ -385,7 +384,6 @@ appCreate(Platform *plat, char const *argv[], I32 argc)
     // Usize const images_vm = CF_GB(1);
     cfArrayInit(&app->images, arenaAllocator(arena));
 
-    app->queue.alloc = app->heap;
     app->queue.fs = app->plat->fs;
     cfCvInit(&app->queue.wake);
     cfMutexInit(&app->queue.mutex);
@@ -428,7 +426,7 @@ appClearImages(AppState *app)
 
         if (file->state == ImageFileState_Loaded)
         {
-            imageUnload(&file->image, app->heap);
+            imageUnload(&file->image);
             file->state = ImageFileState_Idle;
         }
         else
@@ -528,7 +526,7 @@ appBrowseNext(AppState *app)
         ImageFile *file = app->images.buf + lru;
         if (file->state == ImageFileState_Loaded)
         {
-            imageUnload(&file->image, app->heap);
+            imageUnload(&file->image);
             file->state = ImageFileState_Idle;
         }
     }
@@ -554,7 +552,7 @@ appBrowsePrev(AppState *app)
         ImageFile *file = app->images.buf + lru;
         if (file->state == ImageFileState_Loaded)
         {
-            imageUnload(&file->image, app->heap);
+            imageUnload(&file->image);
             file->state = ImageFileState_Idle;
         }
     }
