@@ -8,6 +8,11 @@
 
 #include "gui/gui.h"
 
+typedef struct GfxState
+{
+    U32 VBO, VAO, shader;
+} GfxState;
+
 typedef struct AppWindows
 {
     bool metrics;
@@ -16,20 +21,21 @@ typedef struct AppWindows
     bool style;
 } AppWindows;
 
-enum
-{
-    CURR_DIR_SIZE = 256,
-};
-
 struct AppState
 {
     Platform *plat;
-    cfAllocator alloc;
+
+    GfxState gfx;
+
     AppWindows windows;
     Rgba32 clear_color;
 };
 
 //------------------------------------------------------------------------------
+
+#define log(...) fprintf(stderr, __VA_ARGS__)
+
+static void gfxInit(GfxState *state);
 
 APP_API APP_CREATE_PROC(appCreate)
 {
@@ -40,7 +46,6 @@ APP_API APP_CREATE_PROC(appCreate)
     AppState *app = cfAlloc(plat->heap, sizeof(*app));
 
     app->plat = plat;
-    app->alloc = plat->heap;
     app->clear_color = RGBA32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
 
     // Init Dear Imgui
@@ -48,13 +53,19 @@ APP_API APP_CREATE_PROC(appCreate)
 
     // Init OpenGl
     gloadInit(plat->gl);
+    if (!gloadIsSupported(3, 3))
+    {
+        // TODO (Matteo): Log using IMGUI
+        log("OpenGL 3.3 is not supported!");
+    }
+    gfxInit(&app->gfx);
 
     return app;
 }
 
 APP_API APP_PROC(appDestroy)
 {
-    cfFree(app->alloc, app, sizeof(*app));
+    cfFree(app->plat->heap, app, sizeof(*app));
 }
 
 //------------------------------------------------------------------------------
@@ -62,7 +73,6 @@ APP_API APP_PROC(appDestroy)
 static U32
 gfxBuildProgram(void)
 {
-
     char const *vtx_shader_src = "#version 330 core\n"
                                  "layout (location = 0) in vec3 aPos;\n"
                                  "void main()\n"
@@ -76,45 +86,44 @@ gfxBuildProgram(void)
                                  "{\n"
                                  "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
                                  "}\n";
-    U32 vtx_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vtx_shader, 1, &vtx_shader_src, NULL);
-    glCompileShader(vtx_shader);
 
     I32 success;
+
+    U32 const vtx_shader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vtx_shader, 1, &vtx_shader_src, NULL);
+    glCompileShader(vtx_shader);
     glGetShaderiv(vtx_shader, GL_COMPILE_STATUS, &success);
     if (!success)
     {
         char info_log[512];
         glGetShaderInfoLog(vtx_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
         // TODO (Matteo): use IMGUI for logging
-        printf("Vertex shader compilation error: %s\n", info_log);
+        log("Vertex shader compilation error: %s\n", info_log);
     }
 
-    U32 pix_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    U32 const pix_shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(pix_shader, 1, &pix_shader_src, NULL);
     glCompileShader(pix_shader);
-
     glGetShaderiv(pix_shader, GL_COMPILE_STATUS, &success);
     if (!success)
     {
         char info_log[512];
         glGetShaderInfoLog(pix_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
         // TODO (Matteo): use IMGUI for logging
-        printf("Pixel shader compilation error: %s\n", info_log);
+        log("Pixel shader compilation error: %s\n", info_log);
     }
 
     U32 shader_program = glCreateProgram();
     glAttachShader(shader_program, vtx_shader);
     glAttachShader(shader_program, pix_shader);
     glLinkProgram(shader_program);
-
     glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
     if (!success)
     {
         char info_log[512];
         glGetProgramInfoLog(pix_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
         // TODO (Matteo): use IMGUI for logging
-        printf("Shader program link error: %s\n", info_log);
+        log("Shader program link error: %s\n", info_log);
     }
 
     glDeleteShader(vtx_shader);
@@ -124,41 +133,33 @@ gfxBuildProgram(void)
 }
 
 static void
-gfxProc(void)
+gfxInit(GfxState *gfx)
 {
     F32 const vertices[] = {-0.5f, -0.5f, 0.0f, //
                             0.5f,  -0.5f, 0.0f, //
                             0.0f,  0.5f,  0.0f};
     I32 const location_in_shader = 0;
 
-    static U32 VBO = 0;
-    static U32 shader_program = 0;
-    static U32 VAO = 0;
+    gfx->shader = gfxBuildProgram();
 
-    if (!VBO) glGenBuffers(1, &VBO);
-    if (!shader_program) shader_program = gfxBuildProgram();
+    glGenVertexArrays(1, &gfx->VAO);
 
-    if (!VAO)
-    {
-        // ..:: Initialization code (done once (unless your object frequently changes)) :: ..
-        glGenVertexArrays(1, &VAO);
+    glBindVertexArray(gfx->VAO);
 
-        // 1. bind Vertex Array Object
-        glBindVertexArray(VAO);
-        // 2. copy our vertices array in a buffer for OpenGL to use
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        // 3. then set our vertex attributes pointers
-        glVertexAttribPointer(location_in_shader, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-        glEnableVertexAttribArray(location_in_shader);
-    }
+    glGenBuffers(1, &gfx->VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, gfx->VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    // ..:: Drawing code (in render loop) :: ..
-    // 4. draw the object
-    glUseProgram(shader_program);
-    glBindVertexArray(VAO);
+    glVertexAttribPointer(location_in_shader, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+    glEnableVertexAttribArray(location_in_shader);
+}
+
+static void
+gfxProc(GfxState *gfx)
+{
+    glUseProgram(gfx->shader);
+    glBindVertexArray(gfx->VAO);
     glDrawArrays(GL_TRIANGLES, 0, 3);
-    // someOpenGLFunctionThatDrawsOurTriangle();
 }
 
 APP_API APP_UPDATE_PROC(appUpdate)
@@ -221,7 +222,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
         igShowMetricsWindow(&app->windows.metrics);
     }
 
-    gfxProc();
+    gfxProc(&app->gfx);
 
     return result;
 }
