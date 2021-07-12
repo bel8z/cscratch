@@ -48,6 +48,16 @@ cfMemMatch(void const *left, void const *right, Usize count)
 //   Memory arena   //
 //------------------//
 
+static inline Uptr
+cfAlignUp(Uptr ptr, Usize align)
+{
+    CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
+    // Same as (ptr % align) but faster as align is a power of 2
+    Uptr modulo = ptr & (align - 1);
+    // Move pointer forward if needed
+    return modulo ? ptr + align - modulo : ptr;
+}
+
 static void
 arenaCommitVm(Arena *arena)
 {
@@ -71,14 +81,9 @@ arenaDecommitVm(Arena *arena)
         // NOTE (Matteo): Since VM decommit acts on full pages, I need to align the block to be
         // decommitted 1 page up in order to preserve the last page which is partially filled
 
-        Usize page_size = arena->vm->page_size;
-        CF_ASSERT((page_size & (page_size - 1)) == 0, "Page size is not a power of 2");
-
         // Align base pointer forward
-        Uptr ptr = (Uptr)(arena->memory + arena->allocated);
-        // Same as (ptr % page_size) but faster as page_size is a power of 2
-        Uptr modulo = ptr & (page_size - 1);
-        Uptr offset = ptr + page_size - modulo - (Uptr)arena->memory;
+        Uptr base = (Uptr)(arena->memory + arena->allocated);
+        Usize offset = cfAlignUp(base, arena->vm->page_size) - (Uptr)arena->memory;
 
         if (offset < arena->committed)
         {
@@ -183,22 +188,23 @@ arenaAllocAlign(Arena *arena, Usize size, Usize align)
     CF_ASSERT_NOT_NULL(arena);
     CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
 
+    U8 *result = NULL;
+
     // Align base pointer forward
-    Uptr ptr = (Uptr)(arena->memory + arena->allocated);
-    // Same as (ptr % align) but faster as align is a power of 2
-    Uptr modulo = ptr & (align - 1);
-    Uptr offset = ptr + align - modulo - (Uptr)arena->memory;
+    Uptr base = (Uptr)(arena->memory + arena->allocated);
+    Usize offset = cfAlignUp(base, align) - (Uptr)arena->memory;
 
-    if (offset > arena->reserved || arena->reserved - offset < size) return NULL;
+    if (offset + size <= arena->reserved)
+    {
+        result = arena->memory + offset;
+        arena->allocated = offset + size;
 
-    U8 *result = arena->memory + offset;
-    arena->allocated = offset + size;
+        arenaCommitVm(arena);
 
-    arenaCommitVm(arena);
-
-    // NOTE (Matteo): For simplicity every allocation is cleared, even it can be
-    // avoided for freshly committed VM pages
-    cfMemClear(result, size);
+        // NOTE (Matteo): For simplicity every allocation is cleared, even it can be
+        // avoided for freshly committed VM pages
+        cfMemClear(result, size);
+    }
 
     return result;
 }
@@ -346,12 +352,21 @@ arenaSplit(Arena *arena, Arena *split, Usize size)
 
 static CF_ALLOCATOR_FUNC(arenaAllocProc)
 {
-    Arena *arena = state;
-
     CF_ASSERT(memory || !old_size, "Invalid allocation request");
 
-    return new_size ? arenaReallocAlign(arena, memory, old_size, new_size, align)
-                    : (arenaFree(arena, memory, old_size), NULL);
+    Arena *arena = state;
+    void *new_memory = NULL;
+
+    if (new_size)
+    {
+        new_memory = arenaReallocAlign(arena, memory, old_size, new_size, align);
+    }
+    else
+    {
+        arenaFree(arena, memory, old_size);
+    }
+
+    return new_memory;
 }
 
 cfAllocator
