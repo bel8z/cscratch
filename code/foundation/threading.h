@@ -1,9 +1,13 @@
 #pragma once
 
+//------------------------------------------------------------------------------
+
 /// Foundation threading support
 /// This is an API header and as such the only included header must be "core.h"
 
 // TODO (Matteo): Different "namespace" prefix for threading API?
+
+//------------------------------------------------------------------------------
 
 #include "core.h"
 
@@ -72,8 +76,6 @@ void cfMutexShutdown(CfMutex *mutex);
 bool cfMutexTryAcquire(CfMutex *mutex);
 void cfMutexAcquire(CfMutex *mutex);
 void cfMutexRelease(CfMutex *mutex);
-
-//------------------------------------------------------------------------------
 
 //------------------------//
 //   Reader/writer lock   //

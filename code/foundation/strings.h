@@ -1,9 +1,13 @@
 #pragma once
 
+//------------------------------------------------------------------------------
+
 /// String manipulation utilities
 /// This is not an API header, include it in implementation files only
 
 // TODO (Matteo): Improve API and usage
+
+//------------------------------------------------------------------------------
 
 #include "core.h"
 
@@ -76,3 +80,5 @@ bool strEqualInsensitive(Str l, Str r);
 bool strContains(Str str, char c);
 Usize strFindFirst(Str haystack, Str needle);
 Usize strFindLast(Str haystack, Str needle);
+
+//------------------------------------------------------------------------------
