@@ -61,10 +61,12 @@ typedef struct cfVirtualMemory
 /// memory as a backing store
 typedef struct Arena
 {
-    U32 reserved;
-    U32 allocated;
-    U32 committed;
-    U32 save_stack;
+    // TODO (Matteo): Use U64 explicitly for sizes?
+
+    Usize reserved;
+    Usize allocated;
+    Usize committed;
+    Usize save_stack;
     U8 *memory;
     cfVirtualMemory *vm;
 } Arena;
@@ -72,23 +74,23 @@ typedef struct Arena
 typedef struct ArenaTempState
 {
     Arena *arena;
-    U32 allocated;
-    U32 stack_id;
+    Usize allocated;
+    Usize stack_id;
 } ArenaTempState;
 
 /// Initialize the arena by reserving a block of virtual memory of the required size
-bool arenaInitVm(Arena *arena, cfVirtualMemory *vm, U32 reserved_size);
+bool arenaInitVm(Arena *arena, cfVirtualMemory *vm, Usize reserved_size);
 
 /// Initialize the arena with a fixed size buffer
-void arenaInitBuffer(Arena *arena, U8 *buffer, U32 buffer_size);
+void arenaInitBuffer(Arena *arena, U8 *buffer, Usize buffer_size);
 
-Arena *arenaBootstrap(cfVirtualMemory *vm, U32 allocation_size);
+Arena *arenaBootstrap(cfVirtualMemory *vm, Usize allocation_size);
 
 /// Free all the memory allocated by the arena and render it unable to provide
 /// any memory after this call.
 void arenaShutdown(Arena *arena);
 
-inline U32
+inline Usize
 arenaRemaining(Arena *arena)
 {
     return arena->reserved - arena->allocated;
@@ -99,30 +101,31 @@ arenaRemaining(Arena *arena)
 void arenaFreeAll(Arena *arena);
 
 /// Allocate a block of the given size and alignment from the top of the arena stack
-void *arenaAllocAlign(Arena *arena, U32 size, U32 alignment);
+void *arenaAllocAlign(Arena *arena, Usize size, Usize alignment);
 
 /// Allocate a block of the given size and default alignment from the top of the arena stack
 inline void *
-arenaAlloc(Arena *arena, U32 size)
+arenaAlloc(Arena *arena, Usize size)
 {
     return arenaAllocAlign(arena, size, CF_MAX_ALIGN);
 }
 
 /// Try reallocating a block of the given size and alignment at the top of the arena stack
 /// If the block does not match the last allocation, a new block is allocated
-void *arenaReallocAlign(Arena *arena, void *memory, U32 old_size, U32 new_size, U32 alignment);
+void *arenaReallocAlign(Arena *arena, void *memory, Usize old_size, Usize new_size,
+                        Usize alignment);
 
 /// Try reallocating a block of the given size and default alignment at the top of the arena stack
 /// If the block does not match the last allocation, a new block is allocated
 inline void *
-arenaRealloc(Arena *arena, void *memory, U32 old_size, U32 new_size)
+arenaRealloc(Arena *arena, void *memory, Usize old_size, Usize new_size)
 {
     return arenaReallocAlign(arena, memory, old_size, new_size, CF_MAX_ALIGN);
 }
 
 /// Returns a block of the given size to the top of the arena stack; this is
 /// effective only if the block matches with the last allocation
-void arenaFree(Arena *arena, void *memory, U32 size);
+void arenaFree(Arena *arena, void *memory, Usize size);
 
 /// Allocates a block which fits the given struct on top of the arena stack
 #define arenaAllocStruct(arena, Type) (Type *)arenaAllocAlign(arena, sizeof(Type), alignof(Type))
@@ -148,6 +151,6 @@ void arenaRestore(ArenaTempState state);
 #define ARENA_TEMP_BEGIN(arena) ArenaTempState ARENA_TEMP_END_NOT_CALLED = arenaSave(arena)
 #define ARENA_TEMP_END(arena) arenaRestore(ARENA_TEMP_END_NOT_CALLED)
 
-bool arenaSplit(Arena *arena, Arena *split, U32 size);
+bool arenaSplit(Arena *arena, Arena *split, Usize size);
 
 cfAllocator arenaAllocator(Arena *arena);

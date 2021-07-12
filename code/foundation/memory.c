@@ -55,8 +55,8 @@ arenaCommitVm(Arena *arena)
 
     if (arena->vm && arena->allocated > arena->committed)
     {
-        U32 max_commit_size = arena->reserved - arena->allocated;
-        U32 commit_size = cfMin(
+        Usize max_commit_size = arena->reserved - arena->allocated;
+        Usize commit_size = cfMin(
             max_commit_size, cfRoundUp(arena->allocated - arena->committed, arena->vm->page_size));
         cfVmCommit(arena->vm, arena->memory + arena->committed, commit_size);
         arena->committed += commit_size;
@@ -88,11 +88,11 @@ arenaDecommitVm(Arena *arena)
 }
 
 bool
-arenaInitVm(Arena *arena, cfVirtualMemory *vm, U32 reserved_size)
+arenaInitVm(Arena *arena, cfVirtualMemory *vm, Usize reserved_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
-    U32 rounded = cfRoundUp(reserved_size, vm->page_size);
+    Usize rounded = cfRoundUp(reserved_size, vm->page_size);
     U8 *buffer = vm->reserve(rounded);
 
     if (!buffer) return false;
@@ -108,7 +108,7 @@ arenaInitVm(Arena *arena, cfVirtualMemory *vm, U32 reserved_size)
 }
 
 void
-arenaInitBuffer(Arena *arena, U8 *buffer, U32 buffer_size)
+arenaInitBuffer(Arena *arena, U8 *buffer, Usize buffer_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -121,14 +121,14 @@ arenaInitBuffer(Arena *arena, U8 *buffer, U32 buffer_size)
 }
 
 Arena *
-arenaBootstrap(cfVirtualMemory *vm, U32 allocation_size)
+arenaBootstrap(cfVirtualMemory *vm, Usize allocation_size)
 {
     CF_ASSERT(allocation_size > sizeof(Arena), "Cannot bootstrap arena from smaller allocation");
     Arena *arena = cfVmReserve(vm, allocation_size);
 
     if (arena)
     {
-        U32 commit_size = cfMin(allocation_size, cfRoundUp(sizeof(Arena), vm->page_size));
+        Usize commit_size = cfMin(allocation_size, cfRoundUp(sizeof(Arena), vm->page_size));
         cfVmCommit(vm, arena, commit_size);
 
         arena->vm = vm;
@@ -178,7 +178,7 @@ arenaFreeAll(Arena *arena)
 }
 
 void *
-arenaAllocAlign(Arena *arena, U32 size, U32 align)
+arenaAllocAlign(Arena *arena, Usize size, Usize align)
 {
     CF_ASSERT_NOT_NULL(arena);
     CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
@@ -204,7 +204,7 @@ arenaAllocAlign(Arena *arena, U32 size, U32 align)
 }
 
 void *
-arenaReallocAlign(Arena *arena, void *memory, U32 old_size, U32 new_size, U32 align)
+arenaReallocAlign(Arena *arena, void *memory, Usize old_size, Usize new_size, Usize align)
 {
     CF_ASSERT_NOT_NULL(arena);
     CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
@@ -251,7 +251,7 @@ arenaReallocAlign(Arena *arena, void *memory, U32 old_size, U32 new_size, U32 al
 }
 
 void
-arenaFree(Arena *arena, void *memory, U32 size)
+arenaFree(Arena *arena, void *memory, Usize size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -313,14 +313,14 @@ arenaRestore(ArenaTempState state)
 }
 
 bool
-arenaSplit(Arena *arena, Arena *split, U32 size)
+arenaSplit(Arena *arena, Arena *split, Usize size)
 {
     // TODO (Matteo): Split on VM page boundaries!
 
     CF_ASSERT(!split->memory, "split is expected to be 0-initialized");
 
     // NOTE(Matteo): This can overflow, thus the additional test below
-    U32 new_reserved = arena->reserved - size;
+    Usize new_reserved = arena->reserved - size;
     if (size > arena->reserved || new_reserved < arena->allocated)
     {
         return false;
