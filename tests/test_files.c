@@ -1,8 +1,6 @@
 #include "foundation/core.h"
 #include "foundation/paths.h"
 
-#include <windows.h>
-
 #include <stdio.h>
 
 void

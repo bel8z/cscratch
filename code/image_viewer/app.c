@@ -78,9 +78,9 @@ typedef struct ImageView
     ImageTex tex[NumTextures];
     struct // FLAGS
     {
-        U8 tex_index : 1;
-        U8 dirty     : 1;
-        U8 _         : 6;
+        I32 tex_index : 1;
+        I32 dirty     : 1;
+        I32 _         : 30;
     };
 } ImageView;
 
@@ -591,7 +591,16 @@ appLoadFromFile(AppState *state, Str full_name)
 
         ARENA_TEMP_BEGIN(state->scratch);
 
+#if CF_COMPILER_MSVC
+#    pragma warning(push)
+#    pragma warning(disable : 4221) // cannot be initialized using address of automatic variable
+#endif
+
         DirIter *it = fs->dirIterStart(strFromCstr(root_name), arenaAllocator(state->scratch));
+
+#if CF_COMPILER_MSVC
+#    pragma warning(pop)
+#endif
 
         if (it)
         {
