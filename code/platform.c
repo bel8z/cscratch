@@ -241,33 +241,10 @@ platformMain(Platform *platform, char const *argv[], I32 argc)
     // NOTE (Matteo): Ensure font rebuild before first frame
     AppUpdateResult update_result = {.flags = AppUpdateFlags_RebuildFonts};
 
-#if SDL_BACKEND
-    bool done = false;
-    while (!done)
-    {
-        // Poll and handle events (inputs, window resize, etc.)
-        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if
-        // dear imgui wants to use your inputs.
-        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main
-        // application.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to
-        // your main application. Generally you may always pass all inputs to dear imgui,
-        // and hide them from your application based on those two flags.
-
-        SDL_Event event;
-        while (SDL_PollEvent(&event))
-        {
-            ImGui_ImplSDL2_ProcessEvent(&event);
-            if (event.type == SDL_QUIT) done = true;
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE &&
-                event.window.windowID == SDL_GetWindowID(window))
-                done = true;
-        }
-#else
     while (!glfwWindowShouldClose(window) && !(update_result.flags & AppUpdateFlags_Quit))
     {
         glfwPollEvents();
-#endif
+
         // NOTE (Matteo): Auto reloading of application library
         appApiUpdate(&app_api, platform, app);
 

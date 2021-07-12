@@ -87,4 +87,3 @@ target_link_libraries(${BACKEND_NAME} PUBLIC
     ${OPENGL_gl_LIBRARY})
 
 target_link_libraries(${BACKEND_NAME} PUBLIC glfw)
-target_compile_definitions(${BACKEND_NAME} INTERFACE "SDL_BACKEND=0")
