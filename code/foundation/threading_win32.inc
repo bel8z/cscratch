@@ -42,7 +42,7 @@ typedef struct Win32ThreadArgs
 {
     CfThreadProc proc;
     void *args;
-    bool started;
+    volatile bool started;
 } Win32ThreadArgs;
 
 static U32 WINAPI
