@@ -134,8 +134,10 @@ struct AppState
 {
     Platform *plat;
 
-    Arena *arena;
-    cfAllocator heap;
+    /// Arena for persistent storage (main data structures)
+    Arena *main;
+    /// Arena for temporary storage (one-off allocations)
+    Arena *scratch;
 
     FileDlgFilter filter;
 
@@ -368,12 +370,16 @@ APP_API AppState *
 appCreate(Platform *plat, char const *argv[], I32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
-    Arena *arena = arenaBootstrap(plat->vm, CF_GB(1));
-    AppState *app = arenaAllocStruct(arena, AppState);
+    Arena *main = arenaBootstrap(plat->vm, CF_MB(512));
+    AppState *app = arenaAllocStruct(main, AppState);
 
     app->plat = plat;
-    app->heap = plat->heap;
-    app->arena = arena;
+
+    // TODO (Matteo): Create main and scratch storage from a single allocation
+    app->main = main;
+    app->scratch = arenaAllocStruct(main, Arena);
+
+    arenaInitVm(app->scratch, plat->vm, CF_MB(512));
 
     // Init file list management
     app->filter.name = "Image files";
@@ -382,7 +388,7 @@ appCreate(Platform *plat, char const *argv[], I32 argc)
     app->curr_file = USIZE_MAX;
 
     // Usize const images_vm = CF_GB(1);
-    cfArrayInit(&app->images, arenaAllocator(arena));
+    cfArrayInit(&app->images, arenaAllocator(main));
 
     app->queue.fs = app->plat->fs;
     cfCvInit(&app->queue.wake);
@@ -447,7 +453,7 @@ appDestroy(AppState *app)
     appClearImages(app);
     imageViewShutdown(&app->iv);
     cfArrayFree(&app->images);
-    arenaShutdown(app->arena);
+    arenaShutdown(app->main);
 }
 
 //------------------------------------------------------------------------------
@@ -583,7 +589,9 @@ appLoadFromFile(AppState *state, Str full_name)
         cfMemCopy(full_name.buf, root_name, full_name.len - file_name.len);
         strToCstr(full_name, file.filename, FILENAME_SIZE);
 
-        DirIter *it = fs->dirIterStart(strFromCstr(root_name), state->heap);
+        ARENA_TEMP_BEGIN(state->scratch);
+
+        DirIter *it = fs->dirIterStart(strFromCstr(root_name), arenaAllocator(state->scratch));
 
         if (it)
         {
@@ -603,6 +611,8 @@ appLoadFromFile(AppState *state, Str full_name)
 
             fs->dirIterClose(it);
         }
+
+        ARENA_TEMP_END(state->scratch);
 
         for (U32 index = 0; index < images->len; ++index)
         {
@@ -759,7 +769,10 @@ appOpenFile(AppState *state)
         hint = strFromCstr(state->images.buf[state->curr_file].filename);
     }
 
-    FileDlgResult dlg_result = plat->fs->open_file_dlg(hint, &state->filter, 1, state->heap);
+    ARENA_TEMP_BEGIN(state->scratch);
+
+    FileDlgResult dlg_result =
+        plat->fs->open_file_dlg(hint, &state->filter, 1, arenaAllocator(state->scratch));
 
     switch (dlg_result.code)
     {
@@ -767,7 +780,7 @@ appOpenFile(AppState *state)
         case FileDlgResult_Error: result = false; break;
     }
 
-    cfFree(state->heap, dlg_result.filename.buf, dlg_result.filename.len);
+    ARENA_TEMP_END(state->scratch);
 
     return result;
 }
