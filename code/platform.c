@@ -287,12 +287,8 @@ platformMain(Platform *platform, char const *argv[], I32 argc)
         ImGui_ImplGlfw_NewFrame();
         igNewFrame();
 
-        // Application frame update
-        update_result = app_api.update(app, &font_opts);
-
-        // Rendering
-        igRender();
-
+        // Setup GL viewport and clear buffers BEFORE app update in order to allow the application
+        // code to draw directly using OpenGL
         I32 display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
@@ -301,6 +297,11 @@ platformMain(Platform *platform, char const *argv[], I32 argc)
         glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        // Application frame update
+        update_result = app_api.update(app, &font_opts);
+
+        // Rendering
+        igRender();
         ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
 
         // Update and Render additional Platform Windows
