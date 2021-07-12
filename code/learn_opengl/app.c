@@ -10,7 +10,7 @@
 
 typedef struct GfxState
 {
-    U32 VBO, VAO, shader;
+    U32 VBO, EBO, VAO, shader;
 } GfxState;
 
 typedef struct AppWindows
@@ -31,11 +31,30 @@ struct AppState
     Rgba32 clear_color;
 };
 
+// F32 const vertices[] = {-0.5f, -0.5f, 0.0f, //
+//                         0.5f,  -0.5f, 0.0f, //
+//                         0.0f,  0.5f,  0.0f};
+
+F32 const vertices[] = {
+    0.5f,  0.5f,  0.0f, // top right
+    0.5f,  -0.5f, 0.0f, // bottom right
+    -0.5f, -0.5f, 0.0f, // bottom left
+    -0.5f, 0.5f,  0.0f  // top left
+};
+
+U32 const indices[] = {
+    // note that we start from 0!
+    0, 1, 3, // first triangle
+    1, 2, 3  // second triangle
+};
+
 //------------------------------------------------------------------------------
 
 #define log(...) fprintf(stderr, __VA_ARGS__)
 
 static void gfxInit(GfxState *state);
+
+//------------------------------------------------------------------------------
 
 APP_API APP_CREATE_PROC(appCreate)
 {
@@ -135,23 +154,41 @@ gfxBuildProgram(void)
 static void
 gfxInit(GfxState *gfx)
 {
-    F32 const vertices[] = {-0.5f, -0.5f, 0.0f, //
-                            0.5f,  -0.5f, 0.0f, //
-                            0.0f,  0.5f,  0.0f};
+
     I32 const location_in_shader = 0;
 
     gfx->shader = gfxBuildProgram();
 
     glGenVertexArrays(1, &gfx->VAO);
+    glGenBuffers(1, &gfx->VBO);
+    glGenBuffers(1, &gfx->EBO);
 
+    // Bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure
+    // vertex attributes(s).
     glBindVertexArray(gfx->VAO);
 
-    glGenBuffers(1, &gfx->VBO);
     glBindBuffer(GL_ARRAY_BUFFER, gfx->VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(location_in_shader, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+    glVertexAttribPointer(location_in_shader, CF_ARRAY_SIZE(vertices) / 3, GL_FLOAT, GL_FALSE,
+                          3 * sizeof(float), 0);
     glEnableVertexAttribArray(location_in_shader);
+
+    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex
+    // attribute's bound vertex buffer object so afterwards we can safely unbind
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gfx->EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but
+    // this rarely happens.
+    // Modifying other VAOs requires a call to glBindVertexArray anyways so we generally don't
+    // unbind VAOs (nor VBOs) when it's not directly necessary.
+    glBindVertexArray(0);
+
+    // The EBO must be unbound AFTER unbinding the VAO in order to keep it recorded
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 static void
@@ -159,7 +196,9 @@ gfxProc(GfxState *gfx)
 {
     glUseProgram(gfx->shader);
     glBindVertexArray(gfx->VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    // glDrawArrays(GL_TRIANGLES, 0, CF_ARRAY_SIZE(vertices) / 3);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glDrawElements(GL_TRIANGLES, CF_ARRAY_SIZE(indices), GL_UNSIGNED_INT, 0);
 }
 
 APP_API APP_UPDATE_PROC(appUpdate)
