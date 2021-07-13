@@ -90,18 +90,13 @@ arenaDecommitVm(Arena *arena)
 }
 
 bool
-arenaInitOnVm(Arena *arena, cfVirtualMemory *vm, Usize reserved_size)
+arenaInitOnVm(Arena *arena, cfVirtualMemory *vm, void *reserved_block, Usize reserved_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
-    Usize rounded = cfRoundUp(reserved_size, vm->page_size);
-    U8 *buffer = vm->reserve(rounded);
-
-    if (!buffer) return false;
-
     arena->vm = vm;
-    arena->memory = buffer;
-    arena->reserved = rounded;
+    arena->memory = reserved_block;
+    arena->reserved = reserved_size;
     arena->allocated = 0;
     arena->committed = 0;
     arena->save_stack = 0;
@@ -123,20 +118,23 @@ arenaInitOnBuffer(Arena *arena, U8 *buffer, Usize buffer_size)
 }
 
 Arena *
-arenaBootstrapFromVm(cfVirtualMemory *vm, Usize allocation_size)
+arenaBootstrapFromVm(cfVirtualMemory *vm, void *reserved_block, Usize reserved_size)
 {
-    CF_ASSERT(allocation_size > sizeof(Arena), "Cannot bootstrap arena from smaller allocation");
-    Arena *arena = cfVmReserve(vm, allocation_size);
 
-    if (arena)
+    Arena *arena = NULL;
+
+    if (reserved_block)
     {
-        Usize commit_size = cfMin(allocation_size, cfRoundUp(sizeof(Arena), vm->page_size));
-        cfVmCommit(vm, arena, commit_size);
+        CF_ASSERT(reserved_size > sizeof(*arena), "Cannot bootstrap arena from smaller allocation");
 
+        Usize commit_size = cfMin(reserved_size, cfRoundUp(sizeof(*arena), vm->page_size));
+        cfVmCommit(vm, reserved_block, commit_size);
+
+        arena = reserved_block;
         arena->vm = vm;
         arena->memory = (U8 *)arena;
-        arena->reserved = allocation_size;
-        arena->allocated = sizeof(Arena);
+        arena->reserved = reserved_size - sizeof(*arena);
+        arena->allocated = sizeof(*arena);
         arena->committed = commit_size;
         arena->save_stack = 0;
     }
@@ -160,22 +158,6 @@ arenaClear(Arena *arena)
     }
 
     arenaDecommitVm(arena);
-}
-
-void
-arenaReleaseVm(Arena *arena)
-{
-    CF_ASSERT_NOT_NULL(arena);
-
-    if (arena->vm)
-    {
-        // FIXME (Matteo): In case of splits, the full size is not known anymore
-        cfVmRelease(arena->vm, arena->memory, arena->reserved);
-    }
-    else
-    {
-        CF_INVALID_CODE_PATH();
-    }
 }
 
 void *
@@ -268,8 +250,7 @@ arenaFree(Arena *arena, void *memory, Usize size)
     }
     else if (arena->memory <= block && block <= arena_end)
     {
-        // Memory management is LIFO, so only the last allocated block can be
-        // released
+        // Memory management is LIFO, so only the last allocated block can be freed
         if (block_end == alloc_end)
         {
             arena->allocated -= size;

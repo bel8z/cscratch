@@ -58,8 +58,10 @@ main()
     };
 
     Arena arena;
+    Usize const storage_size = 1024 * 1024 * 1024;
+    void *storage = cfVmReserve(&vm, storage_size);
 
-    if (!arenaInitOnVm(&arena, &vm, 1024 * 1024 * 1024))
+    if (!arenaInitOnVm(&arena, &vm, storage, storage_size))
     {
         printf("Cannot init memory arena");
         return -1;
@@ -95,7 +97,7 @@ main()
         CF_ASSERT(ints[i] == i, "");
     }
 
-    arenaReleaseVm(&arena);
+    cfVmRelease(&vm, storage, storage_size);
 
     return 0;
 }

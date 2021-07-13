@@ -117,35 +117,38 @@ typedef struct LoadQueue
     bool stop;
 } LoadQueue;
 
-typedef struct AppWindows
-{
-    bool style;
-    bool fonts;
-    bool stats;
-    bool metrics;
-    bool unsupported;
-} AppWindows;
-
 struct AppState
 {
+    // *** Application memory storage *** //
+
+    void *base_pointer; /// Address of the main VM allocation
+    Usize storage_size; /// Size of the main VM allocation
+    Arena *main;        /// Arena for persistent storage (main data structures)
+    Arena *scratch;     /// Arena for temporary storage (one-off allocations)
+
+    // *** Platform services *** //
+
     Platform *plat;
-
-    /// Arena for persistent storage (main data structures)
-    Arena *main;
-    /// Arena for temporary storage (one-off allocations)
-    Arena *scratch;
-
     FileDlgFilter filter;
+
+    // *** Image brosing *** //
 
     Usize browse_width;
     Usize curr_file;
     ImageList images;
 
-    ImageView iv;
+    // *** Async file loading *** //
 
     LoadQueue queue;
 
-    AppWindows windows;
+    // *** GUI *** //
+
+    ImageView iv;
+    bool style;
+    bool fonts;
+    bool stats;
+    bool metrics;
+    bool unsupported;
 };
 
 //------------------------------------------------------------------------------
@@ -366,8 +369,14 @@ APP_API AppState *
 appCreate(Platform *plat, char const *argv[], I32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
-    Arena *main = arenaBootstrapFromVm(plat->vm, CF_GB(1));
+    Usize const storage_size = CF_GB(1);
+    void *storage = cfVmReserve(plat->vm, storage_size);
+
+    Arena *main = arenaBootstrapFromVm(plat->vm, storage, storage_size);
     AppState *app = arenaAllocStruct(main, AppState);
+
+    app->base_pointer = storage;
+    app->storage_size = storage_size;
 
     app->plat = plat;
     app->main = main;
@@ -450,7 +459,8 @@ appDestroy(AppState *app)
     cfArrayFree(&app->images);
     arenaClear(app->scratch);
     arenaClear(app->main);
-    arenaReleaseVm(app->main);
+
+    cfVmRelease(app->plat->vm, app->base_pointer, app->storage_size);
 }
 
 //------------------------------------------------------------------------------
@@ -691,7 +701,7 @@ appImageView(AppState *state)
 
             case ImageFileState_Failed:
                 // Signal error
-                state->windows.unsupported = true;
+                state->unsupported = true;
                 break;
         }
 
@@ -814,11 +824,11 @@ appMenuBar(AppState *state)
         {
             igMenuItemBoolPtr("Advanced", NULL, &state->iv.advanced, true);
             igSeparator();
-            igMenuItemBoolPtr(STYLE_WINDOW, NULL, &state->windows.style, true);
-            igMenuItemBoolPtr(FONTS_WINDOW, NULL, &state->windows.fonts, true);
+            igMenuItemBoolPtr(STYLE_WINDOW, NULL, &state->style, true);
+            igMenuItemBoolPtr(FONTS_WINDOW, NULL, &state->fonts, true);
             igSeparator();
-            igMenuItemBoolPtr("Stats", NULL, &state->windows.stats, true);
-            igMenuItemBoolPtr("Metrics", NULL, &state->windows.metrics, true);
+            igMenuItemBoolPtr("Stats", NULL, &state->stats, true);
+            igMenuItemBoolPtr("Metrics", NULL, &state->metrics, true);
             igEndMenu();
         }
 
@@ -897,9 +907,9 @@ appUpdate(AppState *state, FontOptions *font_opts)
 
     //==== Tool windows ====
 
-    if (state->windows.fonts)
+    if (state->fonts)
     {
-        igBegin(FONTS_WINDOW, &state->windows.fonts, 0);
+        igBegin(FONTS_WINDOW, &state->fonts, 0);
 
         if (guiFontOptionsEdit(font_opts))
         {
@@ -909,11 +919,11 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igEnd();
     }
 
-    if (state->windows.stats)
+    if (state->stats)
     {
         F64 framerate = (F64)igGetIO()->Framerate;
 
-        igBegin(STATS_WINDOW, &state->windows.stats, 0);
+        igBegin(STATS_WINDOW, &state->stats, 0);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
         igText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
         igText("Virtual memory reserved %.3fkb - committed %.3fkb", (F64)plat->reserved_size / 1024,
@@ -926,21 +936,21 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igEnd();
     }
 
-    if (state->windows.style)
+    if (state->style)
     {
-        igBegin(STYLE_WINDOW, &state->windows.style, 0);
+        igBegin(STYLE_WINDOW, &state->style, 0);
         igShowStyleEditor(NULL);
         igEnd();
     }
 
-    if (state->windows.metrics)
+    if (state->metrics)
     {
-        igShowMetricsWindow(&state->windows.metrics);
+        igShowMetricsWindow(&state->metrics);
     }
 
-    if (state->windows.unsupported)
+    if (state->unsupported)
     {
-        state->windows.unsupported = false;
+        state->unsupported = false;
         igOpenPopup("Warning", 0);
     }
 
@@ -961,7 +971,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
         igText("Unsupported file format");
         if (guiCenteredButton("Ok"))
         {
-            state->windows.unsupported = false;
+            state->unsupported = false;
             igCloseCurrentPopup();
         }
         igEndPopup();

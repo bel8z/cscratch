@@ -58,10 +58,10 @@ typedef struct cfVirtualMemory
     Usize page_size;
 } cfVirtualMemory;
 
-#define cfVmReserve(vm, size) vm->reserve(size)
-#define cfVmRelease(vm, mem, size) vm->release(mem, size)
-#define cfVmCommit(vm, mem, size) vm->commit(mem, size)
-#define cfVmRevert(vm, mem, size) vm->revert(mem, size)
+#define cfVmReserve(vm, size) (vm)->reserve(size)
+#define cfVmRelease(vm, mem, size) (vm)->release(mem, size)
+#define cfVmCommit(vm, mem, size) (vm)->commit(mem, size)
+#define cfVmRevert(vm, mem, size) (vm)->revert(mem, size)
 
 //------------------//
 //   Memory arena   //
@@ -88,25 +88,31 @@ typedef struct ArenaTempState
     Usize stack_id;
 } ArenaTempState;
 
-/// Initialize the arena by reserving a block of virtual memory of the required size
-bool arenaInitOnVm(Arena *arena, cfVirtualMemory *vm, Usize reserved_size);
+// NOTE (Matteo): On virtual memory usage
+// On Windows a VM block must be released by giving the address of the original reservation (the
+// size is ignored).
+// This doesn't work well with the fact that an arena can be split into smaller ones (which I think
+// is a nice feature to have): each sub-arena won't be able to release it's chunk of memory, but
+// only the original one can do so (without knowing the full size anymore).
+// To patch this abstraction leak (I don't know if the same issue applies on *nix), I decided to
+// move the responsibility of reserving and releasing VM outside of the arena, which now works
+// always with the memory block you give it (it only needs to commit it in case of VM).
 
-/// Initialize the arena with a fixed size buffer
+/// Initialize the arena using a reserved block of virtual memory, from which actual pages can be
+/// committed
+bool arenaInitOnVm(Arena *arena, cfVirtualMemory *vm, void *reserved_block, Usize reserved_size);
+
+/// Initialize the arena using a pre-allocated memory buffer
 void arenaInitOnBuffer(Arena *arena, U8 *buffer, Usize buffer_size);
 
 /// Allocate a block of virtual memory and initialize an arena directly in it
-Arena *arenaBootstrapFromVm(cfVirtualMemory *vm, Usize allocation_size);
+Arena *arenaBootstrapFromVm(cfVirtualMemory *vm, void *reserved_block, Usize reserved_size);
 
 // TODO (Matteo): Bootstrap from buffer
 
 /// Free all the memory allocated by the arena. In case of a virtual memory backing
 /// store, the memory is decommitted (returned to the OS)
 void arenaClear(Arena *arena);
-
-/// Explicitly release the reserved virtual memory to the OS.
-/// A separate call is needed because splitted arenas share the same memory mapping, and thus an
-/// explicit release must be called only on the original allocation.
-void arenaReleaseVm(Arena *arena);
 
 inline Usize
 arenaRemaining(Arena *arena)
