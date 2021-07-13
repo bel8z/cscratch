@@ -48,16 +48,6 @@ cfMemMatch(void const *left, void const *right, Usize count)
 //   Memory arena   //
 //------------------//
 
-static inline Uptr
-cfAlignUp(Uptr ptr, Usize align)
-{
-    CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
-    // Same as (ptr % align) but faster as align is a power of 2
-    Uptr modulo = ptr & (align - 1);
-    // Move pointer forward if needed
-    return modulo ? ptr + align - modulo : ptr;
-}
-
 static void
 arenaCommitVm(Arena *arena)
 {
@@ -65,10 +55,15 @@ arenaCommitVm(Arena *arena)
 
     if (arena->vm && arena->allocated > arena->committed)
     {
+        // NOTE (Matteo): Align memory commits to page boundaries
+        U8 const *next_pos =
+            cfMemAlignForward(arena->memory + arena->allocated, arena->vm->page_size);
+        U8 *curr_pos = arena->memory + arena->committed;
+
         Usize max_commit_size = arena->reserved - arena->allocated;
-        Usize commit_size = cfMin(
-            max_commit_size, cfRoundUp(arena->allocated - arena->committed, arena->vm->page_size));
-        cfVmCommit(arena->vm, arena->memory + arena->committed, commit_size);
+        Usize commit_size = cfMin(next_pos - curr_pos, max_commit_size);
+
+        cfVmCommit(arena->vm, curr_pos, commit_size);
         arena->committed += commit_size;
     }
 }
@@ -82,8 +77,8 @@ arenaDecommitVm(Arena *arena)
         // decommitted 1 page up in order to preserve the last page which is partially filled
 
         // Align base pointer forward
-        Uptr base = (Uptr)(arena->memory + arena->allocated);
-        Usize offset = cfAlignUp(base, arena->vm->page_size) - (Uptr)arena->memory;
+        U8 const *base = arena->memory + arena->allocated;
+        Usize offset = cfMemAlignForward(base, arena->vm->page_size) - arena->memory;
 
         if (offset < arena->committed)
         {
@@ -95,7 +90,7 @@ arenaDecommitVm(Arena *arena)
 }
 
 bool
-arenaInitVm(Arena *arena, cfVirtualMemory *vm, Usize reserved_size)
+arenaInitOnVm(Arena *arena, cfVirtualMemory *vm, Usize reserved_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -115,7 +110,7 @@ arenaInitVm(Arena *arena, cfVirtualMemory *vm, Usize reserved_size)
 }
 
 void
-arenaInitBuffer(Arena *arena, U8 *buffer, Usize buffer_size)
+arenaInitOnBuffer(Arena *arena, U8 *buffer, Usize buffer_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -128,7 +123,7 @@ arenaInitBuffer(Arena *arena, U8 *buffer, Usize buffer_size)
 }
 
 Arena *
-arenaBootstrap(cfVirtualMemory *vm, Usize allocation_size)
+arenaBootstrapFromVm(cfVirtualMemory *vm, Usize allocation_size)
 {
     CF_ASSERT(allocation_size > sizeof(Arena), "Cannot bootstrap arena from smaller allocation");
     Arena *arena = cfVmReserve(vm, allocation_size);
@@ -150,24 +145,7 @@ arenaBootstrap(cfVirtualMemory *vm, Usize allocation_size)
 }
 
 void
-arenaShutdown(Arena *arena)
-{
-    CF_ASSERT_NOT_NULL(arena);
-    bool bootstrapped = false;
-
-    if (arena->vm)
-    {
-        bootstrapped = ((U8 *)arena == arena->memory);
-        cfVmRelease(arena->vm, arena->memory, arena->reserved);
-    }
-
-    // NOTE (Matteo): Make the arena unusable (if bootstrapped, accessing it causes an access
-    // violation already)
-    if (!bootstrapped) *arena = (Arena){0};
-}
-
-void
-arenaFreeAll(Arena *arena)
+arenaClear(Arena *arena)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -184,6 +162,22 @@ arenaFreeAll(Arena *arena)
     arenaDecommitVm(arena);
 }
 
+void
+arenaReleaseVm(Arena *arena)
+{
+    CF_ASSERT_NOT_NULL(arena);
+
+    if (arena->vm)
+    {
+        // FIXME (Matteo): In case of splits, the full size is not known anymore
+        cfVmRelease(arena->vm, arena->memory, arena->reserved);
+    }
+    else
+    {
+        CF_INVALID_CODE_PATH();
+    }
+}
+
 void *
 arenaAllocAlign(Arena *arena, Usize size, Usize align)
 {
@@ -193,8 +187,8 @@ arenaAllocAlign(Arena *arena, Usize size, Usize align)
     U8 *result = NULL;
 
     // Align base pointer forward
-    Uptr base = (Uptr)(arena->memory + arena->allocated);
-    Usize offset = cfAlignUp(base, align) - (Uptr)arena->memory;
+    U8 const *base = arena->memory + arena->allocated;
+    Usize offset = cfMemAlignForward(base, align) - arena->memory;
 
     if (offset + size <= arena->reserved)
     {
@@ -323,20 +317,25 @@ arenaRestore(ArenaTempState state)
 bool
 arenaSplit(Arena *arena, Arena *split, Usize size)
 {
-    // TODO (Matteo): Split on VM page boundaries!
-
     CF_ASSERT(!split->memory, "split is expected to be 0-initialized");
 
-    // NOTE(Matteo): This can overflow, thus the additional test below
+    if (size > arena->reserved) return false;
+
     Usize new_reserved = arena->reserved - size;
-    if (size > arena->reserved || new_reserved < arena->allocated)
+
+    if (arena->vm)
     {
-        return false;
+        // NOTE (Matteo): When VM is involved, split must occur on page boundaries
+        Uptr new_end = (Uptr)(arena->memory + new_reserved);
+        Uptr modulo = new_end & (arena->vm->page_size - 1);
+        new_reserved -= modulo;
     }
+
+    if (new_reserved < arena->allocated) return false;
 
     split->vm = arena->vm;
     split->memory = arena->memory + new_reserved;
-    split->reserved = size;
+    split->reserved = arena->reserved - new_reserved;
     split->allocated = 0;
     split->committed = 0;
     split->save_stack = 0;

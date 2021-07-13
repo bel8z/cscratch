@@ -22,7 +22,7 @@ typedef struct FreeListAlloc
 void
 freeListAllocInit(FreeListAlloc *fl, Usize size)
 {
-    arenaInitBuffer(&fl->arena, calloc(1, size), size);
+    arenaInitOnBuffer(&fl->arena, calloc(1, size), size);
     cfListInit(&fl->sentinel);
 }
 

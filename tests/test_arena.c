@@ -59,7 +59,7 @@ main()
 
     Arena arena;
 
-    if (!arenaInitVm(&arena, &vm, 1024 * 1024 * 1024))
+    if (!arenaInitOnVm(&arena, &vm, 1024 * 1024 * 1024))
     {
         printf("Cannot init memory arena");
         return -1;
@@ -88,14 +88,14 @@ main()
         ints[i] = i;
     }
 
-    arenaFreeAll(&arena);
+    arenaClear(&arena);
 
     for (I32 i = 0; i < 512; ++i)
     {
         CF_ASSERT(ints[i] == i, "");
     }
 
-    arenaShutdown(&arena);
+    arenaReleaseVm(&arena);
 
     return 0;
 }

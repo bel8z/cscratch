@@ -26,6 +26,16 @@ void cfMemWrite(U8 *mem, U8 value, Usize count);
 I32 cfMemCompare(void const *left, void const *right, Usize count);
 bool cfMemMatch(void const *left, void const *right, Usize count);
 
+inline U8 const *
+cfMemAlignForward(U8 const *address, Usize alignment)
+{
+    CF_ASSERT((alignment & (alignment - 1)) == 0, "Alignment is not a power of 2");
+    // Same as (address % alignment) but faster as alignment is a power of 2
+    Uptr modulo = (Uptr)address & (alignment - 1);
+    // Move pointer forward if needed
+    return modulo ? address + alignment - modulo : address;
+}
+
 //------------------------//
 //   Virtual memory API   //
 //------------------------//
@@ -79,26 +89,30 @@ typedef struct ArenaTempState
 } ArenaTempState;
 
 /// Initialize the arena by reserving a block of virtual memory of the required size
-bool arenaInitVm(Arena *arena, cfVirtualMemory *vm, Usize reserved_size);
+bool arenaInitOnVm(Arena *arena, cfVirtualMemory *vm, Usize reserved_size);
 
 /// Initialize the arena with a fixed size buffer
-void arenaInitBuffer(Arena *arena, U8 *buffer, Usize buffer_size);
+void arenaInitOnBuffer(Arena *arena, U8 *buffer, Usize buffer_size);
 
-Arena *arenaBootstrap(cfVirtualMemory *vm, Usize allocation_size);
+/// Allocate a block of virtual memory and initialize an arena directly in it
+Arena *arenaBootstrapFromVm(cfVirtualMemory *vm, Usize allocation_size);
 
-/// Free all the memory allocated by the arena and render it unable to provide
-/// any memory after this call.
-void arenaShutdown(Arena *arena);
+// TODO (Matteo): Bootstrap from buffer
+
+/// Free all the memory allocated by the arena. In case of a virtual memory backing
+/// store, the memory is decommitted (returned to the OS)
+void arenaClear(Arena *arena);
+
+/// Explicitly release the reserved virtual memory to the OS.
+/// A separate call is needed because splitted arenas share the same memory mapping, and thus an
+/// explicit release must be called only on the original allocation.
+void arenaReleaseVm(Arena *arena);
 
 inline Usize
 arenaRemaining(Arena *arena)
 {
     return arena->reserved - arena->allocated;
 }
-
-/// Free all the memory allocated by the arena. In case of a virtual memory backing
-/// store, the memory is decommitted (returned to the OS)
-void arenaFreeAll(Arena *arena);
 
 /// Allocate a block of the given size and alignment from the top of the arena stack
 void *arenaAllocAlign(Arena *arena, Usize size, Usize alignment);

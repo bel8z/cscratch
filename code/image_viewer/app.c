@@ -366,16 +366,15 @@ APP_API AppState *
 appCreate(Platform *plat, char const *argv[], I32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
-    Arena *main = arenaBootstrap(plat->vm, CF_MB(512));
+    Arena *main = arenaBootstrapFromVm(plat->vm, CF_GB(1));
     AppState *app = arenaAllocStruct(main, AppState);
 
     app->plat = plat;
-
-    // TODO (Matteo): Create main and scratch storage from a single allocation
     app->main = main;
-    app->scratch = arenaAllocStruct(main, Arena);
 
-    arenaInitVm(app->scratch, plat->vm, CF_MB(512));
+    // NOTE (Matteo): Split scratch storage from main allocation
+    app->scratch = arenaAllocStruct(main, Arena);
+    arenaSplit(main, app->scratch, arenaRemaining(main) / 2);
 
     // Init file list management
     app->filter.name = "Image files";
@@ -449,7 +448,9 @@ appDestroy(AppState *app)
     appClearImages(app);
     imageViewShutdown(&app->iv);
     cfArrayFree(&app->images);
-    arenaShutdown(app->main);
+    arenaClear(app->scratch);
+    arenaClear(app->main);
+    arenaReleaseVm(app->main);
 }
 
 //------------------------------------------------------------------------------
