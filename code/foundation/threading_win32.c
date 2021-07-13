@@ -277,8 +277,8 @@ cfRwShutdown(CfRwLock *lock)
 {
     CF_ASSERT_NOT_NULL(lock);
 #if CF_THREADING_DEBUG
-    CF_ASSERT(lock->reserved0 == 0, "Shutting down an RwLock acquired for writing");
-    CF_ASSERT(lock->reserved1 == 0, "Shutting down an RwLock acquired for reading");
+    CF_ASSERT(lock->reserved0 == 0, "Shutting down a read/write lock acquired for writing");
+    CF_ASSERT(lock->reserved1 == 0, "Shutting down a read/write lock acquired for reading");
 #endif
 }
 
@@ -381,7 +381,7 @@ cfCvWaitMutex(CfConditionVariable *cv, CfMutex *mutex, Time timeout)
 {
     CF_ASSERT_NOT_NULL(mutex);
 #if CF_THREADING_DEBUG
-    CF_ASSERT(mutex->internal != 0, "Attemped wait on unlocked Mutex");
+    CF_ASSERT(mutex->internal != 0, "Attempted wait on unlocked mutex");
 #endif
     return win32cvWait(cv, (SRWLOCK *)(mutex->data), timeout);
 }
@@ -391,7 +391,8 @@ cfCvWaitRwLock(CfConditionVariable *cv, CfRwLock *lock, Time timeout)
 {
     CF_ASSERT_NOT_NULL(lock);
 #if CF_THREADING_DEBUG
-    CF_ASSERT(lock->reserved0 != 0 || lock->reserved1 != 0, "Attemped wait on unlocked RwLock");
+    CF_ASSERT(lock->reserved0 != 0 || lock->reserved1 != 0,
+              "Attempted wait on unlocked read/write lock");
 #endif
     return win32cvWait(cv, (SRWLOCK *)(lock->data), timeout);
 }
