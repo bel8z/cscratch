@@ -508,8 +508,10 @@ guiLoadFont(ImFontAtlas *fonts, Str data_path, char const *name, F32 font_size,
 }
 
 void
-guiSetupFonts(ImFontAtlas *fonts, F32 dpi_scale, Str data_path)
+guiSetupFonts(ImFontAtlas *atlas, F32 dpi_scale, Str data_path)
 {
+    // TODO (Matteo): Make font list available to the application?
+
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can
     // also load multiple fonts and use igPushFont()/PopFont() to select them.
@@ -525,17 +527,25 @@ guiSetupFonts(ImFontAtlas *fonts, F32 dpi_scale, Str data_path)
     // - Read 'docs/FONTS.md' for more instructions and details.
     // - Remember that in C/C++ if you want to include a backslash \ in a string
     // literal you need to write a double backslash \\ !
-    ImWchar const *ranges = ImFontAtlas_GetGlyphRangesDefault(fonts);
+    ImWchar const *ranges = ImFontAtlas_GetGlyphRangesDefault(atlas);
 
     F32 const scale = dpi_scale * PLATFORM_DPI / TRUETYPE_DPI;
 
-    if (!guiLoadFont(fonts, data_path, "NotoSans", cfRound(13.0f * scale), ranges) &
-        !guiLoadFont(fonts, data_path, "OpenSans", cfRound(13.5f * scale), ranges) &
-        !guiLoadFont(fonts, data_path, "SourceSansPro", cfRound(13.5f * scale), ranges) &
-        !guiLoadFont(fonts, data_path, "DroidSans", cfRound(12.0f * scale), ranges))
+    // NOTE (Matteo): This ensure the proper loading order even in optimized release builds
+    ImFont const *fonts[4] = {
+        guiLoadFont(atlas, data_path, "NotoSans", cfRound(13.0f * scale), ranges),
+        guiLoadFont(atlas, data_path, "OpenSans", cfRound(13.5f * scale), ranges),
+        guiLoadFont(atlas, data_path, "SourceSansPro", cfRound(13.5f * scale), ranges),
+        guiLoadFont(atlas, data_path, "DroidSans", cfRound(12.0f * scale), ranges),
+    };
+
+    // NOTE (Matteo): Load default IMGUI font only if no custom font has been loaded
+    bool load_default = true;
+    for (Usize i = 0; i < CF_ARRAY_SIZE(fonts) && load_default; ++i)
     {
-        ImFontAtlas_AddFontDefault(fonts, NULL);
+        load_default = !fonts[i];
     }
+    if (load_default) ImFontAtlas_AddFontDefault(atlas, NULL);
 }
 
 //------------------------------------------------------------------------------
