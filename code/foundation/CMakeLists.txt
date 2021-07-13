@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.15.0)
 
-file(GLOB_RECURSE LIB_SOURCES  "*.c")
+set(
+    LIB_SOURCES  
+        "memory.c"
+        "list.c"
+        "paths.c"
+        "strings.c"
+        "threading.c"
+)
 add_library(foundation STATIC ${LIB_SOURCES})
 
 message(STATUS "foundation sources: ${LIB_SOURCES}")

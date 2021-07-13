@@ -42,21 +42,32 @@ cfSleep(Time timeout)
 CF_STATIC_ASSERT(sizeof(CfThread) == sizeof(HANDLE), "Thread and HANDLE size must be equal");
 CF_STATIC_ASSERT(alignof(CfThread) == alignof(HANDLE), "Thread must be aligned as HANDLE");
 
-typedef struct Win32ThreadArgs
+typedef struct Win32ThreadData
 {
     CfThreadProc proc;
     void *args;
-    volatile bool started;
-} Win32ThreadArgs;
+
+    // Data for synchronization with the creation routine
+    SRWLOCK sync;
+    CONDITION_VARIABLE signal;
+    char started;
+
+} Win32ThreadData;
 
 static U32 WINAPI
-win32threadProc(void *data)
+win32threadProc(void *data_ptr)
 {
-    Win32ThreadArgs *parms = data;
-    CfThreadProc proc = parms->proc;
-    void *args = parms->args;
+    Win32ThreadData *data = data_ptr;
 
-    parms->started = true;
+    // NOTE (Matteo): Copy persistent data locally, so that the containing struct can be freed.
+    CfThreadProc proc = data->proc;
+    void *args = data->args;
+
+    // NOTE (Matteo): Signal that the thread is started so the creation routine can complete
+    AcquireSRWLockExclusive(&data->sync);
+    InterlockedOr8(&data->started, 1);
+    ReleaseSRWLockExclusive(&data->sync);
+    WakeConditionVariable(&data->signal);
 
     proc(args);
 
@@ -71,11 +82,19 @@ cfThreadCreate(CfThreadParms *parms)
     CF_ASSERT_NOT_NULL(parms);
 
     CfThread thread = {0};
-    Win32ThreadArgs args = {.proc = parms->proc, .args = parms->args, .started = false};
+
+    Win32ThreadData data = {
+        .proc = parms->proc,
+        .args = parms->args,
+    };
+
+    InitializeSRWLock(&data.sync);
+    InitializeConditionVariable(&data.signal);
 
     CF_ASSERT(parms->stack_size <= U32_MAX, "Required stack size is too large");
 
-    thread.handle = _beginthreadex(NULL, (U32)parms->stack_size, win32threadProc, &args,
+    // NOTE (Matteo): Start the thread suspended so that it can be synchronized with this routine
+    thread.handle = _beginthreadex(NULL, (U32)parms->stack_size, win32threadProc, &data,
                                    CREATE_SUSPENDED, NULL);
 
     if (thread.handle)
@@ -88,11 +107,13 @@ cfThreadCreate(CfThreadParms *parms)
             SetThreadDescription((HANDLE)thread.handle, buffer);
         }
 
+        // NOTE (Matteo): Request thread start and wait until this actually happens
         ResumeThread((HANDLE)thread.handle);
-
-        while (!args.started)
+        while (!InterlockedOr8(&data.started, 0))
         {
-            // TODO (Matteo): Use a sync primitive instead of a spin wait?
+            AcquireSRWLockExclusive(&data.sync);
+            SleepConditionVariableSRW(&data.signal, &data.sync, INFINITE, 0);
+            ReleaseSRWLockExclusive(&data.sync);
         }
     }
 
