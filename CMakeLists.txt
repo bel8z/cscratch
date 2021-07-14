@@ -138,30 +138,20 @@ add_executable(test_array ${TESTS_DIR}/test_array.c)
 target_link_libraries(test_array PRIVATE foundation)
 target_include_directories(test_array PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_array)
-
-add_executable(test_files ${TESTS_DIR}/test_files.c)
-target_link_libraries(test_files PRIVATE foundation)
-target_include_directories(test_files PRIVATE ${CODE_DIR})
-set_c_compile_flags(test_files)
-
-# add_executable(test_win32_threads 
-#     ${CODE_DIR}/win32/win32_threading.c
-#     ${TESTS_DIR}/test_win32_threads.c)
-# target_link_libraries(test_win32_threads PRIVATE foundation)
-# target_include_directories(test_win32_threads PRIVATE ${CODE_DIR})
-# set_c_compile_flags(test_win32_threads)
+add_test(test_array test_array)
 
 add_executable(test_arena ${TESTS_DIR}/test_arena.c)
 target_link_libraries(test_arena PRIVATE foundation)
 target_include_directories(test_arena PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_arena)
+add_test(test_arena test_arena)
 
 add_executable(dummy ${TESTS_DIR}/dummy.c)
 target_link_libraries(dummy PRIVATE foundation)
 target_include_directories(dummy PRIVATE ${CODE_DIR})
 set_c_compile_flags(dummy)
 
-add_test(test_array test_array)
-add_test(test_files test_files)
-add_test(test_win32_threads test_win32_threads)
-add_test(test_arena test_arena)
+add_executable(test_odbc ${TESTS_DIR}/test_odbc.c)
+target_link_libraries(test_odbc PRIVATE foundation)
+target_include_directories(test_odbc PRIVATE ${CODE_DIR})
+set_c_compile_flags(test_odbc)
