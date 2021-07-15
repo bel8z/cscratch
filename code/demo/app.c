@@ -3,10 +3,18 @@
 #include "foundation/colors.h"
 #include "foundation/maths.h"
 #include "foundation/strings.h"
+#include "foundation/time.h"
 
 #include "gl/gload.h"
 
 #include "gui/gui.h"
+
+typedef struct LogBuffer
+{
+    char buffer[128];
+    Usize write_pos;
+    Time time;
+} LogBuffer;
 
 typedef struct AppWindows
 {
@@ -17,11 +25,6 @@ typedef struct AppWindows
     bool style;
 } AppWindows;
 
-enum
-{
-    CURR_DIR_SIZE = 256,
-};
-
 struct AppState
 {
     Platform *plat;
@@ -30,6 +33,8 @@ struct AppState
 
     AppWindows windows;
     Rgba32 clear_color;
+
+    LogBuffer log;
 };
 
 //------------------------------------------------------------------------------
@@ -163,6 +168,39 @@ guiClock(Time time)
     igText("%02d:%02d:%02d.%03d", hours, mins, final_secs, ms_remainder);
 }
 
+// static void
+// logClear(LogBuffer *log)
+// {
+//     log->write_pos = 0;
+//     cfMemClear(log, CF_ARRAY_SIZE(log->buffer));
+// }
+
+static void
+logWrite(LogBuffer *log, char const *str, Time time)
+{
+    Usize buf_size = CF_ARRAY_SIZE(log->buffer);
+    Usize str_len = strLength(str);
+    Usize residual = buf_size - log->write_pos;
+
+    if (residual < str_len + 1)
+    {
+        cfMemClear(log->buffer + log->write_pos, residual);
+        log->write_pos = 0;
+    }
+
+    if (str_len >= buf_size - 1)
+    {
+        str += str_len - buf_size + 1;
+        str_len = buf_size - 1;
+    }
+
+    cfMemCopy(str, log->buffer + log->write_pos, str_len);
+    log->write_pos += str_len % buf_size;
+
+    log->buffer[log->write_pos] = 0;
+    log->time = time;
+}
+
 APP_API APP_UPDATE_PROC(appUpdate)
 {
     AppUpdateResult result = {.flags = AppUpdateFlags_None};
@@ -227,15 +265,26 @@ APP_API APP_UPDATE_PROC(appUpdate)
 
     static F32 f = 0;
 
+    Time t = app->plat->clock();
+
     igCheckbox("Demo Window", &app->windows.demo);
     igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
     guiColorEdit("clear color", &app->clear_color);
     igSeparator();
-    guiClock(app->plat->clock());
+    guiClock(t);
     igSeparator();
     igText("OpenGL version:\t%s", glGetString(GL_VERSION));
     igText("OpenGL renderer:\t%s", glGetString(GL_RENDERER));
     igText("OpenGL shader version:\t%s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+    igSeparator();
+
+    if (timeIsGe(timeSub(t, app->log.time), TIME_MS(1000)))
+    {
+        logWrite(&app->log, "One second passed\n", t);
+    }
+
+    igTextUnformatted(app->log.buffer, NULL);
+
     igEnd();
 
     fxWindow();
