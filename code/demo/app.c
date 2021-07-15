@@ -274,6 +274,8 @@ APP_API APP_UPDATE_PROC(appUpdate)
     guiColorEdit("clear color", &state->clear_color);
     igSeparator();
     igCheckbox("Continuous update", &io->continuous_update);
+    guiSameLine();
+    igCheckbox("Fullscreen", &io->fullscreen);
     igSeparator();
     guiClock(t);
     igSeparator();
