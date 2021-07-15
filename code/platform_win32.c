@@ -1,19 +1,13 @@
-#include "win32.h"
-
 #include "api.h"
 
-#include "foundation/core.h"
-
 #include "foundation/array.h"
+#include "foundation/core.h"
 #include "foundation/fs.h"
 #include "foundation/maths.h"
 #include "foundation/memory.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"
-
-#if !CF_OS_WIN32
-#    error "Win32 platform not supported"
-#endif
+#include "foundation/win32.h"
 
 //------------------------------------------------------------------------------
 // Cross-platform entry point

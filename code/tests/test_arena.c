@@ -1,7 +1,6 @@
 
 #include "foundation/memory.h"
-
-#include "win32/win32.h"
+#include "foundation/win32.h"
 
 #include <stdio.h>
 

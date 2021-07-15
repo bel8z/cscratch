@@ -78,8 +78,7 @@ endif()
 #--------------------------
 
 set(PLATFORM_SOURCES 
-    ${CODE_DIR}/platform.c
-    ${CODE_DIR}/win32/win32_platform.c)
+    ${CODE_DIR}/platform.c)
 
 set_source_files_properties(${PLATFORM_SOURCES} PROPERTIES LANGUAGE C)
 

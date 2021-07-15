@@ -9,8 +9,12 @@
 #include <GLFW/glfw3.h>
 
 // Foundation library
+#include "foundation/array.h"
 #include "foundation/colors.h"
+#include "foundation/core.h"
 #include "foundation/fs.h"
+#include "foundation/maths.h"
+#include "foundation/memory.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"
 
@@ -20,6 +24,18 @@
 // Constants for DPI handling
 #define PLATFORM_DPI 96.0f
 #define TRUETYPE_DPI 72.0f
+
+//------------------------------------------------------------------------------
+// OS specific platform layer
+//------------------------------------------------------------------------------
+
+// NOTE (Matteo): This is where the actual entry point is
+
+#if CF_OS_WIN32
+#    include "platform_win32.c"
+#else
+#    error "OS specific layer not implemented"
+#endif
 
 //------------------------------------------------------------------------------
 // Local function declarations
