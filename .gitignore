@@ -6,3 +6,6 @@
 build/
 
 *.sublime-workspace
+
+# TODO (Matteo): Handle subfolders correctly
+code/.vscode/*
