@@ -1,22 +1,7 @@
 #include "core.h"
 #include "threading.h"
 #include "time.h"
-
-#if CF_COMPILER_MSVC
-#    pragma warning(push)
-#    pragma warning(disable : 5105)
-#endif
-
-#define NOMINMAX 1
-#define VC_EXTRALEAN 1
-#define WIN32_LEAN_AND_MEAN 1
-#include <windows.h>
-// Must be included AFTER <windows.h>
-#include <process.h>
-
-#if CF_COMPILER_MSVC
-#    pragma warning(pop)
-#endif
+#include "win32.h"
 
 //------------------------------------------------------------------------------
 // Misc implementation

@@ -1,8 +1,7 @@
 #include <stdio.h>
 
-#include <windows.h>
-
 #include "foundation/util.h"
+#include "foundation/win32.h"
 
 // Rotate array using Gries-Mills block swap algorith
 // Implementation detail for cfRotateLeft/cfRotateLeft

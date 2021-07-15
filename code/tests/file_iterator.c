@@ -1,6 +1,5 @@
-#include <windows.h>
-
-#include "common.h"
+#include "foundation/core.h"
+#include "foundation/win32.h"
 
 #include <stdio.h>
 #include <stdlib.h>
