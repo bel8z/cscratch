@@ -34,7 +34,7 @@ include(cmake/CompileFlags.cmake)
 
 set(EXT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext)
 set(CODE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/code)
-set(TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+set(TESTS_DIR ${CODE_DIR}/tests)
 
 #-----------------------
 # Dependency libraries
