@@ -45,7 +45,7 @@ typedef struct GlVersion
 {
     I32 major, minor;
     /// Shader version for Dear Imgui OpenGL backend
-    char const *glsl;
+    Cstr glsl;
 } GlVersion;
 
 //------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ extern void ImGui_ImplGlfw_Shutdown();
 extern void ImGui_ImplGlfw_NewFrame();
 
 static void
-glfwErrorCallback(int error, const char *description)
+glfwErrorCallback(int error, Cstr description)
 {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
@@ -85,7 +85,7 @@ static const GlVersion g_gl_versions[8] = {
 };
 
 static GLFWwindow *
-glfwCreateWinAndContext(char const *title, I32 width, I32 height, GlVersion *gl_version)
+glfwCreateWinAndContext(Cstr title, I32 width, I32 height, GlVersion *gl_version)
 {
     GLFWwindow *window = NULL;
 
@@ -135,8 +135,8 @@ typedef struct AppApi
     AppUpdateProc update;
 
     // TODO (Matteo): reduce redundancy
-    char src_file[Paths_Size];
-    char dst_file[Paths_Size];
+    Char8 src_file[Paths_Size];
+    Char8 dst_file[Paths_Size];
 } AppApi;
 
 static APP_PROC(appProcStub);
@@ -151,7 +151,7 @@ static void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
 //------------------------------------------------------------------------------
 
 I32
-platformMain(Platform *platform, char const *argv[], I32 argc)
+platformMain(Platform *platform, Cstr argv[], I32 argc)
 {
     Paths *paths = platform->paths;
 
@@ -195,7 +195,7 @@ platformMain(Platform *platform, char const *argv[], I32 argc)
 #    pragma warning(push)
 #    pragma warning(disable : 4221)
 #endif
-    char gui_ini[Paths_Size] = {0};
+    Char8 gui_ini[Paths_Size] = {0};
     CF_ASSERT(paths->base.len + paths->exe_name.len < Paths_Size, "IMGUI ini file name too long");
     cfMemCopy(paths->base.buf, gui_ini, paths->base.len);
     cfMemCopy(paths->exe_name.buf, gui_ini + paths->base.len, paths->exe_name.len);
@@ -499,11 +499,10 @@ guiSetupStyle(F32 dpi_scale)
 }
 
 ImFont *
-guiLoadFont(ImFontAtlas *fonts, Str data_path, char const *name, F32 font_size,
-            ImWchar const *ranges)
+guiLoadFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size, ImWchar const *ranges)
 {
-    char buffer[1024] = {0};
-    snprintf(buffer, 1024, "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
+    Char8 buffer[1024] = {0};
+    snprintf(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
     return ImFontAtlas_AddFontFromFileTTF(fonts, buffer, font_size, NULL, ranges);
 }
 

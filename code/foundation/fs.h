@@ -16,9 +16,9 @@ typedef U64 FileTime;
 typedef struct FileDlgFilter
 {
     // Display name of the filter
-    char const *name;
+    Cstr name;
     // Supported extensions
-    char const **extensions;
+    Cstr *extensions;
     Usize num_extensions;
 } FileDlgFilter;
 

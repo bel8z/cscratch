@@ -19,7 +19,7 @@
 // Cross-platform entry point
 //------------------------------------------------------------------------------
 
-I32 platformMain(Platform *platform, char const *argv[], I32 argc);
+I32 platformMain(Platform *platform, Cstr argv[], I32 argc);
 
 //------------------------------------------------------------------------------
 // Internal implementation
@@ -36,7 +36,7 @@ static VM_RELEASE_FUNC(win32VmRelease);
 static CF_ALLOCATOR_FUNC(win32Alloc);
 
 // File system
-typedef CfArray(WCHAR) WBuffer;
+typedef CfArray(Char16) StrBuf16;
 
 static DirIter *win32DirIterStart(Str dir, CfAllocator alloc);
 static bool win32DirIterNext(DirIter *self, Str *path);
@@ -63,22 +63,22 @@ static Time win32Clock(void);
 /// Dynamic loading
 static Library *win32libLoad(Str filename);
 static void win32libUnload(Library *lib);
-static void *win32libLoadProc(Library *restrict lib, char const *restrict name);
+static void *win32libLoadProc(Library *restrict lib, Cstr restrict name);
 
 // UTF8<->UTF16 helpers
 
 /// Encodes the given UTF8 string slice in UTF16 and null terminates it. The function returns the
 /// number of bytes written (including the null terminator); in case of a NULL output buffer, this
 /// number is the minimum required buffer size.
-static U32 win32Utf8To16(Str str, WCHAR *out, U32 out_size);
+static U32 win32Utf8To16(Str str, Char16 *out, U32 out_size);
 /// Encodes the given UTF8 C string in UTF16 and null terminates it. The function returns the
 /// number of bytes written (including the null terminator); in case of a NULL output buffer, this
 /// number is the minimum required buffer size.
-static U32 win32Utf8To16C(char const *cstr, WCHAR *out, U32 out_size);
+static U32 win32Utf8To16C(Cstr cstr, Char16 *out, U32 out_size);
 /// Encodes the given UTF16 C string in UTF8 and null terminates it. The function returns the
 /// number of bytes written (including the null terminator); in case of a NULL output buffer, this
 /// number is the minimum required buffer size.
-static U32 win32Utf16To8C(WCHAR const *str, I32 str_size, char *out, U32 out_size);
+static U32 win32Utf16To8C(Char16 const *str, I32 str_size, Char8 *out, U32 out_size);
 
 static void win32PrintLastError(void);
 
@@ -140,29 +140,29 @@ pathsInit(Paths *g_paths)
     g_paths->base.len -= g_paths->exe_name.len;
 
     // Build library filename
-    strPrintf((char *)g_paths->lib_name.buf, Paths_Size, "%.*s%s",
+    strPrintf((Char8 *)g_paths->lib_name.buf, Paths_Size, "%.*s%s",
               (I32)(g_paths->exe_name.len - ext.len), g_paths->exe_name.buf, "_lib.dll");
 
     g_paths->lib_name.len = strLength(g_paths->lib_name.buf);
 
     // Build data path from base path
-    strPrintf((char *)g_paths->data.buf, Paths_Size, "%.*sdata\\", (I32)g_paths->base.len,
+    strPrintf((Char8 *)g_paths->data.buf, Paths_Size, "%.*sdata\\", (I32)g_paths->base.len,
               g_paths->base.buf);
     g_paths->data.len = strLength(g_paths->data.buf);
 }
 
-static char **
+static Char8 **
 win32GetCommandLineArgs(CfAllocator alloc, I32 *out_argc, Usize *out_size)
 {
-    WCHAR *cmd_line = GetCommandLineW();
-    WCHAR **argv_utf16 = CommandLineToArgvW(cmd_line, out_argc);
+    Char16 *cmd_line = GetCommandLineW();
+    Char16 **argv_utf16 = CommandLineToArgvW(cmd_line, out_argc);
 
-    char **argv = NULL;
+    Char8 **argv = NULL;
 
     *out_size = (Usize)(*out_argc) * sizeof(*argv) + CF_MB(1);
 
     argv = cfAlloc(alloc, *out_size);
-    char *buf = (char *)(argv + *out_argc);
+    Char8 *buf = (Char8 *)(argv + *out_argc);
 
     for (I32 i = 0; i < *out_argc; ++i)
     {
@@ -220,9 +220,9 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     Usize cmd_line_size;
     I32 argc;
-    char **argv = win32GetCommandLineArgs(g_platform.heap, &argc, &cmd_line_size);
+    Char8 **argv = win32GetCommandLineArgs(g_platform.heap, &argc, &cmd_line_size);
 
-    I32 result = platformMain(&g_platform, (char const **)argv, argc);
+    I32 result = platformMain(&g_platform, (Cstr *)argv, argc);
 
     cfFree(g_platform.heap, argv, cmd_line_size);
 
@@ -412,7 +412,7 @@ struct DirIter
     CfAllocator alloc;
 
     HANDLE finder;
-    char buffer[MAX_PATH];
+    Char8 buffer[MAX_PATH];
 
     U8 state;
 };
@@ -420,7 +420,7 @@ struct DirIter
 DirIter *
 win32DirIterStart(Str dir, CfAllocator alloc)
 {
-    // TODO (Matteo): Handle UTF8 by converting to WCHAR string
+    // TODO (Matteo): Handle UTF8 by converting to Char16 string
 
     DirIter *self = cfAlloc(alloc, sizeof(*self));
     if (!self) return NULL;
@@ -488,10 +488,10 @@ win32DirIterClose(DirIter *self)
     cfFree(self->alloc, self, sizeof(*self));
 }
 
-static WBuffer
+static StrBuf16
 win32BuildFilterString(FileDlgFilter *filters, Usize num_filters, CfAllocator alloc)
 {
-    WBuffer out_filter = {0};
+    StrBuf16 out_filter = {0};
     cfArrayInitCap(&out_filter, alloc, 1024);
 
     if (num_filters == 0) return out_filter;
@@ -506,7 +506,7 @@ win32BuildFilterString(FileDlgFilter *filters, Usize num_filters, CfAllocator al
 
         for (Usize ext_no = 0; ext_no < filter->num_extensions; ++ext_no)
         {
-            char const *ext = filter->extensions[ext_no];
+            Cstr ext = filter->extensions[ext_no];
             U32 ext_size = win32Utf8To16C(ext, NULL, 0);
 
             // Prepend '*' to the extension - not documented but actually required
@@ -533,7 +533,7 @@ win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters, C
 {
     FileDlgResult result = {.code = FileDlgResult_Error};
 
-    WCHAR name[MAX_PATH] = {0};
+    Char16 name[MAX_PATH] = {0};
 
     if (strValid(filename_hint))
     {
@@ -542,7 +542,7 @@ win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters, C
         win32Utf8To16(filename_hint, name, name_size);
     }
 
-    WBuffer filt = win32BuildFilterString(filters, num_filters, alloc);
+    StrBuf16 filt = win32BuildFilterString(filters, num_filters, alloc);
 
     OPENFILENAMEW ofn = {0};
     ofn.lStructSize = sizeof(ofn);
@@ -564,7 +564,7 @@ win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters, C
         if (result.filename.buf)
         {
             result.code = FileDlgResult_Ok;
-            win32Utf16To8C(ofn.lpstrFile, -1, (char *)result.filename.buf,
+            win32Utf16To8C(ofn.lpstrFile, -1, (Char8 *)result.filename.buf,
                            (U32)result.filename.len);
         }
         else
@@ -587,7 +587,7 @@ win32FileRead(Str filename, CfAllocator alloc)
 {
     FileContent result = {0};
 
-    WCHAR path[MAX_PATH] = {0};
+    Char16 path[MAX_PATH] = {0};
     U32 path_len = win32Utf8To16(filename, NULL, 0);
 
     if (path_len >= CF_ARRAY_SIZE(path))
@@ -634,8 +634,8 @@ win32FileRead(Str filename, CfAllocator alloc)
 bool
 win32FileCopy(Str source, Str dest, bool overwrite)
 {
-    WCHAR ws[MAX_PATH] = {0};
-    WCHAR wd[MAX_PATH] = {0};
+    Char16 ws[MAX_PATH] = {0};
+    Char16 wd[MAX_PATH] = {0};
     win32Utf8To16(source, ws, CF_ARRAY_SIZE(ws));
     win32Utf8To16(dest, wd, CF_ARRAY_SIZE(wd));
 
@@ -650,7 +650,7 @@ win32FileWriteTime(Str filename)
 {
     FileTime write_time = 0;
 
-    WCHAR wide_name[MAX_PATH] = {0};
+    Char16 wide_name[MAX_PATH] = {0};
     win32Utf8To16(filename, wide_name, CF_ARRAY_SIZE(wide_name));
 
     WIN32_FIND_DATAW find_data = {0};
@@ -690,7 +690,7 @@ win32Clock(void)
 Library *
 win32libLoad(Str filename)
 {
-    WCHAR buffer[1024] = {0};
+    Char16 buffer[1024] = {0};
     win32Utf8To16(filename, buffer, CF_ARRAY_SIZE(buffer));
     Library *lib = (void *)LoadLibraryW(buffer);
 
@@ -714,7 +714,7 @@ win32libUnload(Library *lib)
 }
 
 void *
-win32libLoadProc(Library *lib, char const *name)
+win32libLoadProc(Library *lib, Cstr name)
 {
     return (void *)GetProcAddress((HMODULE)lib, name);
 }
@@ -722,7 +722,7 @@ win32libLoadProc(Library *lib, char const *name)
 //------------------------------------------------------------------------------
 
 U32
-win32Utf8To16(Str str, WCHAR *out, U32 out_size)
+win32Utf8To16(Str str, Char16 *out, U32 out_size)
 {
     CF_ASSERT(out_size != U32_MAX, "Invalid out size");
 
@@ -745,7 +745,7 @@ win32Utf8To16(Str str, WCHAR *out, U32 out_size)
 }
 
 U32
-win32Utf8To16C(char const *cstr, WCHAR *out, U32 out_size)
+win32Utf8To16C(Cstr cstr, Char16 *out, U32 out_size)
 {
     I32 result = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, cstr, -1, out, (I32)out_size);
     CF_ASSERT(result >= 0, "");
@@ -753,7 +753,7 @@ win32Utf8To16C(char const *cstr, WCHAR *out, U32 out_size)
 }
 
 U32
-win32Utf16To8C(WCHAR const *str, I32 str_size, char *out, U32 out_size)
+win32Utf16To8C(Char16 const *str, I32 str_size, Char8 *out, U32 out_size)
 {
     I32 result = WideCharToMultiByte(CP_UTF8, 0, str, str_size, out, (I32)out_size, 0, false);
     CF_ASSERT(result >= 0, "");

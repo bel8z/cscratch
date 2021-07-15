@@ -24,23 +24,23 @@
 /// Writes the string slice as a null-terminated C string on the given buffer
 /// Returns the number of bytes written, including the null terminator, or the required buffer size
 /// if NULL
-Usize strToCstr(Str str, char *buffer, Usize size);
+Usize strToCstr(Str str, Char8 *buffer, Usize size);
 
 /// Compute the length of the C string (null terminator ignored)
 static inline Usize
-strLength(char const *str)
+strLength(Cstr cstr)
 {
-    CF_ASSERT_NOT_NULL(str);
+    CF_ASSERT_NOT_NULL(cstr);
     U32 size = 0;
-    while (str[size]) size++;
+    while (cstr[size]) size++;
     return size;
 }
 
 /// Compute the full size of the C string (null terminator included)
 static inline Usize
-strSize(char const *str)
+strSize(Cstr cstr)
 {
-    return strLength(str) + 1;
+    return strLength(cstr) + 1;
 }
 
 //-----------------------//
@@ -58,11 +58,11 @@ strSize(char const *str)
 /// This does not take a Str because it represents a string view more than a char buffer.
 /// You can use a Str by explicitly calling strPrintf(str.buf, str.len, ...).
 CF_PRINTF_LIKE(2, 3)
-bool strPrintf(char *buffer, Usize buffer_size, char const *fmt, ...);
+bool strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...);
 
 /// Print formatted string on the given dynamic buffer
 CF_PRINTF_LIKE(1, 2)
-bool strBufferPrintf(StrBuffer *buffer, char const *fmt, ...);
+bool strBufferPrintf(StrBuffer *buffer, Cstr fmt, ...);
 
 //------------------------------//
 //   String (view) comparison   //
@@ -77,7 +77,7 @@ bool strEqualInsensitive(Str l, Str r);
 //   String (view) processing   //
 //------------------------------//
 
-bool strContains(Str str, char c);
+bool strContains(Str str, Char8 c);
 Usize strFindFirst(Str haystack, Str needle);
 Usize strFindLast(Str haystack, Str needle);
 

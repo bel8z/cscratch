@@ -34,7 +34,7 @@
 #include "foundation/strings.h"
 #include "foundation/threading.h"
 
-static char const *g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
+static Cstr g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
 
 #define MAIN_WINDOW "Main"
 #define STYLE_WINDOW "Style Editor"
@@ -91,7 +91,7 @@ typedef enum ImageFileState
 
 typedef struct ImageFile
 {
-    char filename[FILENAME_SIZE];
+    Char8 filename[FILENAME_SIZE];
     Image image;
     I32 state;
 } ImageFile;
@@ -366,7 +366,7 @@ imageViewUpdate(ImageView *iv, Image const *image)
 // Application creation/destruction
 
 APP_API AppState *
-appCreate(Platform *plat, char const *argv[], I32 argc)
+appCreate(Platform *plat, Cstr argv[], I32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
     Usize const storage_size = CF_GB(1);
@@ -591,7 +591,7 @@ appLoadFromFile(AppState *state, Str full_name)
         CF_ASSERT(full_name.len < FILENAME_SIZE, "filename is too long!");
 
         ImageFile file = {0};
-        char root_name[FILENAME_SIZE] = {0};
+        Char8 root_name[FILENAME_SIZE] = {0};
         Str file_name = pathSplitName(full_name);
         cfMemCopy(full_name.buf, root_name, full_name.len - file_name.len);
         strToCstr(full_name, file.filename, FILENAME_SIZE);

@@ -11,7 +11,7 @@
 
 typedef struct LogBuffer
 {
-    char buffer[128];
+    Char8 buffer[128];
     Usize write_pos;
     Time time;
 } LogBuffer;
@@ -74,8 +74,8 @@ fxDraw(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_da
 
     ImDrawList_AddRect(draw_list, p0, p1, RGBA32_PURPLE, 0.0f, 0, 1.0f);
 
-    char buffer[1024];
-    strPrintf(buffer, 1024, "%f", time);
+    Char8 buffer[1024];
+    strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%f", time);
     ImDrawList_AddTextVec2(draw_list, p0, RGBA32_RED, buffer, buffer + strLength(buffer));
 
     // 1 Hz sinusoid, YAY!
@@ -176,7 +176,7 @@ guiClock(Time time)
 // }
 
 static void
-logWrite(LogBuffer *log, char const *str, Time time)
+logWrite(LogBuffer *log, Cstr str, Time time)
 {
     Usize buf_size = CF_ARRAY_SIZE(log->buffer);
     Usize str_len = strLength(str);

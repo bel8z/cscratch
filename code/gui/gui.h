@@ -51,7 +51,7 @@ typedef struct FontOptions
 /// Initialize IMGUI global state
 void guiInit(Gui *gui);
 
-void guiBeginFullScreen(char *label, bool docking, bool menu_bar);
+void guiBeginFullScreen(Cstr label, bool docking, bool menu_bar);
 void guiEndFullScreen(void);
 
 /// Widget for the editing of font options
@@ -61,17 +61,17 @@ void guiUpdateAtlas(ImFontAtlas *fonts, FontOptions *font_opts);
 /// Update the current font atlas with the given options
 #define guiUpdateFonts(font_opts) guiUpdateAtlas(igGetIO()->Fonts, font_opts)
 
-bool guiCenteredButton(char const *label);
+bool guiCenteredButton(Cstr label);
 
 /// Custom color edit with an additional combobox for choosing X11 named colors
-bool guiColorEdit(char const *label, Rgba32 *color);
+bool guiColorEdit(Cstr label, Rgba32 *color);
 
 //------------------------------------------------------------------------------
 // Inline utilities
 //------------------------------------------------------------------------------
 
 static inline bool
-guiButton(char const *label)
+guiButton(Cstr label)
 {
     return igButton(label, (ImVec2){0});
 }

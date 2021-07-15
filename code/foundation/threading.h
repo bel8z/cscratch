@@ -42,7 +42,7 @@ typedef struct CfThreadParms
 {
     CfThreadProc proc;
     void *args;
-    char const *debug_name;
+    Char8 const *debug_name;
     Usize stack_size;
 } CfThreadParms;
 

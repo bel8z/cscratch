@@ -291,6 +291,10 @@ typedef int64_t I64;
 #define I64_MIN INT64_MIN
 #define I64_MAX INT64_MAX
 
+//----------------------------//
+//   Size and pointer types   //
+//----------------------------//
+
 // Unsigned integer type of the result of sizeof, alignof and offsetof.
 
 typedef size_t Usize;
@@ -313,7 +317,9 @@ typedef uintptr_t Uptr;
 #define IPTR_MIN INTPTR_MIN
 #define IPTR_MAX INTPTR_MAX
 
-// Fixed size IEEE floating point types
+//------------------------------------------//
+//   Fixed size IEEE floating point types   //
+//------------------------------------------//
 
 typedef float F32;
 typedef double F64;
@@ -326,7 +332,25 @@ typedef double F64;
 #define F64_MAX DBL_MAX
 #define F64_EPS DBL_EPSILON
 
-// Macros to retrieve min/max values for basic types
+//---------------------//
+//   Character types   //
+//---------------------//
+
+// NOTE (Matteo): This should be used instead of the integer equivalents to better communicate the
+// fact that we are handling text
+
+/// Standard 8-bit character (for ASCII and UTF8 strings)
+typedef char Char8;
+
+/// UTF16 character
+typedef wchar_t Char16;
+
+/// UTF8 codepoint
+typedef U32 Codepoint;
+
+//--------------------------------------------------------//
+//    Macros to retrieve min/max values for basic types   //
+//--------------------------------------------------------//
 
 // TODO (Matteo): Find a better name
 
@@ -409,17 +433,20 @@ typedef struct CfAllocator
 //   Strings   //
 //-------------//
 
-/// Dynamic string buffer
-// TODO (Matteo): Make a separate type for better API separation?
-typedef CfArray(char) StrBuffer;
+/// Type alias for immutable, null-terminated C strings
+typedef Char8 const *Cstr;
 
 /// Immutable string slice/view. Not guaranteed to be null terminated.
 /// Prefer it over C strings (safety, better API in progress)
 typedef struct Str
 {
-    char const *buf; // Pointer to string data
-    Usize len;       // Lenght in chars of the string (not including terminators)
+    Char8 const *buf; // Pointer to string data (not a C string)
+    Usize len;        // Lenght in chars of the string (not including terminators)
 } Str;
+
+/// Dynamic string buffer
+// TODO (Matteo): Make a separate type for better API separation?
+typedef CfArray(Char8) StrBuffer;
 
 //-------------//
 //   Vectors   //

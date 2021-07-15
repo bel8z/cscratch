@@ -50,7 +50,8 @@ typedef struct Win32ThreadData
     // Data for synchronization with the creation routine
     SRWLOCK sync;
     CONDITION_VARIABLE signal;
-    char started;
+    // NOTE (Matteo): This is a char for compliance with the Interlocked API
+    Char8 started;
 
 } Win32ThreadData;
 

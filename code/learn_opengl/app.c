@@ -92,19 +92,19 @@ APP_API APP_PROC(appDestroy)
 static U32
 gfxBuildProgram(void)
 {
-    char const *vtx_shader_src = "#version 330 core\n"
-                                 "layout (location = 0) in vec3 aPos;\n"
-                                 "void main()\n"
-                                 "{\n"
-                                 "     gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-                                 "}\n";
+    Cstr vtx_shader_src = "#version 330 core\n"
+                          "layout (location = 0) in vec3 aPos;\n"
+                          "void main()\n"
+                          "{\n"
+                          "     gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+                          "}\n";
 
-    char const *pix_shader_src = "#version 330 core\n"
-                                 "out vec4 FragColor;\n"
-                                 "void main()\n"
-                                 "{\n"
-                                 "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-                                 "}\n";
+    Cstr pix_shader_src = "#version 330 core\n"
+                          "out vec4 FragColor;\n"
+                          "void main()\n"
+                          "{\n"
+                          "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+                          "}\n";
 
     I32 success;
 
@@ -114,7 +114,7 @@ gfxBuildProgram(void)
     glGetShaderiv(vtx_shader, GL_COMPILE_STATUS, &success);
     if (!success)
     {
-        char info_log[512];
+        Char8 info_log[512];
         glGetShaderInfoLog(vtx_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
         // TODO (Matteo): use IMGUI for logging
         log("Vertex shader compilation error: %s\n", info_log);
@@ -126,7 +126,7 @@ gfxBuildProgram(void)
     glGetShaderiv(pix_shader, GL_COMPILE_STATUS, &success);
     if (!success)
     {
-        char info_log[512];
+        Char8 info_log[512];
         glGetShaderInfoLog(pix_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
         // TODO (Matteo): use IMGUI for logging
         log("Pixel shader compilation error: %s\n", info_log);
@@ -139,7 +139,7 @@ gfxBuildProgram(void)
     glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
     if (!success)
     {
-        char info_log[512];
+        Char8 info_log[512];
         glGetProgramInfoLog(pix_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
         // TODO (Matteo): use IMGUI for logging
         log("Shader program link error: %s\n", info_log);

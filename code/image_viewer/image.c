@@ -43,7 +43,7 @@
 // Image API implementation
 
 bool
-imageLoadFromFile(Image *image, const char *filename)
+imageLoadFromFile(Image *image, Cstr filename)
 {
     CF_ASSERT_NOT_NULL(image);
     CF_ASSERT_NOT_NULL(filename);

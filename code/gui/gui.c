@@ -48,7 +48,7 @@ guiInit(Gui *gui)
 }
 
 void
-guiBeginFullScreen(char *label, bool docking, bool menu_bar)
+guiBeginFullScreen(Cstr label, bool docking, bool menu_bar)
 {
     ImGuiViewport const *viewport = igGetMainViewport();
     igSetNextWindowPos(viewport->WorkPos, 0, (ImVec2){0, 0});
@@ -163,7 +163,7 @@ guiUpdateAtlas(ImFontAtlas *fonts, FontOptions *font_opts)
     font_opts->tex_glyph_padding = fonts->TexGlyphPadding;
 }
 bool
-guiCenteredButton(char const *label)
+guiCenteredButton(Cstr label)
 {
     ImGuiStyle *style = igGetStyle();
 
@@ -186,17 +186,17 @@ guiCenteredButton(char const *label)
 }
 
 bool
-guiColorEdit(char const *label, Rgba32 *color)
+guiColorEdit(Cstr label, Rgba32 *color)
 {
     // TODO (Matteo): Fix redundant label
 
-    static const Rgba32 colors[] = CF_COLOR_VALUES;
-    static const char *names[] = CF_COLOR_NAMES;
+    static Rgba32 const colors[] = CF_COLOR_VALUES;
+    static Cstr const names[] = CF_COLOR_NAMES;
 
     bool color_changed = false;
     Usize color_index = USIZE_MAX;
-    char const *color_name = NULL;
-    char label_buffer[1024];
+    Cstr color_name = NULL;
+    Char8 label_buffer[1024];
 
     // Test if the color is a known named one
 

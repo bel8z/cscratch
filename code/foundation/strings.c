@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 Usize
-strToCstr(Str str, char *buffer, Usize size)
+strToCstr(Str str, Char8 *buffer, Usize size)
 {
     Usize len = cfMin(str.len, size);
     if (buffer)
@@ -19,7 +19,7 @@ strToCstr(Str str, char *buffer, Usize size)
 }
 
 bool
-strBufferPrintf(StrBuffer *array, char const *fmt, ...)
+strBufferPrintf(StrBuffer *array, Cstr fmt, ...)
 {
     va_list args, args_copy;
 
@@ -49,7 +49,7 @@ strBufferPrintf(StrBuffer *array, char const *fmt, ...)
 }
 
 bool
-strPrintf(char *buffer, Usize buffer_size, char const *fmt, ...)
+strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...)
 {
     va_list args, args_copy;
 
@@ -82,7 +82,7 @@ strCompare(Str l, Str r)
 }
 
 static inline I32
-__strIComp(char const *l, char const *r, Usize size)
+__strIComp(Cstr l, Cstr r, Usize size)
 {
     I32 diff = 0;
 
@@ -148,7 +148,7 @@ strFindLast(Str haystack, Str needle)
 }
 
 bool
-strContains(Str str, char c)
+strContains(Str str, Char8 c)
 {
     for (Usize i = 0; i < str.len; ++i)
     {

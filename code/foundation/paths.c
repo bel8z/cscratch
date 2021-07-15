@@ -63,7 +63,7 @@ pathSplitNameExt(Str path, Str *ext)
 }
 
 Usize
-pathChangeExt(Str path, Str new_ext, char *out)
+pathChangeExt(Str path, Str new_ext, Char8 *out)
 {
     Str ext = pathSplitExt(path);
 

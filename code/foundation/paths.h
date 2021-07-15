@@ -10,7 +10,7 @@ Str pathSplitName(Str path);
 Str pathSplitExt(Str path);
 Str pathSplitNameExt(Str path, Str *ext);
 
-Usize pathChangeExt(Str path, Str new_ext, char *out);
+Usize pathChangeExt(Str path, Str new_ext, Char8 *out);
 
 typedef struct PathSplitIter
 {

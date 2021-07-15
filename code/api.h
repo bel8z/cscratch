@@ -24,7 +24,7 @@ enum
 // TODO (Matteo): Maybe simplify a bit? I suspect that the full exe path is enough
 typedef struct Paths
 {
-    char buffer[3 * Paths_Size];
+    Char8 buffer[3 * Paths_Size];
     Str base, data, exe_name, lib_name;
 } Paths;
 
@@ -67,7 +67,7 @@ typedef struct Platform
     /// Dynamic library loading
     Library *(*libLoad)(Str filename);
     void (*libUnload)(Library *lib);
-    void *(*libLoadProc)(Library *restrict lib, char const *restrict name);
+    void *(*libLoadProc)(Library *restrict lib, Cstr restrict name);
 
 } Platform;
 
@@ -96,7 +96,7 @@ typedef struct AppUpdateResult
 } AppUpdateResult;
 
 #define APP_PROC(name) void name(AppState *app)
-#define APP_CREATE_PROC(name) AppState *name(Platform *plat, char const *argv[], I32 argc)
+#define APP_CREATE_PROC(name) AppState *name(Platform *plat, Cstr argv[], I32 argc)
 #define APP_UPDATE_PROC(name) AppUpdateResult name(AppState *app, FontOptions *opts)
 
 typedef APP_PROC((*AppProc));

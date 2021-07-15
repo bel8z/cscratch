@@ -134,7 +134,7 @@ main()
     freeListAllocInit(&fl, ALLOC_SIZE);
     CfAllocator alloc = freeListAllocator(&fl);
 
-    char *buff = cfAlloc(alloc, BUFF_SIZE);
+    Char8 *buff = cfAlloc(alloc, BUFF_SIZE);
 
     strPrintf(buff, BUFF_SIZE, "USIZE_MAX = %zu", USIZE_MAX);
     Str dummy = strFromCstr(buff);
