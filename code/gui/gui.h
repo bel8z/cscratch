@@ -48,8 +48,20 @@ typedef struct FontOptions
     bool freetype_enabled;
 } FontOptions;
 
+/// Custom IMGUI color themes
+typedef enum GuiTheme
+{
+    GuiTheme_Dark,
+    GuiTheme_Light,
+
+    GuiTheme_Count,
+} GuiTheme;
+
 /// Initialize IMGUI global state
 void guiInit(Gui *gui);
+
+/// Set a custom IMGUI color theme
+void guiSetTheme(GuiTheme theme);
 
 void guiBeginFullScreen(Cstr label, bool docking, bool menu_bar);
 void guiEndFullScreen(void);
