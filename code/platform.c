@@ -200,7 +200,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     // Setup application
     AppApi app_api = {0};
     appApiLoad(&app_api, platform);
-    AppState *app = app_api.create(platform, argv, argc);
+    AppState *app_state = app_api.create(platform, argv, argc);
 
     // Configure Dear ImGui
     ImGuiIO *io = igGetIO();
@@ -247,29 +247,42 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     ImGui_ImplOpenGL3_Init(gl_ver.glsl);
 
     // Main loop
-    FontOptions font_opts = {
-        .freetype_enabled = true,
-        .oversample_h = 1,
-        .oversample_v = 1,
-        .rasterizer_multiply = 1.0f,
+
+    AppIo app_io = {
+        .font_opts =
+            &(FontOptions){
+                .freetype_enabled = true,
+                .oversample_h = 1,
+                .oversample_v = 1,
+                .rasterizer_multiply = 1.0f,
+            },
+        // NOTE (Matteo): Ensure font rebuild before first frame
+        .rebuild_fonts = true,
+        // NOTE (Matteo): Ensure fast first update
+        .continuous_update = true,
     };
 
-    // NOTE (Matteo): Ensure font rebuild before first frame
-    AppUpdateResult update_result = {.flags = AppUpdateFlags_RebuildFonts};
-
-    while (!glfwWindowShouldClose(window) && !(update_result.flags & AppUpdateFlags_Quit))
+    while (!glfwWindowShouldClose(window) && !app_io.quit)
     {
-        glfwPollEvents();
+        if (app_io.continuous_update)
+        {
+            glfwPollEvents();
+        }
+        else
+        {
+            glfwWaitEvents();
+        }
 
         // NOTE (Matteo): Auto reloading of application library
-        appApiUpdate(&app_api, platform, app);
+        appApiUpdate(&app_api, platform, app_state);
 
         // TODO (Matteo): Build a font atlas per-monitor (or DPI resolution)
 
         // Rebuild font atlas if required
-        if (update_result.flags & AppUpdateFlags_RebuildFonts)
+        if (app_io.rebuild_fonts)
         {
-            guiUpdateAtlas(io->Fonts, &font_opts);
+            app_io.rebuild_fonts = false;
+            guiUpdateAtlas(io->Fonts, app_io.font_opts);
             // Re-upload font texture on the GPU
             ImGui_ImplOpenGL3_DestroyDeviceObjects();
             ImGui_ImplOpenGL3_CreateDeviceObjects();
@@ -286,12 +299,12 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
 
-        Rgba clear_color = rgbaMultiplyAlpha32(update_result.back_color);
+        Rgba clear_color = rgbaMultiplyAlpha32(app_io.back_color);
         glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Application frame update
-        update_result = app_api.update(app, &font_opts);
+        app_api.update(app_state, &app_io);
 
         // Rendering
         igRender();
@@ -319,7 +332,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     glfwDestroyWindow(window);
     glfwTerminate();
 
-    app_api.destroy(app);
+    app_api.destroy(app_state);
 
     return 0;
 }
@@ -343,9 +356,8 @@ static APP_CREATE_PROC(appCreateStub)
 
 static APP_UPDATE_PROC(appUpdateStub)
 {
-    CF_UNUSED(app);
-    CF_UNUSED(opts);
-    return (AppUpdateResult){.flags = AppUpdateFlags_Quit};
+    CF_UNUSED(state);
+    io->quit = true;
 }
 
 void

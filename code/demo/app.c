@@ -203,73 +203,66 @@ logWrite(LogBuffer *log, Cstr str, Time time)
 
 APP_API APP_UPDATE_PROC(appUpdate)
 {
-    AppUpdateResult result = {.flags = AppUpdateFlags_None};
-
     if (igBeginMainMenuBar())
     {
         if (igBeginMenu("File", true)) igEndMenu();
 
         if (igBeginMenu("Windows", true))
         {
-            igMenuItemBoolPtr("Style editor", NULL, &app->windows.style, true);
-            igMenuItemBoolPtr("Font options", NULL, &app->windows.fonts, true);
+            igMenuItemBoolPtr("Style editor", NULL, &state->windows.style, true);
+            igMenuItemBoolPtr("Font options", NULL, &state->windows.fonts, true);
             igSeparator();
-            igMenuItemBoolPtr("Stats", NULL, &app->windows.stats, true);
-            igMenuItemBoolPtr("Metrics", NULL, &app->windows.metrics, true);
+            igMenuItemBoolPtr("Stats", NULL, &state->windows.stats, true);
+            igMenuItemBoolPtr("Metrics", NULL, &state->windows.metrics, true);
             igSeparator();
-            igMenuItemBoolPtr("Demo window", NULL, &app->windows.demo, true);
+            igMenuItemBoolPtr("Demo window", NULL, &state->windows.demo, true);
             igEndMenu();
         }
 
         igEndMainMenuBar();
     }
 
-    if (app->windows.demo) igShowDemoWindow(&app->windows.demo);
+    if (state->windows.demo) igShowDemoWindow(&state->windows.demo);
 
-    if (app->windows.fonts)
+    if (state->windows.fonts)
     {
-        igBegin("Font Options", &app->windows.fonts, 0);
-
-        if (guiFontOptionsEdit(opts))
-        {
-            result.flags |= AppUpdateFlags_RebuildFonts;
-        }
-
+        igBegin("Font Options", &state->windows.fonts, 0);
+        io->rebuild_fonts = guiFontOptionsEdit(io->font_opts);
         igEnd();
     }
 
-    if (app->windows.stats)
+    if (state->windows.stats)
     {
-        Platform *plat = app->plat;
+        Platform *plat = state->plat;
         F64 framerate = (F64)igGetIO()->Framerate;
 
-        igBegin("Application stats stats", &app->windows.stats, 0);
+        igBegin("Application stats stats", &state->windows.stats, 0);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
         igText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
         igEnd();
     }
 
-    if (app->windows.style)
+    if (state->windows.style)
     {
-        igBegin("Style Editor", &app->windows.style, 0);
+        igBegin("Style Editor", &state->windows.style, 0);
         igShowStyleEditor(NULL);
         igEnd();
     }
 
-    if (app->windows.metrics)
+    if (state->windows.metrics)
     {
-        igShowMetricsWindow(&app->windows.metrics);
+        igShowMetricsWindow(&state->windows.metrics);
     }
 
     igBegin("Test", NULL, 0);
 
     static F32 f = 0;
 
-    Time t = app->plat->clock();
+    Time t = state->plat->clock();
 
-    igCheckbox("Demo Window", &app->windows.demo);
+    igCheckbox("Demo Window", &state->windows.demo);
     igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
-    guiColorEdit("clear color", &app->clear_color);
+    guiColorEdit("clear color", &state->clear_color);
     igSeparator();
     guiClock(t);
     igSeparator();
@@ -278,18 +271,16 @@ APP_API APP_UPDATE_PROC(appUpdate)
     igText("OpenGL shader version:\t%s", glGetString(GL_SHADING_LANGUAGE_VERSION));
     igSeparator();
 
-    if (timeIsGe(timeSub(t, app->log.time), TIME_MS(1000)))
+    if (timeIsGe(timeSub(t, state->log.time), TIME_MS(1000)))
     {
-        logWrite(&app->log, "One second passed\n", t);
+        logWrite(&state->log, "One second passed\n", t);
     }
 
-    igTextUnformatted(app->log.buffer, NULL);
+    igTextUnformatted(state->log.buffer, NULL);
 
     igEnd();
 
     fxWindow();
 
-    result.back_color = app->clear_color;
-
-    return result;
+    io->back_color = state->clear_color;
 }

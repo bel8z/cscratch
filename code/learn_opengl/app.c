@@ -203,43 +203,36 @@ gfxProc(GfxState *gfx)
 
 APP_API APP_UPDATE_PROC(appUpdate)
 {
-    AppUpdateResult result = {.flags = AppUpdateFlags_None};
-
     if (igBeginMainMenuBar())
     {
         if (igBeginMenu("File", true)) igEndMenu();
 
         if (igBeginMenu("Windows", true))
         {
-            igMenuItemBoolPtr("Style editor", NULL, &app->windows.style, true);
-            igMenuItemBoolPtr("Font options", NULL, &app->windows.fonts, true);
+            igMenuItemBoolPtr("Style editor", NULL, &state->windows.style, true);
+            igMenuItemBoolPtr("Font options", NULL, &state->windows.fonts, true);
             igSeparator();
-            igMenuItemBoolPtr("Stats", NULL, &app->windows.stats, true);
-            igMenuItemBoolPtr("Metrics", NULL, &app->windows.metrics, true);
+            igMenuItemBoolPtr("Stats", NULL, &state->windows.stats, true);
+            igMenuItemBoolPtr("Metrics", NULL, &state->windows.metrics, true);
             igEndMenu();
         }
 
         igEndMainMenuBar();
     }
 
-    if (app->windows.fonts)
+    if (state->windows.fonts)
     {
-        igBegin("Font Options", &app->windows.fonts, 0);
-
-        if (guiFontOptionsEdit(opts))
-        {
-            result.flags |= AppUpdateFlags_RebuildFonts;
-        }
-
+        igBegin("Font Options", &state->windows.fonts, 0);
+        io->rebuild_fonts = guiFontOptionsEdit(io->font_opts);
         igEnd();
     }
 
-    if (app->windows.stats)
+    if (state->windows.stats)
     {
-        Platform *plat = app->plat;
+        Platform *plat = state->plat;
         F64 framerate = (F64)igGetIO()->Framerate;
 
-        igBegin("Application stats stats", &app->windows.stats, 0);
+        igBegin("Application stats stats", &state->windows.stats, 0);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
         igText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
         igSeparator();
@@ -249,19 +242,17 @@ APP_API APP_UPDATE_PROC(appUpdate)
         igEnd();
     }
 
-    if (app->windows.style)
+    if (state->windows.style)
     {
-        igBegin("Style Editor", &app->windows.style, 0);
+        igBegin("Style Editor", &state->windows.style, 0);
         igShowStyleEditor(NULL);
         igEnd();
     }
 
-    if (app->windows.metrics)
+    if (state->windows.metrics)
     {
-        igShowMetricsWindow(&app->windows.metrics);
+        igShowMetricsWindow(&state->windows.metrics);
     }
 
-    gfxProc(&app->gfx);
-
-    return result;
+    gfxProc(&state->gfx);
 }

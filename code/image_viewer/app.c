@@ -886,22 +886,16 @@ appMainWindow(AppState *state)
     igEnd();
 }
 
-APP_API AppUpdateResult
-appUpdate(AppState *state, FontOptions *font_opts)
+APP_API APP_UPDATE_PROC(appUpdate)
 {
     Platform *plat = state->plat;
 
-    AppUpdateResult result = {
-        .flags = AppUpdateFlags_None,
-        .back_color = igGetColorU32Col(ImGuiCol_WindowBg, 1.0f),
-    };
+    io->back_color = igGetColorU32Col(ImGuiCol_WindowBg, 1.0f);
+    io->continuous_update = false;
 
     //==== Main UI ====
 
-    if (appMenuBar(state))
-    {
-        result.flags |= AppUpdateFlags_Quit;
-    }
+    if (appMenuBar(state)) io->quit = true;
 
     appMainWindow(state);
 
@@ -910,12 +904,7 @@ appUpdate(AppState *state, FontOptions *font_opts)
     if (state->fonts)
     {
         igBegin(FONTS_WINDOW, &state->fonts, 0);
-
-        if (guiFontOptionsEdit(font_opts))
-        {
-            result.flags |= AppUpdateFlags_RebuildFonts;
-        }
-
+        io->rebuild_fonts = guiFontOptionsEdit(io->font_opts);
         igEnd();
     }
 
@@ -976,6 +965,4 @@ appUpdate(AppState *state, FontOptions *font_opts)
         }
         igEndPopup();
     }
-
-    return result;
 }

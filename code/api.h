@@ -76,28 +76,27 @@ typedef struct Platform
 //------------------------------------------------------------------------------
 
 typedef struct AppState AppState;
-
 typedef struct FontOptions FontOptions;
 
-typedef enum AppUpdateFlags
+// TODO (Matteo): Maybe refactor this a bit
+
+/// Data that can be exchanged between application and platform
+typedef struct AppIo
 {
-    AppUpdateFlags_None = 0,
+    // Inputs
+    FontOptions *font_opts;
 
-    AppUpdateFlags_RebuildFonts = 1 << 1,
-    AppUpdateFlags_Quit = 1 << 2,
-
-    AppUpdateFlags_All = T_MAX(I32),
-} AppUpdateFlags;
-
-typedef struct AppUpdateResult
-{
-    AppUpdateFlags flags;
+    // Outputs
+    Cstr window_title;
     Rgba32 back_color;
-} AppUpdateResult;
+    bool quit;
+    bool rebuild_fonts;
+    bool continuous_update;
+} AppIo;
 
 #define APP_PROC(name) void name(AppState *app)
 #define APP_CREATE_PROC(name) AppState *name(Platform *plat, Cstr argv[], I32 argc)
-#define APP_UPDATE_PROC(name) AppUpdateResult name(AppState *app, FontOptions *opts)
+#define APP_UPDATE_PROC(name) void name(AppState *state, AppIo *io)
 
 typedef APP_PROC((*AppProc));
 typedef APP_CREATE_PROC((*AppCreateProc));
