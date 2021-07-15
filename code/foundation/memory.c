@@ -90,7 +90,7 @@ arenaDecommitVm(Arena *arena)
 }
 
 bool
-arenaInitOnVm(Arena *arena, cfVirtualMemory *vm, void *reserved_block, Usize reserved_size)
+arenaInitOnVm(Arena *arena, CfVirtualMemory *vm, void *reserved_block, Usize reserved_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -118,7 +118,7 @@ arenaInitOnBuffer(Arena *arena, U8 *buffer, Usize buffer_size)
 }
 
 Arena *
-arenaBootstrapFromVm(cfVirtualMemory *vm, void *reserved_block, Usize reserved_size)
+arenaBootstrapFromVm(CfVirtualMemory *vm, void *reserved_block, Usize reserved_size)
 {
 
     Arena *arena = NULL;
@@ -351,10 +351,10 @@ static CF_ALLOCATOR_FUNC(arenaAllocProc)
     return new_memory;
 }
 
-cfAllocator
+CfAllocator
 arenaAllocator(Arena *arena)
 {
-    return (cfAllocator){
+    return (CfAllocator){
         .state = arena,
         .func = arenaAllocProc,
     };

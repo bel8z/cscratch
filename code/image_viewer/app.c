@@ -98,12 +98,12 @@ typedef struct ImageFile
 
 /// Array of image file info backed by a large VM allocation (no waste since
 /// memory is committed only when required)
-typedef cfArray(ImageFile) ImageList;
+typedef CfArray(ImageFile) ImageList;
 
 typedef struct LoadQueue
 {
     // Dependencies
-    cfFileSystem *fs;
+    CfFileSystem *fs;
 
     // Sync
     CfThread thread;
@@ -581,7 +581,7 @@ appBrowsePrev(AppState *app)
 void
 appLoadFromFile(AppState *state, Str full_name)
 {
-    cfFileSystem const *fs = state->plat->fs;
+    CfFileSystem const *fs = state->plat->fs;
     ImageList *images = &state->images;
 
     appClearImages(state);

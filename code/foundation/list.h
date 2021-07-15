@@ -6,15 +6,15 @@
 #include "core.h"
 
 /// Intrusive, circular, doubly-linked list node.
-/// In order for a struct to be added to a list, it must contain (at least) a cfList member; this
+/// In order for a struct to be added to a list, it must contain (at least) a CfList member; this
 /// member would have both its next and prev pointer members point to itself when the item is not
 /// part of a list.
 /// This design allow for simpler code and less memory allocations.
-typedef struct cfList cfList;
+typedef struct CfList CfList;
 
-struct cfList
+struct CfList
 {
-    cfList *prev, *next;
+    CfList *prev, *next;
 };
 
 #define cfListItem(node, Type, member) (Type *)((U8 *)(node)-offsetof(Type, member))
@@ -22,26 +22,26 @@ struct cfList
 #define cfListNextItem(node, Type, member) cfListItem((node)->next, Type, member)
 
 inline void
-cfListInit(cfList *list)
+cfListInit(CfList *list)
 {
     list->next = list->prev = list;
 }
 
-bool cfListEmpty(cfList const *head);
+bool cfListEmpty(CfList const *head);
 
-int cfListIsHead(cfList const *list, cfList const *node);
-int cfListIsTail(cfList const *list, cfList const *node);
+int cfListIsHead(CfList const *list, CfList const *node);
+int cfListIsTail(CfList const *list, CfList const *node);
 
-cfList const *cfListHead(cfList const *list);
-cfList const *cfListTail(cfList const *list);
+CfList const *cfListHead(CfList const *list);
+CfList const *cfListTail(CfList const *list);
 
-void cfListInsert(cfList *node, cfList *prev, cfList *next);
-void cfListRemove(cfList *node);
+void cfListInsert(CfList *node, CfList *prev, CfList *next);
+void cfListRemove(CfList *node);
 
-void cfListPushHead(cfList *list, cfList *node);
-void cfListPushTail(cfList *list, cfList *node);
+void cfListPushHead(CfList *list, CfList *node);
+void cfListPushTail(CfList *list, CfList *node);
 
-cfList *cfListPopHead(cfList *list);
-cfList *cfListPopTail(cfList *list);
+CfList *cfListPopHead(CfList *list);
+CfList *cfListPopTail(CfList *list);
 
 // TODO (Matteo): Implement iteration safely in case of sentinel nodes

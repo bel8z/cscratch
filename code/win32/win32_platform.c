@@ -36,16 +36,16 @@ static VM_RELEASE_FUNC(win32VmRelease);
 static CF_ALLOCATOR_FUNC(win32Alloc);
 
 // File system
-typedef cfArray(WCHAR) WBuffer;
+typedef CfArray(WCHAR) WBuffer;
 
-static DirIter *win32DirIterStart(Str dir, cfAllocator alloc);
+static DirIter *win32DirIterStart(Str dir, CfAllocator alloc);
 static bool win32DirIterNext(DirIter *self, Str *path);
 static void win32DirIterClose(DirIter *self);
 
 static FileDlgResult win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters,
-                                      cfAllocator alloc);
+                                      CfAllocator alloc);
 
-static FileContent win32FileRead(Str filename, cfAllocator alloc);
+static FileContent win32FileRead(Str filename, CfAllocator alloc);
 static bool win32FileCopy(Str source, Str dest, bool overwrite);
 static FileTime win32FileWriteTime(Str filename);
 
@@ -86,7 +86,7 @@ static void win32PrintLastError(void);
 // NOTE (Matteo): a global here should be quite safe
 static Platform g_platform = {
     .vm =
-        &(cfVirtualMemory){
+        &(CfVirtualMemory){
             .reserve = win32VmReserve,
             .release = win32VmRelease,
             .commit = win32VmCommit,
@@ -97,7 +97,7 @@ static Platform g_platform = {
             .func = win32Alloc,
         },
     .fs =
-        &(cfFileSystem){
+        &(CfFileSystem){
             .dirIterStart = win32DirIterStart,
             .dirIterNext = win32DirIterNext,
             .dirIterClose = win32DirIterClose,
@@ -152,7 +152,7 @@ pathsInit(Paths *g_paths)
 }
 
 static char **
-win32GetCommandLineArgs(cfAllocator alloc, I32 *out_argc, Usize *out_size)
+win32GetCommandLineArgs(CfAllocator alloc, I32 *out_argc, Usize *out_size)
 {
     WCHAR *cmd_line = GetCommandLineW();
     WCHAR **argv_utf16 = CommandLineToArgvW(cmd_line, out_argc);
@@ -409,7 +409,7 @@ typedef enum Win32DirIterState
 
 struct DirIter
 {
-    cfAllocator alloc;
+    CfAllocator alloc;
 
     HANDLE finder;
     char buffer[MAX_PATH];
@@ -418,7 +418,7 @@ struct DirIter
 };
 
 DirIter *
-win32DirIterStart(Str dir, cfAllocator alloc)
+win32DirIterStart(Str dir, CfAllocator alloc)
 {
     // TODO (Matteo): Handle UTF8 by converting to WCHAR string
 
@@ -489,7 +489,7 @@ win32DirIterClose(DirIter *self)
 }
 
 static WBuffer
-win32BuildFilterString(FileDlgFilter *filters, Usize num_filters, cfAllocator alloc)
+win32BuildFilterString(FileDlgFilter *filters, Usize num_filters, CfAllocator alloc)
 {
     WBuffer out_filter = {0};
     cfArrayInitCap(&out_filter, alloc, 1024);
@@ -529,7 +529,7 @@ win32BuildFilterString(FileDlgFilter *filters, Usize num_filters, cfAllocator al
 }
 
 FileDlgResult
-win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters, cfAllocator alloc)
+win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters, CfAllocator alloc)
 {
     FileDlgResult result = {.code = FileDlgResult_Error};
 
@@ -583,7 +583,7 @@ win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters, c
 }
 
 FileContent
-win32FileRead(Str filename, cfAllocator alloc)
+win32FileRead(Str filename, CfAllocator alloc)
 {
     FileContent result = {0};
 

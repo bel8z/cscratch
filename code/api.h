@@ -7,9 +7,9 @@
 //------------------------------------------------------------------------------
 
 // Foundation interfaces
-typedef struct cfVirtualMemory cfVirtualMemory;
-typedef struct cfAllocator cfAllocator;
-typedef struct cfFileSystem cfFileSystem;
+typedef struct CfVirtualMemory CfVirtualMemory;
+typedef struct CfAllocator CfAllocator;
+typedef struct CfFileSystem CfFileSystem;
 
 // Additional platform interfaces
 typedef struct GlApi GlApi;
@@ -31,7 +31,7 @@ typedef struct Paths
 typedef struct Platform
 {
     /// Virtual memory services
-    cfVirtualMemory *vm;
+    CfVirtualMemory *vm;
     /// Reserved VM size in bytes
     // TODO (Matteo): Should be a pointer?
     Usize reserved_size;
@@ -40,7 +40,7 @@ typedef struct Platform
     Usize committed_size;
 
     /// System heap allocator
-    cfAllocator heap;
+    CfAllocator heap;
     /// Number of blocks allocated by the heap allocator
     // TODO (Matteo): Should be a pointer?
     Usize heap_blocks;
@@ -49,7 +49,7 @@ typedef struct Platform
     Usize heap_size;
 
     /// File system services
-    cfFileSystem *fs;
+    CfFileSystem *fs;
 
     /// OpenGL API
     GlApi *gl;

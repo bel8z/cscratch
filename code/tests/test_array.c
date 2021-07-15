@@ -7,7 +7,7 @@
 #include "std_allocator.h"
 
 typedef I32 MyType;
-typedef cfArray(MyType) MyArray;
+typedef CfArray(MyType) MyArray;
 
 void
 arrayPrint(MyArray *a)
@@ -31,7 +31,7 @@ main(int32_t argc, char **argv)
     (void)argc;
     (void)argv;
 
-    cfAllocator std_alloc = stdAllocator();
+    CfAllocator std_alloc = stdAllocator();
 
     MyArray array = {0};
     cfArrayInit(&array, std_alloc);

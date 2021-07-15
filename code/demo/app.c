@@ -29,7 +29,7 @@ struct AppState
 {
     Platform *plat;
 
-    cfAllocator alloc;
+    CfAllocator alloc;
 
     AppWindows windows;
     Rgba32 clear_color;

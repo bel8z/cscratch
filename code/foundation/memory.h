@@ -48,7 +48,7 @@ cfMemAlignForward(U8 const *address, Usize alignment)
 #define VM_COMMIT_FUNC(name) bool name(void *memory, Usize size)
 #define VM_REVERT_FUNC(name) void name(void *memory, Usize size)
 
-typedef struct cfVirtualMemory
+typedef struct CfVirtualMemory
 {
     VM_RESERVE_FUNC((*reserve));
     VM_RELEASE_FUNC((*release));
@@ -56,7 +56,7 @@ typedef struct cfVirtualMemory
     VM_REVERT_FUNC((*revert));
 
     Usize page_size;
-} cfVirtualMemory;
+} CfVirtualMemory;
 
 #define cfVmReserve(vm, size) (vm)->reserve(size)
 #define cfVmRelease(vm, mem, size) (vm)->release(mem, size)
@@ -78,7 +78,7 @@ typedef struct Arena
     Usize committed;
     Usize save_stack;
     U8 *memory;
-    cfVirtualMemory *vm;
+    CfVirtualMemory *vm;
 } Arena;
 
 typedef struct ArenaTempState
@@ -100,13 +100,13 @@ typedef struct ArenaTempState
 
 /// Initialize the arena using a reserved block of virtual memory, from which actual pages can be
 /// committed
-bool arenaInitOnVm(Arena *arena, cfVirtualMemory *vm, void *reserved_block, Usize reserved_size);
+bool arenaInitOnVm(Arena *arena, CfVirtualMemory *vm, void *reserved_block, Usize reserved_size);
 
 /// Initialize the arena using a pre-allocated memory buffer
 void arenaInitOnBuffer(Arena *arena, U8 *buffer, Usize buffer_size);
 
 /// Allocate a block of virtual memory and initialize an arena directly in it
-Arena *arenaBootstrapFromVm(cfVirtualMemory *vm, void *reserved_block, Usize reserved_size);
+Arena *arenaBootstrapFromVm(CfVirtualMemory *vm, void *reserved_block, Usize reserved_size);
 
 // TODO (Matteo): Bootstrap from buffer
 
@@ -173,4 +173,4 @@ void arenaRestore(ArenaTempState state);
 
 bool arenaSplit(Arena *arena, Arena *split, Usize size);
 
-cfAllocator arenaAllocator(Arena *arena);
+CfAllocator arenaAllocator(Arena *arena);

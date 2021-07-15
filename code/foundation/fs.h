@@ -36,12 +36,12 @@ typedef struct FileDlgResult
 } FileDlgResult;
 
 /// File system API
-typedef struct cfFileSystem
+typedef struct CfFileSystem
 {
     // *** Directory operations ***
 
     /// Create an iterator on the given directory contents (return NULL in case of failure)
-    DirIter *(*dirIterStart)(Str dir, cfAllocator alloc);
+    DirIter *(*dirIterStart)(Str dir, CfAllocator alloc);
     /// Advance the iterator and return the filename of the current entry, or NULL if the iteration
     /// is complete; NOTE that the current pointer is valid until the next call to this function (or
     /// the iterator is destroyed)
@@ -51,7 +51,7 @@ typedef struct cfFileSystem
 
     // *** File operations ***
 
-    FileContent (*fileRead)(Str filename, cfAllocator alloc);
+    FileContent (*fileRead)(Str filename, CfAllocator alloc);
     bool (*fileCopy)(Str source, Str dest, bool overwrite);
     FileTime (*fileWriteTime)(Str filename);
 
@@ -60,8 +60,8 @@ typedef struct cfFileSystem
     // TODO (Matteo): Is this the correct place for file dialogs?
 
     FileDlgResult (*open_file_dlg)(Str filename_hint, FileDlgFilter *filters, Usize num_filters,
-                                   cfAllocator alloc);
+                                   CfAllocator alloc);
 
-} cfFileSystem;
+} CfFileSystem;
 
 //------------------------------------------------------------------------------

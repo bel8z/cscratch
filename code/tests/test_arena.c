@@ -49,7 +49,7 @@ main()
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
 
-    cfVirtualMemory vm = {
+    CfVirtualMemory vm = {
         .page_size = sysinfo.dwPageSize,
         .reserve = win32VmReserve,
         .commit = win32VmCommit,

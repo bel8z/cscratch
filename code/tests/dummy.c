@@ -10,13 +10,13 @@
 typedef struct MemoryHeader
 {
     Usize size;
-    cfList node;
+    CfList node;
 } MemoryHeader;
 
 typedef struct FreeListAlloc
 {
     Arena arena;
-    cfList sentinel;
+    CfList sentinel;
 } FreeListAlloc;
 
 void
@@ -31,7 +31,7 @@ freeListAllocGetBlock(FreeListAlloc *alloc, Usize size)
 {
     // NOTE (Matteo): Search the free list for a large enough block
     MemoryHeader *free_block = NULL;
-    cfList *cursor = alloc->sentinel.next;
+    CfList *cursor = alloc->sentinel.next;
 
     while (cursor != &alloc->sentinel && !free_block)
     {
@@ -115,10 +115,10 @@ CF_ALLOCATOR_FUNC(freeListAllocProc)
     return new_memory;
 }
 
-cfAllocator
+CfAllocator
 freeListAllocator(FreeListAlloc *alloc)
 {
-    return (cfAllocator){
+    return (CfAllocator){
         .state = alloc,
         .func = freeListAllocProc,
     };
@@ -132,7 +132,7 @@ main()
 {
     FreeListAlloc fl = {0};
     freeListAllocInit(&fl, ALLOC_SIZE);
-    cfAllocator alloc = freeListAllocator(&fl);
+    CfAllocator alloc = freeListAllocator(&fl);
 
     char *buff = cfAlloc(alloc, BUFF_SIZE);
 

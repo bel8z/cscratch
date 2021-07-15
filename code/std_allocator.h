@@ -16,8 +16,8 @@ static CF_ALLOCATOR_FUNC(std__realloc)
     return NULL;
 }
 
-static inline cfAllocator
+static inline CfAllocator
 stdAllocator()
 {
-    return (cfAllocator){.func = std__realloc};
+    return (CfAllocator){.func = std__realloc};
 }

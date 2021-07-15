@@ -380,11 +380,11 @@ typedef struct Time
 
 /// Generic allocator interface
 /// The memory provided by this interface should already be cleared to 0
-typedef struct cfAllocator
+typedef struct CfAllocator
 {
     void *state;
     CF_ALLOCATOR_FUNC((*func));
-} cfAllocator;
+} CfAllocator;
 
 //-------------------//
 //   Dynamic array   //
@@ -392,11 +392,11 @@ typedef struct cfAllocator
 
 /// Macro to define a typed dynamic array (variable or typedef)
 /// Functionality is implemented in array.h
-#define cfArray(Type)                                                                              \
+#define CfArray(Type)                                                                              \
     struct                                                                                         \
     {                                                                                              \
         /* Allocator used for growing the array dynamically */                                     \
-        cfAllocator alloc;                                                                         \
+        CfAllocator alloc;                                                                         \
         /* Actual array storage */                                                                 \
         Type *buf;                                                                                 \
         /* Size of the array (number of stored items) */                                           \
@@ -411,7 +411,7 @@ typedef struct cfAllocator
 
 /// Dynamic string buffer
 // TODO (Matteo): Make a separate type for better API separation?
-typedef cfArray(char) StrBuffer;
+typedef CfArray(char) StrBuffer;
 
 /// Immutable string slice/view. Not guaranteed to be null terminated.
 /// Prefer it over C strings (safety, better API in progress)

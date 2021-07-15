@@ -1,37 +1,37 @@
 #include "list.h"
 
 bool
-cfListEmpty(cfList const *head)
+cfListEmpty(CfList const *head)
 {
     return (head->next == head);
 }
 
 int
-cfListIsHead(cfList const *list, cfList const *node)
+cfListIsHead(CfList const *list, CfList const *node)
 {
     return (list->next == node);
 }
 
 int
-cfListIsTail(cfList const *list, cfList const *node)
+cfListIsTail(CfList const *list, CfList const *node)
 {
     return (list->prev == node);
 }
 
-cfList const *
-cfListHead(cfList const *list)
+CfList const *
+cfListHead(CfList const *list)
 {
     return list->next;
 }
 
-cfList const *
-cfListTail(cfList const *list)
+CfList const *
+cfListTail(CfList const *list)
 {
     return list->prev;
 }
 
 void
-cfListInsert(cfList *node, cfList *prev, cfList *next)
+cfListInsert(CfList *node, CfList *prev, CfList *next)
 {
     node->prev = prev;
     node->next = next;
@@ -41,7 +41,7 @@ cfListInsert(cfList *node, cfList *prev, cfList *next)
 }
 
 void
-cfListRemove(cfList *node)
+cfListRemove(CfList *node)
 {
     node->prev->next = node->next;
     node->next->prev = node->prev;
@@ -50,31 +50,31 @@ cfListRemove(cfList *node)
 }
 
 void
-cfListPushHead(cfList *list, cfList *node)
+cfListPushHead(CfList *list, CfList *node)
 {
     cfListInsert(node, list, list->next);
     CF_ASSERT(list->next == node, "");
 }
 
 void
-cfListPushTail(cfList *list, cfList *node)
+cfListPushTail(CfList *list, CfList *node)
 {
     cfListInsert(node, list->prev, list);
     CF_ASSERT(list->prev == node, "");
 }
 
-cfList *
-cfListPopHead(cfList *list)
+CfList *
+cfListPopHead(CfList *list)
 {
-    cfList *head = list->next;
+    CfList *head = list->next;
     cfListRemove(head);
     return head;
 }
 
-cfList *
-cfListPopTail(cfList *list)
+CfList *
+cfListPopTail(CfList *list)
 {
-    cfList *tail = list->prev;
+    CfList *tail = list->prev;
     cfListRemove(tail);
     return tail;
 }
