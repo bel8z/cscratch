@@ -596,39 +596,39 @@ appLoadFromFile(AppState *state, Str full_name)
         cfMemCopy(full_name.buf, root_name, full_name.len - file_name.len);
         strToCstr(full_name, file.filename, FILENAME_SIZE);
 
-        ARENA_TEMP_BEGIN(state->scratch);
-
+        ARENA_TEMP_SCOPE(state->scratch)
+        {
 #if CF_COMPILER_MSVC
 #    pragma warning(push)
 #    pragma warning(disable : 4221) // cannot be initialized using address of automatic variable
 #endif
 
-        DirIter *it = fs->dirIterStart(strFromCstr(root_name), arenaAllocator(state->scratch));
+            DirIter *it = fs->dirIterStart(strFromCstr(root_name), arenaAllocator(state->scratch));
 
 #if CF_COMPILER_MSVC
 #    pragma warning(pop)
 #endif
 
-        if (it)
-        {
-            Str path = {0};
-
-            // NOTE (Matteo): Explicit test against NULL is required for compiling with /W4 on MSVC
-            while (fs->dirIterNext(it, &path))
+            if (it)
             {
-                if (appIsFileSupported(path))
+                Str path = {0};
+
+                // NOTE (Matteo): Explicit test against NULL is required for compiling with /W4 on
+                // MSVC
+                while (fs->dirIterNext(it, &path))
                 {
-                    cfArrayPush(images, (ImageFile){.state = ImageFileState_Idle});
-                    bool ok = strPrintf(cfArrayLast(images)->filename, FILENAME_SIZE, "%s%.*s",
-                                        root_name, (I32)path.len, path.buf);
-                    CF_ASSERT(ok, "path is too long!");
+                    if (appIsFileSupported(path))
+                    {
+                        cfArrayPush(images, (ImageFile){.state = ImageFileState_Idle});
+                        bool ok = strPrintf(cfArrayLast(images)->filename, FILENAME_SIZE, "%s%.*s",
+                                            root_name, (I32)path.len, path.buf);
+                        CF_ASSERT(ok, "path is too long!");
+                    }
                 }
+
+                fs->dirIterClose(it);
             }
-
-            fs->dirIterClose(it);
         }
-
-        ARENA_TEMP_END(state->scratch);
 
         for (U32 index = 0; index < images->len; ++index)
         {
@@ -785,18 +785,17 @@ appOpenFile(AppState *state)
         hint = strFromCstr(state->images.buf[state->curr_file].filename);
     }
 
-    ARENA_TEMP_BEGIN(state->scratch);
-
-    FileDlgResult dlg_result =
-        plat->fs->open_file_dlg(hint, &state->filter, 1, arenaAllocator(state->scratch));
-
-    switch (dlg_result.code)
+    ARENA_TEMP_SCOPE(state->scratch)
     {
-        case FileDlgResult_Ok: appLoadFromFile(state, dlg_result.filename); break;
-        case FileDlgResult_Error: result = false; break;
-    }
+        FileDlgResult dlg_result =
+            plat->fs->open_file_dlg(hint, &state->filter, 1, arenaAllocator(state->scratch));
 
-    ARENA_TEMP_END(state->scratch);
+        switch (dlg_result.code)
+        {
+            case FileDlgResult_Ok: appLoadFromFile(state, dlg_result.filename); break;
+            case FileDlgResult_Error: result = false; break;
+        }
+    }
 
     return result;
 }

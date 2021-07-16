@@ -168,9 +168,14 @@ void arenaFree(Arena *arena, void *memory, Usize size);
 ArenaTempState arenaSave(Arena *arena);
 void arenaRestore(ArenaTempState state);
 
-#define ARENA_TEMP_BEGIN(arena) ArenaTempState ARENA_TEMP_END_NOT_CALLED = arenaSave(arena)
-#define ARENA_TEMP_END(arena) arenaRestore(ARENA_TEMP_END_NOT_CALLED)
-
 bool arenaSplit(Arena *arena, Arena *split, Usize size);
 
 CfAllocator arenaAllocator(Arena *arena);
+
+// Utility macros for managing temporary allocations
+
+#define ARENA_TEMP_BEGIN(arena) ArenaTempState ARENA_TEMP_END_NOT_CALLED = arenaSave(arena)
+#define ARENA_TEMP_END(arena) arenaRestore(ARENA_TEMP_END_NOT_CALLED)
+#define ARENA_TEMP_SCOPE(arena)                                \
+    for (ArenaTempState CF_MACRO_VAR(temp) = arenaSave(arena); \
+         CF_MACRO_VAR(temp).stack_id == arena->save_stack; arenaRestore(CF_MACRO_VAR(temp)))
