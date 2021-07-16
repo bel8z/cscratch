@@ -262,6 +262,8 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
         .continuous_update = true,
     };
 
+    IVec2 win_pos, win_size;
+
     while (!glfwWindowShouldClose(window) && !app_io.quit)
     {
         if (app_io.continuous_update)
@@ -271,6 +273,27 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
         else
         {
             glfwWaitEvents();
+        }
+
+        // TODO (Matteo): Investigate freeze when leaving fullscreen mode
+        GLFWmonitor *monitor = glfwGetWindowMonitor(window);
+        bool is_fullscreen = (monitor != NULL);
+        if (app_io.fullscreen != is_fullscreen)
+        {
+            if (is_fullscreen)
+            {
+                glfwSetWindowMonitor(window, NULL, win_pos.x, win_pos.y, win_size.width,
+                                     win_size.height, 0);
+            }
+            else
+            {
+                glfwGetWindowPos(window, &win_pos.x, &win_pos.y);
+                glfwGetWindowSize(window, &win_size.width, &win_size.height);
+                monitor = glfwGetPrimaryMonitor();
+                GLFWvidmode const *vidmode = glfwGetVideoMode(monitor);
+                glfwSetWindowMonitor(window, monitor, 0, 0, vidmode->width, vidmode->height,
+                                     vidmode->refreshRate);
+            }
         }
 
         // NOTE (Matteo): Auto reloading of application library
@@ -293,11 +316,11 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
         ImGui_ImplGlfw_NewFrame();
         igNewFrame();
 
-        // Setup GL viewport and clear buffers BEFORE app update in order to allow the application
-        // code to draw directly using OpenGL
-        I32 display_w, display_h;
-        glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
+        // NOTE (Matteo): Setup GL viewport and clear buffers BEFORE app update in order to allow
+        // the application code to draw directly using OpenGL
+        IVec2 display = {0};
+        glfwGetFramebufferSize(window, &display.width, &display.height);
+        glViewport(0, 0, display.width, display.height);
 
         Rgba clear_color = rgbaMultiplyAlpha32(app_io.back_color);
         glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);

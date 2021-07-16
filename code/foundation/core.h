@@ -518,7 +518,7 @@ typedef union IVec2
     };
     struct
     {
-        F32 width, height;
+        I32 width, height;
     };
     I32 elem[2];
 } IVec2;
@@ -532,7 +532,7 @@ typedef union IVec3
     };
     struct
     {
-        Vec2 xy;
+        IVec2 xy;
         I32 _;
     };
     I32 elem[3];

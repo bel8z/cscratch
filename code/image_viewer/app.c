@@ -76,6 +76,7 @@ typedef struct ImageView
     F32 zoom;
     I32 filter;
     U32 tex_index;
+    U32 tex_count;
     bool dirty;
     bool advanced;
 } ImageView;
@@ -307,6 +308,7 @@ imageViewInit(ImageView *iv)
     iv->dirty = true;
     iv->filter = ImageFilter_Nearest;
     iv->tex_index = 0;
+    iv->tex_count = CF_ARRAY_SIZE(iv->tex);
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(iv->tex); ++i)
     {
@@ -340,7 +342,7 @@ imageViewUpdate(ImageView *iv, Image const *image)
         iv->dirty = false;
 
         // NOTE (Matteo): Switch to next buffered texture
-        iv->tex_index = (iv->tex_index + 1) % CF_ARRAY_SIZE(iv->tex);
+        iv->tex_index = (iv->tex_index + 1) % iv->tex_count;
 
         ImageTex *tex = iv->tex + iv->tex_index;
 
@@ -663,9 +665,20 @@ appImageView(AppState *state)
         igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
         guiSameLine();
         igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
+
+        bool double_buffer = (iv->tex_count == CF_ARRAY_SIZE(iv->tex));
+        guiSameLine();
+        if (igCheckbox("Double buffer", &double_buffer))
+        {
+            iv->dirty = true;
+            iv->tex_count = double_buffer ? CF_ARRAY_SIZE(iv->tex) : 1;
+        }
+
         guiSameLine();
         igSliderFloat("zoom", &iv->zoom, min_zoom, max_zoom, "%.3f", 0);
-        iv->dirty = filter != iv->filter;
+
+        // NOTE (Matteo): OR dirty flag to keep it set
+        iv->dirty |= (filter != iv->filter);
         iv->filter = filter;
     }
 

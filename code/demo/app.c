@@ -50,6 +50,7 @@ APP_API APP_CREATE_PROC(appCreate)
     app->plat = plat;
     app->alloc = plat->heap;
     app->clear_color = RGBA32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
+    app->windows.stats = true;
 
     // Init Dear Imgui
     guiInit(plat->gui);
@@ -236,9 +237,17 @@ APP_API APP_UPDATE_PROC(appUpdate)
         Platform *plat = state->plat;
         F64 framerate = (F64)igGetIO()->Framerate;
 
-        igBegin("Application stats stats", &state->windows.stats, 0);
+        igBegin("Application stats stats", &state->windows.stats,
+                ImGuiWindowFlags_HorizontalScrollbar);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
+        igSeparator();
         igText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
+        igText("Virtual memory reserved %.3fkb - committed %.3fkb", (F64)plat->reserved_size / 1024,
+               (F64)plat->committed_size / 1024);
+        igSeparator();
+        igText("OpenGL version:\t%s", glGetString(GL_VERSION));
+        igText("OpenGL renderer:\t%s", glGetString(GL_RENDERER));
+        igText("OpenGL shader version:\t%s", glGetString(GL_SHADING_LANGUAGE_VERSION));
         igEnd();
     }
 
@@ -264,11 +273,11 @@ APP_API APP_UPDATE_PROC(appUpdate)
     igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
     guiColorEdit("clear color", &state->clear_color);
     igSeparator();
-    guiClock(t);
+    igCheckbox("Continuous update", &io->continuous_update);
+    guiSameLine();
+    igCheckbox("Fullscreen", &io->fullscreen);
     igSeparator();
-    igText("OpenGL version:\t%s", glGetString(GL_VERSION));
-    igText("OpenGL renderer:\t%s", glGetString(GL_RENDERER));
-    igText("OpenGL shader version:\t%s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+    guiClock(t);
     igSeparator();
 
     if (timeIsGe(timeSub(t, state->log.time), TIME_MS(1000)))

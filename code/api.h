@@ -92,6 +92,7 @@ typedef struct AppIo
     bool quit;
     bool rebuild_fonts;
     bool continuous_update;
+    bool fullscreen;
 } AppIo;
 
 #define APP_PROC(name) void name(AppState *app)
