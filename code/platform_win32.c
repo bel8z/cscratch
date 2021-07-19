@@ -70,15 +70,15 @@ static void *win32libLoadProc(Library *restrict lib, Cstr restrict name);
 /// Encodes the given UTF8 string slice in UTF16 and null terminates it. The function returns the
 /// number of bytes written (including the null terminator); in case of a NULL output buffer, this
 /// number is the minimum required buffer size.
-static U32 win32Utf8To16(Str str, Char16 *out, U32 out_size);
+static Usize win32Utf8To16(Str str, Char16 *out, Usize out_size);
 /// Encodes the given UTF8 C string in UTF16 and null terminates it. The function returns the
 /// number of bytes written (including the null terminator); in case of a NULL output buffer, this
 /// number is the minimum required buffer size.
-static U32 win32Utf8To16C(Cstr cstr, Char16 *out, U32 out_size);
+static Usize win32Utf8To16C(Cstr cstr, Char16 *out, Usize out_size);
 /// Encodes the given UTF16 C string in UTF8 and null terminates it. The function returns the
 /// number of bytes written (including the null terminator); in case of a NULL output buffer, this
 /// number is the minimum required buffer size.
-static U32 win32Utf16To8C(Char16 const *str, I32 str_size, Char8 *out, U32 out_size);
+static Usize win32Utf16To8C(Char16 const *str, Char8 *out, Usize out_size);
 
 static void win32PrintLastError(void);
 
@@ -167,8 +167,8 @@ win32GetCommandLineArgs(CfAllocator alloc, I32 *out_argc, Usize *out_size)
     for (I32 i = 0; i < *out_argc; ++i)
     {
         argv[i] = buf;
-        U32 size = win32Utf16To8C(argv_utf16[i], -1, NULL, 0);
-        win32Utf16To8C(argv_utf16[i], -1, argv[i], size);
+        Usize size = win32Utf16To8C(argv_utf16[i], NULL, 0);
+        win32Utf16To8C(argv_utf16[i], argv[i], size);
         buf += size;
     }
 
@@ -410,9 +410,9 @@ win32DirIterStart(DirIterator *self, Str dir_path)
     Char16 buffer[1024];
 
     // Encode path to UTF16
-    U32 size = win32Utf8To16(dir_path, buffer, CF_ARRAY_SIZE(buffer));
+    Usize size = win32Utf8To16(dir_path, buffer, CF_ARRAY_SIZE(buffer));
 
-    if (size == U32_MAX || (Usize)size >= CF_ARRAY_SIZE(buffer) - 2)
+    if (size == USIZE_MAX || (Usize)size >= CF_ARRAY_SIZE(buffer) - 2)
     {
         CF_ASSERT(false, "Encoding error or overflow");
         return false;
@@ -447,11 +447,11 @@ win32DirIterNext(DirIterator *self, Str *filename)
 
     if (!FindNextFileW(iter->finder, &data)) return false;
 
-    U32 size = win32Utf16To8C(data.cFileName, -1, iter->buffer, CF_ARRAY_SIZE(iter->buffer));
+    Usize size = win32Utf16To8C(data.cFileName, iter->buffer, CF_ARRAY_SIZE(iter->buffer));
 
     // NOTE (Matteo): Truncation is considered an error
     // TODO (Matteo): Maybe require a bigger buffer?
-    if (size == U32_MAX || size == CF_ARRAY_SIZE(iter->buffer)) return false;
+    if (size == USIZE_MAX || size == CF_ARRAY_SIZE(iter->buffer)) return false;
 
     CF_ASSERT(size > 0, "Which filename can have a size of 0???");
 
@@ -480,7 +480,7 @@ win32BuildFilterString(FileDlgFilter *filters, Usize num_filters, CfAllocator al
 
     for (FileDlgFilter *filter = filters, *end = filter + num_filters; filter < end; ++filter)
     {
-        U32 name_size = win32Utf8To16C(filter->name, NULL, 0);
+        Usize name_size = win32Utf8To16C(filter->name, NULL, 0);
 
         cfArrayReserve(&out_filter, name_size);
         win32Utf8To16C(filter->name, cfArrayEnd(&out_filter), name_size);
@@ -489,7 +489,7 @@ win32BuildFilterString(FileDlgFilter *filters, Usize num_filters, CfAllocator al
         for (Usize ext_no = 0; ext_no < filter->num_extensions; ++ext_no)
         {
             Cstr ext = filter->extensions[ext_no];
-            U32 ext_size = win32Utf8To16C(ext, NULL, 0);
+            Usize ext_size = win32Utf8To16C(ext, NULL, 0);
 
             // Prepend '*' to the extension - not documented but actually required
             cfArrayPush(&out_filter, L'*');
@@ -519,7 +519,7 @@ win32FileOpenDialog(Str filename_hint, FileDlgFilter *filters, Usize num_filters
 
     if (strValid(filename_hint))
     {
-        U32 name_size = win32Utf8To16(filename_hint, NULL, 0);
+        Usize name_size = win32Utf8To16(filename_hint, NULL, 0);
         if (name_size >= MAX_PATH) return result;
         win32Utf8To16(filename_hint, name, name_size);
     }
@@ -540,14 +540,13 @@ win32FileOpenDialog(Str filename_hint, FileDlgFilter *filters, Usize num_filters
 
     if (GetOpenFileNameW(&ofn))
     {
-        result.filename.len = win32Utf16To8C(ofn.lpstrFile, -1, NULL, 0) - 1;
+        result.filename.len = win32Utf16To8C(ofn.lpstrFile, NULL, 0) - 1;
         result.filename.buf = cfAlloc(alloc, result.filename.len);
 
         if (result.filename.buf)
         {
             result.code = FileDialogResult_Ok;
-            win32Utf16To8C(ofn.lpstrFile, -1, (Char8 *)result.filename.buf,
-                           (U32)result.filename.len);
+            win32Utf16To8C(ofn.lpstrFile, (Char8 *)result.filename.buf, result.filename.len);
         }
         else
         {
@@ -570,7 +569,7 @@ win32FileRead(Str filename, CfAllocator alloc)
     FileContent result = {0};
 
     Char16 path[MAX_PATH] = {0};
-    U32 path_len = win32Utf8To16(filename, NULL, 0);
+    Usize path_len = win32Utf8To16(filename, NULL, 0);
 
     if (path_len >= CF_ARRAY_SIZE(path))
     {
@@ -703,55 +702,57 @@ win32libLoadProc(Library *lib, Cstr name)
 
 //------------------------------------------------------------------------------
 
-U32
-win32Utf8To16(Str str, Char16 *out, U32 out_size)
+Usize
+win32Utf8To16(Str str, Char16 *out, Usize out_size)
 {
-    CF_ASSERT(out_size != U32_MAX, "Invalid out size");
+    CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
 
     I32 len =
         MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str.buf, (I32)str.len, out, (I32)out_size);
-    if (len < 0)
+
+    if (len == 0)
     {
         win32PrintLastError();
-        return U32_MAX;
+        return USIZE_MAX;
     }
 
     // NOTE (Matteo): Since the input string length is given, the output string is not
     // null-terminated and as such the terminator is not included in the write count
     if (out)
     {
-        CF_ASSERT((U32)len < out_size, "The given buffer is not large enough");
+        CF_ASSERT((Usize)len < out_size, "The given buffer is not large enough");
         out[len] = 0;
     }
-    return (U32)(len + 1);
+
+    return (Usize)(len + 1);
 }
 
-U32
-win32Utf8To16C(Cstr cstr, Char16 *out, U32 out_size)
+Usize
+win32Utf8To16C(Cstr cstr, Char16 *out, Usize out_size)
 {
+    CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
+
     I32 result = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, cstr, -1, out, (I32)out_size);
-    if (result < 0)
-    {
-        win32PrintLastError();
-        return U32_MAX;
-    }
     // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
     // size count
-    return (U32)result;
+    if (!result) return (Usize)result;
+
+    win32PrintLastError();
+    return USIZE_MAX;
 }
 
-U32
-win32Utf16To8C(Char16 const *str, I32 str_size, Char8 *out, U32 out_size)
+Usize
+win32Utf16To8C(Char16 const *str, Char8 *out, Usize out_size)
 {
-    I32 result = WideCharToMultiByte(CP_UTF8, 0, str, str_size, out, (I32)out_size, 0, false);
-    if (result < 0)
-    {
-        win32PrintLastError();
-        return U32_MAX;
-    }
+    CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
+
+    I32 result = WideCharToMultiByte(CP_UTF8, 0, str, -1, out, (I32)out_size, 0, false);
     // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
     // size count
-    return (U32)result;
+    if (!result) return (Usize)result;
+
+    win32PrintLastError();
+    return USIZE_MAX;
 }
 
 //------------------------------------------------------------------------------
