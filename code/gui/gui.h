@@ -33,6 +33,7 @@ typedef struct Gui
 {
     ImGuiContext *ctx;
     CfAllocator *alloc;
+    ImFontAtlas *shared_atlas;
 } Gui;
 
 /// Helper struct to tweak IMGUI font handling

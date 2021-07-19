@@ -43,7 +43,7 @@ guiInit(Gui *gui)
     }
     else
     {
-        gui->ctx = igCreateContext(NULL);
+        gui->ctx = igCreateContext(gui->shared_atlas);
     }
 }
 
