@@ -38,7 +38,7 @@
 #define cfArrayFull(array) ((array)->len == (array)->cap)
 
 /// Pointer to the first element of the array
-#define cfArrayFirst(array) (array)->buf
+#define cfArrayFirst(array) ((array)->buf)
 /// Pointer to the last element of the array
 #define cfArrayLast(array) (cfArrayEnd(array) - 1)
 /// Pointer to one past the last element of the array
