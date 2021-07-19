@@ -231,12 +231,10 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     io->ConfigDockingTransparentPayload = true;
 
     // Setup DPI handling
-    F32 dpi_scale = 1.0f;
-
     F32 win_x_scale, win_y_scale;
     glfwGetWindowContentScale(window, &win_x_scale, &win_y_scale);
     // HACK How do I get the platform base DPI?
-    dpi_scale = win_x_scale > win_y_scale ? win_y_scale : win_x_scale;
+    F32 dpi_scale = win_x_scale > win_y_scale ? win_y_scale : win_x_scale;
 
     // Setup Dear ImGui style
     guiSetupStyle(dpi_scale);
@@ -247,7 +245,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     ImGui_ImplOpenGL3_Init(gl_ver.glsl);
 
     // Main loop
-
+    IVec2 win_pos, win_size;
     AppIo app_io = {
         .font_opts =
             &(FontOptions){
@@ -261,8 +259,6 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
         // NOTE (Matteo): Ensure fast first update
         .continuous_update = true,
     };
-
-    IVec2 win_pos, win_size;
 
     while (!glfwWindowShouldClose(window) && !app_io.quit)
     {
@@ -434,8 +430,6 @@ appApiUpdate(AppApi *api, Platform *platform, AppState *app)
         api->load(app);
     }
 }
-
-//------------------------------------------------------------------------------
 
 static void
 guiSetSizes(ImGuiStyle *style)
