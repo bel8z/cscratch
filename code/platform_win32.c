@@ -16,7 +16,7 @@
 I32 platformMain(Platform *platform, Cstr argv[], I32 argc);
 
 //------------------------------------------------------------------------------
-// Internal implementation
+// API implementation
 //------------------------------------------------------------------------------
 
 // Virtual memory
@@ -65,23 +65,6 @@ static Library *win32libLoad(Str filename);
 static void win32libUnload(Library *lib);
 static void *win32libLoadProc(Library *restrict lib, Cstr restrict name);
 
-// UTF8<->UTF16 helpers
-
-/// Encodes the given UTF8 string slice in UTF16 and null terminates it. The function returns the
-/// number of bytes written (including the null terminator); in case of a NULL output buffer, this
-/// number is the minimum required buffer size.
-static Usize win32Utf8To16(Str str, Char16 *out, Usize out_size);
-/// Encodes the given UTF8 C string in UTF16 and null terminates it. The function returns the
-/// number of bytes written (including the null terminator); in case of a NULL output buffer, this
-/// number is the minimum required buffer size.
-static Usize win32Utf8To16C(Cstr cstr, Char16 *out, Usize out_size);
-/// Encodes the given UTF16 C string in UTF8 and null terminates it. The function returns the
-/// number of bytes written (including the null terminator); in case of a NULL output buffer, this
-/// number is the minimum required buffer size.
-static Usize win32Utf16To8C(Char16 const *str, Char8 *out, Usize out_size);
-
-static void win32PrintLastError(void);
-
 // Global platform API
 // NOTE (Matteo): a global here should be quite safe
 static Platform g_platform = {
@@ -112,6 +95,113 @@ static Platform g_platform = {
     .libUnload = win32libUnload,
     .libLoadProc = win32libLoadProc,
 };
+
+//------------------------------------------------------------------------------
+// Utilities
+//------------------------------------------------------------------------------
+
+static void
+win32PrintLastError(void)
+{
+    DWORD error = GetLastError();
+    LPSTR msg = NULL;
+    FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                       FORMAT_MESSAGE_IGNORE_INSERTS,
+                   NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&msg, 0, NULL);
+    CF_DEBUG_BREAK();
+    fprintf(stderr, "%s\n", msg);
+    LocalFree(msg);
+}
+
+// UTF8<->UTF16 helpers
+
+/// Encodes the given UTF8 string slice in UTF16 and null terminates it. The function returns the
+/// number of bytes written (including the null terminator); in case of a NULL output buffer, this
+/// number is the minimum required buffer size.
+static Usize
+win32Utf8To16(Str str, Char16 *out, Usize out_size)
+{
+    CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
+
+    I32 len =
+        MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str.buf, (I32)str.len, out, (I32)out_size);
+
+    if (len == 0)
+    {
+        win32PrintLastError();
+        return USIZE_MAX;
+    }
+
+    // NOTE (Matteo): Since the input string length is given, the output string is not
+    // null-terminated and as such the terminator is not included in the write count
+    if (out)
+    {
+        CF_ASSERT((Usize)len < out_size, "The given buffer is not large enough");
+        out[len] = 0;
+    }
+
+    return (Usize)(len + 1);
+}
+
+/// Encodes the given UTF8 C string in UTF16 and null terminates it. The function returns the
+/// number of bytes written (including the null terminator); in case of a NULL output buffer, this
+/// number is the minimum required buffer size.
+static Usize
+win32Utf8To16C(Cstr cstr, Char16 *out, Usize out_size)
+{
+    CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
+
+    I32 result = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, cstr, -1, out, (I32)out_size);
+    // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
+    // size count
+    if (!result) return (Usize)result;
+
+    win32PrintLastError();
+    return USIZE_MAX;
+}
+
+/// Encodes the given UTF16 C string in UTF8 and null terminates it. The function returns the
+/// number of bytes written (including the null terminator); in case of a NULL output buffer, this
+/// number is the minimum required buffer size.
+static Usize
+win32Utf16To8C(Char16 const *str, Char8 *out, Usize out_size)
+{
+    CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
+
+    I32 result = WideCharToMultiByte(CP_UTF8, 0, str, -1, out, (I32)out_size, 0, false);
+    // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
+    // size count
+    if (!result) return (Usize)result;
+
+    win32PrintLastError();
+    return USIZE_MAX;
+}
+
+static Char8 **
+win32GetCommandLineArgs(CfAllocator alloc, I32 *out_argc, Usize *out_size)
+{
+    Char16 *cmd_line = GetCommandLineW();
+    Char16 **argv_utf16 = CommandLineToArgvW(cmd_line, out_argc);
+
+    Char8 **argv = NULL;
+
+    *out_size = (Usize)(*out_argc) * sizeof(*argv) + CF_MB(1);
+
+    argv = cfAlloc(alloc, *out_size);
+    Char8 *buf = (Char8 *)(argv + *out_argc);
+
+    for (I32 i = 0; i < *out_argc; ++i)
+    {
+        argv[i] = buf;
+        Usize size = win32Utf16To8C(argv_utf16[i], NULL, 0);
+        win32Utf16To8C(argv_utf16[i], argv[i], size);
+        buf += size;
+    }
+
+    LocalFree(argv_utf16);
+
+    return argv;
+}
 
 //------------------------------------------------------------------------------
 // Main entry point
@@ -149,32 +239,6 @@ pathsInit(Paths *g_paths)
     strPrintf((Char8 *)g_paths->data.buf, Paths_Size, "%.*sdata\\", (I32)g_paths->base.len,
               g_paths->base.buf);
     g_paths->data.len = strLength(g_paths->data.buf);
-}
-
-static Char8 **
-win32GetCommandLineArgs(CfAllocator alloc, I32 *out_argc, Usize *out_size)
-{
-    Char16 *cmd_line = GetCommandLineW();
-    Char16 **argv_utf16 = CommandLineToArgvW(cmd_line, out_argc);
-
-    Char8 **argv = NULL;
-
-    *out_size = (Usize)(*out_argc) * sizeof(*argv) + CF_MB(1);
-
-    argv = cfAlloc(alloc, *out_size);
-    Char8 *buf = (Char8 *)(argv + *out_argc);
-
-    for (I32 i = 0; i < *out_argc; ++i)
-    {
-        argv[i] = buf;
-        Usize size = win32Utf16To8C(argv_utf16[i], NULL, 0);
-        win32Utf16To8C(argv_utf16[i], argv[i], size);
-        buf += size;
-    }
-
-    LocalFree(argv_utf16);
-
-    return argv;
 }
 
 int WINAPI
@@ -294,8 +358,6 @@ VM_RELEASE_FUNC(win32VmRelease)
     }
 }
 
-//------------------------------------------------------------------------------
-
 #if CF_MEMORY_PROTECTION
 
 static Usize
@@ -397,8 +459,6 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 }
 
 #endif
-
-//------------------------------------------------------------------------------
 
 bool
 win32DirIterStart(DirIterator *self, Str dir_path)
@@ -647,7 +707,6 @@ win32FileWriteTime(Str filename)
     return write_time;
 }
 
-//------------------------------------------------------------------------------
 Time
 win32Clock(void)
 {
@@ -664,9 +723,6 @@ win32Clock(void)
 
     return time;
 }
-
-//------------------------------------------------------------------------------
-// Dynamic loading
 
 Library *
 win32libLoad(Str filename)
@@ -700,72 +756,4 @@ win32libLoadProc(Library *lib, Cstr name)
     return (void *)GetProcAddress((HMODULE)lib, name);
 }
 
-//------------------------------------------------------------------------------
-
-Usize
-win32Utf8To16(Str str, Char16 *out, Usize out_size)
-{
-    CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
-
-    I32 len =
-        MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str.buf, (I32)str.len, out, (I32)out_size);
-
-    if (len == 0)
-    {
-        win32PrintLastError();
-        return USIZE_MAX;
-    }
-
-    // NOTE (Matteo): Since the input string length is given, the output string is not
-    // null-terminated and as such the terminator is not included in the write count
-    if (out)
-    {
-        CF_ASSERT((Usize)len < out_size, "The given buffer is not large enough");
-        out[len] = 0;
-    }
-
-    return (Usize)(len + 1);
-}
-
-Usize
-win32Utf8To16C(Cstr cstr, Char16 *out, Usize out_size)
-{
-    CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
-
-    I32 result = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, cstr, -1, out, (I32)out_size);
-    // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
-    // size count
-    if (!result) return (Usize)result;
-
-    win32PrintLastError();
-    return USIZE_MAX;
-}
-
-Usize
-win32Utf16To8C(Char16 const *str, Char8 *out, Usize out_size)
-{
-    CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
-
-    I32 result = WideCharToMultiByte(CP_UTF8, 0, str, -1, out, (I32)out_size, 0, false);
-    // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
-    // size count
-    if (!result) return (Usize)result;
-
-    win32PrintLastError();
-    return USIZE_MAX;
-}
-
-//------------------------------------------------------------------------------
-
-void
-win32PrintLastError(void)
-{
-    DWORD error = GetLastError();
-    LPSTR msg = NULL;
-    FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-                       FORMAT_MESSAGE_IGNORE_INSERTS,
-                   NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&msg, 0, NULL);
-    CF_DEBUG_BREAK();
-    fprintf(stderr, "%s\n", msg);
-    LocalFree(msg);
-}
+//-----------------------------------------------------------------------------
