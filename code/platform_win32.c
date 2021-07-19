@@ -32,9 +32,15 @@ static CF_ALLOCATOR_FUNC(win32Alloc);
 // File system
 typedef CfArray(Char16) StrBuf16;
 
-static DirIter *win32DirIterStart(Str dir, CfAllocator alloc);
-static bool win32DirIterNext(DirIter *self, Str *path);
-static void win32DirIterClose(DirIter *self);
+typedef struct Win32DirIterator
+{
+    HANDLE finder;
+    Char8 buffer[sizeof(DirIterator) - sizeof(HANDLE)];
+} Win32DirIterator;
+
+bool win32DirIterStart(DirIterator *self, Str dir_path);
+bool win32DirIterNext(DirIterator *self, Str *filename);
+void win32DirIterEnd(DirIterator *self);
 
 static FileDlgResult win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters,
                                       CfAllocator alloc);
@@ -94,7 +100,7 @@ static Platform g_platform = {
         &(CfFileSystem){
             .dirIterStart = win32DirIterStart,
             .dirIterNext = win32DirIterNext,
-            .dirIterClose = win32DirIterClose,
+            .dirIterEnd = win32DirIterEnd,
             .open_file_dlg = win32OpenFileDlg,
             .fileRead = win32FileRead,
             .fileCopy = win32FileCopy,
@@ -394,92 +400,74 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 
 //------------------------------------------------------------------------------
 
-typedef enum Win32DirIterState
-{
-    Win32DirIterState_Null = 0,
-    Win32DirIterState_Start,
-    Win32DirIterState_Next,
-} Win32DirIterState;
-
-struct DirIter
-{
-    CfAllocator alloc;
-
-    HANDLE finder;
-    Char8 buffer[MAX_PATH];
-
-    U8 state;
-};
-
-DirIter *
-win32DirIterStart(Str dir, CfAllocator alloc)
-{
-    // TODO (Matteo): Handle UTF8 by converting to Char16 string
-
-    DirIter *self = cfAlloc(alloc, sizeof(*self));
-    if (!self) return NULL;
-
-    strPrintf(self->buffer, MAX_PATH, "%.*s/*", (I32)dir.len, dir.buf);
-
-    WIN32_FIND_DATAA data = {0};
-
-    self->finder = FindFirstFileA(self->buffer, &data);
-
-    if (self->finder != INVALID_HANDLE_VALUE)
-    {
-        strncpy_s(self->buffer, MAX_PATH, data.cFileName, MAX_PATH);
-        self->state = Win32DirIterState_Start;
-        self->alloc = alloc;
-        return self;
-    }
-
-    cfFree(alloc, self, sizeof(*self));
-    return NULL;
-}
-
 bool
-win32DirIterNext(DirIter *self, Str *path)
+win32DirIterStart(DirIterator *self, Str dir_path)
 {
     CF_ASSERT_NOT_NULL(self);
 
-    switch (self->state)
+    Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
+    WIN32_FIND_DATAW data = {0};
+    Char16 buffer[1024];
+
+    // Encode path to UTF16
+    U32 size = win32Utf8To16(dir_path, buffer, CF_ARRAY_SIZE(buffer));
+
+    if (size == U32_MAX || (Usize)size >= CF_ARRAY_SIZE(buffer) - 2)
     {
-        case Win32DirIterState_Null:
-        {
-            return false;
-        }
-        case Win32DirIterState_Start:
-        {
-            self->state = Win32DirIterState_Next;
-            break;
-        }
-        case Win32DirIterState_Next:
-        {
-            WIN32_FIND_DATAA data = {0};
-            if (!FindNextFileA(self->finder, &data))
-            {
-                self->state = Win32DirIterState_Null;
-                return false;
-            }
-            strncpy_s(self->buffer, MAX_PATH, data.cFileName, MAX_PATH);
-        }
+        CF_ASSERT(false, "Encoding error or overflow");
+        return false;
     }
 
-    *path = strFromCstr(self->buffer);
+    // Append a wildcard (D:)
+    buffer[size - 1] = L'*';
+    buffer[size] = 0;
+
+    // Start iteration
+    iter->finder = FindFirstFileW(buffer, &data);
+    if (iter->finder == INVALID_HANDLE_VALUE) return false;
+
+    // Skip to ".." so that the "advance" method can call FindNextFileW directly
+    if (!wcscmp(data.cFileName, L".") && !FindNextFileW(iter->finder, &data))
+    {
+        FindClose(iter->finder);
+        iter->finder = INVALID_HANDLE_VALUE;
+        return false;
+    }
+
+    return true;
+}
+
+bool
+win32DirIterNext(DirIterator *self, Str *filename)
+{
+    CF_ASSERT_NOT_NULL(self);
+
+    Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
+    WIN32_FIND_DATAW data = {0};
+
+    if (!FindNextFileW(iter->finder, &data)) return false;
+
+    U32 size = win32Utf16To8C(data.cFileName, -1, iter->buffer, CF_ARRAY_SIZE(iter->buffer));
+
+    // NOTE (Matteo): Truncation is considered an error
+    // TODO (Matteo): Maybe require a bigger buffer?
+    if (size == U32_MAX || size == CF_ARRAY_SIZE(iter->buffer)) return false;
+
+    CF_ASSERT(size > 0, "Which filename can have a size of 0???");
+
+    filename->buf = iter->buffer;
+    filename->len = (Usize)(size - 1);
+
     return true;
 }
 
 void
-win32DirIterClose(DirIter *self)
+win32DirIterEnd(DirIterator *self)
 {
     CF_ASSERT_NOT_NULL(self);
 
-    if (self->finder != INVALID_HANDLE_VALUE)
-    {
-        FindClose(self->finder);
-    }
-
-    cfFree(self->alloc, self, sizeof(*self));
+    Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
+    FindClose(iter->finder);
 }
 
 static StrBuf16
@@ -722,19 +710,19 @@ win32Utf8To16(Str str, Char16 *out, U32 out_size)
 
     I32 len =
         MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str.buf, (I32)str.len, out, (I32)out_size);
-
     if (len < 0)
     {
         win32PrintLastError();
         return U32_MAX;
     }
 
+    // NOTE (Matteo): Since the input string length is given, the output string is not
+    // null-terminated and as such the terminator is not included in the write count
     if (out)
     {
         CF_ASSERT((U32)len < out_size, "The given buffer is not large enough");
         out[len] = 0;
     }
-
     return (U32)(len + 1);
 }
 
@@ -742,7 +730,13 @@ U32
 win32Utf8To16C(Cstr cstr, Char16 *out, U32 out_size)
 {
     I32 result = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, cstr, -1, out, (I32)out_size);
-    CF_ASSERT(result >= 0, "");
+    if (result < 0)
+    {
+        win32PrintLastError();
+        return U32_MAX;
+    }
+    // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
+    // size count
     return (U32)result;
 }
 
@@ -750,7 +744,13 @@ U32
 win32Utf16To8C(Char16 const *str, I32 str_size, Char8 *out, U32 out_size)
 {
     I32 result = WideCharToMultiByte(CP_UTF8, 0, str, str_size, out, (I32)out_size, 0, false);
-    CF_ASSERT(result >= 0, "");
+    if (result < 0)
+    {
+        win32PrintLastError();
+        return U32_MAX;
+    }
+    // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
+    // size count
     return (U32)result;
 }
 

@@ -3,7 +3,10 @@
 #include "core.h"
 
 /// Iterator over directory content
-typedef struct DirIter DirIter;
+typedef struct DirIterator
+{
+    U8 opaque[1024];
+} DirIterator;
 
 typedef struct FileContent
 {
@@ -41,13 +44,13 @@ typedef struct CfFileSystem
     // *** Directory operations ***
 
     /// Create an iterator on the given directory contents (return NULL in case of failure)
-    DirIter *(*dirIterStart)(Str dir, CfAllocator alloc);
+    bool (*dirIterStart)(DirIterator *self, Str dir_path);
     /// Advance the iterator and return the filename of the current entry, or NULL if the iteration
     /// is complete; NOTE that the current pointer is valid until the next call to this function (or
     /// the iterator is destroyed)
-    bool (*dirIterNext)(DirIter *iter, Str *path);
+    bool (*dirIterNext)(DirIterator *self, Str *filename);
     /// Shutdown the iteration
-    void (*dirIterClose)(DirIter *iter);
+    void (*dirIterEnd)(DirIterator *self);
 
     // *** File operations ***
 

@@ -154,3 +154,8 @@ add_executable(test_odbc ${TESTS_DIR}/test_odbc.c)
 target_link_libraries(test_odbc PRIVATE foundation)
 target_include_directories(test_odbc PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_odbc)
+
+add_executable(test_files ${TESTS_DIR}/test_files.c)
+target_link_libraries(test_files PRIVATE foundation)
+target_include_directories(test_files PRIVATE ${CODE_DIR})
+set_c_compile_flags(test_files)
