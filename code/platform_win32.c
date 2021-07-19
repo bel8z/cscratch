@@ -154,7 +154,7 @@ win32Utf8To16C(Cstr cstr, Char16 *out, Usize out_size)
     I32 result = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, cstr, -1, out, (I32)out_size);
     // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
     // size count
-    if (!result) return (Usize)result;
+    if (result) return (Usize)result;
 
     win32PrintLastError();
     return USIZE_MAX;
@@ -171,7 +171,7 @@ win32Utf16To8C(Char16 const *str, Char8 *out, Usize out_size)
     I32 result = WideCharToMultiByte(CP_UTF8, 0, str, -1, out, (I32)out_size, 0, false);
     // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
     // size count
-    if (!result) return (Usize)result;
+    if (result) return (Usize)result;
 
     win32PrintLastError();
     return USIZE_MAX;
