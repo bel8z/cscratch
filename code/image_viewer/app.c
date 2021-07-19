@@ -605,17 +605,14 @@ appLoadFromFile(AppState *state, Str full_name)
         DirIterator it = {0};
         if (fs->dirIterStart(&it, strFromCstr(root_name)))
         {
-            Str path = {0};
-
-            // NOTE (Matteo): Explicit test against NULL is required for compiling with /W4 on
-            // MSVC
-            while (fs->dirIterNext(&it, &path))
+            Str filename = {0};
+            while (fs->dirIterNext(&it, &filename))
             {
-                if (appIsFileSupported(path))
+                if (appIsFileSupported(filename))
                 {
                     cfArrayPush(images, (ImageFile){.state = ImageFileState_Idle});
                     bool ok = strPrintf(cfArrayLast(images)->filename, FILENAME_SIZE, "%s%.*s",
-                                        root_name, (I32)path.len, path.buf);
+                                        root_name, (I32)filename.len, filename.buf);
                     CF_ASSERT(ok, "path is too long!");
                 }
             }
@@ -794,13 +791,13 @@ appOpenFile(AppState *state)
 
     ARENA_TEMP_SCOPE(state->scratch)
     {
-        FileDlgResult dlg_result =
-            plat->fs->open_file_dlg(hint, &state->filter, 1, arenaAllocator(state->scratch));
+        FileDialogResult dlg_result =
+            plat->fs->fileOpenDialog(hint, &state->filter, 1, arenaAllocator(state->scratch));
 
         switch (dlg_result.code)
         {
-            case FileDlgResult_Ok: appLoadFromFile(state, dlg_result.filename); break;
-            case FileDlgResult_Error: result = false; break;
+            case FileDialogResult_Ok: appLoadFromFile(state, dlg_result.filename); break;
+            case FileDialogResult_Error: result = false; break;
         }
     }
 

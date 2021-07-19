@@ -27,27 +27,30 @@ typedef struct FileDlgFilter
 
 enum
 {
-    FileDlgResult_Ok,
-    FileDlgResult_Cancel,
-    FileDlgResult_Error,
+    FileDialogResult_Ok,
+    FileDialogResult_Cancel,
+    FileDialogResult_Error,
 };
 
-typedef struct FileDlgResult
+typedef struct FileDialogResult
 {
     Str filename;
     U8 code;
-} FileDlgResult;
+} FileDialogResult;
 
 /// File system API
 typedef struct CfFileSystem
 {
     // *** Directory operations ***
 
-    /// Create an iterator on the given directory contents (return NULL in case of failure)
+    /// Create an iterator on the given directory contents
+    /// Returns false in case of an error
     bool (*dirIterStart)(DirIterator *self, Str dir_path);
-    /// Advance the iterator and return the filename of the current entry, or NULL if the iteration
-    /// is complete; NOTE that the current pointer is valid until the next call to this function (or
-    /// the iterator is destroyed)
+    /// Advance the iterator, assigning the entry name to the given string view.
+    /// Returns false in case the iteration is terminated (in such a case, the string view is not
+    /// valid).
+    // NOTE that the string view is valid until the next call to this function (or the iterator is
+    // destroyed) so copy its content explicitly if you need to store it.
     bool (*dirIterNext)(DirIterator *self, Str *filename);
     /// Shutdown the iteration
     void (*dirIterEnd)(DirIterator *self);
@@ -62,8 +65,8 @@ typedef struct CfFileSystem
 
     // TODO (Matteo): Is this the correct place for file dialogs?
 
-    FileDlgResult (*open_file_dlg)(Str filename_hint, FileDlgFilter *filters, Usize num_filters,
-                                   CfAllocator alloc);
+    FileDialogResult (*fileOpenDialog)(Str filename_hint, FileDlgFilter *filters, Usize num_filters,
+                                       CfAllocator alloc);
 
 } CfFileSystem;
 

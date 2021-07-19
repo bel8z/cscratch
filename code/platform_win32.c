@@ -42,8 +42,8 @@ bool win32DirIterStart(DirIterator *self, Str dir_path);
 bool win32DirIterNext(DirIterator *self, Str *filename);
 void win32DirIterEnd(DirIterator *self);
 
-static FileDlgResult win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters,
-                                      CfAllocator alloc);
+static FileDialogResult win32FileOpenDialog(Str filename_hint, FileDlgFilter *filters,
+                                            Usize num_filters, CfAllocator alloc);
 
 static FileContent win32FileRead(Str filename, CfAllocator alloc);
 static bool win32FileCopy(Str source, Str dest, bool overwrite);
@@ -101,7 +101,7 @@ static Platform g_platform = {
             .dirIterStart = win32DirIterStart,
             .dirIterNext = win32DirIterNext,
             .dirIterEnd = win32DirIterEnd,
-            .open_file_dlg = win32OpenFileDlg,
+            .fileOpenDialog = win32FileOpenDialog,
             .fileRead = win32FileRead,
             .fileCopy = win32FileCopy,
             .fileWriteTime = win32FileWriteTime,
@@ -510,10 +510,10 @@ win32BuildFilterString(FileDlgFilter *filters, Usize num_filters, CfAllocator al
     return out_filter;
 }
 
-FileDlgResult
-win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters, CfAllocator alloc)
+FileDialogResult
+win32FileOpenDialog(Str filename_hint, FileDlgFilter *filters, Usize num_filters, CfAllocator alloc)
 {
-    FileDlgResult result = {.code = FileDlgResult_Error};
+    FileDialogResult result = {.code = FileDialogResult_Error};
 
     Char16 name[MAX_PATH] = {0};
 
@@ -545,7 +545,7 @@ win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters, C
 
         if (result.filename.buf)
         {
-            result.code = FileDlgResult_Ok;
+            result.code = FileDialogResult_Ok;
             win32Utf16To8C(ofn.lpstrFile, -1, (Char8 *)result.filename.buf,
                            (U32)result.filename.len);
         }
@@ -556,7 +556,7 @@ win32OpenFileDlg(Str filename_hint, FileDlgFilter *filters, Usize num_filters, C
     }
     else
     {
-        result.code = FileDlgResult_Cancel;
+        result.code = FileDialogResult_Cancel;
     }
 
     cfArrayFree(&filt);

@@ -155,7 +155,7 @@ main(void)
     }
 
     // U32 sz = 0;
-    // char *f = plat.fs.open_file_dlg(NULL, NULL, &plat.heap, &sz);
+    // char *f = plat.fs.fileOpenDialog(NULL, NULL, &plat.heap, &sz);
     // printf("Opened file: %s \n", f);
     // cfFree(&plat.heap, f, sz);
 
