@@ -48,7 +48,8 @@ strBufferPrintf(StrBuffer *array, Cstr fmt, ...)
     return true;
 }
 
-static bool
+// NOTE (Matteo): This returns the length of the written string, ignoring the null terminator
+static I32
 strPrintfV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
 {
     va_list args_copy;
@@ -59,16 +60,11 @@ strPrintfV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
 
     va_end(args_copy);
 
-    Usize req_size = (Usize)len + 1;
+    if (len < 0 || (len + 1) > buffer_size) return -1;
 
-    if (len < 0 || req_size > buffer_size)
-    {
-        return false;
-    }
+    vsnprintf(buffer, len + 1, fmt, args); // NOLINT
 
-    vsnprintf(buffer, req_size, fmt, args); // NOLINT
-
-    return true;
+    return len;
 }
 
 bool
@@ -78,11 +74,11 @@ strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...)
 
     va_start(args, fmt);
 
-    bool result = strPrintfV(buffer, buffer_size, fmt, args);
+    I32 len = strPrintfV(buffer, buffer_size, fmt, args);
 
     va_end(args);
 
-    return result;
+    return (len >= 0);
 }
 
 bool
@@ -92,11 +88,16 @@ stackStrPrintf(StackStr *str, Cstr fmt, ...)
 
     va_start(args, fmt);
 
-    bool result = strPrintfV(str->buf, str->len, fmt, args);
+    I32 len = strPrintfV(str->buf, str->len, fmt, args);
 
     va_end(args);
 
-    return result;
+    if (len < 0) return false;
+
+    // TODO (Matteo): Should account for the null terminator?
+    str->len = len;
+
+    return true;
 }
 
 I32
