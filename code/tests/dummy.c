@@ -134,6 +134,12 @@ main()
     freeListAllocInit(&fl, ALLOC_SIZE);
     CfAllocator alloc = freeListAllocator(&fl);
 
+    //======================================================//
+
+    printf("-------------------------\n");
+    printf("Temporary buffer\n");
+    printf("-------------------------\n");
+
     Char8 *buff = cfAlloc(alloc, BUFF_SIZE);
 
     strPrintf(buff, BUFF_SIZE, "USIZE_MAX = %zu", USIZE_MAX);
@@ -142,6 +148,24 @@ main()
     printf("%.*s\n", (I32)dummy.len, dummy.buf);
 
     cfFree(alloc, buff, BUFF_SIZE);
+
+    //======================================================//
+
+    printf("-------------------------\n");
+    printf("String builder\n");
+    printf("-------------------------\n");
+
+    StrBuffer sb = {0};
+
+    strBufferInit(&sb, alloc);
+    strBufferPrintf(&sb, "%s", "This is");
+    strBufferAppend(&sb, strFromCstr(" a"));
+    strBufferAppendf(&sb, " %s %s", "string", "buffer");
+    printf("%s\n", strBufferCstr(&sb));
+
+    strBufferShutdown(&sb);
+
+    //======================================================//
 
     return 0;
 }

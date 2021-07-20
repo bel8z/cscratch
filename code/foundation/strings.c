@@ -6,6 +6,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+//----------------------//
+//   C string helpers   //
+//----------------------//
+
 Usize
 strToCstr(Str str, Char8 *buffer, Usize size)
 {
@@ -18,35 +22,9 @@ strToCstr(Str str, Char8 *buffer, Usize size)
     return len + 1;
 }
 
-bool
-strBufferPrintf(StrBuffer *array, Cstr fmt, ...)
-{
-    va_list args, args_copy;
-
-    va_start(args, fmt);
-    va_copy(args_copy, args);
-
-    I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
-
-    va_end(args_copy);
-
-    if (len < 0)
-    {
-        va_end(args);
-        return false;
-    };
-
-    Usize req_size = (Usize)len + 1;
-    Usize arr_size = array->len;
-
-    cfArrayResize(array, req_size);
-
-    vsnprintf(array->buf + arr_size, req_size, fmt, args); // NOLINT
-
-    va_end(args);
-
-    return true;
-}
+//-----------------------//
+//   String formatting   //
+//-----------------------//
 
 // NOTE (Matteo): This returns the length of the written string, ignoring the null terminator
 static I32
@@ -100,6 +78,10 @@ stackStrPrintf(StackStr *str, Cstr fmt, ...)
     return true;
 }
 
+//-----------------------//
+//   String comparison   //
+//-----------------------//
+
 I32
 strCompare(Str l, Str r)
 {
@@ -137,6 +119,10 @@ strEqualInsensitive(Str l, Str r)
     // TODO (Matteo): replace with portable method
     return (l.len == r.len && !__strIComp(l.buf, r.buf, l.len));
 }
+
+//----------------------------//
+//   String view processing   //
+//----------------------------//
 
 Usize
 strFindFirst(Str haystack, Str needle)
@@ -181,4 +167,139 @@ strContains(Str str, Char8 c)
     }
 
     return false;
+}
+
+//-----------------------------//
+//   Dynamic string building   //
+//-----------------------------//
+
+#define _sbValidate(sb) \
+    (CF_ASSERT((sb) && (sb)->buf && (sb)->len >= 1, "Invalid string builder state")) // NOLINT
+
+void
+strBufferInit(StrBuffer *sb, CfAllocator alloc)
+{
+    CF_ASSERT_NOT_NULL(sb);
+    cfArrayInit(sb, alloc);
+    cfArrayPush(sb, 0);
+}
+
+void
+strBufferInitFrom(StrBuffer *sb, CfAllocator alloc, Str str)
+{
+    CF_ASSERT_NOT_NULL(sb);
+    cfArrayInitCap(sb, alloc, str.len + 1);
+    cfArrayExtend(sb, str.len);
+    cfMemCopy(str.buf, sb->buf, str.len);
+    cfArrayPush(sb, 0);
+}
+
+void
+strBufferInitWith(StrBuffer *sb, CfAllocator alloc, Usize cap)
+{
+    CF_ASSERT_NOT_NULL(sb);
+    cfArrayInitCap(sb, alloc, cap);
+    cfArrayPush(sb, 0);
+}
+
+void
+strBufferShutdown(StrBuffer *sb)
+{
+    cfArrayFree(sb);
+}
+
+void
+strBufferAppend(StrBuffer *sb, Str what)
+{
+    _sbValidate(sb);
+
+    // Write over the previous null terminator
+    Usize nul_pos = sb->len - 1;
+
+    cfArrayExtend(sb, what.len);
+    cfMemCopy(what.buf, sb->buf + nul_pos, what.len);
+
+    // Null terminate again
+    sb->buf[sb->len - 1] = 0;
+}
+
+bool
+strBufferPrintf(StrBuffer *sb, Cstr fmt, ...)
+{
+    _sbValidate(sb);
+
+    va_list args, args_copy;
+
+    va_start(args, fmt);
+    va_copy(args_copy, args);
+
+    I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+
+    va_end(args_copy);
+
+    if (len < 0)
+    {
+        va_end(args);
+        return false;
+    };
+
+    // Keep room for the null terminator
+    Usize size = len + 1;
+    cfArrayResize(sb, size);
+
+    vsnprintf(sb->buf, size, fmt, args); // NOLINT
+    va_end(args);
+
+    CF_ASSERT(sb->buf && sb->buf[sb->len - 1] == 0, "Missing null terminator");
+
+    return true;
+}
+
+bool
+strBufferAppendf(StrBuffer *sb, Cstr fmt, ...)
+{
+    _sbValidate(sb);
+
+    va_list args, args_copy;
+
+    va_start(args, fmt);
+    va_copy(args_copy, args);
+
+    I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+
+    va_end(args_copy);
+
+    if (len < 0)
+    {
+        va_end(args);
+        return false;
+    };
+
+    // Write over the previous null terminator
+    Usize nul_pos = sb->len - 1;
+
+    cfArrayExtend(sb, len);
+    CF_ASSERT(sb->len >= len + 1, "Buffer not extended correctly");
+
+    vsnprintf(sb->buf + nul_pos, len + 1, fmt, args); // NOLINT
+    va_end(args);
+
+    // Null terminate again
+    sb->buf[sb->len - 1] = 0;
+
+    return true;
+}
+
+Str
+strBufferView(StrBuffer *sb)
+{
+    _sbValidate(sb);
+    return (Str){.buf = sb->buf, .len = sb->len - 1};
+}
+
+Cstr
+strBufferCstr(StrBuffer *sb)
+{
+    _sbValidate(sb);
+    return sb->buf;
 }

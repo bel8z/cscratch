@@ -57,16 +57,10 @@ strSize(Cstr cstr)
 /// Print formatted string on the given static buffer
 /// This does not take a Str because it represents a string view more than a char buffer.
 /// You can use a Str by explicitly calling strPrintf(str.buf, str.len, ...).
-CF_PRINTF_LIKE(2, 3)
-bool strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...);
+bool strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...) CF_PRINTF_LIKE(2, 3);
 
 /// Print formatted string on the given dynamic buffer
-CF_PRINTF_LIKE(1, 2)
-bool strBufferPrintf(StrBuffer *buffer, Cstr fmt, ...);
-
-/// Print formatted string on the given dynamic buffer
-CF_PRINTF_LIKE(1, 2)
-bool stackStrPrintf(StackStr *str, Cstr fmt, ...);
+bool stackStrPrintf(StackStr *str, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
 
 //------------------------------//
 //   String (view) comparison   //
@@ -84,5 +78,21 @@ bool strEqualInsensitive(Str l, Str r);
 bool strContains(Str str, Char8 c);
 Usize strFindFirst(Str haystack, Str needle);
 Usize strFindLast(Str haystack, Str needle);
+
+//-----------------------------//
+//   Dynamic string building   //
+//-----------------------------//
+
+void strBufferInit(StrBuffer *sb, CfAllocator alloc);
+void strBufferInitFrom(StrBuffer *sb, CfAllocator alloc, Str str);
+void strBufferInitWith(StrBuffer *sb, CfAllocator alloc, Usize cap);
+void strBufferShutdown(StrBuffer *sb);
+
+void strBufferAppend(StrBuffer *sb, Str what);
+bool strBufferAppendf(StrBuffer *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
+bool strBufferPrintf(StrBuffer *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
+
+Str strBufferView(StrBuffer *sb);
+Cstr strBufferCstr(StrBuffer *sb);
 
 //------------------------------------------------------------------------------
