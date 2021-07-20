@@ -19,6 +19,7 @@
 #include "foundation/strings.h"
 
 // Standard library
+// TODO (Matteo): Get rid of it (currently here only for stderr)
 #include <stdio.h>
 
 // Constants for DPI handling
@@ -43,6 +44,9 @@
 
 static void guiSetupStyle(F32 dpi);
 static void guiSetupFonts(ImFontAtlas *fonts, F32 dpi, Str data_path);
+
+// TODO (Matteo): Better logging
+#define logError(...) fprintf(stderr, __VA_ARGS__)
 
 //------------------------------------------------------------------------------
 // OpenGL3 backend declarations
@@ -75,7 +79,7 @@ extern void ImGui_ImplGlfw_NewFrame();
 static void
 glfwErrorCallback(int error, Cstr description)
 {
-    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+    logError("Glfw Error %d: %s\n", error, description);
 }
 
 // NOTE (Matteo):
@@ -185,7 +189,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     // Initialize OpenGL loader
     if (!gloadInit(NULL) || !gloadIsSupported(gl_ver.major, gl_ver.minor))
     {
-        fprintf(stderr, "Failed to initialize OpenGL loader!\n");
+        logError("Failed to initialize OpenGL loader!\n");
         return -2;
     }
 
@@ -481,7 +485,7 @@ ImFont *
 guiLoadFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size, ImWchar const *ranges)
 {
     Char8 buffer[1024] = {0};
-    snprintf(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
+    strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
     return ImFontAtlas_AddFontFromFileTTF(fonts, buffer, font_size, NULL, ranges);
 }
 

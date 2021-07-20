@@ -64,6 +64,10 @@ bool strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...);
 CF_PRINTF_LIKE(1, 2)
 bool strBufferPrintf(StrBuffer *buffer, Cstr fmt, ...);
 
+/// Print formatted string on the given dynamic buffer
+CF_PRINTF_LIKE(1, 2)
+bool stackStrPrintf(StackStr *str, Cstr fmt, ...);
+
 //------------------------------//
 //   String (view) comparison   //
 //------------------------------//

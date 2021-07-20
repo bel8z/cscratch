@@ -48,12 +48,11 @@ strBufferPrintf(StrBuffer *array, Cstr fmt, ...)
     return true;
 }
 
-bool
-strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...)
+static bool
+strPrintfV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
 {
-    va_list args, args_copy;
+    va_list args_copy;
 
-    va_start(args, fmt);
     va_copy(args_copy, args);
 
     I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
@@ -64,15 +63,40 @@ strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...)
 
     if (len < 0 || req_size > buffer_size)
     {
-        va_end(args);
         return false;
     }
 
     vsnprintf(buffer, req_size, fmt, args); // NOLINT
 
+    return true;
+}
+
+bool
+strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...)
+{
+    va_list args;
+
+    va_start(args, fmt);
+
+    bool result = strPrintfV(buffer, buffer_size, fmt, args);
+
     va_end(args);
 
-    return true;
+    return result;
+}
+
+bool
+stackStrPrintf(StackStr *str, Cstr fmt, ...)
+{
+    va_list args;
+
+    va_start(args, fmt);
+
+    bool result = strPrintfV(str->buf, str->len, fmt, args);
+
+    va_end(args);
+
+    return result;
 }
 
 I32

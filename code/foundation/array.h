@@ -6,6 +6,10 @@
 #include "core.h"
 #include "memory.h"
 
+//-------------//
+//   CfArray   //
+//-------------//
+
 #define cf__arrayNextCap(array, req) cfMax(req, (array)->cap ? 2 * (array)->cap : 1)
 #define cf__arrayByteCount(array, count) (count * sizeof(*(array)->buf))
 
@@ -98,3 +102,24 @@
 // TODO (Matteo):
 // * Range insertion/removal
 // * Trim unused memory
+
+//--------------//
+//   CfBuffer   //
+//--------------//
+
+#define cfBufferEmpty(buff) ((buff)->len == 0)
+#define cfBufferFull(buff) ((buff)->len == CF_ARRAY_SIZE((buff)->buf))
+
+#define cfBufferPush(buff, item) \
+    (CF_ASSERT(!cfBufferFull(buff), "buffer is full"), (buff)->buf[(buff)->len++] = item)
+
+#define cfBufferPop(buff) \
+    (CF_ASSERT(!cfBufferEmpty(buff), "buffer is empty"), (buff)->buf[--(buff)->len])
+
+#define cfBufferResize(buff, size) \
+    (CF_ASSERT(size < CF_ARRAY_SIZE((buff)->buf), "Not enough buffer capacity"), (buff)->len = size)
+
+#define cfBufferExtend(buff, amount) cfBufferResize((buff), ((buff)->len + (amount)))
+
+// TODO (Matteo):
+// * Range insertion/removal

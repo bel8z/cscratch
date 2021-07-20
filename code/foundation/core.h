@@ -414,7 +414,10 @@ typedef struct CfAllocator
 //   Dynamic array   //
 //-------------------//
 
-/// Macro to define a typed dynamic array (variable or typedef)
+// TODO (Matteo): Naming review
+
+/// Macro to define a typed, dynamically allocated array
+/// Can be used as an anonymous struct or member, or as a typedef for building a specific API.
 /// Functionality is implemented in array.h
 #define CfArray(Type)                                                                              \
     struct                                                                                         \
@@ -429,9 +432,21 @@ typedef struct CfAllocator
         Usize cap;                                                                                 \
     }
 
+/// Macro to define a typed, fixed size buffer with a dynamic interface (useful for small string
+/// building or temporary arrays without dynamic allocation)
+/// Functionality is implemented in array.h
+#define CfBuffer(Type, Cap) \
+    struct                  \
+    {                       \
+        Type buf[Cap];      \
+        Usize len;          \
+    }
+
 //-------------//
 //   Strings   //
 //-------------//
+
+// TODO (Matteo): Naming review
 
 /// Type alias for immutable, null-terminated C strings
 typedef Char8 const *Cstr;
@@ -445,8 +460,18 @@ typedef struct Str
 } Str;
 
 /// Dynamic string buffer
-// TODO (Matteo): Make a separate type for better API separation?
-typedef CfArray(Char8) StrBuffer;
+typedef struct StrBuffer
+{
+    // NOTE (Matteo): Including a dynamic array as an anonymous struct allows for both extension and
+    // easy usage of the array API
+    CfArray(Char8);
+} StrBuffer;
+
+/// Fixed size string buffer, useful for temporary small strings allocation on the stack
+typedef struct StackStr
+{
+    CfBuffer(Char8, 1024);
+} StackStr;
 
 //-------------//
 //   Vectors   //
