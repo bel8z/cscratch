@@ -7,6 +7,10 @@
 #include "foundation/memory.h"
 #include "foundation/strings.h"
 
+//======================================================//
+
+// Memory allocator based on arena + free list
+
 typedef struct MemoryHeader
 {
     Usize size;
@@ -124,6 +128,87 @@ freeListAllocator(FreeListAlloc *alloc)
     };
 }
 
+//======================================================//
+
+// Windows thread pool IO
+
+#include "foundation/win32.h"
+
+#define IO_CALLBACK(name) void name(void *context, ULONG result, ULONG_PTR bytes)
+
+typedef IO_CALLBACK((*IoCallback));
+
+typedef struct IoContext
+{
+    IoCallback callback;
+    void *user_data;
+    OVERLAPPED ovp;
+} IoContext;
+
+void WINAPI
+ioCallback(TP_CALLBACK_INSTANCE *Instance,     //
+           void *Context,                      //
+           void *Overlapped,                   //
+           ULONG IoResult,                     //
+           ULONG_PTR NumberOfBytesTransferred, //
+           TP_IO *Io)
+{
+    CF_UNUSED(Instance);
+
+    IoContext *ioctxt = Context;
+    ioctxt->callback(ioctxt->user_data, IoResult, NumberOfBytesTransferred);
+
+    CF_ASSERT(Overlapped == &ioctxt->ovp, "");
+
+    CloseThreadpoolIo(Io);
+    free(ioctxt);
+}
+
+TP_IO *
+ioBegin(IoContext *context, HANDLE file)
+{
+    TP_IO *io = CreateThreadpoolIo(file, ioCallback, context, NULL);
+    StartThreadpoolIo(io);
+    return io;
+}
+
+typedef struct FileIoToken
+{
+    bool completed;
+    bool success;
+} FileIoToken;
+
+IO_CALLBACK(fileIoCallback)
+{
+    CF_UNUSED(bytes);
+    FileIoToken *token = context;
+    token->success = !result;
+    token->completed = true;
+}
+
+void
+fileBeginWrite(Cstr filename, U8 const *buffer, Usize size, FileIoToken *token)
+{
+    IoContext *context = calloc(1, sizeof(*context));
+    context->callback = fileIoCallback;
+    context->user_data = token;
+
+    HANDLE file = CreateFileA(filename, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                              FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL);
+
+    TP_IO *io = ioBegin(context, file);
+
+    token->success = WriteFile(file, buffer, (DWORD)size, NULL, &context->ovp);
+
+    if (token->success || GetLastError() != ERROR_IO_PENDING)
+    {
+        token->completed = true;
+        CancelThreadpoolIo(io);
+    }
+}
+
+//======================================================//
+
 #define ALLOC_SIZE CF_MB(1)
 #define BUFF_SIZE 1024
 
@@ -166,6 +251,19 @@ main()
     strBufferShutdown(&sb);
 
     //======================================================//
+
+    U8 *big_block = calloc(1, CF_GB(1));
+    FileIoToken token = {0};
+
+    fileBeginWrite("C:/Temp/BigFile.bin", big_block, CF_GB(1), &token);
+
+    while (!token.completed)
+    {
+        Sleep(1);
+    }
+
+    free(big_block);
+    printf("%s\n", token.success ? "SUCCESS" : "FAILURE");
 
     return 0;
 }
