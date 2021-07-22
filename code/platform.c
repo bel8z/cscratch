@@ -170,6 +170,48 @@ static void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
 // Main
 //------------------------------------------------------------------------------
 
+static void
+updateFullscreen(GLFWwindow *window, bool fullscreen, IVec2 *win_pos, IVec2 *win_size)
+{
+    // TODO (Matteo): Investigate freeze when leaving fullscreen mode
+    GLFWmonitor *monitor = glfwGetWindowMonitor(window);
+    bool is_fullscreen = (monitor != NULL);
+    if (fullscreen != is_fullscreen)
+    {
+        if (is_fullscreen)
+        {
+            glfwSetWindowMonitor(window, NULL,           //
+                                 win_pos->x, win_pos->y, //
+                                 win_size->width, win_size->height, 0);
+        }
+        else
+        {
+            glfwGetWindowPos(window, &win_pos->x, &win_pos->y);
+            glfwGetWindowSize(window, &win_size->width, &win_size->height);
+            monitor = glfwGetPrimaryMonitor();
+            GLFWvidmode const *vidmode = glfwGetVideoMode(monitor);
+            glfwSetWindowMonitor(window, monitor, 0, 0, vidmode->width, vidmode->height,
+                                 vidmode->refreshRate);
+        }
+    }
+}
+
+static F32
+updateDpi(F32 curr_dpi)
+{
+    ImGuiViewport *vp = igGetMainViewport();
+    ImGuiPlatformMonitor const *mon = igGetViewportPlatformMonitor(vp);
+
+    if (mon->DpiScale != curr_dpi)
+    {
+        ImGuiIO *io = igGetIO();
+        io->FontGlobalScale *= mon->DpiScale / curr_dpi;
+        return mon->DpiScale;
+    }
+
+    return curr_dpi;
+}
+
 I32
 platformMain(Platform *platform, Cstr argv[], I32 argc)
 {
@@ -266,6 +308,10 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
 
     while (!glfwWindowShouldClose(window) && !app_io.quit)
     {
+        //------------------//
+        // Event processing //
+        //------------------//
+
         if (app_io.continuous_update)
         {
             glfwPollEvents();
@@ -275,31 +321,10 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
             glfwWaitEvents();
         }
 
-        // TODO (Matteo): Investigate freeze when leaving fullscreen mode
-        GLFWmonitor *monitor = glfwGetWindowMonitor(window);
-        bool is_fullscreen = (monitor != NULL);
-        if (app_io.fullscreen != is_fullscreen)
-        {
-            if (is_fullscreen)
-            {
-                glfwSetWindowMonitor(window, NULL, win_pos.x, win_pos.y, win_size.width,
-                                     win_size.height, 0);
-            }
-            else
-            {
-                glfwGetWindowPos(window, &win_pos.x, &win_pos.y);
-                glfwGetWindowSize(window, &win_size.width, &win_size.height);
-                monitor = glfwGetPrimaryMonitor();
-                GLFWvidmode const *vidmode = glfwGetVideoMode(monitor);
-                glfwSetWindowMonitor(window, monitor, 0, 0, vidmode->width, vidmode->height,
-                                     vidmode->refreshRate);
-            }
-        }
-
         // NOTE (Matteo): Auto reloading of application library
         appApiUpdate(&app_api, platform, app_state);
 
-        // TODO (Matteo): Build a font atlas per-monitor (or DPI resolution)
+        updateFullscreen(window, app_io.fullscreen, &win_pos, &win_size);
 
         // Rebuild font atlas if required
         if (app_io.rebuild_fonts)
@@ -311,6 +336,10 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
             ImGui_ImplOpenGL3_CreateDeviceObjects();
         }
 
+        //--------------//
+        // Frame update //
+        //--------------//
+
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -318,18 +347,20 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
 
         // NOTE (Matteo): Setup GL viewport and clear buffers BEFORE app update in order to allow
         // the application code to draw directly using OpenGL
+        Rgba clear_color = rgbaMultiplyAlpha32(app_io.back_color);
         IVec2 display = {0};
         glfwGetFramebufferSize(window, &display.width, &display.height);
         glViewport(0, 0, display.width, display.height);
-
-        Rgba clear_color = rgbaMultiplyAlpha32(app_io.back_color);
         glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Application frame update
         app_api.update(app_state, &app_io);
 
-        // Rendering
+        //-----------//
+        // Rendering //
+        //-----------//
+
         igRender();
         ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
 
@@ -345,6 +376,14 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
         }
 
         glfwSwapBuffers(window);
+
+        //-----------------//
+        // Post processing //
+        //-----------------//
+
+        // NOTE (Matteo): Simple DPI handling for main viewport
+        // TODO (Matteo): Build a font atlas per-monitor (or DPI resolution)
+        dpi_scale = updateDpi(dpi_scale);
     }
 
     // Cleanup
