@@ -32,8 +32,8 @@ include(cmake/CompileFlags.cmake)
 # Dependency paths
 #-------------------
 
-set(EXT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext)
-set(CODE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/code)
+set(EXT_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/ext)
+set(CODE_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/code)
 set(TESTS_DIR ${CODE_DIR}/tests)
 
 #-----------------------
@@ -77,8 +77,7 @@ endif()
 # Common platform code
 #--------------------------
 
-set(PLATFORM_SOURCES 
-    ${CODE_DIR}/platform.c)
+set(PLATFORM_SOURCES ${CODE_DIR}/platform.c)
 
 set_source_files_properties(${PLATFORM_SOURCES} PROPERTIES LANGUAGE C)
 
@@ -94,18 +93,16 @@ foreach(APP ${APP_LIST})
     message(STATUS "Configuring ${APP}")
 
     set(EXE_NAME ${APP})
-    set(LIB_NAME ${APP}_lib)
+    # NOTE (Matteo): _lib suffix added to prevent conflicts with .pdb files
+    set(LIB_NAME ${APP}_lib) 
 
     set(APP_SOURCES)
-    set(APP_RESOURCES)
-
     file(GLOB_RECURSE APP_SOURCES ${CODE_DIR}/${APP}/*.c)
-    file(GLOB_RECURSE APP_RESOURCES ${CODE_DIR}/${APP}/*.rc)
-
-    list(APPEND APP_SOURCES
-            ${CODE_DIR}/gl/gload.c)
-
+    list(APPEND APP_SOURCES ${CODE_DIR}/gl/gload.c)
     set_source_files_properties(${APP_SOURCES} PROPERTIES LANGUAGE C)
+
+    set(APP_RESOURCES)
+    file(GLOB_RECURSE APP_RESOURCES ${CODE_DIR}/${APP}/*.rc)
     set_source_files_properties(${APP_RESOURCES} PROPERTIES LANGUAGE RC)
 
     add_executable(${EXE_NAME} WIN32 ${PLATFORM_SOURCES} ${APP_RESOURCES})
@@ -122,8 +119,6 @@ foreach(APP ${APP_LIST})
 
     set_c_compile_flags(${EXE_NAME})
     set_c_compile_flags(${LIB_NAME})
-
-    # set_target_properties(${LIB_NAME} PROPERTIES OUTPUT_NAME ${EXE_NAME})
 endforeach()
 
 #-----------
