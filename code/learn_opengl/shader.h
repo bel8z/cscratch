@@ -13,8 +13,8 @@ typedef struct Shader
     U32 program;
 } Shader;
 
-Shader shaderLoadStrings(Str vtx, Str pix);
 Shader shaderLoadFiles(FileContent vtx, FileContent pix);
+Shader shaderLoadStrings(Str vtx, Str pix);
 void shaderBegin(Shader shader);
 void shaderEnd(void);
 
@@ -34,7 +34,6 @@ shaderLoadStrings(Str vtx, Str pix)
     {
         Char8 info_log[512];
         glGetShaderInfoLog(vtx_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
-        // TODO (Matteo): use IMGUI for logging
         appLog("Vertex shader compilation error: %s\n", info_log);
     }
 
@@ -47,7 +46,6 @@ shaderLoadStrings(Str vtx, Str pix)
     {
         Char8 info_log[512];
         glGetShaderInfoLog(pix_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
-        // TODO (Matteo): use IMGUI for logging
         appLog("Pixel shader compilation error: %s\n", info_log);
     }
 
@@ -60,7 +58,6 @@ shaderLoadStrings(Str vtx, Str pix)
     {
         Char8 info_log[512];
         glGetProgramInfoLog(pix_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
-        // TODO (Matteo): use IMGUI for logging
         appLog("Shader program link error: %s\n", info_log);
     }
 
