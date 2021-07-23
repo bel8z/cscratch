@@ -1,16 +1,23 @@
 #include "api.h"
 
-#include "foundation/colors.h"
-#include "foundation/maths.h"
-#include "foundation/strings.h"
+#include "log.h"
+#include "shader.h"
 
 #include "gl/gload.h"
 
 #include "gui/gui.h"
 
+#include "foundation/colors.h"
+#include "foundation/fs.h"
+#include "foundation/maths.h"
+#include "foundation/strings.h"
+
+//------------------------------------------------------------------------------
+
 typedef struct GfxState
 {
-    U32 VBO, EBO, VAO, shader;
+    Shader shader;
+    U32 VBO, EBO, VAO;
 } GfxState;
 
 typedef struct AppWindows
@@ -31,26 +38,35 @@ struct AppState
     Rgba32 clear_color;
 };
 
-// F32 const vertices[] = {-0.5f, -0.5f, 0.0f, //
-//                         0.5f,  -0.5f, 0.0f, //
-//                         0.0f,  0.5f,  0.0f};
-
-F32 const vertices[] = {
-    0.5f,  0.5f,  0.0f, // top right
-    0.5f,  -0.5f, 0.0f, // bottom right
-    -0.5f, -0.5f, 0.0f, // bottom left
-    -0.5f, 0.5f,  0.0f  // top left
-};
-
-U32 const indices[] = {
-    // note that we start from 0!
-    0, 1, 3, // first triangle
-    1, 2, 3  // second triangle
-};
-
 //------------------------------------------------------------------------------
 
-#define log(...) fprintf(stderr, __VA_ARGS__)
+float vertices[] = {
+    // positions        // colors
+    0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom right
+    -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom left
+    0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f  // top
+};
+
+Cstr vtx_shader_src =
+    "#version 330 core\n"
+    "layout (location = 0) in vec3 aPos;\n"   // the position variable has attribute position 0
+    "layout (location = 1) in vec3 aColor;\n" // the color  variable has attribute position 1
+    "out vec3 ourColor;\n"                    // output a color to the fragment shader
+    "void main()\n"
+    "{\n"
+    "     gl_Position = vec4(aPos.xyz, 1.0);\n"
+    "     ourColor = aColor;\n" // set ourColor to the input color we got from the vertex data
+    "}\n";
+
+Cstr pix_shader_src = "#version 330 core\n"
+                      "out vec4 FragColor;\n"
+                      "in vec3 ourColor;\n" // we set this variable in the OpenGL code.
+                      "void main()\n"
+                      "{\n"
+                      "    FragColor = vec4(ourColor, 1.0);\n"
+                      "}\n";
+
+//------------------------------------------------------------------------------
 
 static void gfxInit(GfxState *state);
 
@@ -87,7 +103,7 @@ APP_API APP_PROC(appLoad)
     if (!gloadIsSupported(3, 3))
     {
         // TODO (Matteo): Log using IMGUI
-        log("OpenGL 3.3 is not supported!");
+        appLog("OpenGL 3.3 is not supported!");
     }
 }
 
@@ -106,82 +122,11 @@ APP_API APP_PROC(appDestroy)
 
 //------------------------------------------------------------------------------
 
-static U32
-gfxBuildProgram(void)
-{
-    Cstr vtx_shader_src =
-        "#version 330 core\n"
-        "layout (location = 0) in vec3 aPos;\n" // the position variable has attribute position 0
-        "out vec4 vertexColor;\n"               // specify a color output to the fragment shader
-        "void main()\n"
-        "{\n"
-        "     gl_Position = vec4(aPos.xyz, 1.0);\n"
-        "     vertexColor = vec4(0.5, 0.0, 0.0, 1.0);\n" // set the output variable to a dark-red
-                                                         // color
-        "}\n";
-
-    Cstr pix_shader_src = "#version 330 core\n"
-                          "out vec4 FragColor;\n"
-                          "in vec4 vertexColor;\n"   // the input variable from the vertex shader
-                                                     // (same name and same type)
-                          "uniform vec4 ourColor;\n" // we set this variable in the OpenGL code.
-                          "void main()\n"
-                          "{\n"
-                          "    FragColor = ourColor;\n"
-                          "}\n";
-
-    I32 success;
-
-    U32 const vtx_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vtx_shader, 1, &vtx_shader_src, NULL);
-    glCompileShader(vtx_shader);
-    glGetShaderiv(vtx_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        Char8 info_log[512];
-        glGetShaderInfoLog(vtx_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
-        // TODO (Matteo): use IMGUI for logging
-        log("Vertex shader compilation error: %s\n", info_log);
-    }
-
-    U32 const pix_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(pix_shader, 1, &pix_shader_src, NULL);
-    glCompileShader(pix_shader);
-    glGetShaderiv(pix_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        Char8 info_log[512];
-        glGetShaderInfoLog(pix_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
-        // TODO (Matteo): use IMGUI for logging
-        log("Pixel shader compilation error: %s\n", info_log);
-    }
-
-    U32 shader_program = glCreateProgram();
-    glAttachShader(shader_program, vtx_shader);
-    glAttachShader(shader_program, pix_shader);
-    glLinkProgram(shader_program);
-    glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
-    if (!success)
-    {
-        Char8 info_log[512];
-        glGetProgramInfoLog(pix_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
-        // TODO (Matteo): use IMGUI for logging
-        log("Shader program link error: %s\n", info_log);
-    }
-
-    glDeleteShader(vtx_shader);
-    glDeleteShader(pix_shader);
-
-    return shader_program;
-}
-
 static void
 gfxInit(GfxState *gfx)
 {
-
-    I32 const location_in_shader = 0;
-
-    gfx->shader = gfxBuildProgram();
+    gfx->shader = shaderLoadStrings(strFromCstr(vtx_shader_src), //
+                                    strFromCstr(pix_shader_src));
 
     glGenVertexArrays(1, &gfx->VAO);
     glGenBuffers(1, &gfx->VBO);
@@ -194,16 +139,23 @@ gfxInit(GfxState *gfx)
     glBindBuffer(GL_ARRAY_BUFFER, gfx->VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(location_in_shader, CF_ARRAY_SIZE(vertices) / 3, GL_FLOAT, GL_FALSE,
-                          3 * sizeof(float), 0);
-    glEnableVertexAttribArray(location_in_shader);
+    I32 stride = 6 * sizeof(float);
+    Iptr color_offset = stride / 2;
+
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, 0);
+    glEnableVertexAttribArray(0);
+
+    // Color attribure
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void *)color_offset);
+    glEnableVertexAttribArray(1);
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex
     // attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gfx->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gfx->EBO);
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but
     // this rarely happens.
@@ -218,20 +170,9 @@ gfxInit(GfxState *gfx)
 static void
 gfxProc(GfxState *gfx)
 {
-    glUseProgram(gfx->shader);
+    shaderBegin(gfx->shader);
     glBindVertexArray(gfx->VAO);
-    // glDrawArrays(GL_TRIANGLES, 0, CF_ARRAY_SIZE(vertices) / 3);
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    F32 time_value = (F32)igGetTime();
-    Rgba color = {.g = (cfSin(time_value) / 2.0f) + 0.5f, .a = 1.0f};
-    I32 color_location = glGetUniformLocation(gfx->shader, "ourColor");
-    if (color_location >= 0)
-    {
-        glUniform4fv(color_location, 1, color.channel);
-    }
-
-    glDrawElements(GL_TRIANGLES, CF_ARRAY_SIZE(indices), GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 APP_API APP_UPDATE_PROC(appUpdate)
