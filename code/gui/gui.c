@@ -395,6 +395,17 @@ guiColorEdit(Cstr label, Rgba32 *color)
 #    include "foundation/win32.h"
 
 typedef CfArray(Char16) StrBuf16;
+typedef BOOL APIENTRY (*Win32FileDialog)(OPENFILENAMEW *);
+
+static const Win32FileDialog win32FileDialog[] = {
+    [GuiFileDialog_Open] = GetOpenFileNameW,
+    [GuiFileDialog_Save] = GetSaveFileNameW,
+};
+
+static const DWORD win32FileDialogFlags[] = {
+    [GuiFileDialog_Open] = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST,
+    [GuiFileDialog_Save] = OFN_OVERWRITEPROMPT,
+};
 
 static StrBuf16
 win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, CfAllocator alloc)
@@ -404,7 +415,8 @@ win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, CfAlloca
 
     if (num_filters == 0) return out_filter;
 
-    for (GuiFileDialogFilter *filter = filters, *end = filter + num_filters; filter < end; ++filter)
+    for (GuiFileDialogFilter *filter = filters, *end = filter + num_filters; //
+         filter < end; ++filter)
     {
         Usize name_size = win32Utf8To16C(filter->name, NULL, 0);
 
@@ -436,8 +448,8 @@ win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, CfAlloca
     return out_filter;
 }
 
-static GuiFileDialogResult
-win32OpenFileDialog(GuiFileDialogParms *parms, CfAllocator alloc)
+GuiFileDialogResult
+guiFileDialog(GuiFileDialogParms *parms, CfAllocator alloc)
 {
     GuiFileDialogResult result = {.code = GuiFileDialogResult_Error};
 
@@ -462,9 +474,9 @@ win32OpenFileDialog(GuiFileDialogParms *parms, CfAllocator alloc)
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;
     ofn.lpstrInitialDir = NULL;
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+    ofn.Flags = win32FileDialogFlags[parms->type];
 
-    if (GetOpenFileNameW(&ofn))
+    if (win32FileDialog[parms->type](&ofn))
     {
         result.filename.len = win32Utf16To8C(ofn.lpstrFile, NULL, 0) - 1;
         result.filename.buf = cfMemAlloc(alloc, result.filename.len);
@@ -487,17 +499,6 @@ win32OpenFileDialog(GuiFileDialogParms *parms, CfAllocator alloc)
     cfArrayFree(&filt);
 
     return result;
-}
-
-GuiFileDialogResult
-guiFileDialog(GuiFileDialogParms *parms, CfAllocator alloc)
-{
-    if (parms->type == GuiFileDialog_Save)
-    {
-        return (GuiFileDialogResult){.code = GuiFileDialogResult_Error};
-    }
-
-    return win32OpenFileDialog(parms, alloc);
 }
 
 #else
