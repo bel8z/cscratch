@@ -122,12 +122,12 @@ gfxBuildProgram(void)
 
     Cstr pix_shader_src = "#version 330 core\n"
                           "out vec4 FragColor;\n"
-                          "in vec4 vertexColor;\n" // the input variable from the vertex shader
-                                                   // (same name and same type)
+                          "in vec4 vertexColor;\n"   // the input variable from the vertex shader
+                                                     // (same name and same type)
+                          "uniform vec4 ourColor;\n" // we set this variable in the OpenGL code.
                           "void main()\n"
                           "{\n"
-                          // "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-                          "    FragColor = vertexColor;\n"
+                          "    FragColor = ourColor;\n"
                           "}\n";
 
     I32 success;
@@ -221,7 +221,16 @@ gfxProc(GfxState *gfx)
     glUseProgram(gfx->shader);
     glBindVertexArray(gfx->VAO);
     // glDrawArrays(GL_TRIANGLES, 0, CF_ARRAY_SIZE(vertices) / 3);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    F32 time_value = (F32)igGetTime();
+    Rgba color = {.g = (cfSin(time_value) / 2.0f) + 0.5f, .a = 1.0f};
+    I32 color_location = glGetUniformLocation(gfx->shader, "ourColor");
+    if (color_location >= 0)
+    {
+        glUniform4fv(color_location, 1, color.channel);
+    }
+
     glDrawElements(GL_TRIANGLES, CF_ARRAY_SIZE(indices), GL_UNSIGNED_INT, 0);
 }
 
