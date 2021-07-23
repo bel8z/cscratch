@@ -8,7 +8,7 @@ static void *
 guiAlloc(Usize size, void *state)
 {
     CfAllocator alloc = *(CfAllocator *)state;
-    Usize *buf = cfAlloc(alloc, size + sizeof(*buf));
+    Usize *buf = cfMemAlloc(alloc, size + sizeof(*buf));
 
     if (buf) *(buf++) = size;
 
@@ -23,7 +23,7 @@ guiFree(void *mem, void *state)
         CfAllocator alloc = *(CfAllocator *)state;
         Usize *buf = mem;
         buf--;
-        cfFree(alloc, buf, *buf + sizeof(*buf));
+        cfMemFree(alloc, buf, *buf + sizeof(*buf));
     }
 }
 

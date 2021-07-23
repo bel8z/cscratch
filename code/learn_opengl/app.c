@@ -62,7 +62,7 @@ APP_API APP_CREATE_PROC(appCreate)
     CF_UNUSED(argc);
 
     // NOTE (Matteo): Memory comes cleared to 0
-    AppState *app = cfAlloc(plat->heap, sizeof(*app));
+    AppState *app = cfMemAlloc(plat->heap, sizeof(*app));
 
     app->plat = plat;
     app->clear_color = RGBA32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
@@ -84,7 +84,7 @@ APP_API APP_CREATE_PROC(appCreate)
 
 APP_API APP_PROC(appDestroy)
 {
-    cfFree(app->plat->heap, app, sizeof(*app));
+    cfMemFree(app->plat->heap, app, sizeof(*app));
 }
 
 //------------------------------------------------------------------------------

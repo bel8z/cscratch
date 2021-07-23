@@ -22,17 +22,17 @@
         (array)->len = 0;             \
     } while (0)
 
-#define cfArrayInitCap(array, allocator, capacity)                                \
-    do                                                                            \
-    {                                                                             \
-        (array)->alloc = (allocator);                                             \
-        (array)->buf = cfAlloc((allocator), cf__arrayByteCount(array, capacity)); \
-        (array)->cap = (capacity);                                                \
-        (array)->len = 0;                                                         \
+#define cfArrayInitCap(array, allocator, capacity)                                   \
+    do                                                                               \
+    {                                                                                \
+        (array)->alloc = (allocator);                                                \
+        (array)->buf = cfMemAlloc((allocator), cf__arrayByteCount(array, capacity)); \
+        (array)->cap = (capacity);                                                   \
+        (array)->len = 0;                                                            \
     } while (0)
 
 #define cfArrayFree(array) \
-    cfFree((array)->alloc, (array)->buf, cf__arrayByteCount(array, (array)->cap))
+    cfMemFree((array)->alloc, (array)->buf, cf__arrayByteCount(array, (array)->cap))
 
 /// Size of the stored items in bytes (useful for 'memcpy' and the like)
 #define cfArrayBytes(array) cf__arrayByteCount(array, (array)->len)
@@ -52,12 +52,12 @@
 
 /// Ensure the array have the requested capacity by growing it if needed
 // TODO (Matteo): Geometric growth here too?
-#define cfArrayEnsure(array, required_cap)                                                       \
-    ((array)->cap < required_cap                                                                 \
-         ? ((array)->buf =                                                                       \
-                cfRealloc((array)->alloc, (array)->buf, cf__arrayByteCount(array, (array)->cap), \
-                          cf__arrayByteCount(array, cf__arrayNextCap(array, required_cap))),     \
-            (array)->cap = cf__arrayNextCap(array, required_cap))                                \
+#define cfArrayEnsure(array, required_cap)                                             \
+    ((array)->cap < required_cap                                                       \
+         ? ((array)->buf = cfMemRealloc(                                               \
+                (array)->alloc, (array)->buf, cf__arrayByteCount(array, (array)->cap), \
+                cf__arrayByteCount(array, cf__arrayNextCap(array, required_cap))),     \
+            (array)->cap = cf__arrayNextCap(array, required_cap))                      \
          : 0)
 
 /// Reserve capacity for the requested room

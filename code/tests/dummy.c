@@ -225,14 +225,14 @@ main()
     printf("Temporary buffer\n");
     printf("-------------------------\n");
 
-    Char8 *buff = cfAlloc(alloc, BUFF_SIZE);
+    Char8 *buff = cfMemAlloc(alloc, BUFF_SIZE);
 
     strPrintf(buff, BUFF_SIZE, "USIZE_MAX = %zu", USIZE_MAX);
     Str dummy = strFromCstr(buff);
     strPrintf(buff, BUFF_SIZE, "%.*s", (I32)dummy.len, dummy.buf);
     printf("%.*s\n", (I32)dummy.len, dummy.buf);
 
-    cfFree(alloc, buff, BUFF_SIZE);
+    cfMemFree(alloc, buff, BUFF_SIZE);
 
     //======================================================//
 

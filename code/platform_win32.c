@@ -187,7 +187,7 @@ win32GetCommandLineArgs(CfAllocator alloc, I32 *out_argc, Usize *out_size)
 
     *out_size = (Usize)(*out_argc) * sizeof(*argv) + CF_MB(1);
 
-    argv = cfAlloc(alloc, *out_size);
+    argv = cfMemAlloc(alloc, *out_size);
     Char8 *buf = (Char8 *)(argv + *out_argc);
 
     for (I32 i = 0; i < *out_argc; ++i)
@@ -288,7 +288,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     I32 result = platformMain(&g_platform, (Cstr *)argv, argc);
 
-    cfFree(g_platform.heap, argv, cmd_line_size);
+    cfMemFree(g_platform.heap, argv, cmd_line_size);
 
     CF_ASSERT(g_platform.heap_blocks == 0, "Potential memory leak");
     CF_ASSERT(g_platform.heap_size == 0, "Potential memory leak");
@@ -601,7 +601,7 @@ win32FileOpenDialog(Str filename_hint, FileDlgFilter *filters, Usize num_filters
     if (GetOpenFileNameW(&ofn))
     {
         result.filename.len = win32Utf16To8C(ofn.lpstrFile, NULL, 0) - 1;
-        result.filename.buf = cfAlloc(alloc, result.filename.len);
+        result.filename.buf = cfMemAlloc(alloc, result.filename.len);
 
         if (result.filename.buf)
         {
@@ -652,7 +652,7 @@ win32FileRead(Str filename, CfAllocator alloc)
             DWORD read_size = (DWORD)(file_size.QuadPart);
             DWORD read;
 
-            result.data = cfAlloc(alloc, read_size);
+            result.data = cfMemAlloc(alloc, read_size);
 
             if (result.data && ReadFile(file, result.data, read_size, &read, NULL) &&
                 read == read_size)
@@ -661,7 +661,7 @@ win32FileRead(Str filename, CfAllocator alloc)
             }
             else
             {
-                cfFree(alloc, result.data, read_size);
+                cfMemFree(alloc, result.data, read_size);
                 result.data = NULL;
             }
 

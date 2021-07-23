@@ -9,15 +9,15 @@
 //   Basic memory utilities   //
 //----------------------------//
 
-#define cfAlloc(a, size) cfAllocAlign(a, size, CF_MAX_ALIGN)
-#define cfAllocAlign(a, size, align) (a).func((a).state, NULL, 0, (size), (align))
+#define cfMemAlloc(a, size) cfMemAllocAlign(a, size, CF_MAX_ALIGN)
+#define cfMemAllocAlign(a, size, align) (a).func((a).state, NULL, 0, (size), (align))
 
-#define cfReallocAlign(a, mem, old_size, new_size, align) \
+#define cfMemReallocAlign(a, mem, old_size, new_size, align) \
     (a).func((a).state, (mem), (old_size), (new_size), (align))
-#define cfRealloc(a, mem, old_size, new_size) \
-    cfReallocAlign(a, mem, old_size, new_size, CF_MAX_ALIGN)
+#define cfMemRealloc(a, mem, old_size, new_size) \
+    cfMemReallocAlign(a, mem, old_size, new_size, CF_MAX_ALIGN)
 
-#define cfFree(a, mem, size) (a).func((a).state, (void *)(mem), (size), 0, 0)
+#define cfMemFree(a, mem, size) (a).func((a).state, (void *)(mem), (size), 0, 0)
 
 void cfMemClear(void *mem, Usize count);
 void cfMemCopy(void const *from, void *to, Usize count);
@@ -35,6 +35,8 @@ cfMemAlignForward(U8 const *address, Usize alignment)
     // Move pointer forward if needed
     return modulo ? address + alignment - modulo : address;
 }
+
+#define cfEqual(a, b) (CF_SAME_TYPE(a, b), cfMemMatch(&a, &b, sizeof(a)))
 
 //------------------------//
 //   Virtual memory API   //
