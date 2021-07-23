@@ -196,20 +196,29 @@ updateFullscreen(GLFWwindow *window, bool fullscreen, IVec2 *win_pos, IVec2 *win
     }
 }
 
-static F32
-updateDpi(F32 curr_dpi)
+static bool
+updateDpi(ImGuiIO *io, F32 *curr_dpi, Str data_path)
 {
     ImGuiViewport *vp = igGetMainViewport();
     ImGuiPlatformMonitor const *mon = igGetViewportPlatformMonitor(vp);
 
-    if (mon->DpiScale != curr_dpi)
+    if (mon->DpiScale != *curr_dpi)
     {
-        ImGuiIO *io = igGetIO();
-        io->FontGlobalScale *= mon->DpiScale / curr_dpi;
-        return mon->DpiScale;
+        F32 ratio = mon->DpiScale / *curr_dpi;
+        *curr_dpi = mon->DpiScale;
+#if 1
+        ImFontAtlas_Clear(io->Fonts);
+        guiSetupFonts(io->Fonts, *curr_dpi, data_path);
+        // TODO (Matteo): Should rescale size?
+        CF_UNUSED(ratio); // ImGuiStyle_ScaleAllSizes(igGetStyle(), ratio);
+        return true;
+#else
+        CF_UNUSED(data_path);
+        io->FontGlobalScale *= ratio;
+#endif
     }
 
-    return curr_dpi;
+    return false;
 }
 
 I32
@@ -383,7 +392,10 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
 
         // NOTE (Matteo): Simple DPI handling for main viewport
         // TODO (Matteo): Build a font atlas per-monitor (or DPI resolution)
-        dpi_scale = updateDpi(dpi_scale);
+        if (updateDpi(io, &dpi_scale, paths->data))
+        {
+            app_io.rebuild_fonts = true;
+        }
     }
 
     // Cleanup
