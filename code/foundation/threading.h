@@ -46,11 +46,11 @@ typedef struct CfThreadParms
     Usize stack_size;
 } CfThreadParms;
 
-CfThread cfThreadCreate(CfThreadParms *parms);
-void cfThreadDestroy(CfThread thread);
-bool cfThreadIsRunning(CfThread thread);
-bool cfThreadWait(CfThread thread, Time timeout);
-bool cfThreadWaitAll(CfThread *threads, Usize num_threads, Time timeout);
+CF_API CfThread cfThreadCreate(CfThreadParms *parms);
+CF_API void cfThreadDestroy(CfThread thread);
+CF_API bool cfThreadIsRunning(CfThread thread);
+CF_API bool cfThreadWait(CfThread thread, Time timeout);
+CF_API bool cfThreadWaitAll(CfThread *threads, Usize num_threads, Time timeout);
 
 /// Wrapper around threadCreate that allows a more convenient syntax for optional
 /// parameters
@@ -71,11 +71,11 @@ typedef struct CfMutex
 #endif
 } CfMutex;
 
-void cfMutexInit(CfMutex *mutex);
-void cfMutexShutdown(CfMutex *mutex);
-bool cfMutexTryAcquire(CfMutex *mutex);
-void cfMutexAcquire(CfMutex *mutex);
-void cfMutexRelease(CfMutex *mutex);
+CF_API void cfMutexInit(CfMutex *mutex);
+CF_API void cfMutexShutdown(CfMutex *mutex);
+CF_API bool cfMutexTryAcquire(CfMutex *mutex);
+CF_API void cfMutexAcquire(CfMutex *mutex);
+CF_API void cfMutexRelease(CfMutex *mutex);
 
 //------------------------//
 //   Reader/writer lock   //
@@ -93,14 +93,14 @@ typedef struct CfRwLock
 #endif
 } CfRwLock;
 
-void cfRwInit(CfRwLock *lock);
-void cfRwShutdown(CfRwLock *lock);
-bool cfRwTryLockReader(CfRwLock *lock);
-bool cfRwTryLockWriter(CfRwLock *lock);
-void cfRwLockReader(CfRwLock *lock);
-void cfRwLockWriter(CfRwLock *lock);
-void cfRwUnlockReader(CfRwLock *lock);
-void cfRwUnlockWriter(CfRwLock *lock);
+CF_API void cfRwInit(CfRwLock *lock);
+CF_API void cfRwShutdown(CfRwLock *lock);
+CF_API bool cfRwTryLockReader(CfRwLock *lock);
+CF_API bool cfRwTryLockWriter(CfRwLock *lock);
+CF_API void cfRwLockReader(CfRwLock *lock);
+CF_API void cfRwLockWriter(CfRwLock *lock);
+CF_API void cfRwUnlockReader(CfRwLock *lock);
+CF_API void cfRwUnlockWriter(CfRwLock *lock);
 
 //-------------------------//
 //   Condition variables   //
@@ -113,11 +113,11 @@ typedef struct CfConditionVariable
     U8 data[sizeof(void *)];
 } CfConditionVariable;
 
-void cfCvInit(CfConditionVariable *cv);
-void cfCvShutdown(CfConditionVariable *cv);
-bool cfCvWaitMutex(CfConditionVariable *cv, CfMutex *mutex, Time timeout);
-bool cfCvWaitRwLock(CfConditionVariable *cv, CfRwLock *lock, Time timeout);
-void cfCvSignalOne(CfConditionVariable *cv);
-void cfCvSignalAll(CfConditionVariable *cv);
+CF_API void cfCvInit(CfConditionVariable *cv);
+CF_API void cfCvShutdown(CfConditionVariable *cv);
+CF_API bool cfCvWaitMutex(CfConditionVariable *cv, CfMutex *mutex, Time timeout);
+CF_API bool cfCvWaitRwLock(CfConditionVariable *cv, CfRwLock *lock, Time timeout);
+CF_API void cfCvSignalOne(CfConditionVariable *cv);
+CF_API void cfCvSignalAll(CfConditionVariable *cv);
 
 //------------------------------------------------------------------------------

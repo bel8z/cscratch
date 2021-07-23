@@ -19,12 +19,12 @@
 
 #define cfMemFree(a, mem, size) (a).func((a).state, (void *)(mem), (size), 0, 0)
 
-void cfMemClear(void *mem, Usize count);
-void cfMemCopy(void const *from, void *to, Usize count);
-void cfMemCopySafe(void const *from, Usize from_size, void *to, Usize to_size);
-void cfMemWrite(U8 *mem, U8 value, Usize count);
-I32 cfMemCompare(void const *left, void const *right, Usize count);
-bool cfMemMatch(void const *left, void const *right, Usize count);
+CF_API void cfMemClear(void *mem, Usize count);
+CF_API void cfMemCopy(void const *from, void *to, Usize count);
+CF_API void cfMemCopySafe(void const *from, Usize from_size, void *to, Usize to_size);
+CF_API void cfMemWrite(U8 *mem, U8 value, Usize count);
+CF_API I32 cfMemCompare(void const *left, void const *right, Usize count);
+CF_API bool cfMemMatch(void const *left, void const *right, Usize count);
 
 inline U8 const *
 cfMemAlignForward(U8 const *address, Usize alignment)
@@ -102,19 +102,20 @@ typedef struct ArenaTempState
 
 /// Initialize the arena using a reserved block of virtual memory, from which actual pages can be
 /// committed
-bool arenaInitOnVm(Arena *arena, CfVirtualMemory *vm, void *reserved_block, Usize reserved_size);
+CF_API bool arenaInitOnVm(Arena *arena, CfVirtualMemory *vm, void *reserved_block,
+                          Usize reserved_size);
 
 /// Initialize the arena using a pre-allocated memory buffer
-void arenaInitOnBuffer(Arena *arena, U8 *buffer, Usize buffer_size);
+CF_API void arenaInitOnBuffer(Arena *arena, U8 *buffer, Usize buffer_size);
 
 /// Allocate a block of virtual memory and initialize an arena directly in it
-Arena *arenaBootstrapFromVm(CfVirtualMemory *vm, void *reserved_block, Usize reserved_size);
+CF_API Arena *arenaBootstrapFromVm(CfVirtualMemory *vm, void *reserved_block, Usize reserved_size);
 
 // TODO (Matteo): Bootstrap from buffer
 
 /// Free all the memory allocated by the arena. In case of a virtual memory backing
 /// store, the memory is decommitted (returned to the OS)
-void arenaClear(Arena *arena);
+CF_API void arenaClear(Arena *arena);
 
 inline Usize
 arenaRemaining(Arena *arena)
@@ -123,7 +124,7 @@ arenaRemaining(Arena *arena)
 }
 
 /// Allocate a block of the given size and alignment from the top of the arena stack
-void *arenaAllocAlign(Arena *arena, Usize size, Usize alignment);
+CF_API void *arenaAllocAlign(Arena *arena, Usize size, Usize alignment);
 
 /// Allocate a block of the given size and default alignment from the top of the arena stack
 inline void *
@@ -134,8 +135,8 @@ arenaAlloc(Arena *arena, Usize size)
 
 /// Try reallocating a block of the given size and alignment at the top of the arena stack
 /// If the block does not match the last allocation, a new block is allocated
-void *arenaReallocAlign(Arena *arena, void *memory, Usize old_size, Usize new_size,
-                        Usize alignment);
+CF_API void *arenaReallocAlign(Arena *arena, void *memory, Usize old_size, Usize new_size,
+                               Usize alignment);
 
 /// Try reallocating a block of the given size and default alignment at the top of the arena stack
 /// If the block does not match the last allocation, a new block is allocated
@@ -147,7 +148,7 @@ arenaRealloc(Arena *arena, void *memory, Usize old_size, Usize new_size)
 
 /// Returns a block of the given size to the top of the arena stack; this is
 /// effective only if the block matches with the last allocation
-void arenaFree(Arena *arena, void *memory, Usize size);
+CF_API void arenaFree(Arena *arena, void *memory, Usize size);
 
 /// Allocates a block which fits the given struct on top of the arena stack
 #define arenaAllocStruct(arena, Type) (Type *)arenaAllocAlign(arena, sizeof(Type), alignof(Type))
@@ -167,12 +168,12 @@ void arenaFree(Arena *arena, void *memory, Usize size);
 /// Try freeing a block which fits the given array on top of the arena stack
 #define arenaFreeArray(arena, Type, count, ptr) arenaFree(arena, ptr, count * sizeof(Type))
 
-ArenaTempState arenaSave(Arena *arena);
-void arenaRestore(ArenaTempState state);
+CF_API ArenaTempState arenaSave(Arena *arena);
+CF_API void arenaRestore(ArenaTempState state);
 
-bool arenaSplit(Arena *arena, Arena *split, Usize size);
+CF_API bool arenaSplit(Arena *arena, Arena *split, Usize size);
 
-CfAllocator arenaAllocator(Arena *arena);
+CF_API CfAllocator arenaAllocator(Arena *arena);
 
 // Utility macros for managing temporary allocations
 

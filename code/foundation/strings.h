@@ -24,7 +24,7 @@
 /// Writes the string slice as a null-terminated C string on the given buffer
 /// Returns the number of bytes written, including the null terminator, or the required buffer size
 /// if NULL
-Usize strToCstr(Str str, Char8 *buffer, Usize size);
+CF_API Usize strToCstr(Str str, Char8 *buffer, Usize size);
 
 /// Compute the length of the C string (null terminator ignored)
 static inline Usize
@@ -57,42 +57,42 @@ strSize(Cstr cstr)
 /// Print formatted string on the given static buffer
 /// This does not take a Str because it represents a string view more than a char buffer.
 /// You can use a Str by explicitly calling strPrintf(str.buf, str.len, ...).
-bool strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...) CF_PRINTF_LIKE(2, 3);
+CF_API bool strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...) CF_PRINTF_LIKE(2, 3);
 
 /// Print formatted string on the given dynamic buffer
-bool stackStrPrintf(StackStr *str, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
+CF_API bool stackStrPrintf(StackStr *str, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
 
 //------------------------------//
 //   String (view) comparison   //
 //------------------------------//
 
-I32 strCompare(Str l, Str r);
-bool strEqual(Str l, Str r);
-I32 strCompareInsensitive(Str l, Str r);
-bool strEqualInsensitive(Str l, Str r);
+CF_API I32 strCompare(Str l, Str r);
+CF_API bool strEqual(Str l, Str r);
+CF_API I32 strCompareInsensitive(Str l, Str r);
+CF_API bool strEqualInsensitive(Str l, Str r);
 
 //------------------------------//
 //   String (view) processing   //
 //------------------------------//
 
-bool strContains(Str str, Char8 c);
-Usize strFindFirst(Str haystack, Str needle);
-Usize strFindLast(Str haystack, Str needle);
+CF_API bool strContains(Str str, Char8 c);
+CF_API Usize strFindFirst(Str haystack, Str needle);
+CF_API Usize strFindLast(Str haystack, Str needle);
 
 //-----------------------------//
 //   Dynamic string building   //
 //-----------------------------//
 
-void strBufferInit(StrBuffer *sb, CfAllocator alloc);
-void strBufferInitFrom(StrBuffer *sb, CfAllocator alloc, Str str);
-void strBufferInitWith(StrBuffer *sb, CfAllocator alloc, Usize cap);
-void strBufferShutdown(StrBuffer *sb);
+CF_API void strBufferInit(StrBuffer *sb, CfAllocator alloc);
+CF_API void strBufferInitFrom(StrBuffer *sb, CfAllocator alloc, Str str);
+CF_API void strBufferInitWith(StrBuffer *sb, CfAllocator alloc, Usize cap);
+CF_API void strBufferShutdown(StrBuffer *sb);
 
-void strBufferAppend(StrBuffer *sb, Str what);
-bool strBufferAppendf(StrBuffer *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
-bool strBufferPrintf(StrBuffer *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
+CF_API void strBufferAppend(StrBuffer *sb, Str what);
+CF_API bool strBufferAppendf(StrBuffer *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
+CF_API bool strBufferPrintf(StrBuffer *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
 
-Str strBufferView(StrBuffer *sb);
-Cstr strBufferCstr(StrBuffer *sb);
+CF_API Str strBufferView(StrBuffer *sb);
+CF_API Cstr strBufferCstr(StrBuffer *sb);
 
 //------------------------------------------------------------------------------

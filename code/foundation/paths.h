@@ -6,11 +6,11 @@
 #include "core.h"
 #include "strings.h" // For strValid
 
-Str pathSplitName(Str path);
-Str pathSplitExt(Str path);
-Str pathSplitNameExt(Str path, Str *ext);
+CF_API Str pathSplitName(Str path);
+CF_API Str pathSplitExt(Str path);
+CF_API Str pathSplitNameExt(Str path, Str *ext);
 
-Usize pathChangeExt(Str path, Str new_ext, Char8 *out);
+CF_API Usize pathChangeExt(Str path, Str new_ext, Char8 *out);
 
 typedef struct PathSplitIter
 {
@@ -18,5 +18,5 @@ typedef struct PathSplitIter
     Str path;
 } PathSplitIter;
 
-void pathSplitStart(PathSplitIter *iter, Str path);
-bool pathSplitNext(PathSplitIter *iter);
+CF_API void pathSplitStart(PathSplitIter *iter, Str path);
+CF_API bool pathSplitNext(PathSplitIter *iter);

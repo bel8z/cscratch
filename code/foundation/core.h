@@ -145,6 +145,12 @@
 #    define CF_RELEASE_ASSERTS 1
 #endif
 
+#if CF_OS_WIN32
+#    define CF_API __declspec(dllexport)
+#else
+#    define CF_API
+#endif
+
 //-------------------//
 //   Macro helpers   //
 //-------------------//
@@ -422,17 +428,18 @@ typedef struct CfAllocator
 /// Macro to define a typed, dynamically allocated array
 /// Can be used as an anonymous struct or member, or as a typedef for building a specific API.
 /// Functionality is implemented in array.h
-#define CfArray(Type)                                                                              \
-    struct                                                                                         \
-    {                                                                                              \
-        /* Allocator used for growing the array dynamically */                                     \
-        CfAllocator alloc;                                                                         \
-        /* Actual array storage */                                                                 \
-        Type *buf;                                                                                 \
-        /* Size of the array (number of stored items) */                                           \
-        Usize len;                                                                                 \
-        /* Capacity of the array (number of elements that can be stored before the array grows) */ \
-        Usize cap;                                                                                 \
+#define CfArray(Type)                                                                    \
+    struct                                                                               \
+    {                                                                                    \
+        /* Allocator used for growing the array dynamically */                           \
+        CfAllocator alloc;                                                               \
+        /* Actual array storage */                                                       \
+        Type *buf;                                                                       \
+        /* Size of the array (number of stored items) */                                 \
+        Usize len;                                                                       \
+        /* Capacity of the array (number of elements that can be stored before the array \
+         * grows) */                                                                     \
+        Usize cap;                                                                       \
     }
 
 /// Macro to define a typed, fixed size buffer with a dynamic interface (useful for small string

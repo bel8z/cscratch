@@ -1,14 +1,16 @@
 cmake_minimum_required(VERSION 3.15.0)
 
-set(
-    LIB_SOURCES  
-        "memory.c"
-        "list.c"
-        "paths.c"
-        "strings.c"
-        "threading.c"
-)
-add_library(foundation STATIC ${LIB_SOURCES})
+set(LIB_SOURCES  
+    "memory.c"
+    "list.c"
+    "paths.c"
+    "strings.c"
+    "threading.c")
+
+set_source_files_properties(${LIB_SOURCES} PROPERTIES LANGUAGE C)
+
+add_library(foundation     STATIC ${LIB_SOURCES})
+add_library(foundation_dll SHARED ${LIB_SOURCES})
 
 message(STATUS "foundation sources: ${LIB_SOURCES}")
 
@@ -17,7 +19,8 @@ message(STATUS "foundation parent directory: ${PARENT_DIR}")
 
 include(${PARENT_DIR}/cmake/CompileFlags.cmake)
 
-# target_include_directories(foundation INTERFACE ".")
-target_compile_features(foundation PUBLIC c_std_11) 
+target_compile_features(foundation     PUBLIC c_std_11) 
+target_compile_features(foundation_dll PUBLIC c_std_11) 
 
 set_c_compile_flags(foundation)
+set_c_compile_flags(foundation_dll)
