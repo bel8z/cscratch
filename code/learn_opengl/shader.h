@@ -92,5 +92,5 @@ shaderEnd(void)
 I32
 shaderGetUniform(Shader shader, Cstr uniform_name)
 {
-    glGetUniformLocation(shader.program, uniform_name);
+    return glGetUniformLocation(shader.program, uniform_name);
 }
