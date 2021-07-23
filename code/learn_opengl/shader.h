@@ -15,8 +15,11 @@ typedef struct Shader
 
 Shader shaderLoadFiles(FileContent vtx, FileContent pix);
 Shader shaderLoadStrings(Str vtx, Str pix);
+
 void shaderBegin(Shader shader);
 void shaderEnd(void);
+
+I32 shaderGetUniform(Shader shader, Cstr uniform_name);
 
 Shader
 shaderLoadStrings(Str vtx, Str pix)
@@ -84,4 +87,10 @@ void
 shaderEnd(void)
 {
     glUseProgram(0);
+}
+
+I32
+shaderGetUniform(Shader shader, Cstr uniform_name)
+{
+    glGetUniformLocation(shader.program, uniform_name);
 }
