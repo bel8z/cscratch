@@ -15,6 +15,20 @@ typedef struct FileContent
 } FileContent;
 
 typedef U64 FileTime;
+typedef U32 FileAttributes;
+
+enum
+{
+    FileAttributes_Directory = 1,
+    FileAttributes_Symlink = 2,
+};
+
+typedef struct FileProperties
+{
+    FileTime last_write;
+    FileAttributes attributes;
+    bool exists;
+} FileProperties;
 
 /// File system API
 typedef struct CfFileSystem
@@ -37,7 +51,7 @@ typedef struct CfFileSystem
 
     FileContent (*fileRead)(Str filename, CfAllocator alloc);
     bool (*fileCopy)(Str source, Str dest, bool overwrite);
-    FileTime (*fileWriteTime)(Str filename);
+    FileProperties (*fileProperties)(Str filename);
 
 } CfFileSystem;
 

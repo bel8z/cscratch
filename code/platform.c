@@ -477,8 +477,8 @@ void
 appApiUpdate(AppApi *api, Platform *platform, AppState *app)
 {
     // TODO (Matteo): Are these operation too expensive to be performed every frame?
-    if (platform->fs->fileWriteTime(strFromCstr(api->src_file)) >
-        platform->fs->fileWriteTime(strFromCstr(api->dst_file)))
+    if (platform->fs->fileProperties(strFromCstr(api->src_file)).last_write >
+        platform->fs->fileProperties(strFromCstr(api->dst_file)).last_write)
     {
         api->unload(app);
         appApiLoad(api, platform);

@@ -42,7 +42,7 @@ void win32DirIterEnd(DirIterator *self);
 
 static FileContent win32FileRead(Str filename, CfAllocator alloc);
 static bool win32FileCopy(Str source, Str dest, bool overwrite);
-static FileTime win32FileWriteTime(Str filename);
+static FileProperties win32FileProperties(Str filename);
 
 // Timing
 static struct
@@ -81,7 +81,7 @@ static Platform g_platform = {
             .dirIterEnd = win32DirIterEnd,
             .fileRead = win32FileRead,
             .fileCopy = win32FileCopy,
-            .fileWriteTime = win32FileWriteTime,
+            .fileProperties = win32FileProperties,
         },
     .clock = win32Clock,
     .paths = &(Paths){0},
@@ -510,26 +510,70 @@ win32FileCopy(Str source, Str dest, bool overwrite)
     return false;
 }
 
-static FileTime
-win32FileWriteTime(Str filename)
+#if 1
+
+// NOTE (Matteo): Win32 native
+
+static FileProperties
+win32FileProperties(Str filename)
 {
-    FileTime write_time = 0;
+    FileProperties props = {0};
 
     Char16 wide_name[MAX_PATH] = {0};
     win32Utf8To16(filename, wide_name, CF_ARRAY_SIZE(wide_name));
 
-    WIN32_FIND_DATAW find_data = {0};
-    HANDLE find_handle = FindFirstFileW(wide_name, &find_data);
+    WIN32_FIND_DATAW data = {0};
+    HANDLE find_handle = FindFirstFileW(wide_name, &data);
 
     if (find_handle != INVALID_HANDLE_VALUE)
     {
-        FILETIME temp = find_data.ftLastWriteTime;
-        write_time = ((U64)temp.dwHighDateTime << 32) | temp.dwLowDateTime;
+        props.exists = true;
+
+        FILETIME write_time = data.ftLastWriteTime;
+        props.last_write = ((U64)write_time.dwHighDateTime << 32) | write_time.dwLowDateTime;
+
+        if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        {
+            props.attributes |= FileAttributes_Directory;
+        }
+
+        if (data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
+        {
+            props.attributes |= FileAttributes_Symlink;
+        }
+
         FindClose(find_handle);
     }
 
-    return write_time;
+    return props;
 }
+
+#else
+#    include <sys/stat.h>
+
+// NOTE (Matteo): POSIX-like example
+
+static FileProperties
+win32FileProperties(Str filename)
+{
+    FileProperties props = {0};
+
+    Char8 buffer[1024] = {0};
+    struct _stat64i32 info = {0};
+
+    cfMemCopy(filename.buf, buffer, filename.len);
+    if (!_stat(buffer, &info))
+    {
+        props.exists = true;
+        props.last_write = (FileTime)info.st_mtime;
+        if (info.st_mode & 0x0120000) props.attributes |= FileAttributes_Symlink;
+        if (info.st_mode & 0x0040000) props.attributes |= FileAttributes_Directory;
+    }
+
+    return props;
+}
+
+#endif
 
 Time
 win32Clock(void)
