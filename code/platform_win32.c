@@ -30,8 +30,6 @@ static VM_RELEASE_FUNC(win32VmRelease);
 static CF_ALLOCATOR_FUNC(win32Alloc);
 
 // File system
-typedef CfArray(Char16) StrBuf16;
-
 typedef struct Win32DirIterator
 {
     HANDLE finder;
@@ -41,9 +39,6 @@ typedef struct Win32DirIterator
 bool win32DirIterStart(DirIterator *self, Str dir_path);
 bool win32DirIterNext(DirIterator *self, Str *filename);
 void win32DirIterEnd(DirIterator *self);
-
-static FileDialogResult win32FileOpenDialog(Str filename_hint, FileDlgFilter *filters,
-                                            Usize num_filters, CfAllocator alloc);
 
 static FileContent win32FileRead(Str filename, CfAllocator alloc);
 static bool win32FileCopy(Str source, Str dest, bool overwrite);
@@ -84,7 +79,6 @@ static Platform g_platform = {
             .dirIterStart = win32DirIterStart,
             .dirIterNext = win32DirIterNext,
             .dirIterEnd = win32DirIterEnd,
-            .fileOpenDialog = win32FileOpenDialog,
             .fileRead = win32FileRead,
             .fileCopy = win32FileCopy,
             .fileWriteTime = win32FileWriteTime,
@@ -99,83 +93,6 @@ static Platform g_platform = {
 //------------------------------------------------------------------------------
 // Utilities
 //------------------------------------------------------------------------------
-
-static void
-win32PrintLastError(void)
-{
-    DWORD error = GetLastError();
-    LPSTR msg = NULL;
-    FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-                       FORMAT_MESSAGE_IGNORE_INSERTS,
-                   NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&msg, 0, NULL);
-    CF_DEBUG_BREAK();
-    fprintf(stderr, "%s\n", msg);
-    LocalFree(msg);
-}
-
-// UTF8<->UTF16 helpers
-
-/// Encodes the given UTF8 string slice in UTF16 and null terminates it. The function returns the
-/// number of bytes written (including the null terminator); in case of a NULL output buffer, this
-/// number is the minimum required buffer size.
-static Usize
-win32Utf8To16(Str str, Char16 *out, Usize out_size)
-{
-    CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
-
-    I32 len =
-        MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str.buf, (I32)str.len, out, (I32)out_size);
-
-    if (len == 0)
-    {
-        win32PrintLastError();
-        return USIZE_MAX;
-    }
-
-    // NOTE (Matteo): Since the input string length is given, the output string is not
-    // null-terminated and as such the terminator is not included in the write count
-    if (out)
-    {
-        CF_ASSERT((Usize)len < out_size, "The given buffer is not large enough");
-        out[len] = 0;
-    }
-
-    return (Usize)(len + 1);
-}
-
-/// Encodes the given UTF8 C string in UTF16 and null terminates it. The function returns the
-/// number of bytes written (including the null terminator); in case of a NULL output buffer, this
-/// number is the minimum required buffer size.
-static Usize
-win32Utf8To16C(Cstr cstr, Char16 *out, Usize out_size)
-{
-    CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
-
-    I32 result = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, cstr, -1, out, (I32)out_size);
-    // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
-    // size count
-    if (result) return (Usize)result;
-
-    win32PrintLastError();
-    return USIZE_MAX;
-}
-
-/// Encodes the given UTF16 C string in UTF8 and null terminates it. The function returns the
-/// number of bytes written (including the null terminator); in case of a NULL output buffer, this
-/// number is the minimum required buffer size.
-static Usize
-win32Utf16To8C(Char16 const *str, Char8 *out, Usize out_size)
-{
-    CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
-
-    I32 result = WideCharToMultiByte(CP_UTF8, 0, str, -1, out, (I32)out_size, 0, false);
-    // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
-    // size count
-    if (result) return (Usize)result;
-
-    win32PrintLastError();
-    return USIZE_MAX;
-}
 
 static Char8 **
 win32GetCommandLineArgs(CfAllocator alloc, I32 *out_argc, Usize *out_size)
@@ -528,99 +445,6 @@ win32DirIterEnd(DirIterator *self)
 
     Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
     FindClose(iter->finder);
-}
-
-static StrBuf16
-win32BuildFilterString(FileDlgFilter *filters, Usize num_filters, CfAllocator alloc)
-{
-    StrBuf16 out_filter = {0};
-    cfArrayInitCap(&out_filter, alloc, 1024);
-
-    if (num_filters == 0) return out_filter;
-
-    for (FileDlgFilter *filter = filters, *end = filter + num_filters; filter < end; ++filter)
-    {
-        Usize name_size = win32Utf8To16C(filter->name, NULL, 0);
-
-        cfArrayReserve(&out_filter, name_size);
-        win32Utf8To16C(filter->name, cfArrayEnd(&out_filter), name_size);
-        cfArrayExtend(&out_filter, name_size);
-
-        for (Usize ext_no = 0; ext_no < filter->num_extensions; ++ext_no)
-        {
-            Cstr ext = filter->extensions[ext_no];
-            Usize ext_size = win32Utf8To16C(ext, NULL, 0);
-
-            // Prepend '*' to the extension - not documented but actually required
-            cfArrayPush(&out_filter, L'*');
-            cfArrayReserve(&out_filter, ext_size);
-            win32Utf8To16C(ext, cfArrayEnd(&out_filter), ext_size);
-            cfArrayExtend(&out_filter, ext_size);
-
-            // Replace null terminator with ';' to separate extensions
-            *cfArrayLast(&out_filter) = L';';
-        }
-
-        // Append 2 null terminators (required since null terminators are used
-        // internally to separate filters)
-        cfArrayPush(&out_filter, 0);
-        cfArrayPush(&out_filter, 0);
-    }
-
-    return out_filter;
-}
-
-FileDialogResult
-win32FileOpenDialog(Str filename_hint, FileDlgFilter *filters, Usize num_filters, CfAllocator alloc)
-{
-    FileDialogResult result = {.code = FileDialogResult_Error};
-
-    Char16 name[MAX_PATH] = {0};
-
-    if (strValid(filename_hint))
-    {
-        Usize name_size = win32Utf8To16(filename_hint, NULL, 0);
-        if (name_size >= MAX_PATH) return result;
-        win32Utf8To16(filename_hint, name, name_size);
-    }
-
-    StrBuf16 filt = win32BuildFilterString(filters, num_filters, alloc);
-
-    OPENFILENAMEW ofn = {0};
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = NULL;
-    ofn.lpstrFile = name;
-    ofn.nMaxFile = MAX_PATH;
-    ofn.lpstrFilter = filt.buf; // L"Image files\0*.jpg;*.jpeg;*.bmp;*.png\0";
-    ofn.nFilterIndex = 1;
-    ofn.lpstrFileTitle = NULL;
-    ofn.nMaxFileTitle = 0;
-    ofn.lpstrInitialDir = NULL;
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-
-    if (GetOpenFileNameW(&ofn))
-    {
-        result.filename.len = win32Utf16To8C(ofn.lpstrFile, NULL, 0) - 1;
-        result.filename.buf = cfMemAlloc(alloc, result.filename.len);
-
-        if (result.filename.buf)
-        {
-            result.code = FileDialogResult_Ok;
-            win32Utf16To8C(ofn.lpstrFile, (Char8 *)result.filename.buf, result.filename.len);
-        }
-        else
-        {
-            result.filename.len = 0;
-        }
-    }
-    else
-    {
-        result.code = FileDialogResult_Cancel;
-    }
-
-    cfArrayFree(&filt);
-
-    return result;
 }
 
 FileContent

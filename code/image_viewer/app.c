@@ -130,7 +130,7 @@ struct AppState
     // *** Platform services *** //
 
     Platform *plat;
-    FileDlgFilter filter;
+    GuiFileDialogFilter filter;
 
     // *** Image brosing *** //
 
@@ -780,24 +780,27 @@ appImageView(AppState *state)
 static bool
 appOpenFile(AppState *state)
 {
-    Platform *plat = state->plat;
     bool result = true;
-
-    Str hint = {0};
-    if (state->curr_file != USIZE_MAX)
-    {
-        hint = strFromCstr(state->images.buf[state->curr_file].filename);
-    }
 
     ARENA_TEMP_SCOPE(state->scratch)
     {
-        FileDialogResult dlg_result =
-            plat->fs->fileOpenDialog(hint, &state->filter, 1, arenaAllocator(state->scratch));
+        GuiFileDialogParms dlg_parms = {
+            .type = GuiFileDialog_Open,
+            .filters = &state->filter,
+            .num_filters = 1,
+        };
+
+        if (state->curr_file != USIZE_MAX)
+        {
+            dlg_parms.filename_hint = strFromCstr(state->images.buf[state->curr_file].filename);
+        }
+
+        GuiFileDialogResult dlg_result = guiFileDialog(&dlg_parms, arenaAllocator(state->scratch));
 
         switch (dlg_result.code)
         {
-            case FileDialogResult_Ok: appLoadFromFile(state, dlg_result.filename); break;
-            case FileDialogResult_Error: result = false; break;
+            case GuiFileDialogResult_Ok: appLoadFromFile(state, dlg_result.filename); break;
+            case GuiFileDialogResult_Error: result = false; break;
         }
     }
 

@@ -1,8 +1,11 @@
 #include "gui.h"
 
+#include "foundation/array.h"
 #include "foundation/colors.h"
 #include "foundation/memory.h"
 #include "foundation/strings.h"
+
+// === Memory management ===
 
 static void *
 guiAlloc(Usize size, void *state)
@@ -27,6 +30,8 @@ guiFree(void *mem, void *state)
     }
 }
 
+// === Initialization ===
+
 void
 guiInit(Gui *gui)
 {
@@ -46,6 +51,8 @@ guiInit(Gui *gui)
         gui->ctx = igCreateContext(gui->shared_atlas);
     }
 }
+
+// === Themes & styling ===
 
 void
 guiSetTheme(GuiTheme theme)
@@ -176,36 +183,10 @@ guiSetTheme(GuiTheme theme)
     }
 }
 
-void
-guiBeginFullScreen(Cstr label, bool docking, bool menu_bar)
-{
-    ImGuiViewport const *viewport = igGetMainViewport();
-    igSetNextWindowPos(viewport->WorkPos, 0, (ImVec2){0, 0});
-    igSetNextWindowSize(viewport->WorkSize, 0);
-    igPushStyleVarFloat(ImGuiStyleVar_WindowRounding, 0.0f);
-    igPushStyleVarFloat(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    igPushStyleVarVec2(ImGuiStyleVar_WindowPadding, (ImVec2){0.0f, 0.0f});
-
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-                                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                                    ImGuiWindowFlags_NoBringToFrontOnFocus |
-                                    ImGuiWindowFlags_NoNavFocus;
-
-    if (!docking) window_flags |= ImGuiWindowFlags_NoDocking;
-    if (menu_bar) window_flags |= ImGuiWindowFlags_MenuBar;
-
-    igBegin(label, NULL, window_flags);
-    igPopStyleVar(3);
-}
-
-void
-guiEndFullScreen(void)
-{
-    igEnd();
-}
+// === Fonts handling ===
 
 bool
-guiFontOptionsEdit(FontOptions *state)
+guiFontOptionsEdit(GuiFontOptions *state)
 {
     bool rebuild_fonts = false;
 
@@ -263,7 +244,7 @@ guiFontOptionsEdit(FontOptions *state)
 }
 
 void
-guiUpdateAtlas(ImFontAtlas *fonts, FontOptions *font_opts)
+guiUpdateAtlas(ImFontAtlas *fonts, GuiFontOptions *font_opts)
 {
     if (font_opts->tex_glyph_padding != 0)
     {
@@ -291,6 +272,37 @@ guiUpdateAtlas(ImFontAtlas *fonts, FontOptions *font_opts)
 
     font_opts->tex_glyph_padding = fonts->TexGlyphPadding;
 }
+
+// === Miscellanea ===
+
+void
+guiBeginFullScreen(Cstr label, bool docking, bool menu_bar)
+{
+    ImGuiViewport const *viewport = igGetMainViewport();
+    igSetNextWindowPos(viewport->WorkPos, 0, (ImVec2){0, 0});
+    igSetNextWindowSize(viewport->WorkSize, 0);
+    igPushStyleVarFloat(ImGuiStyleVar_WindowRounding, 0.0f);
+    igPushStyleVarFloat(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    igPushStyleVarVec2(ImGuiStyleVar_WindowPadding, (ImVec2){0.0f, 0.0f});
+
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+                                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                                    ImGuiWindowFlags_NoBringToFrontOnFocus |
+                                    ImGuiWindowFlags_NoNavFocus;
+
+    if (!docking) window_flags |= ImGuiWindowFlags_NoDocking;
+    if (menu_bar) window_flags |= ImGuiWindowFlags_MenuBar;
+
+    igBegin(label, NULL, window_flags);
+    igPopStyleVar(3);
+}
+
+void
+guiEndFullScreen(void)
+{
+    igEnd();
+}
+
 bool
 guiCenteredButton(Cstr label)
 {
@@ -374,3 +386,128 @@ guiColorEdit(Cstr label, Rgba32 *color)
 
     return color_changed;
 }
+
+// === File dialogs ===
+
+// NOTE (Matteo): On windows I use the system dialogs for lazyness (and better experience actually)
+
+#if CF_OS_WIN32
+#    include "foundation/win32.h"
+
+typedef CfArray(Char16) StrBuf16;
+
+static StrBuf16
+win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, CfAllocator alloc)
+{
+    StrBuf16 out_filter = {0};
+    cfArrayInitCap(&out_filter, alloc, 1024);
+
+    if (num_filters == 0) return out_filter;
+
+    for (GuiFileDialogFilter *filter = filters, *end = filter + num_filters; filter < end; ++filter)
+    {
+        Usize name_size = win32Utf8To16C(filter->name, NULL, 0);
+
+        cfArrayReserve(&out_filter, name_size);
+        win32Utf8To16C(filter->name, cfArrayEnd(&out_filter), name_size);
+        cfArrayExtend(&out_filter, name_size);
+
+        for (Usize ext_no = 0; ext_no < filter->num_extensions; ++ext_no)
+        {
+            Cstr ext = filter->extensions[ext_no];
+            Usize ext_size = win32Utf8To16C(ext, NULL, 0);
+
+            // Prepend '*' to the extension - not documented but actually required
+            cfArrayPush(&out_filter, L'*');
+            cfArrayReserve(&out_filter, ext_size);
+            win32Utf8To16C(ext, cfArrayEnd(&out_filter), ext_size);
+            cfArrayExtend(&out_filter, ext_size);
+
+            // Replace null terminator with ';' to separate extensions
+            *cfArrayLast(&out_filter) = L';';
+        }
+
+        // Append 2 null terminators (required since null terminators are used
+        // internally to separate filters)
+        cfArrayPush(&out_filter, 0);
+        cfArrayPush(&out_filter, 0);
+    }
+
+    return out_filter;
+}
+
+static GuiFileDialogResult
+win32OpenFileDialog(GuiFileDialogParms *parms, CfAllocator alloc)
+{
+    GuiFileDialogResult result = {.code = GuiFileDialogResult_Error};
+
+    Char16 name[MAX_PATH] = {0};
+
+    if (strValid(parms->filename_hint))
+    {
+        Usize name_size = win32Utf8To16(parms->filename_hint, NULL, 0);
+        if (name_size >= MAX_PATH) return result;
+        win32Utf8To16(parms->filename_hint, name, name_size);
+    }
+
+    StrBuf16 filt = win32BuildFilterString(parms->filters, parms->num_filters, alloc);
+
+    OPENFILENAMEW ofn = {0};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = name;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.lpstrFilter = filt.buf; // L"Image files\0*.jpg;*.jpeg;*.bmp;*.png\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+    if (GetOpenFileNameW(&ofn))
+    {
+        result.filename.len = win32Utf16To8C(ofn.lpstrFile, NULL, 0) - 1;
+        result.filename.buf = cfMemAlloc(alloc, result.filename.len);
+
+        if (result.filename.buf)
+        {
+            result.code = GuiFileDialogResult_Ok;
+            win32Utf16To8C(ofn.lpstrFile, (Char8 *)result.filename.buf, result.filename.len);
+        }
+        else
+        {
+            result.filename.len = 0;
+        }
+    }
+    else
+    {
+        result.code = GuiFileDialogResult_Cancel;
+    }
+
+    cfArrayFree(&filt);
+
+    return result;
+}
+
+GuiFileDialogResult
+guiFileDialog(GuiFileDialogParms *parms, CfAllocator alloc)
+{
+    if (parms->type == GuiFileDialog_Save)
+    {
+        return (GuiFileDialogResult){.code = GuiFileDialogResult_Error};
+    }
+
+    return win32OpenFileDialog(parms, alloc);
+}
+
+#else
+
+GuiFileDialogResult
+guiOpenFileDialog(Str filename_hint, GuiFileDialogFilter *filters, Usize num_filters,
+                  CfAllocator alloc)
+{
+    // TODO (Matteo): Implement purely using IMGUI
+    return (GuiFileDialogResult){.code = FileDialogResult_Error};
+}
+
+#endif

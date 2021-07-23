@@ -303,7 +303,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     IVec2 win_pos, win_size;
     AppIo app_io = {
         .font_opts =
-            &(FontOptions){
+            &(GuiFontOptions){
                 .freetype_enabled = true,
                 .oversample_h = 1,
                 .oversample_v = 1,

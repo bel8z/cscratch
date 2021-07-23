@@ -24,9 +24,7 @@
 #    pragma clang diagnostic pop
 #endif
 
-//------------------------------------------------------------------------------
-// Gui utilities
-//------------------------------------------------------------------------------
+// === Initialization ===
 
 /// IMGUI state, used to initialize internal global variables
 typedef struct Gui
@@ -36,18 +34,10 @@ typedef struct Gui
     ImFontAtlas *shared_atlas;
 } Gui;
 
-/// Helper struct to tweak IMGUI font handling
-typedef struct FontOptions
-{
-    I32 tex_glyph_padding;
-    F32 rasterizer_multiply;
-    // Stb only
-    I32 oversample_h;
-    I32 oversample_v;
-    // Freetype only
-    U32 freetype_flags;
-    bool freetype_enabled;
-} FontOptions;
+/// Initialize IMGUI global state
+void guiInit(Gui *gui);
+
+// === Themes & styling ===
 
 /// Custom IMGUI color themes
 typedef enum GuiTheme
@@ -58,30 +48,82 @@ typedef enum GuiTheme
     GuiTheme_Count,
 } GuiTheme;
 
-/// Initialize IMGUI global state
-void guiInit(Gui *gui);
-
 /// Set a custom IMGUI color theme
 void guiSetTheme(GuiTheme theme);
 
-void guiBeginFullScreen(Cstr label, bool docking, bool menu_bar);
-void guiEndFullScreen(void);
+// === Fonts handling ===
+
+/// Helper struct to tweak IMGUI font handling
+typedef struct GuiFontOptions
+{
+    I32 tex_glyph_padding;
+    F32 rasterizer_multiply;
+    // Stb only
+    I32 oversample_h;
+    I32 oversample_v;
+    // Freetype only
+    U32 freetype_flags;
+    bool freetype_enabled;
+} GuiFontOptions;
 
 /// Widget for the editing of font options
-bool guiFontOptionsEdit(FontOptions *state);
+bool guiFontOptionsEdit(GuiFontOptions *state);
 /// Update the given atlas with the given options
-void guiUpdateAtlas(ImFontAtlas *fonts, FontOptions *font_opts);
+void guiUpdateAtlas(ImFontAtlas *fonts, GuiFontOptions *font_opts);
 /// Update the current font atlas with the given options
 #define guiUpdateFonts(font_opts) guiUpdateAtlas(igGetIO()->Fonts, font_opts)
+
+// === File dialogs ===
+
+enum
+{
+    GuiFileDialog_Open,
+    GuiFileDialog_Save,
+};
+
+typedef struct GuiFileDialogFilter
+{
+    // Display name of the filter
+    Cstr name;
+    // Supported extensions
+    Cstr *extensions;
+    Usize num_extensions;
+} GuiFileDialogFilter;
+
+typedef struct GuiFileDialogParms
+{
+    Str filename_hint;
+
+    GuiFileDialogFilter *filters;
+    Usize num_filters;
+
+    U8 type;
+} GuiFileDialogParms;
+
+enum
+{
+    GuiFileDialogResult_Ok,
+    GuiFileDialogResult_Cancel,
+    GuiFileDialogResult_Error,
+};
+
+typedef struct GuiFileDialogResult
+{
+    Str filename;
+    U8 code;
+} GuiFileDialogResult;
+
+GuiFileDialogResult guiFileDialog(GuiFileDialogParms *parms, CfAllocator alloc);
+
+// === Miscellanea ===
+
+void guiBeginFullScreen(Cstr label, bool docking, bool menu_bar);
+void guiEndFullScreen(void);
 
 bool guiCenteredButton(Cstr label);
 
 /// Custom color edit with an additional combobox for choosing X11 named colors
 bool guiColorEdit(Cstr label, Rgba32 *color);
-
-//------------------------------------------------------------------------------
-// Inline utilities
-//------------------------------------------------------------------------------
 
 static inline bool
 guiButton(Cstr label)

@@ -76,7 +76,7 @@ typedef struct Platform
 //------------------------------------------------------------------------------
 
 typedef struct AppState AppState;
-typedef struct FontOptions FontOptions;
+typedef struct GuiFontOptions GuiFontOptions;
 
 // TODO (Matteo): Maybe refactor this a bit
 
@@ -84,7 +84,7 @@ typedef struct FontOptions FontOptions;
 typedef struct AppIo
 {
     // Inputs
-    FontOptions *font_opts;
+    GuiFontOptions *font_opts;
 
     // Outputs
     Cstr window_title;

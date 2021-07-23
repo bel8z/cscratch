@@ -16,28 +16,6 @@ typedef struct FileContent
 
 typedef U64 FileTime;
 
-typedef struct FileDlgFilter
-{
-    // Display name of the filter
-    Cstr name;
-    // Supported extensions
-    Cstr *extensions;
-    Usize num_extensions;
-} FileDlgFilter;
-
-enum
-{
-    FileDialogResult_Ok,
-    FileDialogResult_Cancel,
-    FileDialogResult_Error,
-};
-
-typedef struct FileDialogResult
-{
-    Str filename;
-    U8 code;
-} FileDialogResult;
-
 /// File system API
 typedef struct CfFileSystem
 {
@@ -60,13 +38,6 @@ typedef struct CfFileSystem
     FileContent (*fileRead)(Str filename, CfAllocator alloc);
     bool (*fileCopy)(Str source, Str dest, bool overwrite);
     FileTime (*fileWriteTime)(Str filename);
-
-    // *** File dialogs ***
-
-    // TODO (Matteo): Is this the correct place for file dialogs?
-
-    FileDialogResult (*fileOpenDialog)(Str filename_hint, FileDlgFilter *filters, Usize num_filters,
-                                       CfAllocator alloc);
 
 } CfFileSystem;
 
