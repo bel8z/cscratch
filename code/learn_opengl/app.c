@@ -67,23 +67,40 @@ APP_API APP_CREATE_PROC(appCreate)
     app->plat = plat;
     app->clear_color = RGBA32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
 
-    // Init Dear Imgui
-    guiInit(plat->gui);
+    appLoad(app);
 
-    // Init OpenGl
-    gloadInit(plat->gl);
-    if (!gloadIsSupported(3, 3))
-    {
-        // TODO (Matteo): Log using IMGUI
-        log("OpenGL 3.3 is not supported!");
-    }
     gfxInit(&app->gfx);
 
     return app;
 }
 
+APP_API APP_PROC(appLoad)
+{
+    CF_ASSERT_NOT_NULL(app);
+    CF_ASSERT_NOT_NULL(app->plat);
+
+    // Init Dear Imgui
+    guiInit(app->plat->gui);
+
+    // Init OpenGl
+    gloadInit(app->plat->gl);
+    if (!gloadIsSupported(3, 3))
+    {
+        // TODO (Matteo): Log using IMGUI
+        log("OpenGL 3.3 is not supported!");
+    }
+}
+
+APP_API APP_PROC(appUnload)
+{
+    CF_ASSERT_NOT_NULL(app);
+}
+
 APP_API APP_PROC(appDestroy)
 {
+    CF_ASSERT_NOT_NULL(app);
+    CF_ASSERT_NOT_NULL(app->plat);
+
     cfMemFree(app->plat->heap, app, sizeof(*app));
 }
 
@@ -92,18 +109,25 @@ APP_API APP_PROC(appDestroy)
 static U32
 gfxBuildProgram(void)
 {
-    Cstr vtx_shader_src = "#version 330 core\n"
-                          "layout (location = 0) in vec3 aPos;\n"
-                          "void main()\n"
-                          "{\n"
-                          "     gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-                          "}\n";
+    Cstr vtx_shader_src =
+        "#version 330 core\n"
+        "layout (location = 0) in vec3 aPos;\n" // the position variable has attribute position 0
+        "out vec4 vertexColor;\n"               // specify a color output to the fragment shader
+        "void main()\n"
+        "{\n"
+        "     gl_Position = vec4(aPos.xyz, 1.0);\n"
+        "     vertexColor = vec4(0.5, 0.0, 0.0, 1.0);\n" // set the output variable to a dark-red
+                                                         // color
+        "}\n";
 
     Cstr pix_shader_src = "#version 330 core\n"
                           "out vec4 FragColor;\n"
+                          "in vec4 vertexColor;\n" // the input variable from the vertex shader
+                                                   // (same name and same type)
                           "void main()\n"
                           "{\n"
-                          "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+                          // "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+                          "    FragColor = vertexColor;\n"
                           "}\n";
 
     I32 success;
