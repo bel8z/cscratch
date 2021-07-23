@@ -1,12 +1,14 @@
 #pragma once
 
-#include "shader.h"
-
 #include "foundation/core.h"
 #include "foundation/fs.h"
 #include "foundation/strings.h"
 
 #include "gl/gload.h"
+
+//====================//
+//   Interface   //
+//====================//
 
 typedef struct Shader
 {
@@ -20,6 +22,14 @@ void shaderBegin(Shader shader);
 void shaderEnd(void);
 
 I32 shaderGetUniform(Shader shader, Cstr uniform_name);
+
+//====================//
+//   Implementation   //
+//====================//
+
+#if defined SHADER_IMPL
+
+#    include "log.h"
 
 Shader
 shaderLoadStrings(Str vtx, Str pix)
@@ -94,3 +104,5 @@ shaderGetUniform(Shader shader, Cstr uniform_name)
 {
     return glGetUniformLocation(shader.program, uniform_name);
 }
+
+#endif

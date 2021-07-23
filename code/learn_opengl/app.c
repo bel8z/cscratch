@@ -1,6 +1,7 @@
 #include "api.h"
 
 #include "log.h"
+#define SHADER_IMPL
 #include "shader.h"
 
 #include "gl/gload.h"
