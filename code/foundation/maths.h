@@ -25,6 +25,7 @@
 #define cfAcos(X) _Generic((X), default : acos, F32 : acosf)(X)
 #define cfAsin(X) _Generic((X), default : asin, F32 : asinf)(X)
 #define cfAtan(X) _Generic((X), default : atan, F32 : atanf)(X)
+#define cfAtan2(X, Y) _Generic((X, Y), default : atan2, F32 : atan2f)(X, Y)
 
 #define cfCosH(X) _Generic((X), default : cosh, F32 : coshf)(X)
 #define cfSinH(X) _Generic((X), default : sinh, F32 : sinhf)(X)
@@ -35,10 +36,12 @@
 //=================
 
 #define cfSqrt(X) _Generic((X), default : sqrt, F32 : sqrtf)(X)
+#define cfRsqrt(X) (1 / cfSqrt(X))
 #define cfPow(base, xp) _Generic((base, xp), default : pow, F32 : powf)(base, xp)
 #define cfSquare(x) ((x) * (x))
 #define cfCube(x) ((x) * (x) * (x))
-#define cfExp(x) _Generic((x), default : exp, F32 : expf)(base, xp)
+#define cfExp(base, xp) _Generic((base, xp), default : exp, F32 : expf)(base, xp)
+#define cfLog(x) _Generic((x), default : log, F32 : logf)(x)
 
 //==========
 //  Modulo
