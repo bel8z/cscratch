@@ -841,7 +841,7 @@ appMenuBar(AppState *state)
         igEndMainMenuBar();
     }
 
-    if (open_file_error) igOpenPopup("Open file error", 0);
+    if (open_file_error) igOpenPopupStr("Open file error", 0);
 
     return quit;
 }
@@ -946,7 +946,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
     if (state->unsupported)
     {
         state->unsupported = false;
-        igOpenPopup("Warning", 0);
+        igOpenPopupStr("Warning", 0);
     }
 
     //==== Popups ====
