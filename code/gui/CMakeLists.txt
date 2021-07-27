@@ -2,12 +2,11 @@ cmake_minimum_required(VERSION 3.20.0)
 
 get_directory_property(PARENT_DIR PARENT_DIRECTORY)
 
-
 message(STATUS "backend parent directory: ${PARENT_DIR}")
 
-#-------------------
-# Dependency paths
-#-------------------
+#------------------#
+# Dependency paths #
+#------------------#
 
 set(CODE_DIR ${PARENT_DIR}/code)
 set(EXT_DIR ${PARENT_DIR}/ext)

@@ -1,52 +1,52 @@
 cmake_minimum_required(VERSION 3.20.0)
 
-#----------------
-# Global options
-#----------------
+#----------------#
+# Global options #
+#----------------#
 
 # Force linking against MSVC runtime static library for all targets
 cmake_policy(SET CMP0091 NEW)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 
-#---------------------
-# Project declaration
-#---------------------
+#---------------------#
+# Project declaration #
+#---------------------#
 
 project(scratch VERSION 0.1.0)
 
-#-----------
-# Packaging
-#-----------
+#-----------#
+# Packaging #
+#-----------#
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-#---------------
-# Local scripts
-#---------------
+#---------------#
+# Local scripts #
+#---------------#
 
 include(cmake/CompileFlags.cmake)
 
-#-------------------
-# Dependency paths
-#-------------------
+#------------------#
+# Dependency paths #
+#------------------#
 
 set(EXT_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/ext)
 set(CODE_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/code)
 set(TESTS_DIR ${CODE_DIR}/tests)
 
-#-----------------------
-# Dependency libraries
-#-----------------------
+#----------------------#
+# Dependency libraries #
+#----------------------#
 
 add_subdirectory(${CODE_DIR}/foundation)
 add_subdirectory(${CODE_DIR}/gui)
 
-#-----------------------
-# Common resource files
-#-----------------------
+#-----------------------#
+# Common resource files #
+#-----------------------#
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
@@ -74,17 +74,18 @@ else()
     file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data DESTINATION "${OUT_DIR}")
 endif()
 
-#--------------------------
-# Common platform code
-#--------------------------
+#----------------------#
+# Common platform code #
+#----------------------#
 
 set(PLATFORM_SOURCES ${CODE_DIR}/platform.c)
 
 set_source_files_properties(${PLATFORM_SOURCES} PROPERTIES LANGUAGE C)
 
-#--------------------------
-# Applications
-#--------------------------
+#--------------#
+# Applications #
+#--------------#
+
 set(APP_LIST
     demo 
     image_viewer
@@ -124,9 +125,9 @@ foreach(APP ${APP_LIST})
     set_target_properties(${EXE_NAME} ${LIB_NAME} PROPERTIES UNITY_BUILD TRUE)
 endforeach()
 
-#-----------
-# Testing
-#-----------
+#---------#
+# Testing #
+#---------#
 
 include(CTest)
 enable_testing()
