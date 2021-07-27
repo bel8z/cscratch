@@ -6,6 +6,7 @@
 // Math utilities
 //------------------------------------------------------------------------------
 
+#include <immintrin.h>
 #include <math.h>
 
 #define cfAbs(X) _Generic((X), default : abs, I64 : llabs, F64 : fabs, F32 : fabsf)(X)
@@ -36,12 +37,18 @@
 //=================
 
 #define cfSqrt(X) _Generic((X), default : sqrt, F32 : sqrtf)(X)
-#define cfRsqrt(X) (1 / cfSqrt(X))
+#define cfRsqrt(X) _Generic((X), default : (1 / cfSqrt(X)), F32 : cf__Rsqrt32(X))
 #define cfPow(base, xp) _Generic((base, xp), default : pow, F32 : powf)(base, xp)
 #define cfSquare(x) ((x) * (x))
 #define cfCube(x) ((x) * (x) * (x))
 #define cfExp(base, xp) _Generic((base, xp), default : exp, F32 : expf)(base, xp)
 #define cfLog(x) _Generic((x), default : log, F32 : logf)(x)
+
+static inline F32
+cf__Rsqrt32(F32 x)
+{
+    return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(x)));
+}
 
 //==========
 //  Modulo
