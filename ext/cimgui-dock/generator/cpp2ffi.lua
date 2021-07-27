@@ -506,7 +506,7 @@ local function typetoStr(typ)
     --typ = typ:gsub("ImStr","STR")
     typ = typ:gsub("Im","")
     typ = typ:gsub("[<>]","")
-    return typ
+    return "_"..typ
 end
 --used to clean signature in function ptr argument
 local function clean_names_from_signature(self,signat)
@@ -648,7 +648,7 @@ local function parseFunction(self,stname,itt,namespace,locat)
 				typ,name = ar1:match("(.+)%s([^%s]+)")
 			end
 			if not typ or not name or name:match"%*" or M.c_types[name]  or self.typedefs_dict[name] then
-				print("bad argument name",funcname,typ,name,ar)
+				print("argument without name",funcname,typ,name,ar)
 				ar1,defa = ar:match"([^=]+)=([^=]+)"
 				ar1 = ar1 or ar
 				typ = ar1
@@ -812,6 +812,10 @@ local function ADDIMSTR_S(FP)
 			--defaults table
 			defT2.defaults = {}
 			for k,v in pairs(defT.defaults) do
+				if v:match"ImStrv" then
+					v = v:gsub("ImStrv%(([^%)]-)%)","%1")
+					v = v == "" and "NULL" or v
+				end
 				defT2.defaults[k] = v
             end
             defT2.args = defT2.args:gsub("ImStrv","const char*")
@@ -835,7 +839,8 @@ local function ADDIMSTR_S(FP)
 			defT2.call_args = caar 
 			------------------
             defT2.signature = defT.signature:gsub("ImStrv","const char*") --.."_S"
-            defT2.ov_cimguiname = defT2.ov_cimguiname .. "_Strv"
+            --defT2.ov_cimguiname = defT2.ov_cimguiname --.. "_Strv"
+			--defT.ov_cimguiname = defT.ov_cimguiname .. "_Strv"
             defT2.isIMSTR_S = 1
 			-- check there is not an equal version in imgui_stname
 			local doadd = true
@@ -1589,7 +1594,7 @@ function M.Parser()
         for k,v in pairs(self.alltypes) do print(k, typetoStr(k) ) end
     end
     function par:compute_overloads()
-		--ADDIMSTR_S(self)
+		ADDIMSTR_S(self)
         local strt = {}
         local numoverloaded = 0
         self.alltypes = {}
@@ -1631,7 +1636,7 @@ function M.Parser()
 		end)
         --print(numoverloaded, "overloaded")
         table.insert(strt,string.format("%d overloaded",numoverloaded))
-		ADDIMSTR_S(self)
+		--ADDIMSTR_S(self)
 		AdjustArguments(self)
 		ADDnonUDT(self)
 

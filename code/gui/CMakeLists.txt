@@ -10,7 +10,7 @@ message(STATUS "backend parent directory: ${PARENT_DIR}")
 
 set(CODE_DIR ${PARENT_DIR}/code)
 set(EXT_DIR ${PARENT_DIR}/ext)
-set(IMGUI_DIR ${EXT_DIR}/cimgui-1.82dock)
+set(IMGUI_DIR ${EXT_DIR}/cimgui-dock)
 set(BACKEND_DIR ${IMGUI_DIR}/imgui/backends)
 set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
 set(GLFW_DIR ${EXT_DIR}/glfw-3)

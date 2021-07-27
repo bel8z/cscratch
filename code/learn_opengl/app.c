@@ -184,11 +184,11 @@ APP_API APP_UPDATE_PROC(appUpdate)
 
         if (igBeginMenu("Windows", true))
         {
-            igMenuItemBoolPtr("Style editor", NULL, &state->windows.style, true);
-            igMenuItemBoolPtr("Font options", NULL, &state->windows.fonts, true);
+            igMenuItem_BoolPtr("Style editor", NULL, &state->windows.style, true);
+            igMenuItem_BoolPtr("Font options", NULL, &state->windows.fonts, true);
             igSeparator();
-            igMenuItemBoolPtr("Stats", NULL, &state->windows.stats, true);
-            igMenuItemBoolPtr("Metrics", NULL, &state->windows.metrics, true);
+            igMenuItem_BoolPtr("Stats", NULL, &state->windows.stats, true);
+            igMenuItem_BoolPtr("Metrics", NULL, &state->windows.metrics, true);
             igEndMenu();
         }
 

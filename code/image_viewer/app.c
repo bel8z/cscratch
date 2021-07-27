@@ -653,9 +653,9 @@ appImageView(AppState *state)
     if (iv->advanced)
     {
         I32 filter = iv->filter;
-        igRadioButtonIntPtr("Nearest", &filter, ImageFilter_Nearest);
+        igRadioButton_IntPtr("Nearest", &filter, ImageFilter_Nearest);
         guiSameLine();
-        igRadioButtonIntPtr("Linear", &filter, ImageFilter_Linear);
+        igRadioButton_IntPtr("Linear", &filter, ImageFilter_Linear);
 
         bool double_buffer = (iv->tex_count == CF_ARRAY_SIZE(iv->tex));
         guiSameLine();
@@ -765,12 +765,12 @@ appImageView(AppState *state)
         ImDrawList *draw_list = igGetWindowDrawList();
         ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
         ImDrawList_AddImage(draw_list, (ImTextureID)(Iptr)tex->id, image_min, image_max,
-                            (ImVec2){0.0f, 0.0f}, clamp_uv, igGetColorU32U32(RGBA32_WHITE));
+                            (ImVec2){0.0f, 0.0f}, clamp_uv, igGetColorU32_U32(RGBA32_WHITE));
 
         if (iv->advanced)
         {
             // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
-            ImU32 debug_color = igGetColorU32Vec4((ImVec4){1, 0, 1, 1});
+            ImU32 debug_color = igGetColorU32_Vec4((ImVec4){1, 0, 1, 1});
             ImDrawList_AddRect(draw_list, image_min, image_max, debug_color, 0.0f, 0, 1.0f);
             ImDrawList_AddRect(draw_list, view_min, view_max, debug_color, 0.0f, 0, 1.0f);
         }
@@ -817,31 +817,31 @@ appMenuBar(AppState *state)
     {
         if (igBeginMenu("File", true))
         {
-            if (igMenuItemBool("Open", NULL, false, true))
+            if (igMenuItem_Bool("Open", NULL, false, true))
             {
                 open_file_error = !appOpenFile(state);
             }
             igSeparator();
-            quit = igMenuItemBool("Quit", NULL, false, true);
+            quit = igMenuItem_Bool("Quit", NULL, false, true);
             igEndMenu();
         }
 
         if (igBeginMenu("View", true))
         {
-            igMenuItemBoolPtr("Advanced", NULL, &state->iv.advanced, true);
+            igMenuItem_BoolPtr("Advanced", NULL, &state->iv.advanced, true);
             igSeparator();
-            igMenuItemBoolPtr(STYLE_WINDOW, NULL, &state->style, true);
-            igMenuItemBoolPtr(FONTS_WINDOW, NULL, &state->fonts, true);
+            igMenuItem_BoolPtr(STYLE_WINDOW, NULL, &state->style, true);
+            igMenuItem_BoolPtr(FONTS_WINDOW, NULL, &state->fonts, true);
             igSeparator();
-            igMenuItemBoolPtr("Stats", NULL, &state->stats, true);
-            igMenuItemBoolPtr("Metrics", NULL, &state->metrics, true);
+            igMenuItem_BoolPtr("Stats", NULL, &state->stats, true);
+            igMenuItem_BoolPtr("Metrics", NULL, &state->metrics, true);
             igEndMenu();
         }
 
         igEndMainMenuBar();
     }
 
-    if (open_file_error) igOpenPopupStr("Open file error", 0);
+    if (open_file_error) igOpenPopup_Str("Open file error", 0);
 
     return quit;
 }
@@ -896,7 +896,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
 {
     Platform *plat = state->plat;
 
-    io->back_color = igGetColorU32Col(ImGuiCol_WindowBg, 1.0f);
+    io->back_color = igGetColorU32_Col(ImGuiCol_WindowBg, 1.0f);
     io->continuous_update = false;
 
     //==== Main UI ====
@@ -946,7 +946,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
     if (state->unsupported)
     {
         state->unsupported = false;
-        igOpenPopupStr("Warning", 0);
+        igOpenPopup_Str("Warning", 0);
     }
 
     //==== Popups ====

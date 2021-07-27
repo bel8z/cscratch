@@ -38,8 +38,9 @@ guiInit(Gui *gui)
     CF_ASSERT_NOT_NULL(gui);
     CF_ASSERT_NOT_NULL(gui->alloc);
 
-    igDebugCheckVersionAndDataLayout("1.82", sizeof(ImGuiIO), sizeof(ImGuiStyle), sizeof(ImVec2),
-                                     sizeof(ImVec4), sizeof(ImDrawVert), sizeof(ImDrawIdx));
+    igDebugCheckVersionAndDataLayout(igGetVersion(), sizeof(ImGuiIO), sizeof(ImGuiStyle),
+                                     sizeof(ImVec2), sizeof(ImVec4), sizeof(ImDrawVert),
+                                     sizeof(ImDrawIdx));
     igSetAllocatorFunctions(guiAlloc, guiFree, gui->alloc);
 
     if (gui->ctx)
@@ -192,13 +193,13 @@ guiFontOptionsEdit(GuiFontOptions *state)
 
     igShowFontSelector("Fonts");
 
-    if (igRadioButtonBool("FreeType", state->freetype_enabled))
+    if (igRadioButton_Bool("FreeType", state->freetype_enabled))
     {
         state->freetype_enabled = true;
         rebuild_fonts = true;
     }
     guiSameLine();
-    if (igRadioButtonBool("Stb (Default)", !state->freetype_enabled))
+    if (igRadioButton_Bool("Stb (Default)", !state->freetype_enabled))
     {
         state->freetype_enabled = false;
         rebuild_fonts = true;
@@ -215,22 +216,22 @@ guiFontOptionsEdit(GuiFontOptions *state)
     if (state->freetype_enabled)
     {
 
-        rebuild_fonts |= igCheckboxFlagsUintPtr("NoHinting", &state->freetype_flags,
-                                                ImGuiFreeTypeBuilderFlags_NoHinting);
-        rebuild_fonts |= igCheckboxFlagsUintPtr("NoAutoHint", &state->freetype_flags,
-                                                ImGuiFreeTypeBuilderFlags_NoAutoHint);
-        rebuild_fonts |= igCheckboxFlagsUintPtr("ForceAutoHint", &state->freetype_flags,
-                                                ImGuiFreeTypeBuilderFlags_ForceAutoHint);
-        rebuild_fonts |= igCheckboxFlagsUintPtr("LightHinting", &state->freetype_flags,
-                                                ImGuiFreeTypeBuilderFlags_LightHinting);
-        rebuild_fonts |= igCheckboxFlagsUintPtr("MonoHinting", &state->freetype_flags,
-                                                ImGuiFreeTypeBuilderFlags_MonoHinting);
+        rebuild_fonts |= igCheckboxFlags_UintPtr("NoHinting", &state->freetype_flags,
+                                                 ImGuiFreeTypeBuilderFlags_NoHinting);
+        rebuild_fonts |= igCheckboxFlags_UintPtr("NoAutoHint", &state->freetype_flags,
+                                                 ImGuiFreeTypeBuilderFlags_NoAutoHint);
+        rebuild_fonts |= igCheckboxFlags_UintPtr("ForceAutoHint", &state->freetype_flags,
+                                                 ImGuiFreeTypeBuilderFlags_ForceAutoHint);
+        rebuild_fonts |= igCheckboxFlags_UintPtr("LightHinting", &state->freetype_flags,
+                                                 ImGuiFreeTypeBuilderFlags_LightHinting);
+        rebuild_fonts |= igCheckboxFlags_UintPtr("MonoHinting", &state->freetype_flags,
+                                                 ImGuiFreeTypeBuilderFlags_MonoHinting);
         rebuild_fonts |=
-            igCheckboxFlagsUintPtr("Bold", &state->freetype_flags, ImGuiFreeTypeBuilderFlags_Bold);
-        rebuild_fonts |= igCheckboxFlagsUintPtr("Oblique", &state->freetype_flags,
-                                                ImGuiFreeTypeBuilderFlags_Oblique);
-        rebuild_fonts |= igCheckboxFlagsUintPtr("Monochrome", &state->freetype_flags,
-                                                ImGuiFreeTypeBuilderFlags_Monochrome);
+            igCheckboxFlags_UintPtr("Bold", &state->freetype_flags, ImGuiFreeTypeBuilderFlags_Bold);
+        rebuild_fonts |= igCheckboxFlags_UintPtr("Oblique", &state->freetype_flags,
+                                                 ImGuiFreeTypeBuilderFlags_Oblique);
+        rebuild_fonts |= igCheckboxFlags_UintPtr("Monochrome", &state->freetype_flags,
+                                                 ImGuiFreeTypeBuilderFlags_Monochrome);
     }
     else
     {
@@ -281,9 +282,9 @@ guiBeginFullScreen(Cstr label, bool docking, bool menu_bar)
     ImGuiViewport const *viewport = igGetMainViewport();
     igSetNextWindowPos(viewport->WorkPos, 0, (ImVec2){0, 0});
     igSetNextWindowSize(viewport->WorkSize, 0);
-    igPushStyleVarFloat(ImGuiStyleVar_WindowRounding, 0.0f);
-    igPushStyleVarFloat(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    igPushStyleVarVec2(ImGuiStyleVar_WindowPadding, (ImVec2){0.0f, 0.0f});
+    igPushStyleVar_Float(ImGuiStyleVar_WindowRounding, 0.0f);
+    igPushStyleVar_Float(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2){0.0f, 0.0f});
 
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
                                     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
@@ -359,7 +360,7 @@ guiColorEdit(Cstr label, Rgba32 *color)
         for (Usize i = 0; i < CF_ARRAY_SIZE(colors); ++i)
         {
             bool const selected = i == color_index;
-            if (igSelectableBool(names[i], selected, 0, (ImVec2){0}))
+            if (igSelectable_Bool(names[i], selected, 0, (ImVec2){0}))
             {
                 color_changed = color_index != i;
                 *color = colors[i];

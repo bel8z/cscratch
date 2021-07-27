@@ -77,7 +77,7 @@ fxDraw(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_da
 
     Char8 buffer[1024];
     strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%f", time);
-    ImDrawList_AddTextVec2(draw_list, p0, RGBA32_RED, buffer, buffer + strLength(buffer));
+    ImDrawList_AddText_Vec2(draw_list, p0, RGBA32_RED, buffer, buffer + strLength(buffer));
 
     // 1 Hz sinusoid, YAY!
 
@@ -210,13 +210,13 @@ APP_API APP_UPDATE_PROC(appUpdate)
 
         if (igBeginMenu("Windows", true))
         {
-            igMenuItemBoolPtr("Style editor", NULL, &state->windows.style, true);
-            igMenuItemBoolPtr("Font options", NULL, &state->windows.fonts, true);
+            igMenuItem_BoolPtr("Style editor", NULL, &state->windows.style, true);
+            igMenuItem_BoolPtr("Font options", NULL, &state->windows.fonts, true);
             igSeparator();
-            igMenuItemBoolPtr("Stats", NULL, &state->windows.stats, true);
-            igMenuItemBoolPtr("Metrics", NULL, &state->windows.metrics, true);
+            igMenuItem_BoolPtr("Stats", NULL, &state->windows.stats, true);
+            igMenuItem_BoolPtr("Metrics", NULL, &state->windows.metrics, true);
             igSeparator();
-            igMenuItemBoolPtr("Demo window", NULL, &state->windows.demo, true);
+            igMenuItem_BoolPtr("Demo window", NULL, &state->windows.demo, true);
             igEndMenu();
         }
 
