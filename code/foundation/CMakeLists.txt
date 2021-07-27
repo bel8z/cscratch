@@ -24,3 +24,5 @@ target_compile_features(foundation_dll PUBLIC c_std_11)
 
 set_c_compile_flags(foundation)
 set_c_compile_flags(foundation_dll)
+
+set_target_properties(foundation foundation_dll PROPERTIES UNITY_BUILD TRUE)

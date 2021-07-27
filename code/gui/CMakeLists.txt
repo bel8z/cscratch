@@ -16,9 +16,9 @@ set(BACKEND_DIR ${IMGUI_DIR}/imgui/backends)
 set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
 set(GLFW_DIR ${EXT_DIR}/glfw-3)
 
-#---------------------
-# Compilation options
-#---------------------
+#---------------------#
+# Compilation options #
+#---------------------#
 
 if (WIN32)
     add_definitions("-DIMGUI_IMPL_API=extern \"C\" __declspec\(dllexport\)")
@@ -33,9 +33,9 @@ set(IMGUI_STATIC "yes" CACHE STRING "Build as a static library" FORCE)
 set(IMGUI_FREETYPE "yes" CACHE STRING "Build with freetype library" FORCE)
 set(FREETYPE_PATH ${FREETYPE_DIR})
 
-#-----------------------
-# Dependency libraries
-#-----------------------
+#----------------------#
+# Dependency libraries #
+#----------------------#
 
 # TODO (Matteo): Find a better way to handle out of tree builds
 add_subdirectory(${IMGUI_DIR} ${CMAKE_BINARY_DIR}/cimgui-1.82dock)
@@ -43,9 +43,9 @@ add_subdirectory(${GLFW_DIR}  ${CMAKE_BINARY_DIR}/glfw-3)
 
 find_package(OpenGL REQUIRED)
 
-#-----------------------
-# Gui library
-#-----------------------
+#-------------#
+# Gui library #
+#-------------#
 set(GUI_NAME gui)
 
 set(GUI_SOURCES 
@@ -65,9 +65,9 @@ target_link_libraries(${GUI_NAME} PUBLIC cimgui)
 
 target_compile_features(${GUI_NAME} PUBLIC c_std_11)
 
-#-----------------------
-# Backend library
-#-----------------------
+#-----------------#
+# Backend library #
+#-----------------#
 set(BACKEND_NAME gui_backend)
 
 set(BACKEND_SOURCES 
@@ -87,3 +87,9 @@ target_link_libraries(${BACKEND_NAME} PUBLIC
     ${OPENGL_gl_LIBRARY})
 
 target_link_libraries(${BACKEND_NAME} PUBLIC glfw)
+
+#----------------------#
+# Unity build all libs #
+#----------------------#
+
+set_target_properties(${GUI_NAME} ${BACKEND_NAME} PROPERTIES UNITY_BUILD TRUE)

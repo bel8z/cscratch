@@ -8,6 +8,7 @@ cmake_minimum_required(VERSION 3.20.0)
 cmake_policy(SET CMP0091 NEW)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+
 #---------------------
 # Project declaration
 #---------------------
@@ -119,6 +120,8 @@ foreach(APP ${APP_LIST})
 
     set_c_compile_flags(${EXE_NAME})
     set_c_compile_flags(${LIB_NAME})
+
+    set_target_properties(${EXE_NAME} ${LIB_NAME} PROPERTIES UNITY_BUILD TRUE)
 endforeach()
 
 #-----------
