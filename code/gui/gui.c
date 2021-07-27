@@ -41,6 +41,7 @@ guiInit(Gui *gui)
     igDebugCheckVersionAndDataLayout(igGetVersion(), sizeof(ImGuiIO), sizeof(ImGuiStyle),
                                      sizeof(ImVec2), sizeof(ImVec4), sizeof(ImDrawVert),
                                      sizeof(ImDrawIdx));
+
     igSetAllocatorFunctions(guiAlloc, guiFree, gui->alloc);
 
     if (gui->ctx)

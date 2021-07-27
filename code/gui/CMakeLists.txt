@@ -15,6 +15,7 @@ set(BACKEND_DIR ${IMGUI_DIR}/imgui/backends)
 set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
 set(GLFW_DIR ${EXT_DIR}/glfw-3)
 
+
 #---------------------#
 # Compilation options #
 #---------------------#
@@ -42,6 +43,13 @@ add_subdirectory(${GLFW_DIR}  ${CMAKE_BINARY_DIR}/glfw-3)
 
 find_package(OpenGL REQUIRED)
 
+
+# NOTE (Matteo): Custom imgui configuration (requires giving access to foundation include directory)
+set(GUI_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/gui_config.h)
+message(STATUS "backend gui config: ${GUI_CONFIG}")
+target_compile_definitions(cimgui PUBLIC IMGUI_USER_CONFIG="${GUI_CONFIG}")
+target_include_directories(cimgui PUBLIC  ${CODE_DIR})
+
 #-------------#
 # Gui library #
 #-------------#
@@ -57,6 +65,7 @@ set_source_files_properties(${GUI_SOURCES} PROPERTIES LANGUAGE C)
 target_include_directories(${GUI_NAME} PUBLIC 
     ${IMGUI_DIR}/imgui
     ${CODE_DIR})
+
 
 target_include_directories(${GUI_NAME} INTERFACE ${IMGUI_DIR})
 
