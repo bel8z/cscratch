@@ -1,6 +1,4 @@
-#include "win32/win32_threading.h"
-
-#include "foundation/common.h"
+#include "foundation/core.h"
 #include "foundation/threading.h"
 
 #include <stdio.h>
@@ -25,13 +23,12 @@ typedef struct Queue
     I32 buffer[QueueSize];
     U32 beg;
     U32 len;
-    Mutex lock;
-    ConditionVariable notify;
+    CfMutex lock;
+    CfConditionVariable notify;
 } Queue;
 
 typedef struct Data
 {
-    cfThreading *api;
     Queue *queue;
 } Data;
 
@@ -39,12 +36,11 @@ static CF_THREAD_PROC(producerProc)
 {
     Data *d = args;
     Queue *queue = d->queue;
-    cfThreading *api = d->api;
 
     while (true)
     {
-        api->sleep(TIME_MS(1000));
-        api->mutexAcquire(&queue->lock);
+        cfSleep(TIME_MS(1000));
+        cfMutexAcquire(&queue->lock);
 
         I32 value = rand();
 
@@ -65,8 +61,8 @@ static CF_THREAD_PROC(producerProc)
 
         fprintf(stdout, "\n");
         fflush(stdout);
-        api->cvSignalOne(&queue->notify);
-        api->mutexRelease(&queue->lock);
+        cfCvSignalOne(&queue->notify);
+        cfMutexRelease(&queue->lock);
     }
 }
 
@@ -74,11 +70,10 @@ static CF_THREAD_PROC(consumerProc)
 {
     Data *d = args;
     Queue *queue = d->queue;
-    cfThreading *api = d->api;
 
     while (true)
     {
-        api->mutexAcquire(&queue->lock);
+        cfMutexAcquire(&queue->lock);
         if (queue->len)
         {
             I32 value = queue->buffer[queue->beg];
@@ -91,9 +86,9 @@ static CF_THREAD_PROC(consumerProc)
         }
         else
         {
-            api->cvWaitMutex(&queue->notify, &queue->lock, TIME_MS(15));
+            cfCvWaitMutex(&queue->notify, &queue->lock, TIME_MS(15));
         }
-        api->mutexRelease(&queue->lock);
+        cfMutexRelease(&queue->lock);
     }
 }
 
@@ -103,27 +98,24 @@ static CF_THREAD_PROC(consumerProc)
 int
 main(void)
 {
-    cfThreading api = {0};
-    win32ThreadingInit(&api);
-
     Queue queue = {0};
-    Data data = {.api = &api, .queue = &queue};
+    Data data = {.queue = &queue};
 
-    api.mutexInit(&queue.lock);
-    api.cvInit(&queue.notify);
+    cfMutexInit(&queue.lock);
+    cfCvInit(&queue.notify);
 
-    Thread threads[Count] = {[Producer] = api.threadCreate(&(ThreadParms){
-                                 .proc = producerProc,
-                                 .args = &data,
-                                 .debug_name = "Producer thread",
-                             }),
-                             [Consumer] = api.threadCreate(&(ThreadParms){
-                                 .proc = consumerProc,
-                                 .args = &data,
-                                 .debug_name = "Consumer thread",
-                             })};
+    CfThread threads[Count] = {[Producer] = cfThreadCreate(&(CfThreadParms){
+                                   .proc = producerProc,
+                                   .args = &data,
+                                   .debug_name = "Producer thread",
+                               }),
+                               [Consumer] = cfThreadCreate(&(CfThreadParms){
+                                   .proc = consumerProc,
+                                   .args = &data,
+                                   .debug_name = "Consumer thread",
+                               })};
 
-    api.threadWaitAll(threads, Count, TIME_INFINITE);
+    cfThreadWaitAll(threads, Count, TIME_INFINITE);
 
     return 0;
 }

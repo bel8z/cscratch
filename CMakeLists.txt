@@ -158,3 +158,8 @@ add_executable(test_files ${TESTS_DIR}/test_files.c)
 target_link_libraries(test_files PRIVATE foundation)
 target_include_directories(test_files PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_files)
+
+add_executable(test_threading ${TESTS_DIR}/test_threading.c)
+target_link_libraries(test_threading PRIVATE foundation)
+target_include_directories(test_threading PRIVATE ${CODE_DIR})
+set_c_compile_flags(test_threading)
