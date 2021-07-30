@@ -163,3 +163,8 @@ add_executable(test_threading ${TESTS_DIR}/test_threading.c)
 target_link_libraries(test_threading PRIVATE foundation)
 target_include_directories(test_threading PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_threading)
+
+add_executable(test_virtual_ring_buffer ${TESTS_DIR}/test_virtual_ring_buffer.c)
+target_link_libraries(test_virtual_ring_buffer PRIVATE foundation)
+target_include_directories(test_virtual_ring_buffer PRIVATE ${CODE_DIR})
+set_c_compile_flags(test_virtual_ring_buffer)
