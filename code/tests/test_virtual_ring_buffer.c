@@ -10,15 +10,15 @@
 // This allows for an apparently continuous layout of memory even when writes wrap around the end of
 // the buffer.
 
-typedef struct VRingBuffer
+typedef struct MirrorBuffer
 {
-    HANDLE mapping;
     Usize size;
     U8 *data;
-} VRingBuffer;
+    void *os_handle;
+} MirrorBuffer;
 
-VRingBuffer
-vringAllocate(Usize size)
+MirrorBuffer
+mirrorAllocate(Usize size)
 {
     SYSTEM_INFO info = {0};
     GetSystemInfo(&info);
@@ -28,7 +28,7 @@ vringAllocate(Usize size)
     Usize granularity = info.dwAllocationGranularity;
     Usize buffer_size = (size + granularity - 1) & ~(granularity - 1);
 
-    VRingBuffer mb = {0};
+    MirrorBuffer mb = {0};
 
     HANDLE mapping =
         CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, (DWORD)(buffer_size >> 32),
@@ -37,7 +37,7 @@ vringAllocate(Usize size)
     if (mapping)
     {
         mb.size = buffer_size;
-        mb.mapping = mapping;
+        mb.os_handle = mapping;
 
         while (!mb.data)
         {
@@ -62,14 +62,14 @@ vringAllocate(Usize size)
             }
         }
 
-        MapViewOfFileEx(mapping, FILE_MAP_ALL_ACCESS, 0, 0, buffer_size, mb.data + buffer_size);
+        cfMemClear(mb.data, mb.size);
     }
 
     return mb;
 }
 
 void
-vringFree(VRingBuffer *mb)
+mirrorFree(MirrorBuffer *mb)
 {
     if (mb->data)
     {
@@ -77,33 +77,33 @@ vringFree(VRingBuffer *mb)
         UnmapViewOfFile(mb->data);
     }
 
-    if (mb->mapping)
-    {
-        CloseHandle(mb->mapping);
-    }
+    if (mb->os_handle) CloseHandle(mb->os_handle);
 
-    mb->data = 0;
-    mb->mapping = 0;
     mb->size = 0;
+    mb->data = 0;
+    mb->os_handle = 0;
 }
 
 int
 main(void)
 {
-    VRingBuffer mb = vringAllocate(7539);
+    MirrorBuffer mb = mirrorAllocate(1);
 
-    cfMemClear(mb.data, mb.size);
-    char *s1 = (char *)mb.data;
-    char *s2 = s1 + mb.size;
-    sprintf(s1, "%s", "Hello, world!");
+    Usize write_pos = 0;
+    bool repeat = true;
 
-    printf("%s/n", s1);
-    printf("%s/n", s2);
+    while (repeat)
+    {
+        if (write_pos > mb.size) repeat = false;
 
-    fflush(stdout);
+        char *ptr = (char *)mb.data + (write_pos & (mb.size - 1));
+        write_pos += (Usize)sprintf(ptr, "Write pos: %zu\n", write_pos);
+    }
+
+    fprintf(stdout, "%s", (char *)mb.data);
 
     // Cleanup
-    vringFree(&mb);
+    mirrorFree(&mb);
 
     return 0;
 }
