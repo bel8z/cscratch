@@ -20,11 +20,13 @@ I32 platformMain(Platform *platform, Cstr argv[], I32 argc);
 //------------------------------------------------------------------------------
 
 // Virtual memory
-static Usize g_vm_page_size = 0;
 static VM_RESERVE_FUNC(win32VmReserve);
 static VM_COMMIT_FUNC(win32VmCommit);
 static VM_REVERT_FUNC(win32VmDecommit);
 static VM_RELEASE_FUNC(win32VmRelease);
+
+static VM_MIRROR_ALLOCATE(win32MirrorAllocate);
+static VM_MIRROR_FREE(win32MirrorFree);
 
 // Heap allocation
 static CF_ALLOCATOR_FUNC(win32Alloc);
@@ -69,6 +71,8 @@ static Platform g_platform = {
             .release = win32VmRelease,
             .commit = win32VmCommit,
             .revert = win32VmDecommit,
+            .mirrorAllocate = win32MirrorAllocate,
+            .mirrorFree = win32MirrorFree,
         },
     .heap =
         {
@@ -171,8 +175,8 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
 
-    g_vm_page_size = sysinfo.dwPageSize;
-    g_platform.vm->page_size = g_vm_page_size;
+    g_platform.vm->page_size = sysinfo.dwPageSize;
+    g_platform.vm->address_granularity = sysinfo.dwAllocationGranularity;
     g_platform.heap.state = &g_platform;
 
     // ** Init timing **
@@ -275,6 +279,68 @@ VM_RELEASE_FUNC(win32VmRelease)
     }
 }
 
+VM_MIRROR_ALLOCATE(win32MirrorAllocate)
+{
+    // NOTE (Matteo): Size is rounded to virtual memory granularity because the mapping addresses
+    // must be aligned as such.
+    Usize granularity = g_platform.vm->address_granularity;
+    Usize buffer_size = (size + granularity - 1) & ~(granularity - 1);
+
+    CfMirrorBuffer buffer = {0};
+
+    HANDLE mapping =
+        CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, (DWORD)(buffer_size >> 32),
+                           (DWORD)(buffer_size & 0xffffffff), NULL);
+
+    if (mapping)
+    {
+        buffer.size = buffer_size;
+        buffer.os_handle = mapping;
+
+        while (!buffer.data)
+        {
+            U8 *address = VirtualAlloc(NULL, buffer_size * 2, MEM_RESERVE, PAGE_READWRITE);
+            if (address)
+            {
+                VirtualFree(address, 0, MEM_RELEASE);
+
+                U8 *view1 =
+                    MapViewOfFileEx(mapping, FILE_MAP_ALL_ACCESS, 0, 0, buffer_size, address);
+                U8 *view2 = MapViewOfFileEx(mapping, FILE_MAP_ALL_ACCESS, 0, 0, buffer_size,
+                                            view1 + buffer_size);
+
+                if (view1 && view2)
+                {
+                    buffer.data = view1;
+                }
+                else
+                {
+                    win32PrintLastError();
+                }
+            }
+        }
+
+        cfMemClear(buffer.data, buffer.size);
+    }
+
+    return buffer;
+}
+
+VM_MIRROR_FREE(win32MirrorFree)
+{
+    if (buffer->data)
+    {
+        UnmapViewOfFile(buffer->data + buffer->size);
+        UnmapViewOfFile(buffer->data);
+    }
+
+    if (buffer->os_handle) CloseHandle(buffer->os_handle);
+
+    buffer->size = 0;
+    buffer->data = 0;
+    buffer->os_handle = 0;
+}
+
 #if CF_MEMORY_PROTECTION
 
 static Usize
@@ -296,7 +362,7 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 
     if (new_size)
     {
-        Usize block_size = win32RoundSize(new_size, g_vm_page_size);
+        Usize block_size = win32RoundSize(new_size, g_platform.vm->page_size);
         U8 *base = win32VmReserve(block_size);
         if (!base) return NULL;
 
@@ -317,7 +383,7 @@ CF_ALLOCATOR_FUNC(win32Alloc)
             cfMemCopy(memory, new_mem, cfMin(old_size, new_size));
         }
 
-        Usize block_size = win32RoundSize(old_size, g_vm_page_size);
+        Usize block_size = win32RoundSize(old_size, g_platform.vm->page_size);
         U8 *base = (U8 *)memory + old_size - block_size;
 
         win32VmDecommit(base, block_size);

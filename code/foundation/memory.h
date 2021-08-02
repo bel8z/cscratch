@@ -43,6 +43,7 @@ cfMemAlignForward(U8 const *address, Usize alignment)
 //------------------------//
 
 // NOTE (Matteo): The implementation of this API must be provided by the platform layer
+// TODO (Matteo): Improve mirror buffer API (and naming)
 
 #define VM_RESERVE_FUNC(name) void *name(Usize size)
 #define VM_RELEASE_FUNC(name) void name(void *memory, Usize size)
@@ -50,20 +51,52 @@ cfMemAlignForward(U8 const *address, Usize alignment)
 #define VM_COMMIT_FUNC(name) bool name(void *memory, Usize size)
 #define VM_REVERT_FUNC(name) void name(void *memory, Usize size)
 
+#define VM_MIRROR_ALLOCATE(name) CfMirrorBuffer name(Usize size)
+#define VM_MIRROR_FREE(name) void name(CfMirrorBuffer *buffer)
+
+/// Buffer built upon two adjacent virtual memory blocks that map to the same physical memory.
+/// The memory is thus "mirrored" between the two blocks, hence the name.
+/// Access is safe in the range [0, 2 * size), where the memory in [0, size) is exactly the same as
+/// in [size, 2 * size)
+typedef struct CfMirrorBuffer
+{
+    // Size of the buffer (it may be greater than requested to match address granularity)
+    Usize size;
+    // Pointer to start of the block
+    U8 *data;
+    // OS specific handle
+    void *os_handle;
+} CfMirrorBuffer;
+
+/// Virtual memory access API
 typedef struct CfVirtualMemory
 {
+    // Reserve a block of virtual memory, without committing it (memory can't be accessed)
     VM_RESERVE_FUNC((*reserve));
+    // Release a block of reserved virtual memory
     VM_RELEASE_FUNC((*release));
+    // Commit a portion of reserved virtual memory
     VM_COMMIT_FUNC((*commit));
+    // Decommit a portion of reserved virtual memory
     VM_REVERT_FUNC((*revert));
 
+    // Allocate a "mirror buffer" (single block of physical memory mapped to two adjacent blocks of
+    // virtual memory)
+    VM_MIRROR_ALLOCATE((*mirrorAllocate));
+    // Release a "mirror buffer"
+    VM_MIRROR_FREE((*mirrorFree));
+
     Usize page_size;
+    Usize address_granularity;
 } CfVirtualMemory;
 
 #define cfVmReserve(vm, size) (vm)->reserve(size)
 #define cfVmRelease(vm, mem, size) (vm)->release(mem, size)
 #define cfVmCommit(vm, mem, size) (vm)->commit(mem, size)
 #define cfVmRevert(vm, mem, size) (vm)->revert(mem, size)
+
+#define cfVmMirrorAllocate(vm, size) (vm)->mirrorAllocate(size)
+#define cfVmMirrorFree(vm, buff) (vm)->mirrorFree(buff)
 
 //------------------//
 //   Memory arena   //
@@ -75,14 +108,15 @@ typedef struct Arena
 {
     // TODO (Matteo): Use U64 explicitly for sizes?
 
-    Usize reserved;
-    Usize allocated;
-    Usize committed;
-    Usize save_stack;
-    U8 *memory;
-    CfVirtualMemory *vm;
+    Usize reserved;      // Reserved block size in bytes
+    Usize allocated;     // Allocated (used) bytes count
+    Usize committed;     // VM only - committed size in bytes
+    Usize save_stack;    // Stack of saved states, as a progressive state ID.
+    U8 *memory;          // Pointer to the reserved block
+    CfVirtualMemory *vm; // VM only - API for VM operations
 } Arena;
 
+/// Arena state, used for recovery after temporary allocations
 typedef struct ArenaTempState
 {
     Arena *arena;
@@ -168,11 +202,17 @@ CF_API void arenaFree(Arena *arena, void *memory, Usize size);
 /// Try freeing a block which fits the given array on top of the arena stack
 #define arenaFreeArray(arena, Type, count, ptr) arenaFree(arena, ptr, count * sizeof(Type))
 
+/// Save the current state of the arena, in order to restore it after temporary allocations.
 CF_API ArenaTempState arenaSave(Arena *arena);
+/// Restore a previously saved state of an arena.
 CF_API void arenaRestore(ArenaTempState state);
 
+/// Split the arena in two smaller ones, each one responsible of its own block.
+/// The size given is the minimum size of the chunk to split off the source arena, and can be larger
+/// to accomodate the page sizes for VM backed arenas.
 CF_API bool arenaSplit(Arena *arena, Arena *split, Usize size);
 
+/// Build a generic allocator based on the given arena
 CF_API CfAllocator arenaAllocator(Arena *arena);
 
 // Utility macros for managing temporary allocations
