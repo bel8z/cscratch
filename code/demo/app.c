@@ -1,6 +1,7 @@
 #include "api.h"
 
 #include "foundation/colors.h"
+#include "foundation/log.h"
 #include "foundation/maths.h"
 #include "foundation/strings.h"
 #include "foundation/time.h"
@@ -8,13 +9,6 @@
 #include "gl/gload.h"
 
 #include "gui/gui.h"
-
-typedef struct LogBuffer
-{
-    Char8 buffer[128];
-    Usize write_pos;
-    Time time;
-} LogBuffer;
 
 typedef struct AppWindows
 {
@@ -34,7 +28,8 @@ struct AppState
     AppWindows windows;
     Rgba32 clear_color;
 
-    LogBuffer log;
+    CfLog log;
+    Time log_time;
 };
 
 //------------------------------------------------------------------------------
@@ -52,6 +47,8 @@ APP_API APP_CREATE_PROC(appCreate)
     app->clear_color = RGBA32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
     app->windows.stats = true;
 
+    app->log = cfLogCreate(plat->vm, 128);
+
     // Init Dear Imgui
     guiInit(plat->gui);
 
@@ -63,6 +60,7 @@ APP_API APP_CREATE_PROC(appCreate)
 
 APP_API APP_PROC(appDestroy)
 {
+    cfLogDestroy(&app->log, app->plat->vm);
     cfMemFree(app->alloc, app, sizeof(*app));
 }
 
@@ -176,31 +174,31 @@ guiClock(Time time)
 //     cfMemClear(log, CF_ARRAY_SIZE(log->buffer));
 // }
 
-static void
-logWrite(LogBuffer *log, Cstr str, Time time)
-{
-    Usize buf_size = CF_ARRAY_SIZE(log->buffer);
-    Usize str_len = strLength(str);
-    Usize residual = buf_size - log->write_pos;
+// static void
+// logWrite(LogBuffer *log, Cstr str, Time time)
+// {
+//     Usize buf_size = CF_ARRAY_SIZE(log->buffer);
+//     Usize str_len = strLength(str);
+//     Usize residual = buf_size - log->write_pos;
 
-    if (residual < str_len + 1)
-    {
-        cfMemClear(log->buffer + log->write_pos, residual);
-        log->write_pos = 0;
-    }
+//     if (residual < str_len + 1)
+//     {
+//         cfMemClear(log->buffer + log->write_pos, residual);
+//         log->write_pos = 0;
+//     }
 
-    if (str_len >= buf_size - 1)
-    {
-        str += str_len - buf_size + 1;
-        str_len = buf_size - 1;
-    }
+//     if (str_len >= buf_size - 1)
+//     {
+//         str += str_len - buf_size + 1;
+//         str_len = buf_size - 1;
+//     }
 
-    cfMemCopy(str, log->buffer + log->write_pos, str_len);
-    log->write_pos += str_len % buf_size;
+//     cfMemCopy(str, log->buffer + log->write_pos, str_len);
+//     log->write_pos += str_len % buf_size;
 
-    log->buffer[log->write_pos] = 0;
-    log->time = time;
-}
+//     log->buffer[log->write_pos] = 0;
+//     log->time = time;
+// }
 
 APP_API APP_UPDATE_PROC(appUpdate)
 {
@@ -280,12 +278,13 @@ APP_API APP_UPDATE_PROC(appUpdate)
     guiClock(t);
     igSeparator();
 
-    if (timeIsGe(timeSub(t, state->log.time), TIME_MS(1000)))
+    if (timeIsGe(timeSub(t, state->log_time), TIME_MS(1000)))
     {
-        logWrite(&state->log, "One second passed\n", t);
+        state->log_time = t;
+        cfLogAppendf(&state->log, "One second passed\n");
     }
 
-    igTextUnformatted(state->log.buffer, NULL);
+    igTextUnformatted(cfLogCstring(&state->log), NULL);
 
     igEnd();
 

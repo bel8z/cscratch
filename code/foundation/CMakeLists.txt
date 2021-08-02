@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.15.0)
 
 set(LIB_SOURCES  
-    "memory.c"
     "list.c"
+    "log.c"
+    "memory.c"
     "paths.c"
     "strings.c"
     "threading.c")

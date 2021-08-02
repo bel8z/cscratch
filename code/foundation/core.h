@@ -163,6 +163,13 @@
 
 #define CF_MACRO_VAR(prefix) CF_CONCAT(prefix, CF_CONCAT(_, __LINE__))
 
+#if CF_COMPILER_CLANG
+#    define CF_PRINTF_LIKE(fmt_argno, variadic_argno) \
+        __attribute__((__format__(__printf__, fmt_argno + 1, variadic_argno + 1)))
+#else
+#    define CF_PRINTF_LIKE(fmt_argno, variadic_argno)
+#endif
+
 //-------------------------------//
 //   Assertions / Debug macros   //
 //-------------------------------//
