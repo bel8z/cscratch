@@ -31,15 +31,14 @@ cfLogAppendf(CfLog *log, Cstr format, ...)
 
     va_list args, copy;
     va_start(args, format);
-
     va_copy(copy, args);
-    va_start(copy, format);
-    Usize len = (Usize)vsnprintf(NULL, 0, format, copy);
+
+    Usize len = (Usize)vsnprintf(NULL, 0, format, copy); // NOLINT
     va_end(copy);
 
     CF_ASSERT(len < log->buffer.size, "What?");
 
-    vsnprintf(ptr, len + 1, format, args);
+    vsnprintf(ptr, len + 1, format, args); // NOLINT
     va_end(args);
 
     log->write_pos += len;
