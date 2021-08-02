@@ -1,5 +1,6 @@
 #include "foundation/core.h"
 #include "foundation/memory.h"
+#include "foundation/strings.h"
 
 #include "foundation/win32.h"
 
@@ -84,26 +85,92 @@ mirrorFree(MirrorBuffer *mb)
     mb->os_handle = 0;
 }
 
+typedef struct LogBuffer
+{
+    MirrorBuffer buff;
+    Usize write_pos;
+} LogBuffer;
+
+LogBuffer
+logBufferCreate(Usize size)
+{
+    return (LogBuffer){.buff = mirrorAllocate(size)};
+}
+
+void
+logBufferDestroy(LogBuffer *buffer)
+{
+    mirrorFree(&buffer->buff);
+    buffer->write_pos = 0;
+}
+
+void
+logBufferAppend(LogBuffer *buffer, Str string)
+{
+
+    U8 *ptr = buffer->buff.data + (buffer->write_pos & (buffer->buff.size - 1));
+    cfMemCopy(string.buf, ptr, string.len);
+    buffer->write_pos += string.len;
+}
+
+CF_PRINTF_LIKE(1, 2)
+void
+logBufferAppendF(LogBuffer *buffer, Cstr format, ...)
+{
+    char *ptr = (char *)buffer->buff.data + (buffer->write_pos & (buffer->buff.size - 1));
+
+    va_list args, copy;
+    va_start(args, format);
+
+    va_copy(copy, args);
+    va_start(copy, format);
+    Usize len = (Usize)vsnprintf(NULL, 0, format, copy);
+    va_end(copy);
+
+    CF_ASSERT(len < buffer->buff.size, "What?");
+
+    vsnprintf(ptr, len + 1, format, args);
+    va_end(args);
+
+    buffer->write_pos += len;
+}
+
+Cstr
+logBufferCstring(LogBuffer *buffer)
+{
+    Usize offset = 0;
+
+    if (buffer->write_pos > buffer->buff.size)
+    {
+        offset = ((buffer->write_pos + 1) & (buffer->buff.size - 1));
+    }
+
+    return (char *)buffer->buff.data + offset;
+}
+
+Usize
+logBufferSize(LogBuffer *buffer)
+{
+    return buffer->buff.size;
+}
+
 int
 main(void)
 {
-    MirrorBuffer mb = mirrorAllocate(1);
+    LogBuffer log = logBufferCreate(1);
 
-    Usize write_pos = 0;
     bool repeat = true;
 
     while (repeat)
     {
-        if (write_pos > mb.size) repeat = false;
-
-        char *ptr = (char *)mb.data + (write_pos & (mb.size - 1));
-        write_pos += (Usize)sprintf(ptr, "Write pos: %zu\n", write_pos);
+        if (log.write_pos > logBufferSize(&log)) repeat = false;
+        logBufferAppendF(&log, "Write pos: %zu\n", log.write_pos);
     }
 
-    fprintf(stdout, "%s", (char *)mb.data);
+    fprintf(stdout, "%s", logBufferCstring(&log));
 
     // Cleanup
-    mirrorFree(&mb);
+    logBufferDestroy(&log);
 
     return 0;
 }
