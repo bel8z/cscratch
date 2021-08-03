@@ -24,7 +24,7 @@
 #    pragma clang diagnostic pop
 #endif
 
-// === Initialization ===
+//=== Initialization ===//
 
 /// IMGUI state, used to initialize internal global variables
 typedef struct Gui
@@ -37,7 +37,7 @@ typedef struct Gui
 /// Initialize IMGUI global state
 void guiInit(Gui *gui);
 
-// === Themes & styling ===
+//=== Themes & styling ===//
 
 /// Custom IMGUI color themes
 typedef enum GuiTheme
@@ -51,7 +51,7 @@ typedef enum GuiTheme
 /// Set a custom IMGUI color theme
 void guiSetTheme(GuiTheme theme);
 
-// === Fonts handling ===
+//=== Fonts handling ===//
 
 /// Helper struct to tweak IMGUI font handling
 typedef struct GuiFontOptions
@@ -73,7 +73,7 @@ void guiUpdateAtlas(ImFontAtlas *fonts, GuiFontOptions *font_opts);
 /// Update the current font atlas with the given options
 #define guiUpdateFonts(font_opts) guiUpdateAtlas(igGetIO()->Fonts, font_opts)
 
-// === File dialogs ===
+//=== File dialogs ===//
 
 enum
 {
@@ -115,7 +115,14 @@ typedef struct GuiFileDialogResult
 
 GuiFileDialogResult guiFileDialog(GuiFileDialogParms *parms, CfAllocator alloc);
 
-// === Miscellanea ===
+//=== Log ===//
+
+typedef struct CfLog CfLog;
+
+/// Widget for displaying log content
+void guiLogBox(CfLog *log, bool readonly);
+
+//=== Miscellanea ===//
 
 void guiBeginFullScreen(Cstr label, bool docking, bool menu_bar);
 void guiEndFullScreen(void);

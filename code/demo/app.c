@@ -262,30 +262,30 @@ APP_API APP_UPDATE_PROC(appUpdate)
     }
 
     igBegin("Test", NULL, 0);
-
-    static F32 f = 0;
-
-    Time t = state->plat->clock();
-
-    igCheckbox("Demo Window", &state->windows.demo);
-    igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
-    guiColorEdit("clear color", &state->clear_color);
-    igSeparator();
-    igCheckbox("Continuous update", &io->continuous_update);
-    guiSameLine();
-    igCheckbox("Fullscreen", &io->fullscreen);
-    igSeparator();
-    guiClock(t);
-    igSeparator();
-
-    if (timeIsGe(timeSub(t, state->log_time), TIME_MS(1000)))
     {
-        state->log_time = t;
-        cfLogAppendf(&state->log, "One second passed\n");
+        static F32 f = 0;
+
+        Time t = state->plat->clock();
+
+        igCheckbox("Demo Window", &state->windows.demo);
+        igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
+        guiColorEdit("clear color", &state->clear_color);
+        igSeparator();
+        igCheckbox("Continuous update", &io->continuous_update);
+        guiSameLine();
+        igCheckbox("Fullscreen", &io->fullscreen);
+        igSeparator();
+        guiClock(t);
+        igSeparator();
+
+        if (timeIsGe(timeSub(t, state->log_time), TIME_MS(1000)))
+        {
+            state->log_time = t;
+            cfLogAppendf(&state->log, "One second passed\n");
+        }
+
+        guiLogBox(&state->log, false);
     }
-
-    igTextUnformatted(cfLogCstring(&state->log), NULL);
-
     igEnd();
 
     fxWindow();

@@ -56,3 +56,9 @@ cfLogCstring(CfLog *log)
 
     return (char *)log->buffer.data + offset;
 }
+
+void
+cfLogClear(CfLog *log)
+{
+    log->write_pos = 0;
+}

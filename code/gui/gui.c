@@ -2,6 +2,7 @@
 
 #include "foundation/array.h"
 #include "foundation/colors.h"
+#include "foundation/log.h"
 #include "foundation/memory.h"
 #include "foundation/strings.h"
 
@@ -273,6 +274,37 @@ guiUpdateAtlas(ImFontAtlas *fonts, GuiFontOptions *font_opts)
     ImFontAtlas_Build(fonts);
 
     font_opts->tex_glyph_padding = fonts->TexGlyphPadding;
+}
+
+// === Log ===
+
+void
+guiLogBox(CfLog *log, bool readonly)
+{
+    bool copy = false;
+
+    if (!readonly)
+    {
+        if (guiButton("Clear")) cfLogClear(log);
+        guiSameLine();
+    }
+
+    copy = guiButton("Copy");
+
+    igSeparator();
+    igBeginChild_Str("scrolling", (ImVec2){0}, false, ImGuiWindowFlags_HorizontalScrollbar);
+    {
+        if (copy) igLogToClipboard(-1);
+
+        igPushStyleVar_Vec2(ImGuiStyleVar_ItemSpacing, (ImVec2){0});
+        igTextUnformatted(cfLogCstring(log), NULL);
+        igPopStyleVar(1);
+        if (igGetScrollY() >= igGetScrollMaxY())
+        {
+            igSetScrollHereY(1.0f);
+        }
+    }
+    igEndChild();
 }
 
 // === Miscellanea ===
