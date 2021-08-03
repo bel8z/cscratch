@@ -10,6 +10,7 @@
 
 #include "foundation/colors.h"
 #include "foundation/fs.h"
+#include "foundation/log.h"
 #include "foundation/maths.h"
 #include "foundation/strings.h"
 
@@ -21,22 +22,23 @@ typedef struct GfxState
     U32 VBO, EBO, VAO;
 } GfxState;
 
-typedef struct AppWindows
-{
-    bool metrics;
-    bool stats;
-    bool fonts;
-    bool style;
-} AppWindows;
-
 struct AppState
 {
     Platform *plat;
 
     GfxState gfx;
 
-    AppWindows windows;
+    CfLog log;
+
+    // Output
     Rgba32 clear_color;
+
+    // Windows
+    bool metrics;
+    bool stats;
+    bool fonts;
+    bool style;
+    bool log_box;
 };
 
 //------------------------------------------------------------------------------
@@ -69,7 +71,7 @@ Cstr pix_shader_src = "#version 330 core\n"
 
 //------------------------------------------------------------------------------
 
-static void gfxInit(GfxState *state);
+static void gfxInit(GfxState *state, CfLog *log);
 
 //------------------------------------------------------------------------------
 
@@ -83,10 +85,11 @@ APP_API APP_CREATE_PROC(appCreate)
 
     app->plat = plat;
     app->clear_color = RGBA32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
+    app->log = cfLogCreate(plat->vm, CF_MB(1));
 
     appLoad(app);
 
-    gfxInit(&app->gfx);
+    gfxInit(&app->gfx, &app->log);
 
     return app;
 }
@@ -104,7 +107,7 @@ APP_API APP_PROC(appLoad)
     if (!gloadIsSupported(3, 3))
     {
         // TODO (Matteo): Log using IMGUI
-        appLog("OpenGL 3.3 is not supported!");
+        cfLogAppendF(&app->log, "OpenGL 3.3 is not supported!");
     }
 }
 
@@ -118,16 +121,18 @@ APP_API APP_PROC(appDestroy)
     CF_ASSERT_NOT_NULL(app);
     CF_ASSERT_NOT_NULL(app->plat);
 
+    cfLogDestroy(&app->log, app->plat->vm);
     cfMemFree(app->plat->heap, app, sizeof(*app));
 }
 
 //------------------------------------------------------------------------------
 
 static void
-gfxInit(GfxState *gfx)
+gfxInit(GfxState *gfx, CfLog *log)
 {
     gfx->shader = shaderLoadStrings(strFromCstr(vtx_shader_src), //
-                                    strFromCstr(pix_shader_src));
+                                    strFromCstr(pix_shader_src), //
+                                    log);
 
     glGenVertexArrays(1, &gfx->VAO);
     glGenBuffers(1, &gfx->VBO);
@@ -169,8 +174,10 @@ gfxInit(GfxState *gfx)
 }
 
 static void
-gfxProc(GfxState *gfx)
+gfxProc(GfxState *gfx, CfLog *log)
 {
+    CF_UNUSED(log); // at the moment
+
     shaderBegin(gfx->shader);
     glBindVertexArray(gfx->VAO);
     glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -184,30 +191,31 @@ APP_API APP_UPDATE_PROC(appUpdate)
 
         if (igBeginMenu("Windows", true))
         {
-            igMenuItem_BoolPtr("Style editor", NULL, &state->windows.style, true);
-            igMenuItem_BoolPtr("Font options", NULL, &state->windows.fonts, true);
+            igMenuItem_BoolPtr("Style editor", NULL, &state->style, true);
+            igMenuItem_BoolPtr("Font options", NULL, &state->fonts, true);
             igSeparator();
-            igMenuItem_BoolPtr("Stats", NULL, &state->windows.stats, true);
-            igMenuItem_BoolPtr("Metrics", NULL, &state->windows.metrics, true);
+            igMenuItem_BoolPtr("Log", NULL, &state->log_box, true);
+            igMenuItem_BoolPtr("Stats", NULL, &state->stats, true);
+            igMenuItem_BoolPtr("Metrics", NULL, &state->metrics, true);
             igEndMenu();
         }
 
         igEndMainMenuBar();
     }
 
-    if (state->windows.fonts)
+    if (state->fonts)
     {
-        igBegin("Font Options", &state->windows.fonts, 0);
+        igBegin("Font Options", &state->fonts, 0);
         io->rebuild_fonts = guiFontOptionsEdit(io->font_opts);
         igEnd();
     }
 
-    if (state->windows.stats)
+    if (state->stats)
     {
         Platform *plat = state->plat;
         F64 framerate = (F64)igGetIO()->Framerate;
 
-        igBegin("Application stats stats", &state->windows.stats, 0);
+        igBegin("Application stats stats", &state->stats, 0);
         igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
         igText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
         igSeparator();
@@ -217,17 +225,25 @@ APP_API APP_UPDATE_PROC(appUpdate)
         igEnd();
     }
 
-    if (state->windows.style)
+    if (state->style)
     {
-        igBegin("Style Editor", &state->windows.style, 0);
+        igBegin("Style Editor", &state->style, 0);
         igShowStyleEditor(NULL);
         igEnd();
     }
 
-    if (state->windows.metrics)
+    if (state->log_box)
     {
-        igShowMetricsWindow(&state->windows.metrics);
+        igBegin("Log", &state->log_box, 0);
+        igSetNextWindowSize((ImVec2){500, 400}, ImGuiCond_FirstUseEver);
+        guiLogBox(&state->log, true);
+        igEnd();
     }
 
-    gfxProc(&state->gfx);
+    if (state->metrics)
+    {
+        igShowMetricsWindow(&state->metrics);
+    }
+
+    gfxProc(&state->gfx, &state->log);
 }

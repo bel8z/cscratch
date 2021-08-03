@@ -2,6 +2,7 @@
 
 #include "foundation/core.h"
 #include "foundation/fs.h"
+#include "foundation/log.h"
 #include "foundation/strings.h"
 
 #include "gl/gload.h"
@@ -15,8 +16,8 @@ typedef struct Shader
     U32 program;
 } Shader;
 
-Shader shaderLoadFiles(FileContent vtx, FileContent pix);
-Shader shaderLoadStrings(Str vtx, Str pix);
+Shader shaderLoadFiles(FileContent vtx, FileContent pix, CfLog *log);
+Shader shaderLoadStrings(Str vtx, Str pix, CfLog *log);
 
 void shaderBegin(Shader shader);
 void shaderEnd(void);
@@ -29,14 +30,14 @@ I32 shaderGetUniform(Shader shader, Cstr uniform_name);
 
 #if defined SHADER_IMPL
 
-#    include "log.h"
-
 Shader
-shaderLoadStrings(Str vtx, Str pix)
+shaderLoadStrings(Str vtx, Str pix, CfLog *log)
 {
     Shader shader = {0};
 
     I32 success;
+
+    cfLogAppendC(log, "Compiling vertex shader\n");
 
     I32 const vtx_len = (I32)vtx.len;
     U32 const vtx_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -47,8 +48,10 @@ shaderLoadStrings(Str vtx, Str pix)
     {
         Char8 info_log[512];
         glGetShaderInfoLog(vtx_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
-        appLog("Vertex shader compilation error: %s\n", info_log);
+        cfLogAppendF(log, "Vertex shader compilation error: %s\n", info_log);
     }
+
+    cfLogAppendC(log, "Compiling pixel shader\n");
 
     I32 const pix_len = (I32)pix.len;
     U32 const pix_shader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -59,8 +62,10 @@ shaderLoadStrings(Str vtx, Str pix)
     {
         Char8 info_log[512];
         glGetShaderInfoLog(pix_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
-        appLog("Pixel shader compilation error: %s\n", info_log);
+        cfLogAppendF(log, "Pixel shader compilation error: %s\n", info_log);
     }
+
+    cfLogAppendC(log, "Linking shader program\n");
 
     shader.program = glCreateProgram();
     glAttachShader(shader.program, vtx_shader);
@@ -71,7 +76,7 @@ shaderLoadStrings(Str vtx, Str pix)
     {
         Char8 info_log[512];
         glGetProgramInfoLog(pix_shader, CF_ARRAY_SIZE(info_log), NULL, info_log);
-        appLog("Shader program link error: %s\n", info_log);
+        cfLogAppendF(log, "Shader program link error: %s\n", info_log);
     }
 
     glDeleteShader(vtx_shader);
@@ -81,10 +86,11 @@ shaderLoadStrings(Str vtx, Str pix)
 }
 
 Shader
-shaderLoadFiles(FileContent vtx, FileContent pix)
+shaderLoadFiles(FileContent vtx, FileContent pix, CfLog *log)
 {
     return shaderLoadStrings((Str){.buf = (Char8 *)vtx.data, .len = vtx.size},
-                             (Str){.buf = (Char8 *)pix.data, .len = pix.size});
+                             (Str){.buf = (Char8 *)pix.data, .len = pix.size}, //
+                             log);
 }
 
 void

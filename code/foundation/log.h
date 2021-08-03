@@ -17,4 +17,5 @@ Cstr cfLogCstring(CfLog *log);
 void cfLogClear(CfLog *log);
 
 void cfLogAppend(CfLog *log, Str string);
-void cfLogAppendf(CfLog *log, Cstr format, ...) CF_PRINTF_LIKE(1, 2);
+void cfLogAppendC(CfLog *log, Cstr cstring);
+void cfLogAppendF(CfLog *log, Cstr format, ...) CF_PRINTF_LIKE(1, 2);

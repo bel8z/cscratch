@@ -281,7 +281,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
         if (timeIsGe(timeSub(t, state->log_time), TIME_MS(1000)))
         {
             state->log_time = t;
-            cfLogAppendf(&state->log, "One second passed\n");
+            cfLogAppendF(&state->log, "One second passed\n");
         }
 
         guiLogBox(&state->log, false);

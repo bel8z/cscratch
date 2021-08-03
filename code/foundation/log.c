@@ -25,7 +25,13 @@ cfLogAppend(CfLog *log, Str string)
 }
 
 void
-cfLogAppendf(CfLog *log, Cstr format, ...)
+cfLogAppendC(CfLog *log, Cstr cstring)
+{
+    cfLogAppend(log, strFromCstr(cstring));
+}
+
+void
+cfLogAppendF(CfLog *log, Cstr format, ...)
 {
     char *ptr = (char *)log->buffer.data + (log->write_pos & (log->buffer.size - 1));
 
