@@ -49,6 +49,13 @@ APP_API APP_CREATE_PROC(appCreate)
 
     app->log = cfLogCreate(plat->vm, 128);
 
+    while (app->log.write_pos < app->log.buffer.size)
+    {
+        cfLogAppendC(&app->log, "Filling log buffer\n");
+    }
+
+    cfLogAppendC(&app->log, "Filling log buffer\n");
+
     // Init Dear Imgui
     guiInit(plat->gui);
 

@@ -330,8 +330,8 @@ VM_MIRROR_FREE(win32MirrorFree)
 {
     if (buffer->data)
     {
-        UnmapViewOfFile(buffer->data + buffer->size);
-        UnmapViewOfFile(buffer->data);
+        UnmapViewOfFile((U8 *)buffer->data + buffer->size);
+        UnmapViewOfFile((U8 *)buffer->data);
     }
 
     if (buffer->os_handle) CloseHandle(buffer->os_handle);

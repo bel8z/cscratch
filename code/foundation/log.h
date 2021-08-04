@@ -12,6 +12,7 @@ typedef struct CfLog
 CfLog cfLogCreate(CfVirtualMemory *vm, Usize buffer_size);
 void cfLogDestroy(CfLog *log, CfVirtualMemory *vm);
 
+Str cfLogString(CfLog *log);
 Cstr cfLogCstring(CfLog *log);
 
 void cfLogClear(CfLog *log);

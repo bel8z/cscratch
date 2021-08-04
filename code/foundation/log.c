@@ -18,8 +18,7 @@ cfLogDestroy(CfLog *log, CfVirtualMemory *vm)
 void
 cfLogAppend(CfLog *log, Str string)
 {
-
-    U8 *ptr = log->buffer.data + (log->write_pos & (log->buffer.size - 1));
+    Char8 *ptr = log->buffer.data + (log->write_pos & (log->buffer.size - 1));
     cfMemCopy(string.buf, ptr, string.len);
     log->write_pos += string.len;
 }
@@ -33,7 +32,7 @@ cfLogAppendC(CfLog *log, Cstr cstring)
 void
 cfLogAppendF(CfLog *log, Cstr format, ...)
 {
-    char *ptr = (char *)log->buffer.data + (log->write_pos & (log->buffer.size - 1));
+    Char8 *ptr = log->buffer.data + (log->write_pos & (log->buffer.size - 1));
 
     va_list args, copy;
     va_start(args, format);
@@ -50,6 +49,23 @@ cfLogAppendF(CfLog *log, Cstr format, ...)
     log->write_pos += len;
 }
 
+Str
+cfLogString(CfLog *log)
+{
+    Str result = {
+        .buf = log->buffer.data,
+        .len = log->write_pos,
+    };
+
+    if (log->write_pos > log->buffer.size)
+    {
+        result.buf += ((log->write_pos + 1) & (log->buffer.size - 1));
+        result.len = log->buffer.size - 1;
+    }
+
+    return result;
+}
+
 Cstr
 cfLogCstring(CfLog *log)
 {
@@ -60,7 +76,7 @@ cfLogCstring(CfLog *log)
         offset = ((log->write_pos + 1) & (log->buffer.size - 1));
     }
 
-    return (char *)log->buffer.data + offset;
+    return (Char8 *)log->buffer.data + offset;
 }
 
 void

@@ -12,6 +12,7 @@
 #include "core.h"
 
 #define strValid(str) (!!(str).buf)
+#define strEnd(str) ((str).buf + (str).len)
 
 //----------------------//
 //   C string helpers   //

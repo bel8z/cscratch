@@ -63,7 +63,7 @@ typedef struct CfMirrorBuffer
     // Size of the buffer (it may be greater than requested to match address granularity)
     Usize size;
     // Pointer to start of the block
-    U8 *data;
+    void *data;
     // OS specific handle
     void *os_handle;
 } CfMirrorBuffer;

@@ -297,7 +297,8 @@ guiLogBox(CfLog *log, bool readonly)
         if (copy) igLogToClipboard(-1);
 
         igPushStyleVar_Vec2(ImGuiStyleVar_ItemSpacing, (ImVec2){0});
-        igTextUnformatted(cfLogCstring(log), NULL);
+        Str log_str = cfLogString(log);
+        igTextUnformatted(log_str.buf, strEnd(log_str));
         igPopStyleVar(1);
         if (igGetScrollY() >= igGetScrollMaxY())
         {
