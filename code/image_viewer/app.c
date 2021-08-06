@@ -81,10 +81,14 @@ typedef struct ImageTex
 typedef struct ImageView
 {
     ImageTex tex[NumTextures];
+
+    ImVec2 drag;
     F32 zoom;
     I32 filter;
+
     U32 tex_index;
     U32 tex_count;
+
     bool dirty;
     bool advanced;
 } ImageView;
@@ -311,6 +315,7 @@ imageViewInit(ImageView *iv)
     iv->advanced = false;
     iv->zoom = 1.0f;
     iv->dirty = true;
+    iv->drag = (ImVec2){0};
     iv->filter = ImageFilter_Nearest;
     iv->tex_index = 0;
     iv->tex_count = CF_ARRAY_SIZE(iv->tex);
@@ -456,6 +461,7 @@ appQueueLoadFiles(AppState *app)
     // NOTE (Matteo): Set view as dirty
     app->iv.dirty = true;
     app->iv.zoom = 1.0f;
+    app->iv.drag = (ImVec2){0};
 }
 
 static void
@@ -622,14 +628,14 @@ appImageView(AppState *state)
     if (state->curr_file != USIZE_MAX)
     {
         ImageFile *curr_file = state->images.buf + state->curr_file;
-        bool process_input = true;
+        bool can_browse = true;
 
         switch (curr_file->state)
         {
             case ImageFileState_Loading:
             case ImageFileState_Queued:
                 // Do nothing
-                process_input = false;
+                can_browse = false;
                 break;
 
             case ImageFileState_Loaded:
@@ -643,7 +649,7 @@ appImageView(AppState *state)
                 break;
         }
 
-        if (process_input)
+        if (can_browse)
         {
             if (guiKeyPressed(ImGuiKey_LeftArrow)) appBrowsePrev(state);
             if (guiKeyPressed(ImGuiKey_RightArrow)) appBrowseNext(state);
@@ -651,9 +657,17 @@ appImageView(AppState *state)
 
         ImGuiIO *io = igGetIO();
 
-        if (igIsItemHovered(0) && io->KeyCtrl)
+        if (igIsItemHovered(0))
         {
-            iv->zoom = cfClamp(iv->zoom + io->MouseWheel, min_zoom, max_zoom);
+            if (io->KeyCtrl)
+            {
+                iv->zoom = cfClamp(iv->zoom + io->MouseWheel, min_zoom, max_zoom);
+            }
+
+            if (igIsMouseDragging(ImGuiMouseButton_Left, -1.0f))
+            {
+                igGetMouseDragDelta(&iv->drag, ImGuiMouseButton_Left, -1.0f);
+            }
         }
 
         // NOTE (Matteo): Draw the image properly scaled to fit the view
@@ -665,36 +679,31 @@ appImageView(AppState *state)
 
         // NOTE (Matteo): Clamp the displayed portion of the texture to the actual image size, since
         // the texture could be larger in order to be reused
-        ImVec2 clamp_uv = {
-            image_w / (F32)tex->width,
-            image_h / (F32)tex->height,
-        };
+        ImVec2 clamp_uv = {image_w / (F32)tex->width, //
+                           image_h / (F32)tex->height};
 
         // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
         // ratio at zoom level == 1; then zoom is applied
-        F32 image_aspect = image_w / image_h;
-
         if (image_w > view_size.x)
         {
+            image_h *= view_size.x / image_w;
             image_w = view_size.x;
-            image_h = image_w / image_aspect;
         }
 
         if (image_h > view_size.y)
         {
+            image_w *= view_size.y / image_h;
             image_h = view_size.y;
-            image_w = image_h * image_aspect;
         }
 
         // NOTE (Matteo): Round image bounds to nearest pixel for stable rendering
         image_w = cfRound(image_w * iv->zoom);
         image_h = cfRound(image_h * iv->zoom);
 
-        ImVec2 image_min = {cfRound(view_min.x + 0.5f * (view_size.x - image_w)),
-                            cfRound(view_min.y + 0.5f * (view_size.y - image_h))};
+        ImVec2 image_min = {iv->drag.x + cfRound(view_min.x + 0.5f * (view_size.x - image_w)),
+                            iv->drag.y + cfRound(view_min.y + 0.5f * (view_size.y - image_h))};
 
-        ImVec2 image_max = {image_min.x + image_w, //
-                            image_min.y + image_h};
+        ImVec2 image_max = {image_min.x + image_w, image_min.y + image_h};
 
         ImDrawList *draw_list = igGetWindowDrawList();
         ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
@@ -704,7 +713,7 @@ appImageView(AppState *state)
         if (iv->advanced)
         {
             // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
-            ImU32 debug_color = igGetColorU32_Vec4((ImVec4){1, 0, 1, 1});
+            ImU32 debug_color = igGetColorU32_U32(RGBA32_FUCHSIA);
             ImDrawList_AddRect(draw_list, image_min, image_max, debug_color, 0.0f, 0, 1.0f);
             ImDrawList_AddRect(draw_list, view_min, view_max, debug_color, 0.0f, 0, 1.0f);
         }
