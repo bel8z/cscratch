@@ -49,7 +49,7 @@ typedef struct CfFileSystem
 
     // *** File operations ***
 
-    FileContent (*fileRead)(Str filename, CfAllocator alloc);
+    FileContent (*fileRead)(Str filename, MemAllocator alloc);
     bool (*fileCopy)(Str source, Str dest, bool overwrite);
     FileProperties (*fileProperties)(Str filename);
 

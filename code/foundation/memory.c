@@ -332,7 +332,7 @@ memArenaSplit(MemArena *arena, MemArena *split, Usize size)
     return true;
 }
 
-static CF_ALLOCATOR_FUNC(arenaAllocProc)
+static MEM_ALLOCATOR_FUNC(arenaAllocProc)
 {
     CF_ASSERT(memory || !old_size, "Invalid allocation request");
 
@@ -351,10 +351,10 @@ static CF_ALLOCATOR_FUNC(arenaAllocProc)
     return new_memory;
 }
 
-CfAllocator
+MemAllocator
 memArenaAllocator(MemArena *arena)
 {
-    return (CfAllocator){
+    return (MemAllocator){
         .state = arena,
         .func = arenaAllocProc,
     };

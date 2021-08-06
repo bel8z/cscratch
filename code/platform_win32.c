@@ -29,7 +29,7 @@ static VM_MIRROR_ALLOCATE(win32MirrorAllocate);
 static VM_MIRROR_FREE(win32MirrorFree);
 
 // Heap allocation
-static CF_ALLOCATOR_FUNC(win32Alloc);
+static MEM_ALLOCATOR_FUNC(win32Alloc);
 
 // File system
 typedef struct Win32DirIterator
@@ -42,7 +42,7 @@ bool win32DirIterStart(DirIterator *self, Str dir_path);
 bool win32DirIterNext(DirIterator *self, Str *filename);
 void win32DirIterEnd(DirIterator *self);
 
-static FileContent win32FileRead(Str filename, CfAllocator alloc);
+static FileContent win32FileRead(Str filename, MemAllocator alloc);
 static bool win32FileCopy(Str source, Str dest, bool overwrite);
 static FileProperties win32FileProperties(Str filename);
 
@@ -99,7 +99,7 @@ static Platform g_platform = {
 //------------------------------------------------------------------------------
 
 static Char8 **
-win32GetCommandLineArgs(CfAllocator alloc, I32 *out_argc, Usize *out_size)
+win32GetCommandLineArgs(MemAllocator alloc, I32 *out_argc, Usize *out_size)
 {
     Char16 *cmd_line = GetCommandLineW();
     Char16 **argv_utf16 = CommandLineToArgvW(cmd_line, out_argc);
@@ -350,7 +350,7 @@ win32RoundSize(Usize req_size, Usize page_size)
     return page_count * page_size;
 }
 
-CF_ALLOCATOR_FUNC(win32Alloc)
+MEM_ALLOCATOR_FUNC(win32Alloc)
 {
     CF_UNUSED(state);
 
@@ -400,7 +400,7 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 
 #else
 
-CF_ALLOCATOR_FUNC(win32Alloc)
+MEM_ALLOCATOR_FUNC(win32Alloc)
 {
     CF_UNUSED(state);
     CF_UNUSED(align);
@@ -514,7 +514,7 @@ win32DirIterEnd(DirIterator *self)
 }
 
 FileContent
-win32FileRead(Str filename, CfAllocator alloc)
+win32FileRead(Str filename, MemAllocator alloc)
 {
     FileContent result = {0};
 

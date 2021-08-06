@@ -30,7 +30,7 @@
 typedef struct Gui
 {
     ImGuiContext *ctx;
-    CfAllocator *alloc;
+    MemAllocator *alloc;
     ImFontAtlas *shared_atlas;
 } Gui;
 
@@ -113,7 +113,7 @@ typedef struct GuiFileDialogResult
     U8 code;
 } GuiFileDialogResult;
 
-GuiFileDialogResult guiFileDialog(GuiFileDialogParms *parms, CfAllocator alloc);
+GuiFileDialogResult guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc);
 
 //=== Log ===//
 

@@ -74,7 +74,7 @@ freeListAllocGetBlock(FreeListAlloc *alloc, Usize size)
     return free_block;
 }
 
-CF_ALLOCATOR_FUNC(freeListAllocProc)
+MEM_ALLOCATOR_FUNC(freeListAllocProc)
 {
     CF_ASSERT(align <= CF_MAX_ALIGN, "Unsupported alignment request");
 
@@ -119,10 +119,10 @@ CF_ALLOCATOR_FUNC(freeListAllocProc)
     return new_memory;
 }
 
-CfAllocator
+MemAllocator
 freeListAllocator(FreeListAlloc *alloc)
 {
-    return (CfAllocator){
+    return (MemAllocator){
         .state = alloc,
         .func = freeListAllocProc,
     };
@@ -217,7 +217,7 @@ main()
 {
     FreeListAlloc fl = {0};
     freeListAllocInit(&fl, ALLOC_SIZE);
-    CfAllocator alloc = freeListAllocator(&fl);
+    MemAllocator alloc = freeListAllocator(&fl);
 
     //======================================================//
 

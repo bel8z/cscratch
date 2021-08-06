@@ -415,16 +415,16 @@ typedef struct Time
 //---------------//
 
 /// Definition of the main allocation function
-#define CF_ALLOCATOR_FUNC(name) \
+#define MEM_ALLOCATOR_FUNC(name) \
     void *name(void *state, void *memory, Usize old_size, Usize new_size, Usize align)
 
 /// Generic allocator interface
 /// The memory provided by this interface should already be cleared to 0
-typedef struct CfAllocator
+typedef struct MemAllocator
 {
     void *state;
-    CF_ALLOCATOR_FUNC((*func));
-} CfAllocator;
+    MEM_ALLOCATOR_FUNC((*func));
+} MemAllocator;
 
 //-------------------//
 //   Dynamic array   //
@@ -439,7 +439,7 @@ typedef struct CfAllocator
     struct                                                                               \
     {                                                                                    \
         /* Allocator used for growing the array dynamically */                           \
-        CfAllocator alloc;                                                               \
+        MemAllocator alloc;                                                              \
         /* Actual array storage */                                                       \
         Type *buf;                                                                       \
         /* Size of the array (number of stored items) */                                 \

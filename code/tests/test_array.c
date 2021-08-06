@@ -31,7 +31,7 @@ main(int32_t argc, char **argv)
     (void)argc;
     (void)argv;
 
-    CfAllocator std_alloc = stdAllocator();
+    MemAllocator std_alloc = stdAllocator();
 
     MyArray array = {0};
     cfArrayInit(&array, std_alloc);

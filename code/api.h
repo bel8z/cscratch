@@ -8,7 +8,7 @@
 
 // Foundation interfaces
 typedef struct CfVirtualMemory CfVirtualMemory;
-typedef struct CfAllocator CfAllocator;
+typedef struct MemAllocator MemAllocator;
 typedef struct CfFileSystem CfFileSystem;
 
 // Additional platform interfaces
@@ -40,7 +40,7 @@ typedef struct Platform
     Usize committed_size;
 
     /// System heap allocator
-    CfAllocator heap;
+    MemAllocator heap;
     /// Number of blocks allocated by the heap allocator
     // TODO (Matteo): Should be a pointer?
     Usize heap_blocks;

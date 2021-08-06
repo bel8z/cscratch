@@ -215,7 +215,7 @@ CF_API void memArenaRestore(MemArenaState state);
 CF_API bool memArenaSplit(MemArena *arena, MemArena *split, Usize size);
 
 /// Build a generic allocator based on the given arena
-CF_API CfAllocator memArenaAllocator(MemArena *arena);
+CF_API MemAllocator memArenaAllocator(MemArena *arena);
 
 // Utility macros for managing temporary allocations
 

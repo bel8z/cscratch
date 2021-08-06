@@ -11,7 +11,7 @@
 static void *
 guiAlloc(Usize size, void *state)
 {
-    CfAllocator alloc = *(CfAllocator *)state;
+    MemAllocator alloc = *(MemAllocator *)state;
     Usize *buf = memAlloc(alloc, size + sizeof(*buf));
 
     if (buf) *(buf++) = size;
@@ -24,7 +24,7 @@ guiFree(void *mem, void *state)
 {
     if (mem)
     {
-        CfAllocator alloc = *(CfAllocator *)state;
+        MemAllocator alloc = *(MemAllocator *)state;
         Usize *buf = mem;
         buf--;
         cfMemFree(alloc, buf, *buf + sizeof(*buf));
@@ -443,7 +443,7 @@ static const DWORD win32FileDialogFlags[] = {
 };
 
 static StrBuf16
-win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, CfAllocator alloc)
+win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAllocator alloc)
 {
     StrBuf16 out_filter = {0};
     cfArrayInitCap(&out_filter, alloc, 1024);
@@ -484,7 +484,7 @@ win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, CfAlloca
 }
 
 GuiFileDialogResult
-guiFileDialog(GuiFileDialogParms *parms, CfAllocator alloc)
+guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc)
 {
     GuiFileDialogResult result = {.code = GuiFileDialogResult_Error};
 
@@ -540,7 +540,7 @@ guiFileDialog(GuiFileDialogParms *parms, CfAllocator alloc)
 
 GuiFileDialogResult
 guiOpenFileDialog(Str filename_hint, GuiFileDialogFilter *filters, Usize num_filters,
-                  CfAllocator alloc)
+                  MemAllocator alloc)
 {
     // TODO (Matteo): Implement purely using IMGUI
     return (GuiFileDialogResult){.code = FileDialogResult_Error};

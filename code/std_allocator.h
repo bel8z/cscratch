@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-static CF_ALLOCATOR_FUNC(std__realloc)
+static MEM_ALLOCATOR_FUNC(std__realloc)
 {
     CF_UNUSED(state);
     CF_UNUSED(old_size);
@@ -16,8 +16,8 @@ static CF_ALLOCATOR_FUNC(std__realloc)
     return NULL;
 }
 
-static inline CfAllocator
+static inline MemAllocator
 stdAllocator()
 {
-    return (CfAllocator){.func = std__realloc};
+    return (MemAllocator){.func = std__realloc};
 }

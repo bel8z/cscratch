@@ -177,7 +177,7 @@ strContains(Str str, Char8 c)
     (CF_ASSERT((sb) && (sb)->buf && (sb)->len >= 1, "Invalid string builder state")) // NOLINT
 
 void
-strBufferInit(StrBuffer *sb, CfAllocator alloc)
+strBufferInit(StrBuffer *sb, MemAllocator alloc)
 {
     CF_ASSERT_NOT_NULL(sb);
     cfArrayInit(sb, alloc);
@@ -185,7 +185,7 @@ strBufferInit(StrBuffer *sb, CfAllocator alloc)
 }
 
 void
-strBufferInitFrom(StrBuffer *sb, CfAllocator alloc, Str str)
+strBufferInitFrom(StrBuffer *sb, MemAllocator alloc, Str str)
 {
     CF_ASSERT_NOT_NULL(sb);
     cfArrayInitCap(sb, alloc, str.len + 1);
@@ -195,7 +195,7 @@ strBufferInitFrom(StrBuffer *sb, CfAllocator alloc, Str str)
 }
 
 void
-strBufferInitWith(StrBuffer *sb, CfAllocator alloc, Usize cap)
+strBufferInitWith(StrBuffer *sb, MemAllocator alloc, Usize cap)
 {
     CF_ASSERT_NOT_NULL(sb);
     cfArrayInitCap(sb, alloc, cap);

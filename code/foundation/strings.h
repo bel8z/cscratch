@@ -77,9 +77,9 @@ CF_API Usize strFindLast(Str haystack, Str needle);
 //   Dynamic string building   //
 //-----------------------------//
 
-CF_API void strBufferInit(StrBuffer *sb, CfAllocator alloc);
-CF_API void strBufferInitFrom(StrBuffer *sb, CfAllocator alloc, Str str);
-CF_API void strBufferInitWith(StrBuffer *sb, CfAllocator alloc, Usize cap);
+CF_API void strBufferInit(StrBuffer *sb, MemAllocator alloc);
+CF_API void strBufferInitFrom(StrBuffer *sb, MemAllocator alloc, Str str);
+CF_API void strBufferInitWith(StrBuffer *sb, MemAllocator alloc, Usize cap);
 CF_API void strBufferShutdown(StrBuffer *sb);
 
 CF_API void strBufferAppend(StrBuffer *sb, Str what);
