@@ -1,6 +1,6 @@
-// ******************************
-//  Image viewer application
-// ******************************
+//================================//
+//    Image viewer application    //
+//================================//
 //
 // TODO (Matteo): missing features
 // ! Display transparent images properly
@@ -13,7 +13,7 @@
 //   (i.e. replace the heap allocator with a custom solution)
 // - Compress browsing code (too much duplication)
 //
-// ******************************
+//================================//
 
 #include "api.h"
 
@@ -33,6 +33,10 @@
 #include "foundation/paths.h"
 #include "foundation/strings.h"
 #include "foundation/threading.h"
+
+//-------------------//
+//     Constants     //
+//-------------------//
 
 static Cstr g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
 
@@ -56,6 +60,10 @@ enum Constants
 
 CF_STATIC_ASSERT(BrowseWidth & 1, "Browse width must be odd");
 CF_STATIC_ASSERT(BrowseWidth > 1, "Browse width must be > 1");
+
+//----------------------//
+//     Data structs     //
+//----------------------//
 
 typedef enum ImageFilter
 {
@@ -120,29 +128,29 @@ typedef struct LoadQueue
 
 struct AppState
 {
-    // *** Application memory storage *** //
+    //=== Application memory storage ===//
 
     void *base_pointer; /// Address of the main VM allocation
     Usize storage_size; /// Size of the main VM allocation
     Arena *main;        /// Arena for persistent storage (main data structures)
     Arena *scratch;     /// Arena for temporary storage (one-off allocations)
 
-    // *** Platform services *** //
+    //=== Platform services ===//
 
     Platform *plat;
     GuiFileDialogFilter filter;
 
-    // *** Image brosing *** //
+    //=== Image brosing ===//
 
     Usize browse_width;
     Usize curr_file;
     ImageList images;
 
-    // *** Async file loading *** //
+    //=== Async file loading ===//
 
     LoadQueue queue;
 
-    // *** GUI *** //
+    //=== GUI ===//
 
     ImageView iv;
     bool style;
@@ -152,13 +160,9 @@ struct AppState
     bool unsupported;
 };
 
-//------------------------------------------------------------------------------
-// Image loading prototypes (those functions are commonly used)
-
-static void appLoadFromFile(AppState *state, Str filename);
-
-//------------------------------------------------------------------------------
-// Async file loading
+//------------------------//
+//   Async file loading   //
+//------------------------//
 
 static void
 loadQueuePush(LoadQueue *queue, ImageFile *file)
@@ -251,8 +255,9 @@ loadQueueStop(LoadQueue *queue)
     queue->thread.handle = 0;
 }
 
-//------------------------------------------------------------------------------
-// Simple helper functions to load an image into a OpenGL texture with common settings
+//-----------------------//
+//     Image display     //
+//-----------------------//
 
 static void
 imageTexBuild(ImageTex *tex)
@@ -364,68 +369,9 @@ imageViewUpdate(ImageView *iv, Image const *image)
     }
 }
 
-//------------------------------------------------------------------------------
-// Application creation/destruction
-
-APP_API AppState *
-appCreate(Platform *plat, Cstr argv[], I32 argc)
-{
-    // NOTE (Matteo): Memory comes cleared to 0
-    Usize const storage_size = CF_GB(1);
-    void *storage = cfVmReserve(plat->vm, storage_size);
-
-    Arena *main = arenaBootstrapFromVm(plat->vm, storage, storage_size);
-    AppState *app = arenaAllocStruct(main, AppState);
-
-    app->base_pointer = storage;
-    app->storage_size = storage_size;
-
-    app->plat = plat;
-    app->main = main;
-
-    // NOTE (Matteo): Split scratch storage from main allocation
-    app->scratch = arenaAllocStruct(main, Arena);
-    arenaSplit(main, app->scratch, arenaRemaining(main) / 2);
-
-    // Init file list management
-    app->filter.name = "Image files";
-    app->filter.extensions = g_supported_ext;
-    app->filter.num_extensions = CF_ARRAY_SIZE(g_supported_ext);
-    app->curr_file = USIZE_MAX;
-
-    // Usize const images_vm = CF_GB(1);
-    cfArrayInit(&app->images, arenaAllocator(main));
-
-    app->queue.fs = app->plat->fs;
-    cfCvInit(&app->queue.wake);
-    cfMutexInit(&app->queue.mutex);
-
-    // NOTE (Matteo): Init global state (same as library re-load)
-    appLoad(app);
-
-    imageViewInit(&app->iv);
-
-    if (argc > 1) appLoadFromFile(app, strFromCstr(argv[1]));
-
-    return app;
-}
-
-APP_API APP_PROC(appLoad)
-{
-    CF_ASSERT_NOT_NULL(app);
-    CF_ASSERT_NOT_NULL(app->plat);
-    // Init Dear Imgui
-    guiInit(app->plat->gui);
-    // Init image loading
-    gloadInit(app->plat->gl);
-
-    loadQueueStart(&app->queue);
-}
-
-APP_API APP_PROC(appUnload)
-{
-    loadQueueStop(&app->queue);
-}
+//------------------------------------//
+//     Application image handling     //
+//------------------------------------//
 
 static void
 appClearImages(AppState *app)
@@ -451,22 +397,6 @@ appClearImages(AppState *app)
 
     app->curr_file = USIZE_MAX;
 }
-
-APP_API void
-appDestroy(AppState *app)
-{
-    appUnload(app);
-    appClearImages(app);
-    imageViewShutdown(&app->iv);
-    cfArrayFree(&app->images);
-    arenaClear(app->scratch);
-    arenaClear(app->main);
-
-    cfVmRelease(app->plat->vm, app->base_pointer, app->storage_size);
-}
-
-//------------------------------------------------------------------------------
-// Application update
 
 static bool
 appIsFileSupported(Str path)
@@ -529,58 +459,6 @@ appQueueLoadFiles(AppState *app)
 }
 
 static void
-appBrowseNext(AppState *app)
-{
-    CF_ASSERT(app->curr_file != U32_MAX, "Invalid browse command");
-
-    Usize next = cfWrapInc(app->curr_file, app->images.len);
-
-    if (app->browse_width != app->images.len)
-    {
-        Usize lru = cfMod(app->curr_file - app->browse_width / 2, app->images.len);
-        ImageFile *file = app->images.buf + lru;
-        if (file->state == ImageFileState_Loaded)
-        {
-            imageUnload(&file->image);
-            file->state = ImageFileState_Idle;
-        }
-    }
-    else
-    {
-        CF_ASSERT(app->images.buf[next].state != ImageFileState_Idle, "");
-    }
-
-    app->curr_file = next;
-    appQueueLoadFiles(app);
-}
-
-static void
-appBrowsePrev(AppState *app)
-{
-    CF_ASSERT(app->curr_file != USIZE_MAX, "Invalid browse command");
-
-    Usize prev = cfWrapDec(app->curr_file, app->images.len);
-
-    if (app->browse_width != app->images.len)
-    {
-        Usize lru = cfMod(app->curr_file + app->browse_width / 2, app->images.len);
-        ImageFile *file = app->images.buf + lru;
-        if (file->state == ImageFileState_Loaded)
-        {
-            imageUnload(&file->image);
-            file->state = ImageFileState_Idle;
-        }
-    }
-    else
-    {
-        CF_ASSERT(app->images.buf[prev].state != ImageFileState_Idle, "");
-    }
-
-    app->curr_file = prev;
-    appQueueLoadFiles(app);
-}
-
-void
 appLoadFromFile(AppState *state, Str full_name)
 {
     CfFileSystem const *fs = state->plat->fs;
@@ -637,6 +515,62 @@ appLoadFromFile(AppState *state, Str full_name)
         state->browse_width = cfMin(BrowseWidth, images->len);
         appQueueLoadFiles(state);
     }
+}
+
+//------------------------//
+//     Application GUI    //
+//------------------------//
+
+static void
+appBrowseNext(AppState *app)
+{
+    CF_ASSERT(app->curr_file != U32_MAX, "Invalid browse command");
+
+    Usize next = cfWrapInc(app->curr_file, app->images.len);
+
+    if (app->browse_width != app->images.len)
+    {
+        Usize lru = cfMod(app->curr_file - app->browse_width / 2, app->images.len);
+        ImageFile *file = app->images.buf + lru;
+        if (file->state == ImageFileState_Loaded)
+        {
+            imageUnload(&file->image);
+            file->state = ImageFileState_Idle;
+        }
+    }
+    else
+    {
+        CF_ASSERT(app->images.buf[next].state != ImageFileState_Idle, "");
+    }
+
+    app->curr_file = next;
+    appQueueLoadFiles(app);
+}
+
+static void
+appBrowsePrev(AppState *app)
+{
+    CF_ASSERT(app->curr_file != USIZE_MAX, "Invalid browse command");
+
+    Usize prev = cfWrapDec(app->curr_file, app->images.len);
+
+    if (app->browse_width != app->images.len)
+    {
+        Usize lru = cfMod(app->curr_file + app->browse_width / 2, app->images.len);
+        ImageFile *file = app->images.buf + lru;
+        if (file->state == ImageFileState_Loaded)
+        {
+            imageUnload(&file->image);
+            file->state = ImageFileState_Idle;
+        }
+    }
+    else
+    {
+        CF_ASSERT(app->images.buf[prev].state != ImageFileState_Idle, "");
+    }
+
+    app->curr_file = prev;
+    appQueueLoadFiles(app);
 }
 
 static void
@@ -892,6 +826,83 @@ appMainWindow(AppState *state)
     igEnd();
 }
 
+//---------------------------------------//
+//     Application API implementation    //
+//---------------------------------------//
+
+APP_API AppState *
+appCreate(Platform *plat, Cstr argv[], I32 argc)
+{
+    // NOTE (Matteo): Memory comes cleared to 0
+    Usize const storage_size = CF_GB(1);
+    void *storage = cfVmReserve(plat->vm, storage_size);
+
+    Arena *main = arenaBootstrapFromVm(plat->vm, storage, storage_size);
+    AppState *app = arenaAllocStruct(main, AppState);
+
+    app->base_pointer = storage;
+    app->storage_size = storage_size;
+
+    app->plat = plat;
+    app->main = main;
+
+    // NOTE (Matteo): Split scratch storage from main allocation
+    app->scratch = arenaAllocStruct(main, Arena);
+    arenaSplit(main, app->scratch, arenaRemaining(main) / 2);
+
+    // Init file list management
+    app->filter.name = "Image files";
+    app->filter.extensions = g_supported_ext;
+    app->filter.num_extensions = CF_ARRAY_SIZE(g_supported_ext);
+    app->curr_file = USIZE_MAX;
+
+    // Usize const images_vm = CF_GB(1);
+    cfArrayInit(&app->images, arenaAllocator(main));
+
+    app->queue.fs = app->plat->fs;
+    cfCvInit(&app->queue.wake);
+    cfMutexInit(&app->queue.mutex);
+
+    // NOTE (Matteo): Init global state (same as library re-load)
+    appLoad(app);
+
+    imageViewInit(&app->iv);
+
+    if (argc > 1) appLoadFromFile(app, strFromCstr(argv[1]));
+
+    return app;
+}
+
+APP_API void
+appDestroy(AppState *app)
+{
+    appUnload(app);
+    appClearImages(app);
+    imageViewShutdown(&app->iv);
+    cfArrayFree(&app->images);
+    arenaClear(app->scratch);
+    arenaClear(app->main);
+
+    cfVmRelease(app->plat->vm, app->base_pointer, app->storage_size);
+}
+
+APP_API APP_PROC(appLoad)
+{
+    CF_ASSERT_NOT_NULL(app);
+    CF_ASSERT_NOT_NULL(app->plat);
+    // Init Dear Imgui
+    guiInit(app->plat->gui);
+    // Init image loading
+    gloadInit(app->plat->gl);
+
+    loadQueueStart(&app->queue);
+}
+
+APP_API APP_PROC(appUnload)
+{
+    loadQueueStop(&app->queue);
+}
+
 APP_API APP_UPDATE_PROC(appUpdate)
 {
     Platform *plat = state->plat;
@@ -899,13 +910,13 @@ APP_API APP_UPDATE_PROC(appUpdate)
     io->back_color = igGetColorU32_Col(ImGuiCol_WindowBg, 1.0f);
     io->continuous_update = false;
 
-    //==== Main UI ====
+    //==== Main UI ====//
 
     if (appMenuBar(state)) io->quit = true;
 
     appMainWindow(state);
 
-    //==== Tool windows ====
+    //==== Tool windows ====//
 
     if (state->fonts)
     {
@@ -926,8 +937,6 @@ APP_API APP_UPDATE_PROC(appUpdate)
         igSeparator();
         igText("App base path:%.*s", state->plat->paths->base.len, state->plat->paths->base.buf);
         igText("App data path:%.*s", state->plat->paths->data.len, state->plat->paths->data.buf);
-        // igSeparator();
-        // igText("Loaded images: %d", imageLoadCount());
         igEnd();
     }
 
@@ -949,7 +958,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
         igOpenPopup_Str("Warning", 0);
     }
 
-    //==== Popups ====
+    //==== Popups ====//
 
     if (igBeginPopupModal("Open file error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
     {

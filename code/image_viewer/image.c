@@ -2,8 +2,6 @@
 
 #include "gl/gload.h"
 
-#include "foundation/memory.h"
-
 // NOTE (Matteo): On memory allocation
 //
 // stbi_image allows for plugging in custom memory allocation functions via the STBI_MALLOC,
