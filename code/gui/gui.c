@@ -12,7 +12,7 @@ static void *
 guiAlloc(Usize size, void *state)
 {
     CfAllocator alloc = *(CfAllocator *)state;
-    Usize *buf = cfMemAlloc(alloc, size + sizeof(*buf));
+    Usize *buf = memAlloc(alloc, size + sizeof(*buf));
 
     if (buf) *(buf++) = size;
 
@@ -514,7 +514,7 @@ guiFileDialog(GuiFileDialogParms *parms, CfAllocator alloc)
     if (win32FileDialog[parms->type](&ofn))
     {
         result.filename.len = win32Utf16To8C(ofn.lpstrFile, NULL, 0) - 1;
-        result.filename.buf = cfMemAlloc(alloc, result.filename.len);
+        result.filename.buf = memAlloc(alloc, result.filename.len);
 
         if (result.filename.buf)
         {

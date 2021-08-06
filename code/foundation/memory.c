@@ -9,37 +9,37 @@
 //----------------------------//
 
 void
-cfMemClear(void *mem, Usize count)
+memClear(void *mem, Usize count)
 {
     memset(mem, 0, count); // NOLINT
 }
 
 void
-cfMemCopy(void const *from, void *to, Usize count)
+memCopy(void const *from, void *to, Usize count)
 {
     memmove(to, from, count); // NOLINT
 }
 
 void
-cfMemCopySafe(void const *from, Usize from_size, void *to, Usize to_size)
+memCopySafe(void const *from, Usize from_size, void *to, Usize to_size)
 {
     memmove_s(to, to_size, from, from_size);
 }
 
 void
-cfMemWrite(U8 *mem, U8 value, Usize count)
+memWrite(U8 *mem, U8 value, Usize count)
 {
     memset(mem, value, count); // NOLINT
 }
 
 I32
-cfMemCompare(void const *left, void const *right, Usize count)
+memCompare(void const *left, void const *right, Usize count)
 {
     return memcmp(left, right, count);
 }
 
 bool
-cfMemMatch(void const *left, void const *right, Usize count)
+memMatch(void const *left, void const *right, Usize count)
 {
     return !memcmp(left, right, count);
 }
@@ -49,7 +49,7 @@ cfMemMatch(void const *left, void const *right, Usize count)
 //------------------//
 
 static void
-arenaCommitVm(Arena *arena)
+arenaCommitVm(MemArena *arena)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -57,19 +57,19 @@ arenaCommitVm(Arena *arena)
     {
         // NOTE (Matteo): Align memory commits to page boundaries
         U8 const *next_pos =
-            cfMemAlignForward(arena->memory + arena->allocated, arena->vm->page_size);
+            memAlignForward(arena->memory + arena->allocated, arena->vm->page_size);
         U8 *curr_pos = arena->memory + arena->committed;
 
         Usize max_commit_size = arena->reserved - arena->allocated;
         Usize commit_size = cfMin(next_pos - curr_pos, max_commit_size);
 
-        cfVmCommit(arena->vm, curr_pos, commit_size);
+        vmCommit(arena->vm, curr_pos, commit_size);
         arena->committed += commit_size;
     }
 }
 
 static void
-arenaDecommitVm(Arena *arena)
+arenaDecommitVm(MemArena *arena)
 {
     if (arena->vm && arena->committed > arena->allocated)
     {
@@ -78,19 +78,19 @@ arenaDecommitVm(Arena *arena)
 
         // Align base pointer forward
         U8 const *base = arena->memory + arena->allocated;
-        Usize offset = cfMemAlignForward(base, arena->vm->page_size) - arena->memory;
+        Usize offset = memAlignForward(base, arena->vm->page_size) - arena->memory;
 
         if (offset < arena->committed)
         {
             Usize decommit_size = arena->committed - offset;
-            cfVmRevert(arena->vm, arena->memory + offset, decommit_size);
+            vmRevert(arena->vm, arena->memory + offset, decommit_size);
             arena->committed -= decommit_size;
         }
     }
 }
 
 bool
-arenaInitOnVm(Arena *arena, CfVirtualMemory *vm, void *reserved_block, Usize reserved_size)
+memArenaInitOnVm(MemArena *arena, CfVirtualMemory *vm, void *reserved_block, Usize reserved_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -105,7 +105,7 @@ arenaInitOnVm(Arena *arena, CfVirtualMemory *vm, void *reserved_block, Usize res
 }
 
 void
-arenaInitOnBuffer(Arena *arena, U8 *buffer, Usize buffer_size)
+memArenaInitOnBuffer(MemArena *arena, U8 *buffer, Usize buffer_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -117,18 +117,18 @@ arenaInitOnBuffer(Arena *arena, U8 *buffer, Usize buffer_size)
     arena->save_stack = 0;
 }
 
-Arena *
-arenaBootstrapFromVm(CfVirtualMemory *vm, void *reserved_block, Usize reserved_size)
+MemArena *
+memArenaBootstrapFromVm(CfVirtualMemory *vm, void *reserved_block, Usize reserved_size)
 {
 
-    Arena *arena = NULL;
+    MemArena *arena = NULL;
 
     if (reserved_block)
     {
         CF_ASSERT(reserved_size > sizeof(*arena), "Cannot bootstrap arena from smaller allocation");
 
         Usize commit_size = cfMin(reserved_size, cfRoundUp(sizeof(*arena), vm->page_size));
-        cfVmCommit(vm, reserved_block, commit_size);
+        vmCommit(vm, reserved_block, commit_size);
 
         arena = reserved_block;
         arena->vm = vm;
@@ -143,14 +143,14 @@ arenaBootstrapFromVm(CfVirtualMemory *vm, void *reserved_block, Usize reserved_s
 }
 
 void
-arenaClear(Arena *arena)
+memArenaClear(MemArena *arena)
 {
     CF_ASSERT_NOT_NULL(arena);
 
     if (arena->vm && arena->memory == (U8 *)arena)
     {
         // Arena is bootstrapped, so I need to preserve its allocation
-        arena->allocated = sizeof(Arena);
+        arena->allocated = sizeof(MemArena);
     }
     else
     {
@@ -161,7 +161,7 @@ arenaClear(Arena *arena)
 }
 
 void *
-arenaAllocAlign(Arena *arena, Usize size, Usize align)
+memArenaAllocAlign(MemArena *arena, Usize size, Usize align)
 {
     CF_ASSERT_NOT_NULL(arena);
     CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
@@ -170,7 +170,7 @@ arenaAllocAlign(Arena *arena, Usize size, Usize align)
 
     // Align base pointer forward
     U8 const *base = arena->memory + arena->allocated;
-    Usize offset = cfMemAlignForward(base, align) - arena->memory;
+    Usize offset = memAlignForward(base, align) - arena->memory;
 
     if (offset + size <= arena->reserved)
     {
@@ -181,14 +181,14 @@ arenaAllocAlign(Arena *arena, Usize size, Usize align)
 
         // NOTE (Matteo): For simplicity every allocation is cleared, even it can be
         // avoided for freshly committed VM pages
-        cfMemClear(result, size);
+        memClear(result, size);
     }
 
     return result;
 }
 
 void *
-arenaReallocAlign(Arena *arena, void *memory, Usize old_size, Usize new_size, Usize align)
+memArenaReallocAlign(MemArena *arena, void *memory, Usize old_size, Usize new_size, Usize align)
 {
     CF_ASSERT_NOT_NULL(arena);
     CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
@@ -204,7 +204,7 @@ arenaReallocAlign(Arena *arena, void *memory, Usize old_size, Usize new_size, Us
     {
         // New allocation
         CF_ASSERT(old_size == 0, "Allocating new block but old size given");
-        result = arenaAllocAlign(arena, new_size, align);
+        result = memArenaAllocAlign(arena, new_size, align);
     }
     else if (arena->memory <= block && block <= arena_end)
     {
@@ -217,13 +217,13 @@ arenaReallocAlign(Arena *arena, void *memory, Usize old_size, Usize new_size, Us
             if (new_size > old_size)
             {
                 arenaCommitVm(arena);
-                cfMemClear(result + old_size, new_size - old_size);
+                memClear(result + old_size, new_size - old_size);
             }
         }
         else
         {
-            result = arenaAllocAlign(arena, new_size, align);
-            if (result) cfMemCopy(memory, result, cfMin(old_size, new_size));
+            result = memArenaAllocAlign(arena, new_size, align);
+            if (result) memCopy(memory, result, cfMin(old_size, new_size));
         }
     }
     else
@@ -235,7 +235,7 @@ arenaReallocAlign(Arena *arena, void *memory, Usize old_size, Usize new_size, Us
 }
 
 void
-arenaFree(Arena *arena, void *memory, Usize size)
+memArenaFree(MemArena *arena, void *memory, Usize size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -266,11 +266,11 @@ arenaFree(Arena *arena, void *memory, Usize size)
     }
 }
 
-ArenaTempState
-arenaSave(Arena *arena)
+MemArenaState
+memArenaSave(MemArena *arena)
 {
     CF_ASSERT_NOT_NULL(arena);
-    return (ArenaTempState){
+    return (MemArenaState){
         .arena = arena,
         .allocated = arena->allocated,
         .stack_id = ++arena->save_stack,
@@ -278,9 +278,9 @@ arenaSave(Arena *arena)
 }
 
 void
-arenaRestore(ArenaTempState state)
+memArenaRestore(MemArenaState state)
 {
-    Arena *arena = state.arena;
+    MemArena *arena = state.arena;
 
     CF_ASSERT_NOT_NULL(arena);
     CF_ASSERT(arena->save_stack == state.stack_id, "Restoring invalid state");
@@ -296,7 +296,7 @@ arenaRestore(ArenaTempState state)
 }
 
 bool
-arenaSplit(Arena *arena, Arena *split, Usize size)
+memArenaSplit(MemArena *arena, MemArena *split, Usize size)
 {
     CF_ASSERT(!split->memory, "split is expected to be 0-initialized");
 
@@ -336,23 +336,23 @@ static CF_ALLOCATOR_FUNC(arenaAllocProc)
 {
     CF_ASSERT(memory || !old_size, "Invalid allocation request");
 
-    Arena *arena = state;
+    MemArena *arena = state;
     void *new_memory = NULL;
 
     if (new_size)
     {
-        new_memory = arenaReallocAlign(arena, memory, old_size, new_size, align);
+        new_memory = memArenaReallocAlign(arena, memory, old_size, new_size, align);
     }
     else
     {
-        arenaFree(arena, memory, old_size);
+        memArenaFree(arena, memory, old_size);
     }
 
     return new_memory;
 }
 
 CfAllocator
-arenaAllocator(Arena *arena)
+memArenaAllocator(MemArena *arena)
 {
     return (CfAllocator){
         .state = arena,

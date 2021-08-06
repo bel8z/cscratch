@@ -5,7 +5,7 @@
 
 typedef struct CfLog
 {
-    CfMirrorBuffer buffer;
+    VmMirrorBuffer buffer;
     Usize write_pos;
 } CfLog;
 

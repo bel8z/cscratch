@@ -56,47 +56,47 @@ main()
         .release = win32VmRelease,
     };
 
-    Arena arena;
+    MemArena arena;
     Usize const storage_size = 1024 * 1024 * 1024;
-    void *storage = cfVmReserve(&vm, storage_size);
+    void *storage = vmReserve(&vm, storage_size);
 
-    if (!arenaInitOnVm(&arena, &vm, storage, storage_size))
+    if (!memArenaInitOnVm(&arena, &vm, storage, storage_size))
     {
         printf("Cannot init memory arena");
         return -1;
     }
 
-    I32 *ints = arenaAllocArray(&arena, I32, 1024);
+    I32 *ints = memArenaAllocArray(&arena, I32, 1024);
 
     for (int i = 0; i < 1024; ++i)
     {
         ints[i] = i;
     }
 
-    ARENA_TEMP_BEGIN(&arena);
+    MEM_ARENA_TEMP_BEGIN(&arena);
 
-    ints = arenaReallocArray(&arena, I32, ints, 1024, 2048);
+    ints = memArenaReallocArray(&arena, I32, ints, 1024, 2048);
 
     for (I32 i = 0; i < 1024; ++i)
     {
         CF_ASSERT(ints[i] == i, "");
     }
 
-    ARENA_TEMP_END(&arena);
+    MEM_ARENA_TEMP_END(&arena);
 
     for (I32 i = 1024; i < 2048; ++i)
     {
         ints[i] = i;
     }
 
-    arenaClear(&arena);
+    memArenaClear(&arena);
 
     for (I32 i = 0; i < 512; ++i)
     {
         CF_ASSERT(ints[i] == i, "");
     }
 
-    cfVmRelease(&vm, storage, storage_size);
+    vmRelease(&vm, storage, storage_size);
 
     return 0;
 }

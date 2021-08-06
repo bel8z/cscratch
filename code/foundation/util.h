@@ -22,9 +22,9 @@ cfRoundUp(U32 block_size, U32 page_size)
 static inline void
 cfSwapBuf(void *l, void *r, U8 *buf, Usize size)
 {
-    cfMemCopy(l, buf, size);
-    cfMemCopy(r, l, size);
-    cfMemCopy(buf, r, size);
+    memCopy(l, buf, size);
+    memCopy(r, l, size);
+    memCopy(buf, r, size);
 }
 
 // Swap elements byte per byte

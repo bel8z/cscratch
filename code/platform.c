@@ -268,8 +268,8 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
 #endif
     Char8 gui_ini[Paths_Size] = {0};
     CF_ASSERT(paths->base.len + paths->exe_name.len < Paths_Size, "IMGUI ini file name too long");
-    cfMemCopy(paths->base.buf, gui_ini, paths->base.len);
-    cfMemCopy(paths->exe_name.buf, gui_ini + paths->base.len, paths->exe_name.len);
+    memCopy(paths->base.buf, gui_ini, paths->base.len);
+    memCopy(paths->exe_name.buf, gui_ini + paths->base.len, paths->exe_name.len);
     pathChangeExt(strFromCstr(gui_ini), strFromCstr(".gui"), gui_ini);
     io->IniFilename = gui_ini;
 #if CF_COMPILER_MSVC
@@ -443,7 +443,7 @@ appApiLoad(AppApi *api, Platform *platform)
     {
         CF_ASSERT(api->create, "");
         platform->libUnload(api->lib);
-        cfMemClear(api, sizeof(*api));
+        memClear(api, sizeof(*api));
     }
 
     strPrintf(api->src_file, Paths_Size, "%.*s%.*s", //

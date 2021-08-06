@@ -16,7 +16,7 @@ strToCstr(Str str, Char8 *buffer, Usize size)
     Usize len = cfMin(str.len, size);
     if (buffer)
     {
-        cfMemCopy(str.buf, buffer, len);
+        memCopy(str.buf, buffer, len);
         buffer[len] = 0;
     }
     return len + 1;
@@ -85,7 +85,7 @@ stackStrPrintf(StackStr *str, Cstr fmt, ...)
 I32
 strCompare(Str l, Str r)
 {
-    return cfMemCompare(l.buf, r.buf, cfMin(l.len, r.len));
+    return memCompare(l.buf, r.buf, cfMin(l.len, r.len));
 }
 
 static inline I32
@@ -110,7 +110,7 @@ strCompareInsensitive(Str l, Str r)
 bool
 strEqual(Str l, Str r)
 {
-    return (l.len == r.len && cfMemMatch(l.buf, r.buf, l.len));
+    return (l.len == r.len && memMatch(l.buf, r.buf, l.len));
 }
 
 bool
@@ -190,7 +190,7 @@ strBufferInitFrom(StrBuffer *sb, CfAllocator alloc, Str str)
     CF_ASSERT_NOT_NULL(sb);
     cfArrayInitCap(sb, alloc, str.len + 1);
     cfArrayExtend(sb, str.len);
-    cfMemCopy(str.buf, sb->buf, str.len);
+    memCopy(str.buf, sb->buf, str.len);
     cfArrayPush(sb, 0);
 }
 
@@ -217,7 +217,7 @@ strBufferAppend(StrBuffer *sb, Str what)
     Usize nul_pos = sb->len - 1;
 
     cfArrayExtend(sb, what.len);
-    cfMemCopy(what.buf, sb->buf + nul_pos, what.len);
+    memCopy(what.buf, sb->buf + nul_pos, what.len);
 
     // Null terminate again
     sb->buf[sb->len - 1] = 0;

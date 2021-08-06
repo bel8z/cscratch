@@ -73,8 +73,8 @@ pathChangeExt(Str path, Str new_ext, Char8 *out)
 
     if (out)
     {
-        cfMemCopy(path.buf, out, offset);
-        cfMemCopy(new_ext.buf, out + offset, new_ext.len);
+        memCopy(path.buf, out, offset);
+        memCopy(new_ext.buf, out + offset, new_ext.len);
     }
 
     return offset + new_ext.len;

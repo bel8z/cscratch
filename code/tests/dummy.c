@@ -19,14 +19,14 @@ typedef struct MemoryHeader
 
 typedef struct FreeListAlloc
 {
-    Arena arena;
+    MemArena arena;
     CfList sentinel;
 } FreeListAlloc;
 
 void
 freeListAllocInit(FreeListAlloc *fl, Usize size)
 {
-    arenaInitOnBuffer(&fl->arena, calloc(1, size), size);
+    memArenaInitOnBuffer(&fl->arena, calloc(1, size), size);
     cfListInit(&fl->sentinel);
 }
 
@@ -66,7 +66,7 @@ freeListAllocGetBlock(FreeListAlloc *alloc, Usize size)
     }
     else
     {
-        free_block = arenaAlloc(&alloc->arena, size + sizeof(*free_block));
+        free_block = memArenaAlloc(&alloc->arena, size + sizeof(*free_block));
         free_block->size = size;
         cfListInit(&free_block->node);
     }
@@ -97,8 +97,8 @@ CF_ALLOCATOR_FUNC(freeListAllocProc)
             CF_ASSERT(free_block->size >= new_size, "Retrieved free block is too small");
 
             new_memory = (U8 *)(free_block + 1);
-            cfMemCopy(memory, new_memory, new_size);
-            cfMemClear(new_memory + new_size, free_block->size - new_size);
+            memCopy(memory, new_memory, new_size);
+            memClear(new_memory + new_size, free_block->size - new_size);
         }
 
         if (memory != new_memory)
@@ -113,7 +113,7 @@ CF_ALLOCATOR_FUNC(freeListAllocProc)
         CF_ASSERT_NOT_NULL(free_block);
         CF_ASSERT(free_block->size >= new_size, "Retrieved free block is too small");
         new_memory = (U8 *)(free_block + 1);
-        cfMemClear(new_memory, new_size);
+        memClear(new_memory, new_size);
     }
 
     return new_memory;
@@ -225,7 +225,7 @@ main()
     printf("Temporary buffer\n");
     printf("-------------------------\n");
 
-    Char8 *buff = cfMemAlloc(alloc, BUFF_SIZE);
+    Char8 *buff = memAlloc(alloc, BUFF_SIZE);
 
     strPrintf(buff, BUFF_SIZE, "USIZE_MAX = %zu", USIZE_MAX);
     Str dummy = strFromCstr(buff);

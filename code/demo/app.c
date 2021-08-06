@@ -40,7 +40,7 @@ APP_API APP_CREATE_PROC(appCreate)
     CF_UNUSED(argc);
 
     // NOTE (Matteo): Memory comes cleared to 0
-    AppState *app = cfMemAlloc(plat->heap, sizeof(*app));
+    AppState *app = memAlloc(plat->heap, sizeof(*app));
 
     app->plat = plat;
     app->alloc = plat->heap;
@@ -178,7 +178,7 @@ guiClock(Time time)
 // logClear(LogBuffer *log)
 // {
 //     log->write_pos = 0;
-//     cfMemClear(log, CF_ARRAY_SIZE(log->buffer));
+//     memClear(log, CF_ARRAY_SIZE(log->buffer));
 // }
 
 // static void
@@ -190,7 +190,7 @@ guiClock(Time time)
 
 //     if (residual < str_len + 1)
 //     {
-//         cfMemClear(log->buffer + log->write_pos, residual);
+//         memClear(log->buffer + log->write_pos, residual);
 //         log->write_pos = 0;
 //     }
 
@@ -200,7 +200,7 @@ guiClock(Time time)
 //         str_len = buf_size - 1;
 //     }
 
-//     cfMemCopy(str, log->buffer + log->write_pos, str_len);
+//     memCopy(str, log->buffer + log->write_pos, str_len);
 //     log->write_pos += str_len % buf_size;
 
 //     log->buffer[log->write_pos] = 0;

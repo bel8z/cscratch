@@ -132,8 +132,8 @@ struct AppState
 
     void *base_pointer; /// Address of the main VM allocation
     Usize storage_size; /// Size of the main VM allocation
-    Arena *main;        /// Arena for persistent storage (main data structures)
-    Arena *scratch;     /// Arena for temporary storage (one-off allocations)
+    MemArena *main;     /// Arena for persistent storage (main data structures)
+    MemArena *scratch;  /// Arena for temporary storage (one-off allocations)
 
     //=== Platform services ===//
 
@@ -473,7 +473,7 @@ appLoadFromFile(AppState *state, Str full_name)
         ImageFile file = {0};
         Char8 root_name[FILENAME_SIZE] = {0};
         Str file_name = pathSplitName(full_name);
-        cfMemCopy(full_name.buf, root_name, full_name.len - file_name.len);
+        memCopy(full_name.buf, root_name, full_name.len - file_name.len);
         strToCstr(full_name, file.filename, FILENAME_SIZE);
 
 #if CF_COMPILER_MSVC
@@ -716,7 +716,7 @@ appOpenFile(AppState *state)
 {
     bool result = true;
 
-    ARENA_TEMP_SCOPE(state->scratch)
+    MEM_ARENA_TEMP_SCOPE(state->scratch)
     {
         GuiFileDialogParms dlg_parms = {
             .type = GuiFileDialog_Open,
@@ -729,7 +729,8 @@ appOpenFile(AppState *state)
             dlg_parms.filename_hint = strFromCstr(state->images.buf[state->curr_file].filename);
         }
 
-        GuiFileDialogResult dlg_result = guiFileDialog(&dlg_parms, arenaAllocator(state->scratch));
+        GuiFileDialogResult dlg_result =
+            guiFileDialog(&dlg_parms, memArenaAllocator(state->scratch));
 
         switch (dlg_result.code)
         {
@@ -835,10 +836,10 @@ appCreate(Platform *plat, Cstr argv[], I32 argc)
 {
     // NOTE (Matteo): Memory comes cleared to 0
     Usize const storage_size = CF_GB(1);
-    void *storage = cfVmReserve(plat->vm, storage_size);
+    void *storage = vmReserve(plat->vm, storage_size);
 
-    Arena *main = arenaBootstrapFromVm(plat->vm, storage, storage_size);
-    AppState *app = arenaAllocStruct(main, AppState);
+    MemArena *main = memArenaBootstrapFromVm(plat->vm, storage, storage_size);
+    AppState *app = memArenaAllocStruct(main, AppState);
 
     app->base_pointer = storage;
     app->storage_size = storage_size;
@@ -847,8 +848,8 @@ appCreate(Platform *plat, Cstr argv[], I32 argc)
     app->main = main;
 
     // NOTE (Matteo): Split scratch storage from main allocation
-    app->scratch = arenaAllocStruct(main, Arena);
-    arenaSplit(main, app->scratch, arenaRemaining(main) / 2);
+    app->scratch = memArenaAllocStruct(main, MemArena);
+    memArenaSplit(main, app->scratch, memArenaRemaining(main) / 2);
 
     // Init file list management
     app->filter.name = "Image files";
@@ -857,7 +858,7 @@ appCreate(Platform *plat, Cstr argv[], I32 argc)
     app->curr_file = USIZE_MAX;
 
     // Usize const images_vm = CF_GB(1);
-    cfArrayInit(&app->images, arenaAllocator(main));
+    cfArrayInit(&app->images, memArenaAllocator(main));
 
     app->queue.fs = app->plat->fs;
     cfCvInit(&app->queue.wake);
@@ -880,10 +881,10 @@ appDestroy(AppState *app)
     appClearImages(app);
     imageViewShutdown(&app->iv);
     cfArrayFree(&app->images);
-    arenaClear(app->scratch);
-    arenaClear(app->main);
+    memArenaClear(app->scratch);
+    memArenaClear(app->main);
 
-    cfVmRelease(app->plat->vm, app->base_pointer, app->storage_size);
+    vmRelease(app->plat->vm, app->base_pointer, app->storage_size);
 }
 
 APP_API APP_PROC(appLoad)

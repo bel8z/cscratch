@@ -108,7 +108,7 @@ win32GetCommandLineArgs(CfAllocator alloc, I32 *out_argc, Usize *out_size)
 
     *out_size = (Usize)(*out_argc) * sizeof(*argv) + CF_MB(1);
 
-    argv = cfMemAlloc(alloc, *out_size);
+    argv = memAlloc(alloc, *out_size);
     Char8 *buf = (Char8 *)(argv + *out_argc);
 
     for (I32 i = 0; i < *out_argc; ++i)
@@ -132,7 +132,7 @@ static void
 pathsInit(Paths *g_paths)
 {
     // Clear shared buffer
-    cfMemClear(g_paths->buffer, CF_ARRAY_SIZE(g_paths->buffer));
+    memClear(g_paths->buffer, CF_ARRAY_SIZE(g_paths->buffer));
 
     // Point string views to assigned positions
     g_paths->base.buf = g_paths->buffer;
@@ -286,7 +286,7 @@ VM_MIRROR_ALLOCATE(win32MirrorAllocate)
     Usize granularity = g_platform.vm->address_granularity;
     Usize buffer_size = (size + granularity - 1) & ~(granularity - 1);
 
-    CfMirrorBuffer buffer = {0};
+    VmMirrorBuffer buffer = {0};
 
     HANDLE mapping =
         CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, (DWORD)(buffer_size >> 32),
@@ -320,7 +320,7 @@ VM_MIRROR_ALLOCATE(win32MirrorAllocate)
             }
         }
 
-        cfMemClear(buffer.data, buffer.size);
+        memClear(buffer.data, buffer.size);
     }
 
     return buffer;
@@ -380,7 +380,7 @@ CF_ALLOCATOR_FUNC(win32Alloc)
 
         if (new_mem)
         {
-            cfMemCopy(memory, new_mem, cfMin(old_size, new_size));
+            memCopy(memory, new_mem, cfMin(old_size, new_size));
         }
 
         Usize block_size = win32RoundSize(old_size, g_platform.vm->page_size);
@@ -542,7 +542,7 @@ win32FileRead(Str filename, CfAllocator alloc)
             DWORD read_size = (DWORD)(file_size.QuadPart);
             DWORD read;
 
-            result.data = cfMemAlloc(alloc, read_size);
+            result.data = memAlloc(alloc, read_size);
 
             if (result.data && ReadFile(file, result.data, read_size, &read, NULL) &&
                 read == read_size)

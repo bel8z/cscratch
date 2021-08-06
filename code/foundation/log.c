@@ -6,20 +6,20 @@
 CfLog
 cfLogCreate(CfVirtualMemory *vm, Usize buffer_size)
 {
-    return (CfLog){.buffer = cfVmMirrorAllocate(vm, buffer_size)};
+    return (CfLog){.buffer = vmMirrorAllocate(vm, buffer_size)};
 }
 
 void
 cfLogDestroy(CfLog *log, CfVirtualMemory *vm)
 {
-    cfVmMirrorFree(vm, &log->buffer);
+    vmMirrorFree(vm, &log->buffer);
 }
 
 void
 cfLogAppend(CfLog *log, Str string)
 {
     Char8 *ptr = log->buffer.data + (log->write_pos & (log->buffer.size - 1));
-    cfMemCopy(string.buf, ptr, string.len);
+    memCopy(string.buf, ptr, string.len);
     log->write_pos += string.len;
 }
 

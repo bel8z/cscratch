@@ -22,13 +22,13 @@
         (array)->len = 0;             \
     } while (0)
 
-#define cfArrayInitCap(array, allocator, capacity)                                   \
-    do                                                                               \
-    {                                                                                \
-        (array)->alloc = (allocator);                                                \
-        (array)->buf = cfMemAlloc((allocator), cf__arrayByteCount(array, capacity)); \
-        (array)->cap = (capacity);                                                   \
-        (array)->len = 0;                                                            \
+#define cfArrayInitCap(array, allocator, capacity)                                 \
+    do                                                                             \
+    {                                                                              \
+        (array)->alloc = (allocator);                                              \
+        (array)->buf = memAlloc((allocator), cf__arrayByteCount(array, capacity)); \
+        (array)->cap = (capacity);                                                 \
+        (array)->len = 0;                                                          \
     } while (0)
 
 #define cfArrayFree(array) \
@@ -52,12 +52,12 @@
 
 /// Ensure the array have the requested capacity by growing it if needed
 // TODO (Matteo): Geometric growth here too?
-#define cfArrayEnsure(array, required_cap)                                             \
-    ((array)->cap < required_cap                                                       \
-         ? ((array)->buf = cfMemRealloc(                                               \
-                (array)->alloc, (array)->buf, cf__arrayByteCount(array, (array)->cap), \
-                cf__arrayByteCount(array, cf__arrayNextCap(array, required_cap))),     \
-            (array)->cap = cf__arrayNextCap(array, required_cap))                      \
+#define cfArrayEnsure(array, required_cap)                                                        \
+    ((array)->cap < required_cap                                                                  \
+         ? ((array)->buf =                                                                        \
+                memRealloc((array)->alloc, (array)->buf, cf__arrayByteCount(array, (array)->cap), \
+                           cf__arrayByteCount(array, cf__arrayNextCap(array, required_cap))),     \
+            (array)->cap = cf__arrayNextCap(array, required_cap))                                 \
          : 0)
 
 /// Reserve capacity for the requested room
@@ -76,23 +76,23 @@
 #define cfArrayPop(array) ((array)->buf[--(array)->len])
 
 /// Insert the given item at the given position in the array
-#define cfArrayInsert(array, index, item)                           \
-    do                                                              \
-    {                                                               \
-        cfArrayPush(array, item);                                   \
-        cfMemCopy((array)->buf + index, (array)->buf + index + 1,   \
-                  cf__arrayByteCount(array, (array)->len - index)); \
-        (array)->buf[index] = item;                                 \
+#define cfArrayInsert(array, index, item)                         \
+    do                                                            \
+    {                                                             \
+        cfArrayPush(array, item);                                 \
+        memCopy((array)->buf + index, (array)->buf + index + 1,   \
+                cf__arrayByteCount(array, (array)->len - index)); \
+        (array)->buf[index] = item;                               \
     } while (0)
 
 /// Remove the item at the given position in the array
 /// The items after the removed item are relocated
-#define cfArrayRemove(array, index)                                 \
-    do                                                              \
-    {                                                               \
-        cfMemCopy((array)->buf + index + 1, (array)->buf + index,   \
-                  cf__arrayByteCount(array, (array)->len - index)); \
-        (array)->len--;                                             \
+#define cfArrayRemove(array, index)                               \
+    do                                                            \
+    {                                                             \
+        memCopy((array)->buf + index + 1, (array)->buf + index,   \
+                cf__arrayByteCount(array, (array)->len - index)); \
+        (array)->len--;                                           \
     } while (0)
 
 /// Remove the item at the given position in the array, without relocation (the
