@@ -19,7 +19,7 @@
 //   Basic utilities   //
 //---------------------//
 
-void cfSleep(Time timeout);
+void cfSleep(Duration duration);
 
 //------------//
 //   Thread   //
@@ -49,8 +49,8 @@ typedef struct CfThreadParms
 CF_API CfThread cfThreadCreate(CfThreadParms *parms);
 CF_API void cfThreadDestroy(CfThread thread);
 CF_API bool cfThreadIsRunning(CfThread thread);
-CF_API bool cfThreadWait(CfThread thread, Time timeout);
-CF_API bool cfThreadWaitAll(CfThread *threads, Usize num_threads, Time timeout);
+CF_API bool cfThreadWait(CfThread thread, Duration duration);
+CF_API bool cfThreadWaitAll(CfThread *threads, Usize num_threads, Duration duration);
 
 /// Wrapper around threadCreate that allows a more convenient syntax for optional
 /// parameters
@@ -115,8 +115,8 @@ typedef struct CfConditionVariable
 
 CF_API void cfCvInit(CfConditionVariable *cv);
 CF_API void cfCvShutdown(CfConditionVariable *cv);
-CF_API bool cfCvWaitMutex(CfConditionVariable *cv, CfMutex *mutex, Time timeout);
-CF_API bool cfCvWaitRwLock(CfConditionVariable *cv, CfRwLock *lock, Time timeout);
+CF_API bool cfCvWaitMutex(CfConditionVariable *cv, CfMutex *mutex, Duration duration);
+CF_API bool cfCvWaitRwLock(CfConditionVariable *cv, CfRwLock *lock, Duration duration);
 CF_API void cfCvSignalOne(CfConditionVariable *cv);
 CF_API void cfCvSignalAll(CfConditionVariable *cv);
 

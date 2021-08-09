@@ -201,7 +201,7 @@ static CF_THREAD_PROC(loadQueueProc)
         {
             while (!queue->stop && queue->len == 0)
             {
-                cfCvWaitMutex(&queue->wake, &queue->mutex, TIME_INFINITE);
+                cfCvWaitMutex(&queue->wake, &queue->mutex, DURATION_INFINITE);
             }
 
             if (queue->stop)
@@ -255,7 +255,7 @@ loadQueueStop(LoadQueue *queue)
     }
     cfMutexRelease(&queue->mutex);
 
-    cfThreadWait(queue->thread, TIME_INFINITE);
+    cfThreadWait(queue->thread, DURATION_INFINITE);
     queue->thread.handle = 0;
 }
 

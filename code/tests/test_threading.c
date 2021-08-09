@@ -1,5 +1,6 @@
 #include "foundation/core.h"
 #include "foundation/threading.h"
+#include "foundation/time.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +40,7 @@ static CF_THREAD_PROC(producerProc)
 
     while (true)
     {
-        cfSleep(TIME_MS(1000));
+        cfSleep(timeDurationMs(1000));
         cfMutexAcquire(&queue->lock);
 
         I32 value = rand();
@@ -86,7 +87,7 @@ static CF_THREAD_PROC(consumerProc)
         }
         else
         {
-            cfCvWaitMutex(&queue->notify, &queue->lock, TIME_MS(15));
+            cfCvWaitMutex(&queue->notify, &queue->lock, timeDurationMs(15));
         }
         cfMutexRelease(&queue->lock);
     }
@@ -115,7 +116,7 @@ main(void)
                                    .debug_name = "Consumer thread",
                                })};
 
-    cfThreadWaitAll(threads, Count, TIME_INFINITE);
+    cfThreadWaitAll(threads, Count, DURATION_INFINITE);
 
     return 0;
 }

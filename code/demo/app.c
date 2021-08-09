@@ -29,7 +29,7 @@ struct AppState
     Rgba32 clear_color;
 
     CfLog log;
-    Time log_time;
+    Duration log_time;
 };
 
 //------------------------------------------------------------------------------
@@ -158,12 +158,12 @@ fxWindow()
 }
 
 static void
-guiClock(Time time)
+guiClock(Duration time)
 {
     I64 const secs_per_hour = 60 * 60;
     I64 const secs_per_day = secs_per_hour * 24;
-    I64 const secs = time.nanoseconds / 1000000000;
-    I64 const ms_remainder = (time.nanoseconds - secs * 1000000000) / 1000000;
+    I64 const secs = time.seconds;
+    I64 const ms_remainder = (time.nanos) / 1000000;
 
     // Euclidean reminder to compute the number of seconds in a day boundary
     I64 total_secs = ((secs % secs_per_day) + secs_per_day) % secs_per_day;
@@ -272,7 +272,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
     {
         static F32 f = 0;
 
-        Time t = state->plat->clock();
+        Duration t = state->plat->clock();
 
         igCheckbox("Demo Window", &state->windows.demo);
         igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
@@ -285,7 +285,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
         guiClock(t);
         igSeparator();
 
-        if (timeIsGe(timeSub(t, state->log_time), TIME_MS(1000)))
+        if (timeIsGe(timeSub(t, state->log_time), timeDurationMs(1000)))
         {
             state->log_time = t;
             cfLogAppendF(&state->log, "One second passed\n");

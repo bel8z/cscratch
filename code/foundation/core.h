@@ -394,22 +394,18 @@ typedef U32 Codepoint;
              F64: F64_MAX)
 // clang-format on
 
-//----------------------------------------------//
-//   Time values  //
-//----------------------------------------------//
+//-----------------//
+//   Time values   //
+//-----------------//
 
 /// Time duration, useful for performance measurement
-typedef struct Time
+typedef struct Duration
 {
-    I64 nanoseconds;
-} Time;
+    I64 seconds;
+    U32 nanos;
+} Duration;
 
-#define TIME_INFINITE ((Time){.nanoseconds = I64_MIN})
-
-#define TIME_NS(ns) \
-    (CF_ASSERT(ns > I64_MIN, "Invalid nanoseconds count"), (Time){.nanoseconds = ns})
-#define TIME_US(us) TIME_NS(1000 * us)
-#define TIME_MS(ms) TIME_US(1000 * ms)
+#define DURATION_INFINITE ((Duration){.nanos = U32_MAX})
 
 /// Time representation useful for interaction with OS APIs
 typedef U64 SystemTime;

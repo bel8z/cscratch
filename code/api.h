@@ -57,9 +57,9 @@ typedef struct Platform
     // Dear Imgui state
     Gui *gui;
 
-    /// Return the amount of nanoseconds elapsed since the start of the application
+    /// Elapsed time since the start of the application
     /// Useful for performance measurement
-    Time (*clock)(void);
+    Duration (*clock)(void);
 
     /// Common program paths
     Paths *paths;

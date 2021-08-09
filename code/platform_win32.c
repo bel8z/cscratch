@@ -56,12 +56,10 @@ static FileProperties win32FileProperties(Str filename);
 static struct
 {
     I64 start_ticks;
-    I64 ratio_num;
-    I64 ratio_den;
-    I64 last_ns;
+    I64 freq;
 } g_clock;
 
-static Time win32Clock(void);
+static Duration win32Clock(void);
 
 /// Dynamic loading
 static Library *win32libLoad(Str filename);
@@ -192,14 +190,8 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
     QueryPerformanceCounter(&now);
     CF_ASSERT(freq.QuadPart > 0, "System monotonic clock is not available");
     CF_ASSERT(now.QuadPart > 0, "System monotonic clock is not available");
-
-    g_clock.last_ns = 0;
     g_clock.start_ticks = now.QuadPart;
-    g_clock.ratio_num = 1000000000;
-    g_clock.ratio_den = freq.QuadPart;
-    U64 gcd = cfGcd((U64)g_clock.ratio_num, (U64)g_clock.ratio_den);
-    g_clock.ratio_num /= gcd;
-    g_clock.ratio_den /= gcd;
+    g_clock.freq = freq.QuadPart;
 
     // ** Init paths **
 
@@ -664,7 +656,9 @@ win32FileProperties(Str filename)
 //   Timing   //
 //------------//
 
-Time
+#define NANOS_PER_SEC 1000000000
+
+Duration
 win32Clock(void)
 {
     LARGE_INTEGER now;
@@ -673,12 +667,19 @@ win32Clock(void)
     CF_ASSERT(now.QuadPart > g_clock.start_ticks, "Win32 clock is not monotonic!");
 
     I64 time_delta = now.QuadPart - g_clock.start_ticks;
-    Time time = {.nanoseconds = (time_delta * g_clock.ratio_num) / g_clock.ratio_den};
+    I64 seconds = time_delta / g_clock.freq;
+    I64 nanos = cfMulDiv((time_delta - seconds * g_clock.freq), NANOS_PER_SEC, g_clock.freq);
 
-    CF_ASSERT(g_clock.last_ns < time.nanoseconds, "Win32 clock wrapped");
-    g_clock.last_ns = time.nanoseconds;
+    if (nanos >= NANOS_PER_SEC)
+    {
+        CF_ASSERT(false, "Is this expected?");
+        ++seconds;
+        nanos -= NANOS_PER_SEC;
+    }
 
-    return time;
+    CF_ASSERT(nanos < U32_MAX, "What?!?");
+
+    return (Duration){.seconds = seconds, .nanos = (U32)nanos};
 }
 
 Library *
