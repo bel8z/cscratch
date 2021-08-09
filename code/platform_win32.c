@@ -32,15 +32,21 @@ static VM_MIRROR_FREE(win32MirrorFree);
 static MEM_ALLOCATOR_FUNC(win32Alloc);
 
 // File system
+
+// NOTE (Matteo): Ensure that there is room for a reasonably sized buffer
+CF_STATIC_ASSERT(sizeof(DirIterator) > 512 + sizeof(HANDLE) + sizeof(WIN32_FIND_DATAW),
+                 "DirIterator buffer size is too small");
+
 typedef struct Win32DirIterator
 {
     HANDLE finder;
-    Char8 buffer[sizeof(DirIterator) - sizeof(HANDLE)];
+    WIN32_FIND_DATAW data;
+    Char8 buffer[sizeof(DirIterator) - sizeof(HANDLE) - sizeof(WIN32_FIND_DATAW)];
 } Win32DirIterator;
 
-bool win32DirIterStart(DirIterator *self, Str dir_path);
-bool win32DirIterNext(DirIterator *self, Str *filename);
-void win32DirIterEnd(DirIterator *self);
+static bool win32DirIterStart(DirIterator *self, Str dir_path);
+static bool win32DirIterNext(DirIterator *self, Str *filename, FileProperties *props);
+static void win32DirIterEnd(DirIterator *self);
 
 static FileContent win32FileRead(Str filename, MemAllocator alloc);
 static bool win32FileCopy(Str source, Str dest, bool overwrite);
@@ -220,6 +226,10 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 //------------------------------------------------------------------------------
 // Internal implementation
 //------------------------------------------------------------------------------
+
+//------------//
+//   Memory   //
+//------------//
 
 VM_RESERVE_FUNC(win32VmReserve)
 {
@@ -443,13 +453,35 @@ MEM_ALLOCATOR_FUNC(win32Alloc)
 
 #endif
 
+//-----------------//
+//   File system   //
+//-----------------//
+
+static void
+win32ReadProperties(WIN32_FIND_DATAW *in, FileProperties *out)
+{
+    out->exists = true;
+
+    FILETIME write_time = in->ftLastWriteTime;
+    out->last_write = ((U64)write_time.dwHighDateTime << 32) | write_time.dwLowDateTime;
+
+    if (in->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    {
+        out->attributes |= FileAttributes_Directory;
+    }
+
+    if (in->dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
+    {
+        out->attributes |= FileAttributes_Symlink;
+    }
+}
+
 bool
 win32DirIterStart(DirIterator *self, Str dir_path)
 {
     CF_ASSERT_NOT_NULL(self);
 
     Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
-    WIN32_FIND_DATAW data = {0};
     Char16 buffer[1024];
 
     // Encode path to UTF16
@@ -466,11 +498,11 @@ win32DirIterStart(DirIterator *self, Str dir_path)
     buffer[size] = 0;
 
     // Start iteration
-    iter->finder = FindFirstFileW(buffer, &data);
+    iter->finder = FindFirstFileW(buffer, &iter->data);
     if (iter->finder == INVALID_HANDLE_VALUE) return false;
 
     // Skip to ".." so that the "advance" method can call FindNextFileW directly
-    if (!wcscmp(data.cFileName, L".") && !FindNextFileW(iter->finder, &data))
+    if (!wcscmp(iter->data.cFileName, L".") && !FindNextFileW(iter->finder, &iter->data))
     {
         FindClose(iter->finder);
         iter->finder = INVALID_HANDLE_VALUE;
@@ -481,16 +513,15 @@ win32DirIterStart(DirIterator *self, Str dir_path)
 }
 
 bool
-win32DirIterNext(DirIterator *self, Str *filename)
+win32DirIterNext(DirIterator *self, Str *filename, FileProperties *props)
 {
     CF_ASSERT_NOT_NULL(self);
 
     Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
-    WIN32_FIND_DATAW data = {0};
 
-    if (!FindNextFileW(iter->finder, &data)) return false;
+    if (!FindNextFileW(iter->finder, &iter->data)) return false;
 
-    Usize size = win32Utf16To8C(data.cFileName, iter->buffer, CF_ARRAY_SIZE(iter->buffer));
+    Usize size = win32Utf16To8C(iter->data.cFileName, iter->buffer, CF_ARRAY_SIZE(iter->buffer));
 
     // NOTE (Matteo): Truncation is considered an error
     // TODO (Matteo): Maybe require a bigger buffer?
@@ -500,6 +531,8 @@ win32DirIterNext(DirIterator *self, Str *filename)
 
     filename->buf = iter->buffer;
     filename->len = (Usize)(size - 1);
+
+    if (props) win32ReadProperties(&iter->data, props);
 
     return true;
 }
@@ -593,21 +626,7 @@ win32FileProperties(Str filename)
 
     if (find_handle != INVALID_HANDLE_VALUE)
     {
-        props.exists = true;
-
-        FILETIME write_time = data.ftLastWriteTime;
-        props.last_write = ((U64)write_time.dwHighDateTime << 32) | write_time.dwLowDateTime;
-
-        if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-        {
-            props.attributes |= FileAttributes_Directory;
-        }
-
-        if (data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
-        {
-            props.attributes |= FileAttributes_Symlink;
-        }
-
+        win32ReadProperties(&data, &props);
         FindClose(find_handle);
     }
 
@@ -619,7 +638,7 @@ win32FileProperties(Str filename)
 
 // NOTE (Matteo): POSIX-like example
 
-static FileProperties
+FileProperties
 win32FileProperties(Str filename)
 {
     FileProperties props = {0};
@@ -627,11 +646,11 @@ win32FileProperties(Str filename)
     Char8 buffer[1024] = {0};
     struct _stat64i32 info = {0};
 
-    cfMemCopy(filename.buf, buffer, filename.len);
+    memCopy(filename.buf, buffer, filename.len);
     if (!_stat(buffer, &info))
     {
         props.exists = true;
-        props.last_write = (FileTime)info.st_mtime;
+        props.last_write = (SystemTime)info.st_mtime;
         if (info.st_mode & 0x0120000) props.attributes |= FileAttributes_Symlink;
         if (info.st_mode & 0x0040000) props.attributes |= FileAttributes_Directory;
     }
@@ -640,6 +659,10 @@ win32FileProperties(Str filename)
 }
 
 #endif
+
+//------------//
+//   Timing   //
+//------------//
 
 Time
 win32Clock(void)

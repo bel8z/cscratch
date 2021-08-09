@@ -5,7 +5,7 @@
 /// Iterator over directory content
 typedef struct DirIterator
 {
-    U8 opaque[1024];
+    U8 opaque[1280];
 } DirIterator;
 
 typedef struct FileContent
@@ -14,7 +14,6 @@ typedef struct FileContent
     Usize size;
 } FileContent;
 
-typedef U64 FileTime;
 typedef U32 FileAttributes;
 
 enum
@@ -25,7 +24,7 @@ enum
 
 typedef struct FileProperties
 {
-    FileTime last_write;
+    SystemTime last_write;
     FileAttributes attributes;
     bool exists;
 } FileProperties;
@@ -43,7 +42,8 @@ typedef struct CfFileSystem
     /// valid).
     // NOTE that the string view is valid until the next call to this function (or the iterator is
     // destroyed) so copy its content explicitly if you need to store it.
-    bool (*dirIterNext)(DirIterator *self, Str *filename);
+    /// File properties are provided optionally (if the props pointer is not null).
+    bool (*dirIterNext)(DirIterator *self, Str *filename, FileProperties *props);
     /// Shutdown the iteration
     void (*dirIterEnd)(DirIterator *self);
 

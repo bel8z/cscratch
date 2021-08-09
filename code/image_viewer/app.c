@@ -490,7 +490,7 @@ appLoadFromFile(AppState *state, Str full_name)
         if (fs->dirIterStart(&it, strFromCstr(root_name)))
         {
             Str filename = {0};
-            while (fs->dirIterNext(&it, &filename))
+            while (fs->dirIterNext(&it, &filename, NULL))
             {
                 if (appIsFileSupported(filename))
                 {

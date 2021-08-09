@@ -395,9 +395,10 @@ typedef U32 Codepoint;
 // clang-format on
 
 //----------------------------------------------//
-//   Time interval (useful for perf counting)   //
+//   Time values  //
 //----------------------------------------------//
 
+/// Time duration, useful for performance measurement
 typedef struct Time
 {
     I64 nanoseconds;
@@ -409,6 +410,9 @@ typedef struct Time
     (CF_ASSERT(ns > I64_MIN, "Invalid nanoseconds count"), (Time){.nanoseconds = ns})
 #define TIME_US(us) TIME_NS(1000 * us)
 #define TIME_MS(ms) TIME_US(1000 * ms)
+
+/// Time representation useful for interaction with OS APIs
+typedef U64 SystemTime;
 
 //---------------//
 //   Allocator   //
