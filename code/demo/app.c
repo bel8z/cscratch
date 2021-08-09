@@ -162,50 +162,15 @@ guiClock(Duration time)
 {
     I64 const secs_per_hour = 60 * 60;
     I64 const secs_per_day = secs_per_hour * 24;
-    I64 const secs = time.seconds;
-    I64 const ms_remainder = (time.nanos) / 1000000;
 
     // Euclidean reminder to compute the number of seconds in a day boundary
-    I64 total_secs = ((secs % secs_per_day) + secs_per_day) % secs_per_day;
+    I64 total_secs = cfModEuclid(time.seconds, secs_per_day);
     I64 hours = total_secs / secs_per_hour;
     I64 mins = (total_secs - hours * secs_per_hour) / 60;
     I64 final_secs = total_secs - mins * 60;
 
-    igText("%02d:%02d:%02d.%03d", hours, mins, final_secs, ms_remainder);
+    igText("%02d:%02d:%02d.%09d", hours, mins, final_secs, time.nanos);
 }
-
-// static void
-// logClear(LogBuffer *log)
-// {
-//     log->write_pos = 0;
-//     memClear(log, CF_ARRAY_SIZE(log->buffer));
-// }
-
-// static void
-// logWrite(LogBuffer *log, Cstr str, Time time)
-// {
-//     Usize buf_size = CF_ARRAY_SIZE(log->buffer);
-//     Usize str_len = strLength(str);
-//     Usize residual = buf_size - log->write_pos;
-
-//     if (residual < str_len + 1)
-//     {
-//         memClear(log->buffer + log->write_pos, residual);
-//         log->write_pos = 0;
-//     }
-
-//     if (str_len >= buf_size - 1)
-//     {
-//         str += str_len - buf_size + 1;
-//         str_len = buf_size - 1;
-//     }
-
-//     memCopy(str, log->buffer + log->write_pos, str_len);
-//     log->write_pos += str_len % buf_size;
-
-//     log->buffer[log->write_pos] = 0;
-//     log->time = time;
-// }
 
 APP_API APP_UPDATE_PROC(appUpdate)
 {

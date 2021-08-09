@@ -221,7 +221,7 @@
 
 /// Assertion macro enabled in debug builds only
 #if CF_DEBUG
-#    define CF_DEBUG_ASSERT(expr, msg) CF_ASSERT(expr)
+#    define CF_DEBUG_ASSERT(expr, msg) CF_ASSERT(expr, msg)
 #else
 #    define CF_DEBUG_ASSERT(expr, msg) CF_UNUSED(expr)
 #endif

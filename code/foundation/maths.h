@@ -126,8 +126,8 @@ CF__EUCLID_OPS(I64)
              U8  : cfMulDivU8,  \
              U16 : cfMulDivU16, \
              U32 : cfMulDivU32, \
-             U64 : cfMulDivU32, \
-             I8  : cfMulDivU8,  \
+             U64 : cfMulDivU64, \
+             I8  : cfMulDivI8,  \
              I16 : cfMulDivI16, \
              I32 : cfMulDivI32, \
              I64 : cfMulDivI64)(a, b, c)
@@ -137,17 +137,19 @@ CF__EUCLID_OPS(I64)
 // https://github.com/rust-lang/rust/blob/3809bbf47c8557bd149b3e52ceb47434ca8378d5/src/libstd/sys_common/mod.rs#L124
 // Computes (value*numer)/denom without overflow, as long as both (numer*denom) and the overall
 // result fit into i64 (which is the case for our time conversions).
-#define CF__MULDIV(Type)                                                      \
-    static inline Type cfMulDiv##Type(Type value, Type numer, Type denom)     \
-    {                                                                         \
-        Type q = value / denom;                                               \
-        Type r = value % denom;                                               \
-        /*                                                                    \
-        Decompose value as (value/denom*denom + value%denom), substitute into \
-        (value*numer)/denom and simplify.                                     \
-        r < denom, so (denom*numer) is the upper bound of (r*numer)           \
-        */                                                                    \
-        return q * numer + r * numer / denom;                                 \
+#define CF__MULDIV(Type)                                                       \
+    static inline Type cfMulDiv##Type(Type value, Type numer, Type denom)      \
+    {                                                                          \
+        CF_DEBUG_ASSERT(numer *denom < T_MAX(Type), "Operation can overflow"); \
+                                                                               \
+        Type q = value / denom;                                                \
+        Type r = value % denom;                                                \
+        /*                                                                     \
+        Decompose value as (value/denom*denom + value%denom), substitute into  \
+        (value*numer)/denom and simplify.                                      \
+        r < denom, so (denom*numer) is the upper bound of (r*numer)            \
+        */                                                                     \
+        return q * numer + r * numer / denom;                                  \
     }
 
 CF__MULDIV(U8)

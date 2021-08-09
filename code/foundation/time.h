@@ -5,11 +5,11 @@
 
 #include "core.h"
 
-#define CF_NS_PER_SEC (U32)(1000000000)
-#define CF_NS_PER_MS (U32)(1000000)
-#define CF_NS_PER_US (U32)(1000)
-#define CF_MS_PER_SEC (U32)(1000)
-#define CF_US_PER_SEC (U32)(1000000)
+#define CF_NS_PER_SEC (U64)(1000000000)
+#define CF_NS_PER_MS (U64)(1000000)
+#define CF_NS_PER_US (U64)(1000)
+#define CF_MS_PER_SEC (U64)(1000)
+#define CF_US_PER_SEC (U64)(1000000)
 
 //---------------//
 //   Utilities   //

@@ -7,6 +7,7 @@
 #include "foundation/memory.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"
+#include "foundation/time.h"
 #include "foundation/win32.h"
 
 //------------------------------------------------------------------------------
@@ -55,8 +56,8 @@ static FileProperties win32FileProperties(Str filename);
 // Timing
 static struct
 {
-    I64 start_ticks;
-    I64 freq;
+    U64 start_ticks;
+    U64 freq;
 } g_clock;
 
 static Duration win32Clock(void);
@@ -190,8 +191,8 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
     QueryPerformanceCounter(&now);
     CF_ASSERT(freq.QuadPart > 0, "System monotonic clock is not available");
     CF_ASSERT(now.QuadPart > 0, "System monotonic clock is not available");
-    g_clock.start_ticks = now.QuadPart;
-    g_clock.freq = freq.QuadPart;
+    g_clock.start_ticks = (U64)now.QuadPart;
+    g_clock.freq = (U64)freq.QuadPart;
 
     // ** Init paths **
 
@@ -656,30 +657,20 @@ win32FileProperties(Str filename)
 //   Timing   //
 //------------//
 
-#define NANOS_PER_SEC 1000000000
-
 Duration
 win32Clock(void)
 {
     LARGE_INTEGER now;
     QueryPerformanceCounter(&now);
 
-    CF_ASSERT(now.QuadPart > g_clock.start_ticks, "Win32 clock is not monotonic!");
+    CF_ASSERT(now.QuadPart >= 0, "QueryPerformanceCounter returned negative ticks");
 
-    I64 time_delta = now.QuadPart - g_clock.start_ticks;
-    I64 seconds = time_delta / g_clock.freq;
-    I64 nanos = cfMulDiv((time_delta - seconds * g_clock.freq), NANOS_PER_SEC, g_clock.freq);
+    U64 curr_ticks = (U64)(now.QuadPart);
+    CF_ASSERT(curr_ticks > g_clock.start_ticks, "QueryPerformanceCounter wrapped around");
 
-    if (nanos >= NANOS_PER_SEC)
-    {
-        CF_ASSERT(false, "Is this expected?");
-        ++seconds;
-        nanos -= NANOS_PER_SEC;
-    }
+    U64 nanos = cfMulDivU64((curr_ticks - g_clock.start_ticks), CF_NS_PER_SEC, g_clock.freq);
 
-    CF_ASSERT(nanos < U32_MAX, "What?!?");
-
-    return (Duration){.seconds = seconds, .nanos = (U32)nanos};
+    return timeDurationNs(nanos);
 }
 
 Library *
