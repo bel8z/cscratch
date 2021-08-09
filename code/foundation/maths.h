@@ -37,7 +37,7 @@
 //-------------------//
 
 #define cfSqrt(X) _Generic((X), default : sqrt, F32 : sqrtf)(X)
-#define cfRsqrt(X) _Generic((X), default : (1 / cfSqrt(X)), F32 : cf__Rsqrt32(X))
+#define cfRsqrt(X) _Generic((X), default : (1 / cfSqrt(X)), F32 : cfRsqrt32(X))
 #define cfPow(base, xp) _Generic((base, xp), default : pow, F32 : powf)(base, xp)
 #define cfSquare(x) ((x) * (x))
 #define cfCube(x) ((x) * (x) * (x))
@@ -45,7 +45,7 @@
 #define cfLog(x) _Generic((x), default : log, F32 : logf)(x)
 
 static inline F32
-cf__Rsqrt32(F32 x)
+cfRsqrt32(F32 x)
 {
     return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(x)));
 }
@@ -91,11 +91,13 @@ cf__Rsqrt32(F32 x)
         Type rem = lhs % rhs;                                              \
         return (rem < 0) ? (rhs > 0 ? quot - 1 : quot + 1) : quot;         \
     }                                                                      \
+                                                                           \
     static inline Type cfModEuclid##Type(Type lhs, Type rhs)               \
     {                                                                      \
         Type rem = lhs % rhs;                                              \
         return (rem < 0) ? (rhs < 0 ? rem - rhs : rem + rhs) : rem;        \
     }                                                                      \
+                                                                           \
     static inline Type cfDivModEuclid##Type(Type lhs, Type rhs, Type *mod) \
     {                                                                      \
         Type quot = lhs / rhs;                                             \
@@ -106,6 +108,7 @@ cf__Rsqrt32(F32 x)
             *mod = (rhs < 0 ? rem - rhs : rem + rhs);                      \
             return (rhs > 0 ? quot - 1 : quot + 1);                        \
         }                                                                  \
+                                                                           \
         *mod = rem;                                                        \
         return quot;                                                       \
     }
