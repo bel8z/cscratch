@@ -113,6 +113,34 @@ CF__EUCLID_OPS(I64)
 
 #undef CF__EUCLID_OPS
 
+// Taken from the Rust code base:
+// https://github.com/rust-lang/rust/blob/3809bbf47c8557bd149b3e52ceb47434ca8378d5/src/libstd/sys_common/mod.rs#L124
+// Computes (value*numer)/denom without overflow, as long as both (numer*denom) and the overall
+// result fit into i64 (which is the case for our time conversions).
+#define CF__MULDIV(Type)                                                      \
+    static inline Type cfMulDiv##Type(Type value, Type numer, Type denom)     \
+    {                                                                         \
+        Type q = value / denom;                                               \
+        Type r = value % denom;                                               \
+        /*                                                                    \
+        Decompose value as (value/denom*denom + value%denom), substitute into \
+        (value*numer)/denom and simplify.                                     \
+        r < denom, so (denom*numer) is the upper bound of (r*numer)           \
+        */                                                                    \
+        return q * numer + r * numer / denom;                                 \
+    }
+
+CF__MULDIV(U8)
+CF__MULDIV(U16)
+CF__MULDIV(U32)
+CF__MULDIV(U64)
+CF__MULDIV(I8)
+CF__MULDIV(I16)
+CF__MULDIV(I32)
+CF__MULDIV(I64)
+
+#undef CF__MULDIV
+
 //========
 //  Lerp
 //========
