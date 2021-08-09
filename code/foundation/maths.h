@@ -162,16 +162,16 @@ CF__MULDIV(I64)
 //  Lerp   //
 //---------//
 
-#define cfLerp(x, y, t) _Generic((x, y, t), default : cf__Lerp64, F32 : cf__Lerp32)(x, y, t)
+#define cfLerp(x, y, t) _Generic((x, y, t), default : cfLerp64, F32 : cfLerp32)(x, y, t)
 
 static inline F32
-cf__Lerp32(F32 x, F32 y, F32 t)
+cfLerp32(F32 x, F32 y, F32 t)
 {
     return x * (1 - t) + y * t;
 }
 
 static inline F64
-cf__Lerp64(F64 x, F64 y, F64 t)
+cfLerp64(F64 x, F64 y, F64 t)
 {
     return x * (1 - t) + y * t;
 }
@@ -181,16 +181,16 @@ cf__Lerp64(F64 x, F64 y, F64 t)
 //--------//
 
 // clang-format off
-#define cfGcd(a, b)                   \
-    _Generic((a, b),                  \
-             U8 : cf__Gcd_U8,         \
-             U16 : cf__Gcd_U16,       \
-             U32 : cf__Gcd_U32,       \
-             U64 : cf__Gcd_U64)(a, b)
+#define cfGcd(a, b)                \
+    _Generic((a, b),               \
+             U8  : cfGcdU8,        \
+             U16 : cfGcdU16,       \
+             U32 : cfGcdU32,       \
+             U64 : cfGcdU64)(a, b)
 // clang-format on
 
 #define CF__GCD(Type)                                                            \
-    static inline Type cf__Gcd_##Type(Type a, Type b)                            \
+    static inline Type cfGcd##Type(Type a, Type b)                               \
     {                                                                            \
         /* GCD(0, b) == b, */                                                    \
         /* GCD(a, 0) == a, */                                                    \
