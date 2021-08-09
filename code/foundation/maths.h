@@ -56,6 +56,63 @@ cf__Rsqrt32(F32 x)
 
 #define cfFmod(X, Y) _Generic((X, Y), default : fmod, F32 : fmodf)(X, Y)
 
+// clang-format off
+#define cfDivEuclid(a, b)          \
+    _Generic((a, b),               \
+             I8  : cfDivEuclidI8,  \
+             I16 : cfDivEuclidI16, \
+             I32 : cfDivEuclidI32, \
+             I64 : cfDivEuclidI64)(a, b)
+
+#define cfModEuclid(a, b)          \
+    _Generic((a, b),               \
+             I8  : cfModEuclidI8,  \
+             I16 : cfModEuclidI16, \
+             I32 : cfModEuclidI32, \
+             I64 : cfModEuclidI64)(a, b)
+
+#define cfDivModEuclid(a, b, c)       \
+    _Generic((a, b),                  \
+             I8  : cfDivModEuclidI8,  \
+             I16 : cfDivModEuclidI16, \
+             I32 : cfDivModEuclidI32, \
+             I64 : cfDivModEuclidI64)(a, b, c)
+
+// clang-format on
+
+#define CF__EUCLID_OPS(Type)                                               \
+    static inline Type cfDivEuclid##Type(Type lhs, Type rhs)               \
+    {                                                                      \
+        Type quot = lhs / rhs;                                             \
+        Type rem = lhs % rhs;                                              \
+        return (rem < 0) ? (rhs > 0 ? quot - 1 : quot + 1) : quot;         \
+    }                                                                      \
+    static inline Type cfModEuclid##Type(Type lhs, Type rhs)               \
+    {                                                                      \
+        Type rem = lhs % rhs;                                              \
+        return (rem < 0) ? (rhs < 0 ? rem - rhs : rem + rhs) : rem;        \
+    }                                                                      \
+    static inline Type cfDivModEuclid##Type(Type lhs, Type rhs, Type *mod) \
+    {                                                                      \
+        Type quot = lhs / rhs;                                             \
+        Type rem = lhs % rhs;                                              \
+                                                                           \
+        if (rem < 0)                                                       \
+        {                                                                  \
+            *mod = (rhs < 0 ? rem - rhs : rem + rhs);                      \
+            return (rhs > 0 ? quot - 1 : quot + 1);                        \
+        }                                                                  \
+        *mod = rem;                                                        \
+        return quot;                                                       \
+    }
+
+CF__EUCLID_OPS(I8)
+CF__EUCLID_OPS(I16)
+CF__EUCLID_OPS(I32)
+CF__EUCLID_OPS(I64)
+
+#undef CF__EUCLID_OPS
+
 //========
 //  Lerp
 //========
