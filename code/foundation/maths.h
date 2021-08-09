@@ -2,12 +2,12 @@
 
 #include "core.h"
 
-//------------------------------------------------------------------------------
-// Math utilities
-//------------------------------------------------------------------------------
-
 #include <immintrin.h>
 #include <math.h>
+
+//-----------------//
+//   Miscellanea   //
+//-----------------//
 
 #define cfAbs(X) _Generic((X), default : abs, I64 : llabs, F64 : fabs, F32 : fabsf)(X)
 
@@ -15,9 +15,9 @@
 #define cfFloor(X) _Generic((X), default : floor, F32 : floorf)(X)
 #define cfRound(X) _Generic((X), default : round, F32 : roundf)(X)
 
-//========
-//  Trig
-//========
+//----------//
+//   Trig   //
+//----------//
 
 #define cfCos(X) _Generic((X), default : cos, F32 : cosf)(X)
 #define cfSin(X) _Generic((X), default : sin, F32 : sinf)(X)
@@ -32,9 +32,9 @@
 #define cfSinH(X) _Generic((X), default : sinh, F32 : sinhf)(X)
 #define cfTanH(X) _Generic((X), default : tanh, F32 : tanhf)(X)
 
-//=================
-//  Powers / roots
-//=================
+//-------------------//
+//  Powers & roots   //
+//-------------------//
 
 #define cfSqrt(X) _Generic((X), default : sqrt, F32 : sqrtf)(X)
 #define cfRsqrt(X) _Generic((X), default : (1 / cfSqrt(X)), F32 : cf__Rsqrt32(X))
@@ -50,11 +50,15 @@ cf__Rsqrt32(F32 x)
     return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(x)));
 }
 
-//==========
-//  Modulo
-//==========
+//-----------------//
+//  Float modulo   //
+//-----------------//
 
 #define cfFmod(X, Y) _Generic((X, Y), default : fmod, F32 : fmodf)(X, Y)
+
+//------------------------------//
+//  Integer division & modulo   //
+//------------------------------//
 
 // clang-format off
 #define cfDivEuclid(a, b)          \
@@ -113,6 +117,19 @@ CF__EUCLID_OPS(I64)
 
 #undef CF__EUCLID_OPS
 
+// clang-format off
+#define cfMulDiv(a, b, c)       \
+    _Generic((a, b, c),         \
+             U8  : cfMulDivU8,  \
+             U16 : cfMulDivU16, \
+             U32 : cfMulDivU32, \
+             U64 : cfMulDivU32, \
+             I8  : cfMulDivU8,  \
+             I16 : cfMulDivI16, \
+             I32 : cfMulDivI32, \
+             I64 : cfMulDivI64)(a, b, c)
+// clang-format on
+
 // Taken from the Rust code base:
 // https://github.com/rust-lang/rust/blob/3809bbf47c8557bd149b3e52ceb47434ca8378d5/src/libstd/sys_common/mod.rs#L124
 // Computes (value*numer)/denom without overflow, as long as both (numer*denom) and the overall
@@ -141,9 +158,9 @@ CF__MULDIV(I64)
 
 #undef CF__MULDIV
 
-//========
-//  Lerp
-//========
+//---------//
+//  Lerp   //
+//---------//
 
 #define cfLerp(x, y, t) _Generic((x, y, t), default : cf__Lerp64, F32 : cf__Lerp32)(x, y, t)
 
@@ -159,9 +176,9 @@ cf__Lerp64(F64 x, F64 y, F64 t)
     return x * (1 - t) + y * t;
 }
 
-//========
-//  GCD
-//========
+//--------//
+//  GCD   //
+//--------//
 
 // clang-format off
 #define cfGcd(a, b)                   \
@@ -220,9 +237,10 @@ CF__GCD(U32)
 CF__GCD(U64)
 
 #undef CF__GCD
-//------------------------------------------------------------------------------
-// N-dimension vector operations
-//------------------------------------------------------------------------------
+
+//-------------------------------------//
+//   N-dimensional vector operations   //
+//-------------------------------------//
 
 static inline void
 vecAddN(F32 const *a, F32 const *b, size_t len, F32 *out)
@@ -325,9 +343,9 @@ vecLerpN(F32 const *a, F32 const *b, size_t len, F32 t, F32 *out)
     }
 }
 
-//------------------------------------------------------------------------------
-// Type-generic vector operations
-//------------------------------------------------------------------------------
+//------------------------------------//
+//   Type-generic vector operations   //
+//------------------------------------//
 
 #define vecAdd(a, b) _Generic((a, b), Vec2 : vecAdd2, Vec3 : vecAdd3, Vec4 : vecAdd4)(a, b)
 #define vecSub(a, b) _Generic((a, b), Vec2 : vecSub2, Vec3 : vecSub3, Vec4 : vecSub4)(a, b)
@@ -358,9 +376,9 @@ vecLerpN(F32 const *a, F32 const *b, size_t len, F32 t, F32 *out)
 
 #define vecCross(a, b) _Generic((a, b), Vec3 : vecCross3)(a, b)
 
-//------------------------------------------------------------------------------
-// Type-specific vector operations
-//------------------------------------------------------------------------------
+//-------------------------------------//
+//   Type-specific vector operations   //
+//-------------------------------------//
 
 static inline F32
 vecDotPerp2(Vec2 a, Vec2 b)
