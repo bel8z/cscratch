@@ -31,6 +31,30 @@ For library public functions, this prefix should start with the library prefix (
 
 # Timing
 
+## Performance measurement
+
+Win32 offers the QueryPerformanceCounter and QueryPerformanceFrequency functions to get respectively a count in ticks (since an unspecfied time) and the frequency of this counter (number of ticks per second).
+The representation is a signed 64 bit integer, even if the results should be always positive.
+Typically the resolution is 100ns.
+
+Unix (POSIX?) offers the clock_gettime function: by passing it CLOCK_MONOTONIC as the clock id, it fills a timespec structure with the number of seconds and nanoseconds passed since an unspecified start.
+The resolution can be queried by clock_getres(CLOCK_MONOTONIC), but the data structure used enforces
+a de-facto maximal resolution in nanoseconds.
+
+The C standard library unsurprisingly follows the UNIX style, and even if it is not much used in this project, employing a data representation that allows easier interoperability with it can be useful for implementing other platform layers.
+
+Maybe UNIX style can be a winner here.
+
+## System time
+
+Win32 offers GetSystemTimePreciseAsFileTime, which returns an unsigned 64 bit integer that represents the amount of units of 100ns since 01/01/1601, with a claimed precision of less than a microsecond.
+This format is quite compact, but has an uncommon range (why 1601?).
+
+UNIX offers this information in 2 flavors:
+* 
+
+
+
 * Windows
     - QueryPerformanceCounter: number of ticks which duration is equal to 1/QueryPerformanceFrequency. Monotonic. Typically units of 100ns.
 
