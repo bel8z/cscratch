@@ -197,6 +197,24 @@ DistancePointEllipse(F32 e0, F32 e1, Vec2 p)
     return result;
 }
 
+Vec2
+rotateFwd(Vec2 p, F32 cos, F32 sin)
+{
+    Vec2 r = {0};
+    r.x = p.x * cos - p.y * sin;
+    r.y = p.x * sin + p.y * cos;
+    return r;
+}
+
+Vec2
+rotateBwd(Vec2 p, F32 cos, F32 sin)
+{
+    Vec2 r = {0};
+    r.x = p.x * cos + p.y * sin;
+    r.y = p.y * cos - p.x * sin;
+    return r;
+}
+
 void
 fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
 {
@@ -207,21 +225,32 @@ fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse
 
     F32 const pi2 = 2 * cfAcos(-1.0f);
     F32 const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
+    F32 const rot = 0.5f * pi2 * (F32)time;
+    F32 const cosw = cfCos(rot);
+    F32 const sinw = cfSin(rot);
 
-    F32 a = 3 * size.x / 8;
-    F32 b = 3 * size.y / 8;
+    F32 extent = cfMin(size.x, size.y);
+    F32 a = 3 * extent / 8;
+    F32 b = 3 * a / 5;
     Vec2 center = {.x = (p0.x + p1.x) / 2, //
                    .y = (p0.y + p1.y) / 2};
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
     {
         F32 rad = (F32)i * rad_step;
-        points[i].x = center.x + a * cfCos(rad);
-        points[i].y = center.y + b * cfSin(rad);
+        F32 cost = cfCos(rad);
+        F32 sint = cfSin(rad);
+
+        points[i].x = center.x + a * cost * cosw - b * sint * sinw;
+        points[i].y = center.y + a * cost * sinw + b * sint * cosw;
     }
 
-    Vec2 query_pt = {.x = mouse_data.x - center.x, .y = mouse_data.y - center.y};
-    Vec3 query_res = DistancePointEllipse(a, b, query_pt);
+    Vec2 query_pt = {.x = mouse_data.x - center.x, //
+                     .y = mouse_data.y - center.y};
+    query_pt = rotateBwd(query_pt, cosw, sinw);
+
+    Vec2 query_res = DistancePointEllipse(a, b, query_pt).xy;
+    query_res = rotateFwd(query_res, cosw, sinw);
 
     ImDrawList_AddPolyline(draw_list, points, CF_ARRAY_SIZE(points), RGBA32_YELLOW, 0, 1.0f);
 
