@@ -10,6 +10,9 @@
 //-----------------//
 
 #define cfAbs(X) _Generic((X), default : abs, I64 : llabs, F64 : fabs, F32 : fabsf)(X)
+#define cfSign(x) (1 | cfSignBit(x))
+#define cfSignBit(x) signbit(x)
+#define cfCopySign(mag, sign) _Generic((mag, sign), default : copysign, F32 : copysignf)(mag, sign)
 
 #define cfCeil(X) _Generic((X), default : ceil, F32 : ceilf)(X)
 #define cfFloor(X) _Generic((X), default : floor, F32 : floorf)(X)

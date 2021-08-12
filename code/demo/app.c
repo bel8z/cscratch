@@ -73,17 +73,168 @@ APP_API APP_PROC(appDestroy)
 
 //------------------------------------------------------------------------------
 
-static void
-fxDraw(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
+typedef struct QueryResult
+{
+    F32 x0, x1, distance;
+} QueryResult;
+
+#define MAX_ITER(Type) F_DIGITS(Type) - F_MIN_EXP(Type)
+
+static F32
+RobustLength(F32 x, F32 y)
+{
+    F32 abs_x = cfAbs(x);
+    F32 abs_y = cfAbs(y);
+
+    if (abs_x > abs_y) return abs_x * cfSqrt(1 + cfSquare(y / x));
+    if (abs_x < abs_y) return abs_y * cfSqrt(1 + cfSquare(x / y));
+
+    return cfSqrt(x * x + y * y);
+}
+
+static F32
+GetRoot(F32 r0, F32 z0, F32 z1, F32 g)
+{
+    F32 n0 = r0 * z0;
+
+    F32 s0 = z1 - 1;
+    F32 s1 = (g < 0 ? 0 : RobustLength(n0, z1) - 1);
+    F32 s = 0;
+
+    CF_STATIC_ASSERT(MAX_ITER(F32) > 0, "Wrong number of iterations");
+
+    for (U32 i = 0; i < MAX_ITER(F32); ++i)
+    {
+        s = (s0 + s1) / 2;
+
+        if (s == s0 || s == s1) break;
+
+        F32 ratio0 = n0 / (s + r0);
+        F32 ratio1 = z1 / (s + 1);
+
+        g = cfSquare(ratio0) + cfSquare(ratio1) - 1;
+
+        if (g > 0)
+        {
+            s0 = s;
+        }
+        else if (g < 0)
+        {
+            s1 = s;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    return s;
+}
+
+Vec3
+DistancePointEllipse(F32 e0, F32 e1, Vec2 p)
+{
+    Vec3 result = {0};
+
+    Vec2 p_ori = p;
+
+    p.x = cfAbs(p.x);
+    p.y = cfAbs(p.y);
+
+    if (p.y > 0)
+    {
+        if (p.x > 0)
+        {
+            F32 z0 = p.x / e0;
+            F32 z1 = p.y / e1;
+            F32 g = cfSquare(z0) + cfSquare(z1) - 1;
+
+            if (g != 0)
+            {
+                F32 r0 = cfSquare(e0 / e1);
+                F32 sbar = GetRoot(r0, z0, z1, g);
+                result.x = r0 * p.x / (sbar + r0);
+                result.y = p.y / (sbar + 1);
+                result.z = cfSqrt(cfSquare(result.x - p.x) + cfSquare(result.y - p.y));
+            }
+            else
+            {
+                result.x = p.x;
+                result.y = p.y;
+                result.z = 0;
+            }
+        }
+        else // p.x == 0
+        {
+            result.x = 0;
+            result.y = e1;
+            result.z = cfAbs(p.y - e1);
+        }
+    }
+    else //  p.y == 0
+    {
+        F32 numer0 = e0 * p.x;
+        F32 denom0 = cfSquare(e0) - cfSquare(e1);
+
+        if (numer0 < denom0)
+        {
+            F32 xde0 = numer0 / denom0;
+            result.x = e0 * xde0;
+            result.y = e1 * cfSqrt(1 - xde0 * xde0);
+            result.z = cfSqrt(cfSquare(result.x - p.x) + cfSquare(result.y - p.y));
+        }
+        else
+        {
+            result.x = e0;
+            result.y = 0;
+            result.z = cfAbs(p.x - e0);
+        }
+    }
+
+    result.x = cfCopySign(result.x, p_ori.x);
+    result.y = cfCopySign(result.y, p_ori.y);
+
+    return result;
+}
+
+void
+fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
 {
     CF_UNUSED(mouse_data);
+    CF_UNUSED(time);
 
-    ImDrawList_AddRect(draw_list, p0, p1, RGBA32_PURPLE, 0.0f, 0, 1.0f);
+    ImVec2 points[1024] = {0};
 
-    Char8 buffer[1024];
-    strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%f", time);
-    ImDrawList_AddText_Vec2(draw_list, p0, RGBA32_RED, buffer, buffer + strLength(buffer));
+    F32 const pi2 = 2 * cfAcos(-1.0f);
+    F32 const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
 
+    F32 a = 3 * size.x / 8;
+    F32 b = 3 * size.y / 8;
+    Vec2 center = {.x = (p0.x + p1.x) / 2, //
+                   .y = (p0.y + p1.y) / 2};
+
+    for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
+    {
+        F32 rad = (F32)i * rad_step;
+        points[i].x = center.x + a * cfCos(rad);
+        points[i].y = center.y + b * cfSin(rad);
+    }
+
+    Vec2 query_pt = {.x = mouse_data.x - center.x, .y = mouse_data.y - center.y};
+    Vec3 query_res = DistancePointEllipse(a, b, query_pt);
+
+    ImDrawList_AddPolyline(draw_list, points, CF_ARRAY_SIZE(points), RGBA32_YELLOW, 0, 1.0f);
+
+    ImDrawList_AddCircleFilled(draw_list, (ImVec2){mouse_data.x, mouse_data.y}, 5.0f,
+                               RGBA32_ORANGE_RED, 0);
+
+    ImDrawList_AddCircleFilled(draw_list, (ImVec2){query_res.x + center.x, query_res.y + center.y},
+                               5.0f, RGBA32_ORANGE_RED, 0);
+}
+
+void
+fxSine(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
+{
     // 1 Hz sinusoid, YAY!
 
     ImVec2 points[1024] = {0};
@@ -129,6 +280,21 @@ fxDraw(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_da
 
     ImDrawList_AddCircleFilled(draw_list, (ImVec2){mouse_data.x, mouse_data.y}, 5.0f,
                                RGBA32_ORANGE_RED, 0);
+}
+
+static void
+fxDraw(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
+{
+    CF_UNUSED(mouse_data);
+
+    ImDrawList_AddRect(draw_list, p0, p1, RGBA32_PURPLE, 0.0f, 0, 1.0f);
+
+    Char8 buffer[1024];
+    strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%f", time);
+    ImDrawList_AddText_Vec2(draw_list, p0, RGBA32_RED, buffer, buffer + strLength(buffer));
+
+    // fxSine(draw_list, p0, p1, size, mouse_data, time);
+    fxEllipse(draw_list, p0, p1, size, mouse_data, time);
 }
 
 static void

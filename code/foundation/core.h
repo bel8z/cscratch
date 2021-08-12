@@ -343,10 +343,32 @@ typedef double F64;
 #define F32_MIN FLT_MIN
 #define F32_MAX FLT_MAX
 #define F32_EPS FLT_EPSILON
+#define F32_MIN_EXP FLT_MIN_EXP
+#define F32_DIGITS FLT_MANT_DIG
 
 #define F64_MIN DBL_MIN
 #define F64_MAX DBL_MAX
 #define F64_EPS DBL_EPSILON
+#define F64_MIN_EXP DBL_MIN_EXP
+#define F64_DIGITS DBL_MANT_DIG
+
+// clang-format off
+#define F_DIGITS(Type)        \
+    _Generic((Type)(0),       \
+             F32: F32_DIGITS, \
+             F64: F64_DIGITS)
+
+#define F_EPS(Type)        \
+    _Generic((Type)(0),    \
+             F32: F32_EPS, \
+             F64: F64_EPS)
+
+#define F_MIN_EXP(Type)        \
+    _Generic((Type)(0),        \
+             F32: F32_MIN_EXP, \
+             F64: F64_MIN_EXP)
+
+// clang-format on
 
 //---------------------//
 //   Character types   //
