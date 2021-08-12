@@ -369,6 +369,8 @@ vecLerpN(F32 const *a, F32 const *b, size_t len, F32 t, F32 *out)
 
 #define vecNorm(a) _Generic((a), Vec2 : vecNorm2, Vec3 : vecNorm3, Vec4 : vecNorm4)(a)
 
+#define vecNormalize(a) vecDiv(a, vecNorm(a))
+
 #define vecDistanceSquared(a, b)         \
     _Generic((a, b), Vec2                \
              : vecDistanceSquared2, Vec3 \
