@@ -32,6 +32,10 @@ struct AppState
     Duration log_time;
 };
 
+CfLog *g_log = NULL;
+
+#define appLog(...) (g_log ? (cfLogAppendF(g_log, __VA_ARGS__), 1) : 0)
+
 //------------------------------------------------------------------------------
 
 APP_API APP_CREATE_PROC(appCreate)
@@ -48,6 +52,8 @@ APP_API APP_CREATE_PROC(appCreate)
     app->windows.stats = true;
 
     app->log = cfLogCreate(plat->vm, 128);
+
+    g_log = &app->log;
 
     while (app->log.write_pos < app->log.buffer.size)
     {
@@ -67,6 +73,7 @@ APP_API APP_CREATE_PROC(appCreate)
 
 APP_API APP_PROC(appDestroy)
 {
+    g_log = NULL;
     cfLogDestroy(&app->log, app->plat->vm);
     cfMemFree(app->alloc, app, sizeof(*app));
 }
@@ -103,7 +110,9 @@ GetRoot(F32 r0, F32 z0, F32 z1, F32 g)
 
     CF_STATIC_ASSERT(MAX_ITER(F32) > 0, "Wrong number of iterations");
 
-    for (U32 i = 0; i < MAX_ITER(F32); ++i)
+    U32 iter = 0;
+
+    for (;;)
     {
         s = (s0 + s1) / 2;
 
@@ -126,7 +135,15 @@ GetRoot(F32 r0, F32 z0, F32 z1, F32 g)
         {
             break;
         }
+
+        if (++iter == MAX_ITER(F32))
+        {
+            appLog("GetRoot reached max # of iterations: %u\n", iter);
+            break;
+        }
     }
+
+    appLog("GetRoot # of iterations: %u\n", iter);
 
     return s;
 }
@@ -218,23 +235,24 @@ rotateBwd(Vec2 p, F32 cos, F32 sin)
 void
 fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
 {
-    CF_UNUSED(mouse_data);
-    CF_UNUSED(time);
-
-    ImVec2 points[1024] = {0};
-
     F32 const pi2 = 2 * cfAcos(-1.0f);
-    F32 const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
+
+    // Center of the view
+    Vec2 const center = {.x = (p0.x + p1.x) / 2, //
+                         .y = (p0.y + p1.y) / 2};
+
+    // Rotation of the ellipse
     F32 const rot = 0.5f * pi2 * (F32)time;
     F32 const cosw = cfCos(rot);
     F32 const sinw = cfSin(rot);
 
-    F32 extent = cfMin(size.x, size.y);
-    F32 a = 3 * extent / 8;
-    F32 b = 3 * a / 5;
-    Vec2 center = {.x = (p0.x + p1.x) / 2, //
-                   .y = (p0.y + p1.y) / 2};
+    // Draw the ellipse as a series of segments
+    ImVec2 points[1024] = {0};
+    F32 const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
 
+    F32 const extent = cfMin(size.x, size.y);
+    F32 const a = 3 * extent / 8;
+    F32 const b = 3 * a / 5;
     for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
     {
         F32 rad = (F32)i * rad_step;
@@ -245,6 +263,9 @@ fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse
         points[i].y = center.y + a * cost * sinw + b * sint * cosw;
     }
 
+    ImDrawList_AddPolyline(draw_list, points, CF_ARRAY_SIZE(points), RGBA32_YELLOW, 0, 1.0f);
+
+    // Draw mouse position and nearest point on the ellipse
     Vec2 query_pt = {.x = mouse_data.x - center.x, //
                      .y = mouse_data.y - center.y};
     query_pt = rotateBwd(query_pt, cosw, sinw);
@@ -252,10 +273,26 @@ fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse
     Vec2 query_res = DistancePointEllipse(a, b, query_pt).xy;
     query_res = rotateFwd(query_res, cosw, sinw);
 
-    ImDrawList_AddPolyline(draw_list, points, CF_ARRAY_SIZE(points), RGBA32_YELLOW, 0, 1.0f);
-
     ImDrawList_AddCircleFilled(draw_list, (ImVec2){mouse_data.x, mouse_data.y}, 5.0f,
                                RGBA32_ORANGE_RED, 0);
+
+    ImDrawList_AddCircleFilled(draw_list, (ImVec2){query_res.x + center.x, query_res.y + center.y},
+                               5.0f, RGBA32_ORANGE_RED, 0);
+
+    // Place a circle on the ellipse
+    F32 const circ_rad = b / 3;
+    Vec2 circ_center = {.x = 0, .y = -size.y * 2};
+
+    query_res = DistancePointEllipse(a, b, rotateBwd(circ_center, cosw, sinw)).xy;
+    query_res = rotateFwd(query_res, cosw, sinw);
+
+    Vec2 circ_pt = vecMul(vecNormalize(vecSub(query_res, circ_center)), circ_rad);
+    Vec2 delta = vecSub2(query_res, circ_pt);
+
+    circ_center = vecAdd2(circ_center, delta);
+
+    ImDrawList_AddCircle(draw_list, (ImVec2){circ_center.x + center.x, circ_center.y + center.y},
+                         circ_rad, RGBA32_YELLOW, 0, 1.0f);
 
     ImDrawList_AddCircleFilled(draw_list, (ImVec2){query_res.x + center.x, query_res.y + center.y},
                                5.0f, RGBA32_ORANGE_RED, 0);
@@ -264,6 +301,8 @@ fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse
 void
 fxSine(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
 {
+    CF_UNUSED(log);
+
     // 1 Hz sinusoid, YAY!
 
     ImVec2 points[1024] = {0};
@@ -314,8 +353,6 @@ fxSine(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_da
 static void
 fxDraw(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
 {
-    CF_UNUSED(mouse_data);
-
     ImDrawList_AddRect(draw_list, p0, p1, RGBA32_PURPLE, 0.0f, 0, 1.0f);
 
     Char8 buffer[1024];
@@ -327,7 +364,7 @@ fxDraw(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_da
 }
 
 static void
-fxWindow()
+fxWindow(void)
 {
     ImGuiIO *io = igGetIO();
     ImVec2 size, p0, p1;
