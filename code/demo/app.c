@@ -53,8 +53,6 @@ APP_API APP_CREATE_PROC(appCreate)
 
     app->log = cfLogCreate(plat->vm, 128);
 
-    g_log = &app->log;
-
     while (app->log.write_pos < app->log.buffer.size)
     {
         cfLogAppendC(&app->log, "Filling log buffer\n");
@@ -62,20 +60,37 @@ APP_API APP_CREATE_PROC(appCreate)
 
     cfLogAppendC(&app->log, "Filling log buffer\n");
 
-    // Init Dear Imgui
-    guiInit(plat->gui);
-
-    // Init OpenGl
-    gloadInit(plat->gl);
+    appLoad(app);
 
     return app;
 }
 
 APP_API APP_PROC(appDestroy)
 {
-    g_log = NULL;
+    appUnload(app);
     cfLogDestroy(&app->log, app->plat->vm);
     cfMemFree(app->alloc, app, sizeof(*app));
+}
+
+APP_API APP_PROC(appLoad)
+{
+    CF_ASSERT_NOT_NULL(app);
+    CF_ASSERT_NOT_NULL(app->plat);
+
+    // Init global log
+    g_log = &app->log;
+
+    // Init Dear Imgui
+    guiInit(app->plat->gui);
+
+    // Init OpenGl
+    gloadInit(app->plat->gl);
+}
+
+APP_API APP_PROC(appUnload)
+{
+    CF_ASSERT_NOT_NULL(app);
+    g_log = NULL;
 }
 
 //------------------------------------------------------------------------------
@@ -295,7 +310,7 @@ fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse
                          circ_rad, RGBA32_YELLOW, 0, 1.0f);
 
     ImDrawList_AddCircleFilled(draw_list, (ImVec2){query_res.x + center.x, query_res.y + center.y},
-                               5.0f, RGBA32_ORANGE_RED, 0);
+                               5.0f, RGBA32_FUCHSIA, 0);
 }
 
 void
