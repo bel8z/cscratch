@@ -430,14 +430,14 @@ guiColorEdit(Cstr label, Rgba32 *color)
 #    include "foundation/win32.h"
 
 typedef CfArray(Char16) StrBuf16;
-typedef BOOL APIENTRY (*Win32FileDialog)(OPENFILENAMEW *);
+typedef BOOL (*Win32FileDialog)(OPENFILENAMEW *);
 
-static const Win32FileDialog win32FileDialog[] = {
+static const Win32FileDialog win32FileDialog[2] = {
     [GuiFileDialog_Open] = GetOpenFileNameW,
     [GuiFileDialog_Save] = GetSaveFileNameW,
 };
 
-static const DWORD win32FileDialogFlags[] = {
+static const DWORD win32FileDialogFlags[2] = {
     [GuiFileDialog_Open] = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST,
     [GuiFileDialog_Save] = OFN_OVERWRITEPROMPT,
 };

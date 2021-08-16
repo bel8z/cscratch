@@ -18,7 +18,7 @@ cfLogDestroy(CfLog *log, CfVirtualMemory *vm)
 void
 cfLogAppend(CfLog *log, Str string)
 {
-    Char8 *ptr = log->buffer.data + (log->write_pos & (log->buffer.size - 1));
+    Char8 *ptr = (Char8 *)log->buffer.data + (log->write_pos & (log->buffer.size - 1));
     memCopy(string.buf, ptr, string.len);
     log->write_pos += string.len;
 }
@@ -32,7 +32,7 @@ cfLogAppendC(CfLog *log, Cstr cstring)
 void
 cfLogAppendF(CfLog *log, Cstr format, ...)
 {
-    Char8 *ptr = log->buffer.data + (log->write_pos & (log->buffer.size - 1));
+    Char8 *ptr = (Char8 *)log->buffer.data + (log->write_pos & (log->buffer.size - 1));
 
     va_list args, copy;
     va_start(args, format);
