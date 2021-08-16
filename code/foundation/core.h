@@ -113,6 +113,14 @@
 #    define CF_MAX_ALIGN (alignof(max_align_t))
 #endif
 
+#if CF_ARCH_X86
+#    define CF_PTR_SIZE 4
+#elif CF_ARCH_X64
+#    define CF_PTR_SIZE 8
+#else
+#    error "Architecture not detected"
+#endif
+
 //-------------------------//
 // Configuration defines   //
 //-------------------------//
@@ -674,3 +682,7 @@ typedef union IRect
 } IRect;
 
 //------------------------------------------------------------------------------
+
+CF_STATIC_ASSERT((Usize)CF_PTR_SIZE == sizeof(void *), "Invalid pointer size detected");
+CF_STATIC_ASSERT((Usize)CF_PTR_SIZE == sizeof(Uptr), "Invalid pointer size detected");
+CF_STATIC_ASSERT((Usize)CF_PTR_SIZE == sizeof(Iptr), "Invalid pointer size detected");

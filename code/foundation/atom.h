@@ -2,16 +2,6 @@
 
 #include "core.h"
 
-#if CF_ARCH_X86
-#    define ATOM_PTR_SIZE 4
-#elif CF_ARCH_X64
-#    define ATOM_PTR_SIZE 8
-#else
-#    error "Architecture not detected"
-#endif
-
-CF_STATIC_ASSERT(sizeof(void *) == ATOM_PTR_SIZE, "Invalid pointer size detected");
-
 #if CF_COMPILER_MSVC
 #    define ATOM_ENSURE_ALIGN(decl, amt) __declspec(align(amt)) decl
 #else
@@ -27,7 +17,7 @@ ATOM_ENSURE_ALIGN(typedef struct AtomI64 { I64  volatile  inner; } AtomI64, 8);
 ATOM_ENSURE_ALIGN(typedef struct AtomU16 { U16  volatile  inner; } AtomU16, 2);
 ATOM_ENSURE_ALIGN(typedef struct AtomU32 { U32  volatile  inner; } AtomU32, 4);
 ATOM_ENSURE_ALIGN(typedef struct AtomU64 { U64  volatile  inner; } AtomU64, 8);
-ATOM_ENSURE_ALIGN(typedef struct AtomPtr { void volatile *inner; } AtomPtr, ATOM_PTR_SIZE);
+ATOM_ENSURE_ALIGN(typedef struct AtomPtr { void volatile *inner; } AtomPtr, CF_PTR_SIZE);
 // clang-format on
 
 //----------------------------------------------------------------------------//
@@ -180,7 +170,7 @@ ATOM_ENSURE_ALIGN(typedef struct AtomPtr { void volatile *inner; } AtomPtr, ATOM
 static inline I64
 atomReadI64(AtomI64 const *object)
 {
-#    if (ATOM_PTR_SIZE == 8)
+#    if (CF_PTR_SIZE == 8)
     return object->inner;
 #    else
     // On 32-bit x86, the most compatible way to get an atomic 64-bit load is with cmpxchg8b.
@@ -201,7 +191,7 @@ atomReadI64(AtomI64 const *object)
 static inline U64
 atomReadU64(AtomU64 const *object)
 {
-#    if (ATOM_PTR_SIZE == 8)
+#    if (CF_PTR_SIZE == 8)
     return object->inner;
 #    else
     // On 32-bit x86, the most compatible way to get an atomic 64-bit load is with cmpxchg8b.
@@ -222,7 +212,7 @@ atomReadU64(AtomU64 const *object)
 static inline void
 atomWriteU64(AtomU64 *object, U64 value)
 {
-#    if (CF_ARCH_X64)
+#    if (CF_PTR_SIZE == 8)
     object->inner = value;
 #    else
     // On 32-bit x86, the most compatible way to get an atomic 64-bit store is with cmpxchg8b.
@@ -244,7 +234,7 @@ atomWriteU64(AtomU64 *object, U64 value)
 static inline void
 atomWriteI64(AtomI64 *object, I64 value)
 {
-#    if (CF_ARCH_X64)
+#    if (CF_PTR_SIZE == 8)
     object->inner = value;
 #    else
     // On 32-bit x86, the most compatible way to get an atomic 64-bit store is with cmpxchg8b.

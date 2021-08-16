@@ -290,10 +290,15 @@ VM_MIRROR_ALLOCATE(win32MirrorAllocate)
     Usize buffer_size = (size + granularity - 1) & ~(granularity - 1);
 
     VmMirrorBuffer buffer = {0};
+    HANDLE mapping = 0;
 
-    HANDLE mapping =
-        CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, (DWORD)(buffer_size >> 32),
-                           (DWORD)(buffer_size & 0xffffffff), NULL);
+#if (CF_PTR_SIZE == 8)
+    CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, (DWORD)(buffer_size >> 32),
+                       (DWORD)(buffer_size & 0xffffffff), NULL);
+#else
+    CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0,
+                       (DWORD)(buffer_size & 0xffffffff), NULL);
+#endif
 
     if (mapping)
     {

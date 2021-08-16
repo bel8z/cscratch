@@ -430,7 +430,7 @@ guiColorEdit(Cstr label, Rgba32 *color)
 #    include "foundation/win32.h"
 
 typedef CfArray(Char16) StrBuf16;
-typedef BOOL (*Win32FileDialog)(OPENFILENAMEW *);
+typedef BOOL(APIENTRY *Win32FileDialog)(LPOPENFILENAMEW);
 
 static const Win32FileDialog win32FileDialog[2] = {
     [GuiFileDialog_Open] = GetOpenFileNameW,
