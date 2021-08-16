@@ -1,3 +1,4 @@
+#include "atom.h"
 #include "core.h"
 #include "threading.h"
 #include "time.h"
@@ -36,7 +37,7 @@ typedef struct Win32ThreadData
     SRWLOCK sync;
     CONDITION_VARIABLE signal;
     // NOTE (Matteo): This is a char for compliance with the Interlocked API
-    Char8 started;
+    AtomU8 started;
 
 } Win32ThreadData;
 
@@ -51,7 +52,7 @@ win32threadProc(void *data_ptr)
 
     // NOTE (Matteo): Signal that the thread is started so the creation routine can complete
     AcquireSRWLockExclusive(&data->sync);
-    InterlockedOr8(&data->started, 1);
+    atomFetchOr(&data->started, 1);
     ReleaseSRWLockExclusive(&data->sync);
     WakeConditionVariable(&data->signal);
 
@@ -95,7 +96,7 @@ cfThreadCreate(CfThreadParms *parms)
 
         // NOTE (Matteo): Request thread start and wait until this actually happens
         ResumeThread((HANDLE)thread.handle);
-        while (!InterlockedOr8(&data.started, 0))
+        while (!atomFetchOr(&data.started, 0))
         {
             AcquireSRWLockExclusive(&data.sync);
             SleepConditionVariableSRW(&data.signal, &data.sync, INFINITE, 0);
