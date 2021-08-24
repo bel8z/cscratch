@@ -54,17 +54,33 @@ ATOM_ENSURE_ALIGN(typedef struct AtomPtr { void volatile *inner; } AtomPtr, CF_P
 
 #    include <intrin.h>
 
-//------------//
-//   Fences   //
-//------------//
+#    pragma intrinsic(                                                                             \
+        _InterlockedCompareExchange8, _InterlockedCompareExchange16, _InterlockedCompareExchange,  \
+        _InterlockedCompareExchange64, _InterlockedCompareExchangePointer, _InterlockedExchange8,  \
+        _InterlockedExchange16, _InterlockedExchange, _InterlockedExchange64,                      \
+        _InterlockedExchangePointer, _InterlockedExchangeAdd8, _InterlockedExchangeAdd16,          \
+        _InterlockedExchangeAdd, _InterlockedExchangeAdd64, _InterlockedExchangeSub8,              \
+        _InterlockedExchangeSub16, _InterlockedExchangeSub, _InterlockedExchangeSub64,             \
+        _InterlockedIncrement16, _InterlockedIncrement, _InterlockedIncrement64,                   \
+        _InterlockedDecrement16, _InterlockedDecrement, _InterlockedDecrement64, _InterlockedAnd8, \
+        _InterlockedAnd16, _InterlockedAnd, _InterlockedAnd64, _InterlockedOr8, _InterlockedOr16,  \
+        _InterlockedOr, _InterlockedOr64)
 
-#    define atomSignalFenceAcquire() _ReadWriteBarrier()
-#    define atomSignalFenceRelease() _ReadWriteBarrier()
-#    define atomSignalFenceSequential() _ReadWriteBarrier()
+//-----------------------//
+//   CPU memory fences   //
+//-----------------------//
 
-#    define atomThreadFenceAcquire() _ReadWriteBarrier()
-#    define atomThreadFenceRelease() _ReadWriteBarrier()
-#    define atomThreadFenceSequential() MemoryBarrier()
+#    define atomAcquireFence() _ReadWriteBarrier()
+#    define atomReleaseFence() _ReadWriteBarrier()
+#    define atomSequentialFence() MemoryBarrier()
+
+//---------------------//
+//   Compiler fences   //
+//---------------------//
+
+#    define atomAcquireCompFence() _ReadWriteBarrier()
+#    define atomReleaseCompFence() _ReadWriteBarrier()
+#    define atomSequentialCompFence() _ReadWriteBarrier()
 
 //-----------------------//
 //   Atomic operations   //
@@ -139,29 +155,65 @@ ATOM_ENSURE_ALIGN(typedef struct AtomPtr { void volatile *inner; } AtomPtr, CF_P
              AtomU32* : _InterlockedExchangeSub  ((volatile long*)(value), operand), \
              AtomU64* : _InterlockedExchangeSub64((volatile I64 *)(value), operand))
 
-#define atomIncrement(value)                                              \
-    _Generic((value),                                                     \
-             AtomI8 * : _InterlockedIncrement8 ((volatile char*)(value)), \
-             AtomI16* : _InterlockedIncrement16((volatile I16 *)(value)), \
-             AtomI32* : _InterlockedIncrement  ((volatile long*)(value)), \
-             AtomI64* : _InterlockedIncrement64((volatile I64 *)(value)), \
-             AtomU8 * : _InterlockedIncrement8 ((volatile char*)(value)), \
-             AtomU16* : _InterlockedIncrement16((volatile I16 *)(value)), \
-             AtomU32* : _InterlockedIncrement  ((volatile long*)(value)), \
-             AtomU64* : _InterlockedIncrement64((volatile I64 *)(value)))
+#define atomFetchInc(value)                                                     \
+    _Generic((value),                                                           \
+             AtomI8 * : (atomFetchIncI8(value)),                                 \
+             AtomI16* : (_InterlockedIncrement16((volatile I16 *)(value)) - 1), \
+             AtomI32* : (_InterlockedIncrement  ((volatile long*)(value)) - 1), \
+             AtomI64* : (_InterlockedIncrement64((volatile I64 *)(value)) - 1), \
+             AtomU8 * : (atomFetchIncI8(value)),                                 \
+             AtomU16* : (_InterlockedIncrement16((volatile I16 *)(value)) - 1), \
+             AtomU32* : (_InterlockedIncrement  ((volatile long*)(value)) - 1), \
+             AtomU64* : (_InterlockedIncrement64((volatile I64 *)(value)) - 1))
 
-#define atomDecrement(value)                                              \
-    _Generic((value),                                                     \
-             AtomI8 * : _InterlockedDecrement8 ((volatile char*)(value)), \
-             AtomI16* : _InterlockedDecrement16((volatile I16 *)(value)), \
-             AtomI32* : _InterlockedDecrement  ((volatile long*)(value)), \
-             AtomI64* : _InterlockedDecrement64((volatile I64 *)(value)), \
-             AtomU8 * : _InterlockedDecrement8 ((volatile char*)(value)), \
-             AtomU16* : _InterlockedDecrement16((volatile I16 *)(value)), \
-             AtomU32* : _InterlockedDecrement  ((volatile long*)(value)), \
-             AtomU64* : _InterlockedDecrement64((volatile I64 *)(value)))
+#define atomFetchDec(value)                                                     \
+    _Generic((value),                                                           \
+             AtomI8 * : (atomFetchDecI8(value)),                                 \
+             AtomI16* : (_InterlockedDecrement16((volatile I16 *)(value)) + 1), \
+             AtomI32* : (_InterlockedDecrement  ((volatile long*)(value)) + 1), \
+             AtomI64* : (_InterlockedDecrement64((volatile I64 *)(value)) + 1), \
+             AtomU8 * : (atomFetchDecU8(value)),                                 \
+             AtomU16* : (_InterlockedDecrement16((volatile I16 *)(value)) + 1), \
+             AtomU32* : (_InterlockedDecrement  ((volatile long*)(value)) + 1), \
+             AtomU64* : (_InterlockedDecrement64((volatile I64 *)(value)) + 1))
 
 // clang-format on
+
+//---------------------------//
+//  8bit specializations   //
+//---------------------------//
+
+#    define ATOM__8_OPS(Type)                                                                \
+        CF_STATIC_ASSERT(sizeof(Type) == 1, "Type is not 8 bits");                           \
+                                                                                             \
+        static inline Type atomFetchInc##Type(Atom##Type const *value)                       \
+        {                                                                                    \
+            Type prev;                                                                       \
+                                                                                             \
+            do                                                                               \
+            {                                                                                \
+                prev = value->inner;                                                         \
+            } while (_InterlockedCompareExchange8((volatile char *)value, prev + 1, prev) != \
+                     prev);                                                                  \
+                                                                                             \
+            return prev;                                                                     \
+        }                                                                                    \
+                                                                                             \
+        static inline Type atomFetchDec##Type(Atom##Type const *value)                       \
+        {                                                                                    \
+            Type prev;                                                                       \
+                                                                                             \
+            do                                                                               \
+            {                                                                                \
+                prev = value->inner;                                                         \
+            } while (_InterlockedCompareExchange8((volatile char *)value, prev - 1, prev) != \
+                     prev);                                                                  \
+                                                                                             \
+            return prev;                                                                     \
+        }
+
+ATOM__8_OPS(I8)
+ATOM__8_OPS(U8)
 
 //---------------------------//
 //   64bit specializations   //
