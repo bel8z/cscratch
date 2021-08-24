@@ -96,7 +96,7 @@ cfThreadCreate(CfThreadParms *parms)
 
         // NOTE (Matteo): Request thread start and wait until this actually happens
         ResumeThread((HANDLE)thread.handle);
-        while (!atomFetchOr(&data.started, 0))
+        while (atomFetchInc(&data.started) != 1)
         {
             AcquireSRWLockExclusive(&data.sync);
             SleepConditionVariableSRW(&data.signal, &data.sync, INFINITE, 0);

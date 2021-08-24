@@ -20,6 +20,24 @@ ATOM_ENSURE_ALIGN(typedef struct AtomU64 { U64  volatile  inner; } AtomU64, 8);
 ATOM_ENSURE_ALIGN(typedef struct AtomPtr { void volatile *inner; } AtomPtr, CF_PTR_SIZE);
 // clang-format on
 
+#if CF_PTR_SIZE == 4
+
+CF_STATIC_ASSERT(sizeof(Isize) == 4 && sizeof(Usize) == 4, "Invalid size types");
+
+typedef AtomI32 AtomIsize;
+typedef AtomU32 AtomUsize;
+
+#elif CF_PTR_SIZE == 8
+
+CF_STATIC_ASSERT(sizeof(Isize) == 8 && sizeof(Usize) == 8, "Invalid size types");
+
+typedef AtomI64 AtomIsize;
+typedef AtomU64 AtomUsize;
+
+#else
+#    error "Unsupported pointer size"
+#endif
+
 //----------------------------------------------------------------------------//
 
 // clang-format off
@@ -135,85 +153,78 @@ ATOM_ENSURE_ALIGN(typedef struct AtomPtr { void volatile *inner; } AtomPtr, CF_P
 
 #define atomFetchAdd(value, operand)                                                 \
     _Generic((value),                                                                \
-             AtomI8 * : _InterlockedExchangeAdd8 ((volatile char*)(value), operand), \
-             AtomI16* : _InterlockedExchangeAdd16((volatile I16 *)(value), operand), \
-             AtomI32* : _InterlockedExchangeAdd  ((volatile long*)(value), operand), \
-             AtomI64* : _InterlockedExchangeAdd64((volatile I64 *)(value), operand), \
-             AtomU8 * : _InterlockedExchangeAdd8 ((volatile char*)(value), operand), \
-             AtomU16* : _InterlockedExchangeAdd16((volatile I16 *)(value), operand), \
-             AtomU32* : _InterlockedExchangeAdd  ((volatile long*)(value), operand), \
-             AtomU64* : _InterlockedExchangeAdd64((volatile I64 *)(value), operand))
+             AtomI8 * : _InterlockedExchangeAdd8 ((char volatile*)(value), operand), \
+             AtomI16* : _InterlockedExchangeAdd16((I16  volatile*)(value), operand), \
+             AtomI32* : _InterlockedExchangeAdd  ((long volatile*)(value), operand), \
+             AtomI64* : _InterlockedExchangeAdd64((I64  volatile*)(value), operand), \
+             AtomU8 * : _InterlockedExchangeAdd8 ((char volatile*)(value), operand), \
+             AtomU16* : _InterlockedExchangeAdd16((I16  volatile*)(value), operand), \
+             AtomU32* : _InterlockedExchangeAdd  ((long volatile*)(value), operand), \
+             AtomU64* : _InterlockedExchangeAdd64((I64  volatile*)(value), operand))
 
 #define atomFetchSub(value, operand)                                                 \
     _Generic((value),                                                                \
-             AtomI8 * : _InterlockedExchangeSub8 ((volatile char*)(value), operand), \
-             AtomI16* : _InterlockedExchangeSub16((volatile I16 *)(value), operand), \
-             AtomI32* : _InterlockedExchangeSub  ((volatile long*)(value), operand), \
-             AtomI64* : _InterlockedExchangeSub64((volatile I64 *)(value), operand), \
-             AtomU8 * : _InterlockedExchangeSub8 ((volatile char*)(value), operand), \
-             AtomU16* : _InterlockedExchangeSub16((volatile I16 *)(value), operand), \
-             AtomU32* : _InterlockedExchangeSub  ((volatile long*)(value), operand), \
-             AtomU64* : _InterlockedExchangeSub64((volatile I64 *)(value), operand))
+             AtomI8 * : _InterlockedExchangeSub8 ((char volatile*)(value), operand), \
+             AtomI16* : _InterlockedExchangeSub16((I16  volatile*)(value), operand), \
+             AtomI32* : _InterlockedExchangeSub  ((long volatile*)(value), operand), \
+             AtomI64* : _InterlockedExchangeSub64((I64  volatile*)(value), operand), \
+             AtomU8 * : _InterlockedExchangeSub8 ((char volatile*)(value), operand), \
+             AtomU16* : _InterlockedExchangeSub16((I16  volatile*)(value), operand), \
+             AtomU32* : _InterlockedExchangeSub  ((long volatile*)(value), operand), \
+             AtomU64* : _InterlockedExchangeSub64((I64  volatile*)(value), operand))
 
 #define atomFetchInc(value)                                                     \
     _Generic((value),                                                           \
-             AtomI8 * : (atomFetchIncI8(value)),                                 \
-             AtomI16* : (_InterlockedIncrement16((volatile I16 *)(value)) - 1), \
-             AtomI32* : (_InterlockedIncrement  ((volatile long*)(value)) - 1), \
-             AtomI64* : (_InterlockedIncrement64((volatile I64 *)(value)) - 1), \
-             AtomU8 * : (atomFetchIncI8(value)),                                 \
-             AtomU16* : (_InterlockedIncrement16((volatile I16 *)(value)) - 1), \
-             AtomU32* : (_InterlockedIncrement  ((volatile long*)(value)) - 1), \
-             AtomU64* : (_InterlockedIncrement64((volatile I64 *)(value)) - 1))
+             AtomI8 * : (U8)atom__FetchInc8     ((char volatile*)(value)),      \
+             AtomI16* : (_InterlockedIncrement16((I16  volatile*)(value)) - 1), \
+             AtomI32* : (_InterlockedIncrement  ((long volatile*)(value)) - 1), \
+             AtomI64* : (_InterlockedIncrement64((I64  volatile*)(value)) - 1), \
+             AtomU8 * : (I8)atom__FetchInc8     ((char volatile*)(value)),      \
+             AtomU16* : (_InterlockedIncrement16((I16  volatile*)(value)) - 1), \
+             AtomU32* : (_InterlockedIncrement  ((long volatile*)(value)) - 1), \
+             AtomU64* : (_InterlockedIncrement64((I64  volatile*)(value)) - 1))
 
-#define atomFetchDec(value)                                                     \
-    _Generic((value),                                                           \
-             AtomI8 * : (atomFetchDecI8(value)),                                 \
-             AtomI16* : (_InterlockedDecrement16((volatile I16 *)(value)) + 1), \
-             AtomI32* : (_InterlockedDecrement  ((volatile long*)(value)) + 1), \
-             AtomI64* : (_InterlockedDecrement64((volatile I64 *)(value)) + 1), \
-             AtomU8 * : (atomFetchDecU8(value)),                                 \
-             AtomU16* : (_InterlockedDecrement16((volatile I16 *)(value)) + 1), \
-             AtomU32* : (_InterlockedDecrement  ((volatile long*)(value)) + 1), \
-             AtomU64* : (_InterlockedDecrement64((volatile I64 *)(value)) + 1))
+#define atomFetchDec(value)                                                      \
+    _Generic((value),                                                            \
+             AtomI8 * : (U8)atom__FetchDec8     ((char volatile*)(value)),      \
+             AtomI16* : (_InterlockedDecrement16((I16  volatile*)(value)) + 1), \
+             AtomI32* : (_InterlockedDecrement  ((long volatile*)(value)) + 1), \
+             AtomI64* : (_InterlockedDecrement64((I64  volatile*)(value)) + 1), \
+             AtomU8 * : (I8)atom__FetchDec8     ((char volatile*)(value)),      \
+             AtomU16* : (_InterlockedDecrement16((I16  volatile*)(value)) + 1), \
+             AtomU32* : (_InterlockedDecrement  ((long volatile*)(value)) + 1), \
+             AtomU64* : (_InterlockedDecrement64((I64  volatile*)(value)) + 1))
 
 // clang-format on
 
 //---------------------------//
-//  8bit specializations   //
+//  8bit specializations     //
 //---------------------------//
 
-#    define ATOM__8_OPS(Type)                                                                \
-        CF_STATIC_ASSERT(sizeof(Type) == 1, "Type is not 8 bits");                           \
-                                                                                             \
-        static inline Type atomFetchInc##Type(Atom##Type const *value)                       \
-        {                                                                                    \
-            Type prev;                                                                       \
-                                                                                             \
-            do                                                                               \
-            {                                                                                \
-                prev = value->inner;                                                         \
-            } while (_InterlockedCompareExchange8((volatile char *)value, prev + 1, prev) != \
-                     prev);                                                                  \
-                                                                                             \
-            return prev;                                                                     \
-        }                                                                                    \
-                                                                                             \
-        static inline Type atomFetchDec##Type(Atom##Type const *value)                       \
-        {                                                                                    \
-            Type prev;                                                                       \
-                                                                                             \
-            do                                                                               \
-            {                                                                                \
-                prev = value->inner;                                                         \
-            } while (_InterlockedCompareExchange8((volatile char *)value, prev - 1, prev) != \
-                     prev);                                                                  \
-                                                                                             \
-            return prev;                                                                     \
-        }
+static inline char
+atom__FetchInc8(char volatile *value)
+{
+    char prev;
 
-ATOM__8_OPS(I8)
-ATOM__8_OPS(U8)
+    do
+    {
+        prev = *value;
+    } while (_InterlockedCompareExchange8(value, prev + 1, prev) != prev);
+
+    return prev;
+}
+static inline char
+atom__FetchDec8(char volatile *value)
+{
+    char prev;
+
+    do
+    {
+        prev = *value;
+    } while (_InterlockedCompareExchange8(value, prev - 1, prev) != prev);
+
+    return prev;
+}
 
 //---------------------------//
 //   64bit specializations   //
@@ -225,8 +236,9 @@ atomReadI64(AtomI64 const *object)
 #    if (CF_PTR_SIZE == 8)
     return object->inner;
 #    else
-    // On 32-bit x86, the most compatible way to get an atomic 64-bit load is with cmpxchg8b.
-    // This essentially performs atomCompareExchange(object, _dummyValue, _dummyValue).
+    // On 32-bit x86, the most compatible way to get an atomic 64-bit load is with
+    // cmpxchg8b. This essentially performs atomCompareExchange(object, _dummyValue,
+    // _dummyValue).
     I64 result;
     __asm {
         mov esi, object;
@@ -246,8 +258,9 @@ atomReadU64(AtomU64 const *object)
 #    if (CF_PTR_SIZE == 8)
     return object->inner;
 #    else
-    // On 32-bit x86, the most compatible way to get an atomic 64-bit load is with cmpxchg8b.
-    // This essentially performs atomCompareExchange(object, _dummyValue, _dummyValue).
+    // On 32-bit x86, the most compatible way to get an atomic 64-bit load is with
+    // cmpxchg8b. This essentially performs atomCompareExchange(object, _dummyValue,
+    // _dummyValue).
     U64 result;
     __asm {
         mov esi, object;
@@ -267,11 +280,11 @@ atomWriteU64(AtomU64 *object, U64 value)
 #    if (CF_PTR_SIZE == 8)
     object->inner = value;
 #    else
-    // On 32-bit x86, the most compatible way to get an atomic 64-bit store is with cmpxchg8b.
-    // Essentially, we perform atomCompareExchange(object, object->inner, desired)
-    // in a loop until it returns the previous value.
-    // According to the Linux kernel (atomic64_cx8_32.S), we don't need the "lock;" prefix
-    // on cmpxchg8b since aligned 64-bit writes are already atomic on 586 and newer.
+    // On 32-bit x86, the most compatible way to get an atomic 64-bit store is with
+    // cmpxchg8b. Essentially, we perform atomCompareExchange(object, object->inner,
+    // desired) in a loop until it returns the previous value. According to the Linux
+    // kernel (atomic64_cx8_32.S), we don't need the "lock;" prefix on cmpxchg8b since
+    // aligned 64-bit writes are already atomic on 586 and newer.
     __asm {
         mov esi, object;
         mov ebx, dword ptr value;
@@ -289,11 +302,11 @@ atomWriteI64(AtomI64 *object, I64 value)
 #    if (CF_PTR_SIZE == 8)
     object->inner = value;
 #    else
-    // On 32-bit x86, the most compatible way to get an atomic 64-bit store is with cmpxchg8b.
-    // Essentially, we perform atomCompareExchange(object, object->inner, desired)
-    // in a loop until it returns the previous value.
-    // According to the Linux kernel (atomic64_cx8_32.S), we don't need the "lock;" prefix
-    // on cmpxchg8b since aligned 64-bit writes are already atomic on 586 and newer.
+    // On 32-bit x86, the most compatible way to get an atomic 64-bit store is with
+    // cmpxchg8b. Essentially, we perform atomCompareExchange(object, object->inner,
+    // desired) in a loop until it returns the previous value. According to the Linux
+    // kernel (atomic64_cx8_32.S), we don't need the "lock;" prefix on cmpxchg8b since
+    // aligned 64-bit writes are already atomic on 586 and newer.
     __asm {
         mov esi, object;
         mov ebx, dword ptr value;
