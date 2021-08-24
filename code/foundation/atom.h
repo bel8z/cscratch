@@ -73,31 +73,32 @@ typedef AtomU64 AtomUsize;
 #    include <intrin.h>
 
 #    pragma intrinsic(                                                                             \
-        _InterlockedCompareExchange8, _InterlockedCompareExchange16, _InterlockedCompareExchange,  \
-        _InterlockedCompareExchange64, _InterlockedCompareExchangePointer, _InterlockedExchange8,  \
-        _InterlockedExchange16, _InterlockedExchange, _InterlockedExchange64,                      \
-        _InterlockedExchangePointer, _InterlockedExchangeAdd8, _InterlockedExchangeAdd16,          \
-        _InterlockedExchangeAdd, _InterlockedExchangeAdd64, _InterlockedExchangeSub8,              \
-        _InterlockedExchangeSub16, _InterlockedExchangeSub, _InterlockedExchangeSub64,             \
-        _InterlockedIncrement16, _InterlockedIncrement, _InterlockedIncrement64,                   \
-        _InterlockedDecrement16, _InterlockedDecrement, _InterlockedDecrement64, _InterlockedAnd8, \
-        _InterlockedAnd16, _InterlockedAnd, _InterlockedAnd64, _InterlockedOr8, _InterlockedOr16,  \
-        _InterlockedOr, _InterlockedOr64)
+        _ReadBarrier, _WriteBarrier, _ReadWriteBarrier, _InterlockedCompareExchange8,              \
+        _InterlockedCompareExchange16, _InterlockedCompareExchange, _InterlockedCompareExchange64, \
+        _InterlockedCompareExchangePointer, _InterlockedExchange8, _InterlockedExchange16,         \
+        _InterlockedExchange, _InterlockedExchange64, _InterlockedExchangePointer,                 \
+        _InterlockedExchangeAdd8, _InterlockedExchangeAdd16, _InterlockedExchangeAdd,              \
+        _InterlockedExchangeAdd64, _InterlockedExchangeSub8, _InterlockedExchangeSub16,            \
+        _InterlockedExchangeSub, _InterlockedExchangeSub64, _InterlockedIncrement16,               \
+        _InterlockedIncrement, _InterlockedIncrement64, _InterlockedDecrement16,                   \
+        _InterlockedDecrement, _InterlockedDecrement64, _InterlockedAnd8, _InterlockedAnd16,       \
+        _InterlockedAnd, _InterlockedAnd64, _InterlockedOr8, _InterlockedOr16, _InterlockedOr,     \
+        _InterlockedOr64)
 
 //-----------------------//
 //   CPU memory fences   //
 //-----------------------//
 
-#    define atomAcquireFence() _ReadWriteBarrier()
-#    define atomReleaseFence() _ReadWriteBarrier()
+#    define atomAcquireFence() _ReadBarrier()
+#    define atomReleaseFence() _WriteBarrier()
 #    define atomSequentialFence() MemoryBarrier()
 
 //---------------------//
 //   Compiler fences   //
 //---------------------//
 
-#    define atomAcquireCompFence() _ReadWriteBarrier()
-#    define atomReleaseCompFence() _ReadWriteBarrier()
+#    define atomAcquireCompFence() _ReadBarrier()
+#    define atomReleaseCompFence() _WriteBarrier()
 #    define atomSequentialCompFence() _ReadWriteBarrier()
 
 //-----------------------//
