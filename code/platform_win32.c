@@ -699,8 +699,8 @@ win32SystemTime(void)
     FILETIME time;
     GetSystemTimePreciseAsFileTime(&time);
 
-    LARGE_INTEGER temp = {.HighPart = (LONG)time.dwHighDateTime, //
-                          .LowPart = time.dwLowDateTime};
+    ULARGE_INTEGER temp = {.HighPart = time.dwHighDateTime, //
+                           .LowPart = time.dwLowDateTime};
     return (U64)temp.QuadPart;
 }
 
@@ -720,8 +720,9 @@ win32CalendarTime(SYSTEMTIME const *out)
 CalendarTime
 win32UtcTime(SystemTime sys_time)
 {
-    LARGE_INTEGER temp = {.QuadPart = (LONGLONG)sys_time};
-    FILETIME in = {.dwLowDateTime = temp.LowPart, .dwHighDateTime = (DWORD)temp.HighPart};
+    ULARGE_INTEGER temp = {.QuadPart = sys_time};
+    FILETIME in = {.dwLowDateTime = temp.LowPart, //
+                   .dwHighDateTime = temp.HighPart};
     SYSTEMTIME out;
 
     if (!FileTimeToSystemTime(&in, &out))
@@ -738,8 +739,9 @@ win32LocalTime(SystemTime sys_time)
     // File time conversions according to MS docs:
     // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-filetimetolocalfiletime
 
-    LARGE_INTEGER temp = {.QuadPart = (LONGLONG)sys_time};
-    FILETIME in = {.dwLowDateTime = temp.LowPart, .dwHighDateTime = (DWORD)temp.HighPart};
+    ULARGE_INTEGER temp = {.QuadPart = sys_time};
+    FILETIME in = {.dwLowDateTime = temp.LowPart, //
+                   .dwHighDateTime = temp.HighPart};
     SYSTEMTIME utc, local;
 
     if (!FileTimeToSystemTime(&in, &utc) || !SystemTimeToTzSpecificLocalTime(NULL, &utc, &local))
