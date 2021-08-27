@@ -9,12 +9,24 @@
 //   API   //
 //---------//
 
+typedef U8 WeekDayU8;
+enum WeekDay_
+{
+    WeekDay_Sun = 0,
+    WeekDay_Mon,
+    WeekDay_Tue,
+    WeekDay_Wed,
+    WeekDay_Thu,
+    WeekDay_Fri,
+    WeekDay_Sat,
+};
+
 typedef struct CalendarTime
 {
     U16 year;
-    U8 month;
-    U8 day;
-    U8 week_day;
+    U8 month; // Ordinal [0-12]
+    U8 day;   // Ordinal [1-31]
+    WeekDayU8 week_day;
     U8 hour;
     U8 minute;
     U8 second;

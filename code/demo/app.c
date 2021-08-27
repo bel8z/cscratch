@@ -485,7 +485,9 @@ APP_API APP_UPDATE_PROC(appUpdate)
     {
         static F32 f = 0;
 
-        Duration t = plat->time->clock();
+        CfTimeApi *time = plat->time;
+        Duration t = time->clock();
+        CalendarTime now = time->localTime(time->systemTime());
 
         igCheckbox("Demo Window", &state->windows.demo);
         igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
@@ -495,6 +497,8 @@ APP_API APP_UPDATE_PROC(appUpdate)
         guiSameLine();
         igCheckbox("Fullscreen", &io->fullscreen);
         igSeparator();
+        igText("%04d/%02d/%02d %02d:%02d:%02d.%03d", now.year, now.month, now.day, now.hour,
+               now.minute, now.second, now.milliseconds);
         guiClock(t);
         igSeparator();
 
