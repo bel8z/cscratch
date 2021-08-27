@@ -163,7 +163,7 @@ static APP_PROC(appProcStub);
 static APP_CREATE_PROC(appCreateStub);
 static APP_UPDATE_PROC(appUpdateStub);
 
-static void appApiLoad(AppApi *api, Platform *platform);
+static void appApiLoad(AppApi *api, Paths *paths, CfFileSystem *fs, LibraryApi *library);
 static void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
 
 //------------------------------------------------------------------------------
@@ -254,7 +254,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
 
     // Setup application
     AppApi app_api = {0};
-    appApiLoad(&app_api, platform);
+    appApiLoad(&app_api, platform->paths, platform->fs, platform->library);
     AppState *app_state = app_api.create(platform, argv, argc);
 
     // Configure Dear ImGui
@@ -435,14 +435,12 @@ static APP_UPDATE_PROC(appUpdateStub)
 }
 
 void
-appApiLoad(AppApi *api, Platform *platform)
+appApiLoad(AppApi *api, Paths *paths, CfFileSystem *fs, LibraryApi *library)
 {
-    Paths *paths = platform->paths;
-
     if (api->lib)
     {
         CF_ASSERT(api->create, "");
-        platform->libUnload(api->lib);
+        library->unload(api->lib);
         memClear(api, sizeof(*api));
     }
 
@@ -452,18 +450,18 @@ appApiLoad(AppApi *api, Platform *platform)
     strPrintf(api->dst_file, Paths_Size, "%s.tmp", api->src_file);
 
     Str dst_file = strFromCstr(api->dst_file);
-    if (platform->fs->fileCopy(strFromCstr(api->src_file), dst_file, true))
+    if (fs->fileCopy(strFromCstr(api->src_file), dst_file, true))
     {
-        api->lib = platform->libLoad(dst_file);
+        api->lib = library->load(dst_file);
     }
 
     if (api->lib)
     {
-        api->create = (AppCreateProc)platform->libLoadProc(api->lib, "appCreate");
-        api->destroy = (AppProc)platform->libLoadProc(api->lib, "appDestroy");
-        api->load = (AppProc)platform->libLoadProc(api->lib, "appLoad");
-        api->unload = (AppProc)platform->libLoadProc(api->lib, "appUnload");
-        api->update = (AppUpdateProc)platform->libLoadProc(api->lib, "appUpdate");
+        api->create = (AppCreateProc)library->loadSymbol(api->lib, "appCreate");
+        api->destroy = (AppProc)library->loadSymbol(api->lib, "appDestroy");
+        api->load = (AppProc)library->loadSymbol(api->lib, "appLoad");
+        api->unload = (AppProc)library->loadSymbol(api->lib, "appUnload");
+        api->update = (AppUpdateProc)library->loadSymbol(api->lib, "appUpdate");
     }
 
     if (!api->create) api->create = appCreateStub;
@@ -481,7 +479,7 @@ appApiUpdate(AppApi *api, Platform *platform, AppState *app)
         platform->fs->fileProperties(strFromCstr(api->dst_file)).last_write)
     {
         api->unload(app);
-        appApiLoad(api, platform);
+        appApiLoad(api, platform->paths, platform->fs, platform->library);
         api->load(app);
     }
 }

@@ -437,7 +437,8 @@ typedef struct Duration
 
 #define DURATION_INFINITE ((Duration){.nanos = U32_MAX})
 
-/// Time representation useful for interaction with OS APIs
+/// Time representation used for interacting with OS APIs.
+/// This type can be compared for ordering, but arithmetic is pointless
 typedef U64 SystemTime;
 
 //---------------//

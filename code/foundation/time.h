@@ -5,15 +5,43 @@
 
 #include "core.h"
 
+//---------//
+//   API   //
+//---------//
+
+typedef struct CalendarTime
+{
+    U16 year;
+    U8 month;
+    U8 day;
+    U8 week_day;
+    U8 hour;
+    U8 minute;
+    U8 second;
+    U16 milliseconds;
+} CalendarTime;
+
+typedef struct CfTimeApi
+{
+    /// Elapsed time since the start of the application
+    /// Useful for performance measurement
+    Duration (*clock)(void);
+
+    SystemTime (*systemTime)(void);
+
+    CalendarTime (*utcTime)(SystemTime sys_time);
+    CalendarTime (*localTime)(SystemTime sys_time);
+} CfTimeApi;
+
+//---------------//
+//   Utilities   //
+//---------------//
+
 #define CF_NS_PER_SEC (U64)(1000000000)
 #define CF_NS_PER_MS (U64)(1000000)
 #define CF_NS_PER_US (U64)(1000)
 #define CF_MS_PER_SEC (U64)(1000)
 #define CF_US_PER_SEC (U64)(1000000)
-
-//---------------//
-//   Utilities   //
-//---------------//
 
 static inline Duration
 timeDurationSecs(I64 seconds)

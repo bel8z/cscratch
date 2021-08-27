@@ -7,14 +7,23 @@
 //------------------------------------------------------------------------------
 
 // Foundation interfaces
+
 typedef struct CfVirtualMemory CfVirtualMemory;
-typedef struct MemAllocator MemAllocator;
 typedef struct CfFileSystem CfFileSystem;
+typedef struct CfTimeApi CfTimeApi;
 
 // Additional platform interfaces
+
 typedef struct GlApi GlApi;
 typedef struct Gui Gui;
 typedef struct Library Library;
+
+typedef struct LibraryApi
+{
+    Library *(*load)(Str filename);
+    void (*unload)(Library *lib);
+    void *(*loadSymbol)(Library *restrict lib, Cstr restrict name);
+} LibraryApi;
 
 enum
 {
@@ -28,6 +37,7 @@ typedef struct Paths
     Str base, data, exe_name, lib_name;
 } Paths;
 
+/// Main platform interface
 typedef struct Platform
 {
     /// Virtual memory services
@@ -51,24 +61,20 @@ typedef struct Platform
     /// File system services
     CfFileSystem *fs;
 
+    /// System time services
+    CfTimeApi *time;
+
     /// OpenGL API
     GlApi *gl;
 
     // Dear Imgui state
     Gui *gui;
 
-    /// Elapsed time since the start of the application
-    /// Useful for performance measurement
-    Duration (*clock)(void);
+    /// Dynamic library loading
+    LibraryApi *library;
 
     /// Common program paths
     Paths *paths;
-
-    /// Dynamic library loading
-    Library *(*libLoad)(Str filename);
-    void (*libUnload)(Library *lib);
-    void *(*libLoadProc)(Library *restrict lib, Cstr restrict name);
-
 } Platform;
 
 //------------------------------------------------------------------------------
@@ -95,6 +101,8 @@ typedef struct AppIo
     bool fullscreen;
 } AppIo;
 
+// Application function signatures
+
 #define APP_PROC(name) void name(AppState *app)
 #define APP_CREATE_PROC(name) AppState *name(Platform *plat, Cstr argv[], I32 argc)
 #define APP_UPDATE_PROC(name) void name(AppState *state, AppIo *io)
@@ -102,6 +110,8 @@ typedef struct AppIo
 typedef APP_PROC((*AppProc));
 typedef APP_CREATE_PROC((*AppCreateProc));
 typedef APP_UPDATE_PROC((*AppUpdateProc));
+
+// Application library exports
 
 #if CF_OS_WIN32
 #    define APP_API __declspec(dllexport)

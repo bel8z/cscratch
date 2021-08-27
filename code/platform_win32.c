@@ -11,16 +11,15 @@
 #include "foundation/win32.h"
 
 //------------------------------------------------------------------------------
-// Cross-platform entry point
+// API interface
 //------------------------------------------------------------------------------
+
+//---- Cross-platform entry point ----//
 
 I32 platformMain(Platform *platform, Cstr argv[], I32 argc);
 
-//------------------------------------------------------------------------------
-// API implementation
-//------------------------------------------------------------------------------
+//---- Virtual memory ----//
 
-// Virtual memory
 static VM_RESERVE_FUNC(win32VmReserve);
 static VM_COMMIT_FUNC(win32VmCommit);
 static VM_REVERT_FUNC(win32VmDecommit);
@@ -29,10 +28,11 @@ static VM_RELEASE_FUNC(win32VmRelease);
 static VM_MIRROR_ALLOCATE(win32MirrorAllocate);
 static VM_MIRROR_FREE(win32MirrorFree);
 
-// Heap allocation
+//---- Heap allocation ----//
+
 static MEM_ALLOCATOR_FUNC(win32Alloc);
 
-// File system
+//---- File system ----//
 
 // NOTE (Matteo): Ensure that there is room for a reasonably sized buffer
 CF_STATIC_ASSERT(sizeof(DirIterator) > 512 + sizeof(HANDLE) + sizeof(WIN32_FIND_DATAW),
@@ -53,7 +53,8 @@ static FileContent win32FileRead(Str filename, MemAllocator alloc);
 static bool win32FileCopy(Str source, Str dest, bool overwrite);
 static FileProperties win32FileProperties(Str filename);
 
-// Timing
+//---- Timing ----//
+
 static struct
 {
     U64 start_ticks;
@@ -61,13 +62,18 @@ static struct
 } g_clock;
 
 static Duration win32Clock(void);
+static SystemTime win32SystemTime(void);
+static CalendarTime win32UtcTime(SystemTime sys_time);
+static CalendarTime win32LocalTime(SystemTime sys_time);
 
-/// Dynamic loading
+//---- Dynamic loading ----//
+
 static Library *win32libLoad(Str filename);
 static void win32libUnload(Library *lib);
 static void *win32libLoadProc(Library *restrict lib, Cstr restrict name);
 
-// Global platform API
+//---- Global platform API ----//
+
 // NOTE (Matteo): a global here should be quite safe
 static Platform g_platform = {
     .vm =
@@ -92,11 +98,20 @@ static Platform g_platform = {
             .fileCopy = win32FileCopy,
             .fileProperties = win32FileProperties,
         },
-    .clock = win32Clock,
+    .time =
+        &(CfTimeApi){
+            .clock = win32Clock,
+            .systemTime = win32SystemTime,
+            .utcTime = win32UtcTime,
+            .localTime = win32LocalTime,
+        },
+    .library =
+        &(LibraryApi){
+            .load = win32libLoad,
+            .unload = win32libUnload,
+            .loadSymbol = win32libLoadProc,
+        },
     .paths = &(Paths){0},
-    .libLoad = win32libLoad,
-    .libUnload = win32libUnload,
-    .libLoadProc = win32libLoadProc,
 };
 
 //------------------------------------------------------------------------------
@@ -217,7 +232,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 }
 
 //------------------------------------------------------------------------------
-// Internal implementation
+// API implementation
 //------------------------------------------------------------------------------
 
 //------------//
@@ -677,6 +692,67 @@ win32Clock(void)
 
     return timeDurationNs(nanos);
 }
+
+SystemTime
+win32SystemTime(void)
+{
+    FILETIME time;
+    GetSystemTimePreciseAsFileTime(&time);
+
+    LARGE_INTEGER temp = {.HighPart = (LONG)time.dwHighDateTime, //
+                          .LowPart = time.dwLowDateTime};
+    return (U64)temp.QuadPart;
+}
+
+static CalendarTime
+win32CalendarTime(SYSTEMTIME const *out)
+{
+    return (CalendarTime){.year = out->wYear,
+                          .month = (U8)out->wMonth,
+                          .day = (U8)out->wDay,
+                          .week_day = (U8)out->wDayOfWeek,
+                          .hour = (U8)out->wHour,
+                          .minute = (U8)out->wMinute,
+                          .second = (U8)out->wSecond,
+                          .milliseconds = out->wMilliseconds};
+}
+
+CalendarTime
+win32UtcTime(SystemTime sys_time)
+{
+    LARGE_INTEGER temp = {.QuadPart = (LONGLONG)sys_time};
+    FILETIME in = {.dwLowDateTime = temp.LowPart, .dwHighDateTime = (DWORD)temp.HighPart};
+    SYSTEMTIME out;
+
+    if (!FileTimeToSystemTime(&in, &out))
+    {
+        win32PrintLastError();
+    }
+
+    return win32CalendarTime(&out);
+}
+
+CalendarTime
+win32LocalTime(SystemTime sys_time)
+{
+    // File time conversions according to MS docs:
+    // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-filetimetolocalfiletime
+
+    LARGE_INTEGER temp = {.QuadPart = (LONGLONG)sys_time};
+    FILETIME in = {.dwLowDateTime = temp.LowPart, .dwHighDateTime = (DWORD)temp.HighPart};
+    SYSTEMTIME utc, local;
+
+    if (!FileTimeToSystemTime(&in, &utc) || !SystemTimeToTzSpecificLocalTime(NULL, &utc, &local))
+    {
+        win32PrintLastError();
+    }
+
+    return win32CalendarTime(&local);
+}
+
+//-----------------------//
+//   Dynamic libraries   //
+//-----------------------//
 
 Library *
 win32libLoad(Str filename)

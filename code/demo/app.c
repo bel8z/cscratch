@@ -32,7 +32,7 @@ struct AppState
     Duration log_time;
 };
 
-CfLog *g_log = NULL;
+static CfLog *g_log = NULL;
 
 #define appLog(...) (g_log ? (cfLogAppendF(g_log, __VA_ARGS__), 1) : 0)
 
@@ -421,6 +421,8 @@ guiClock(Duration time)
 
 APP_API APP_UPDATE_PROC(appUpdate)
 {
+    Platform *plat = state->plat;
+
     if (igBeginMainMenuBar())
     {
         if (igBeginMenu("File", true)) igEndMenu();
@@ -451,7 +453,6 @@ APP_API APP_UPDATE_PROC(appUpdate)
 
     if (state->windows.stats)
     {
-        Platform *plat = state->plat;
         F64 framerate = (F64)igGetIO()->Framerate;
 
         igBegin("Application stats stats", &state->windows.stats,
@@ -484,7 +485,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
     {
         static F32 f = 0;
 
-        Duration t = state->plat->clock();
+        Duration t = plat->time->clock();
 
         igCheckbox("Demo Window", &state->windows.demo);
         igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
