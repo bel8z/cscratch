@@ -34,6 +34,9 @@ static MEM_ALLOCATOR_FUNC(win32Alloc);
 
 //---- File system ----//
 
+// TODO (Matteo): Provide async file IO? Win32 offers IO Completion Ports which seem very good for
+// the purpose
+
 // NOTE (Matteo): Ensure that there is room for a reasonably sized buffer
 CF_STATIC_ASSERT(sizeof(DirIterator) > 512 + sizeof(HANDLE) + sizeof(WIN32_FIND_DATAW),
                  "DirIterator buffer size is too small");
