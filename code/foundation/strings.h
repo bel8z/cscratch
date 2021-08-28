@@ -18,6 +18,10 @@
 //   C string helpers   //
 //----------------------//
 
+/// Build a string view from a string literal (static C string)
+#define strLiteral(lit) \
+    (Str) { .buf = (lit), .len = CF_ARRAY_SIZE(lit) - 1, }
+
 /// Build a string view from a C string
 #define strFromCstr(cstr) \
     (Str) { .buf = (cstr), .len = strLength(cstr), }

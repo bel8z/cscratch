@@ -8,19 +8,41 @@ typedef struct DirIterator
     U8 opaque[1280];
 } DirIterator;
 
+typedef U32 FileAttributes;
+enum FileAttributes_
+{
+    FileAttributes_Directory = 1,
+    FileAttributes_Symlink = 2,
+};
+
+typedef U8 FileOpenMode;
+enum FileOpenMode_
+{
+    FileOpenMode_Read = 1,
+    FileOpenMode_Write = 2,
+    FileOpenMode_RW = FileOpenMode_Read | FileOpenMode_Write,
+    FileOpenMode_Append = FileOpenMode_Write | 4,
+};
+
+typedef U8 FileSeekPos;
+enum FileSeekPos_
+{
+    FileSeekPos_Begin = 0,
+    FileSeekPos_Current,
+    FileSeekPos_End,
+};
+
+typedef struct FileHandle
+{
+    void *os_handle;
+    bool error;
+} FileHandle;
+
 typedef struct FileContent
 {
     U8 *data;
     Usize size;
 } FileContent;
-
-typedef U32 FileAttributes;
-
-enum
-{
-    FileAttributes_Directory = 1,
-    FileAttributes_Symlink = 2,
-};
 
 typedef struct FileProperties
 {
@@ -49,10 +71,24 @@ typedef struct CfFileSystem
 
     // *** File operations ***
 
-    FileContent (*fileRead)(Str filename, MemAllocator alloc);
     bool (*fileCopy)(Str source, Str dest, bool overwrite);
     FileProperties (*fileProperties)(Str filename);
 
+    FileHandle (*fileOpen)(Str filename, FileOpenMode mode);
+    void (*fileClose)(FileHandle file);
+
+    Usize (*fileSize)(FileHandle file);
+    Usize (*fileSeek)(FileHandle file, FileSeekPos pos, Usize offset);
+    Usize (*fileTell)(FileHandle file);
+
+    Usize (*fileRead)(FileHandle file, U8 *buffer, Usize buffer_size);
+    Usize (*fileReadAt)(FileHandle file, U8 *buffer, Usize buffer_size, Usize offset);
+
+    bool (*fileWrite)(FileHandle file, U8 *data, Usize data_size);
+    bool (*fileWriteAt)(FileHandle file, U8 *data, Usize data_size, Usize offset);
+
 } CfFileSystem;
+
+FileContent fileReadContent(CfFileSystem *fs, Str filename, MemAllocator alloc);
 
 //------------------------------------------------------------------------------
