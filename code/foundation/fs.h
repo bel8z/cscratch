@@ -2,6 +2,8 @@
 
 #include "core.h"
 
+// TODO (Matteo): Provide async file IO?
+
 /// Iterator over directory content
 typedef struct DirIterator
 {
