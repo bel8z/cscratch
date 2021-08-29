@@ -121,7 +121,7 @@ APP_API APP_PROC(appDestroy)
     CF_ASSERT_NOT_NULL(app->plat);
 
     cfLogDestroy(&app->log, app->plat->vm);
-    cfMemFree(app->plat->heap, app, sizeof(*app));
+    memFree(app->plat->heap, app, sizeof(*app));
 }
 
 //------------------------------------------------------------------------------

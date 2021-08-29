@@ -69,7 +69,7 @@ APP_API APP_PROC(appDestroy)
 {
     appUnload(app);
     cfLogDestroy(&app->log, app->plat->vm);
-    cfMemFree(app->alloc, app, sizeof(*app));
+    memFree(app->alloc, app, sizeof(*app));
 }
 
 APP_API APP_PROC(appLoad)

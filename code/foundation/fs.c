@@ -21,7 +21,7 @@ fileReadContent(CfFileSystem *fs, Str filename, MemAllocator alloc)
         }
         else
         {
-            cfMemFree(alloc, result.data, read_size);
+            memFree(alloc, result.data, read_size);
             result.data = NULL;
         }
 

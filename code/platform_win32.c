@@ -246,7 +246,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     I32 result = platformMain(&g_platform, (Cstr *)argv, argc);
 
-    cfMemFree(g_platform.heap, argv, cmd_line_size);
+    memFree(g_platform.heap, argv, cmd_line_size);
 
     CF_ASSERT(g_platform.heap_blocks == 0, "Potential memory leak");
     CF_ASSERT(g_platform.heap_size == 0, "Potential memory leak");

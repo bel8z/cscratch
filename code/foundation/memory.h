@@ -17,7 +17,7 @@
 #define memRealloc(a, mem, old_size, new_size) \
     memReallocAlign(a, mem, old_size, new_size, CF_MAX_ALIGN)
 
-#define cfMemFree(a, mem, size) (a).func((a).state, (void *)(mem), (size), 0, 0)
+#define memFree(a, mem, size) (a).func((a).state, (void *)(mem), (size), 0, 0)
 
 CF_API void memClear(void *mem, Usize count);
 CF_API void memCopy(void const *from, void *to, Usize count);

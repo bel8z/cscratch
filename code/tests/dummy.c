@@ -232,7 +232,7 @@ main()
     strPrintf(buff, BUFF_SIZE, "%.*s", (I32)dummy.len, dummy.buf);
     printf("%.*s\n", (I32)dummy.len, dummy.buf);
 
-    cfMemFree(alloc, buff, BUFF_SIZE);
+    memFree(alloc, buff, BUFF_SIZE);
 
     //======================================================//
 

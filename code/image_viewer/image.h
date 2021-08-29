@@ -19,6 +19,8 @@ typedef struct Image
     I32 height;
 } Image;
 
+void imageInit(MemAllocator alloc);
+
 // TODO (Matteo): Migrate to Str?
 bool imageLoadFromFile(Image *image, Cstr filename);
 bool imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size);

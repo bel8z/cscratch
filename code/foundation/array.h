@@ -32,7 +32,7 @@
     } while (0)
 
 #define cfArrayFree(array) \
-    cfMemFree((array)->alloc, (array)->buf, cf__arrayByteCount(array, (array)->cap))
+    memFree((array)->alloc, (array)->buf, cf__arrayByteCount(array, (array)->cap))
 
 /// Size of the stored items in bytes (useful for 'memcpy' and the like)
 #define cfArrayBytes(array) cf__arrayByteCount(array, (array)->len)

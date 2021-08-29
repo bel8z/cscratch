@@ -1,6 +1,6 @@
 #include "image.h"
 
-#include "gl/gload.h"
+#include "foundation/memory.h"
 
 // NOTE (Matteo): On memory allocation
 //
@@ -29,6 +29,14 @@
 #    pragma clang diagnostic ignored "-Wcast-align"
 #endif
 
+static void *stbiAlloc(Usize size);
+static void *stbiRealloc(void *memory, Usize size);
+static void stbiFree(void *memory);
+
+#define STBI_MALLOC stbiAlloc
+#define STBI_REALLOC stbiRealloc
+#define STBI_FREE stbiFree
+
 #define STB_IMAGE_IMPLEMENTATION
 
 #include <stb_image.h>
@@ -38,7 +46,45 @@
 #endif
 
 //------------------------------------------------------------------------------
+
+static MemAllocator g_alloc;
+
+void *
+stbiAlloc(Usize size)
+{
+    Usize total_size = size + sizeof(size);
+    Usize *buffer = memAlloc(g_alloc, total_size);
+    if (buffer) *buffer = total_size;
+    return buffer + 1;
+}
+
+void *
+stbiRealloc(void *memory, Usize size)
+{
+    Usize total_size = size + sizeof(size);
+    Usize *buffer = memory;
+    buffer -= 1;
+    buffer = memRealloc(g_alloc, buffer, *buffer, total_size);
+    if (buffer) *buffer = total_size;
+    return buffer + 1;
+}
+
+void
+stbiFree(void *memory)
+{
+    Usize *buffer = memory;
+    buffer -= 1;
+    memFree(g_alloc, buffer, *buffer);
+}
+
+//------------------------------------------------------------------------------
 // Image API implementation
+
+void
+imageInit(MemAllocator alloc)
+{
+    g_alloc = alloc;
+}
 
 bool
 imageLoadFromFile(Image *image, Cstr filename)

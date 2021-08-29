@@ -923,7 +923,7 @@ APP_API APP_PROC(appLoad)
     guiInit(app->plat->gui);
     // Init image loading
     gloadInit(app->plat->gl);
-
+    imageInit(app->plat->heap);
     loadQueueStart(&app->queue);
 }
 

@@ -27,7 +27,7 @@ guiFree(void *mem, void *state)
         MemAllocator alloc = *(MemAllocator *)state;
         Usize *buf = mem;
         buf--;
-        cfMemFree(alloc, buf, *buf + sizeof(*buf));
+        memFree(alloc, buf, *buf + sizeof(*buf));
     }
 }
 
