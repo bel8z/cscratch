@@ -65,12 +65,6 @@ CF_STATIC_ASSERT(BrowseWidth > 1, "Browse width must be > 1");
 //     Data structs     //
 //----------------------//
 
-typedef enum ImageFilter
-{
-    ImageFilter_Nearest,
-    ImageFilter_Linear,
-} ImageFilter;
-
 typedef struct ImageTex
 {
     U32 id;
@@ -84,7 +78,6 @@ typedef struct ImageView
 
     ImVec2 drag;
     F32 zoom;
-    I32 filter;
 
     U32 tex_index;
     U32 tex_count;
@@ -272,7 +265,7 @@ imageTexBuild(ImageTex *tex)
     glBindTexture(GL_TEXTURE_2D, tex->id);
 
     // Setup filtering parameters for display
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     // These are required on WebGL for non power-of-two textures
@@ -316,7 +309,6 @@ imageViewInit(ImageView *iv)
     iv->zoom = 1.0f;
     iv->dirty = true;
     iv->drag = (ImVec2){0};
-    iv->filter = ImageFilter_Nearest;
     iv->tex_index = 0;
     iv->tex_count = CF_ARRAY_SIZE(iv->tex);
 
@@ -365,10 +357,7 @@ imageViewUpdate(ImageView *iv, Image const *image)
             imageTexBuild(tex);
         }
 
-        I32 value = (iv->filter == ImageFilter_Linear) ? GL_LINEAR : GL_NEAREST;
         glBindTexture(GL_TEXTURE_2D, tex->id);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, value);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, value);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image->width, image->height, GL_RGBA,
                         GL_UNSIGNED_BYTE, image->bytes);
     }
@@ -593,25 +582,14 @@ appImageView(AppState *state)
     // TODO (Matteo): Maybe this can get cleaner?
     if (iv->advanced)
     {
-        I32 filter = iv->filter;
-        igRadioButton_IntPtr("Nearest", &filter, ImageFilter_Nearest);
-        guiSameLine();
-        igRadioButton_IntPtr("Linear", &filter, ImageFilter_Linear);
-
         bool double_buffer = (iv->tex_count == CF_ARRAY_SIZE(iv->tex));
-        guiSameLine();
         if (igCheckbox("Double buffer", &double_buffer))
         {
             iv->dirty = true;
             iv->tex_count = double_buffer ? CF_ARRAY_SIZE(iv->tex) : 1;
         }
-
         guiSameLine();
         igSliderFloat("zoom", &curr_zoom, min_zoom, max_zoom, "%.3f", 0);
-
-        // NOTE (Matteo): OR dirty flag to keep it set
-        iv->dirty |= (filter != iv->filter);
-        iv->filter = filter;
     }
 
     // NOTE (Matteo): Use the available content area as the image view; an invisible button
