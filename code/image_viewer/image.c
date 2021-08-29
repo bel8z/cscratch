@@ -57,27 +57,38 @@ stbiAlloc(Usize size)
 {
     Usize total_size = size + sizeof(size);
     Usize *buffer = memAlloc(g_alloc, total_size);
-    if (buffer) *buffer = total_size;
-    return buffer + 1;
+
+    if (buffer) *(buffer++) = total_size;
+
+    return buffer;
 }
 
 void *
 stbiRealloc(void *memory, Usize size)
 {
-    Usize total_size = size + sizeof(size);
     Usize *buffer = memory;
-    buffer -= 1;
-    buffer = memRealloc(g_alloc, buffer, *buffer, total_size);
-    if (buffer) *buffer = total_size;
-    return buffer + 1;
+
+    if (buffer)
+    {
+        Usize total_size = size + sizeof(size);
+        buffer -= 1;
+        buffer = memRealloc(g_alloc, buffer, *buffer, total_size);
+
+        if (buffer) *(buffer++) = total_size;
+    }
+
+    return buffer;
 }
 
 void
 stbiFree(void *memory)
 {
-    Usize *buffer = memory;
-    buffer -= 1;
-    memFree(g_alloc, buffer, *buffer);
+    if (memory)
+    {
+        Usize *buffer = memory;
+        buffer -= 1;
+        memFree(g_alloc, buffer, *buffer);
+    }
 }
 
 //------------------------------------------------------------------------------
