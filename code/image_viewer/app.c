@@ -586,6 +586,7 @@ appImageView(AppState *state)
     F32 const max_zoom = 10.0f;
 
     ImageView *iv = &state->iv;
+    F32 curr_zoom = iv->zoom;
 
     // Image scaling settings
 
@@ -606,7 +607,7 @@ appImageView(AppState *state)
         }
 
         guiSameLine();
-        igSliderFloat("zoom", &iv->zoom, min_zoom, max_zoom, "%.3f", 0);
+        igSliderFloat("zoom", &curr_zoom, min_zoom, max_zoom, "%.3f", 0);
 
         // NOTE (Matteo): OR dirty flag to keep it set
         iv->dirty |= (filter != iv->filter);
@@ -624,6 +625,10 @@ appImageView(AppState *state)
     igInvisibleButton("Image viewer##Area", view_size, 0);
     igGetItemRectMin(&view_min);
     igGetItemRectMax(&view_max);
+
+    Vec2 view_center = {.x = (view_max.x + view_min.x) / 2, //
+                        .y = (view_max.y + view_min.y) / 2};
+    Vec2 zoom_location = view_center;
 
     if (state->curr_file != USIZE_MAX)
     {
@@ -661,7 +666,8 @@ appImageView(AppState *state)
         {
             if (io->KeyCtrl)
             {
-                iv->zoom = cfClamp(iv->zoom + io->MouseWheel, min_zoom, max_zoom);
+                curr_zoom = cfClamp(curr_zoom + io->MouseWheel, min_zoom, max_zoom);
+                igGetMousePos((ImVec2 *)(&zoom_location));
             }
 
             if (igIsMouseDragging(ImGuiMouseButton_Left, -1.0f))
@@ -697,8 +703,21 @@ appImageView(AppState *state)
         }
 
         // NOTE (Matteo): Round image bounds to nearest pixel for stable rendering
-        image_w = cfRound(image_w * iv->zoom);
-        image_h = cfRound(image_h * iv->zoom);
+        image_w = cfRound(image_w * curr_zoom);
+        image_h = cfRound(image_h * curr_zoom);
+
+        // NOTE (Matteo): Handle zoom target
+        if (curr_zoom != iv->zoom)
+        {
+            Vec2 curr_pos = vecSub(zoom_location, view_center);
+            Vec2 next_pos = vecMul(curr_pos, curr_zoom);
+            Vec2 delta = vecSub(curr_pos, next_pos);
+
+            iv->drag.x = delta.x;
+            iv->drag.y = delta.y;
+
+            iv->zoom = curr_zoom;
+        }
 
         ImVec2 image_min = {iv->drag.x + cfRound(view_min.x + 0.5f * (view_size.x - image_w)),
                             iv->drag.y + cfRound(view_min.y + 0.5f * (view_size.y - image_h))};
