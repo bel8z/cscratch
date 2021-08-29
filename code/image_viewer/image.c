@@ -1,23 +1,35 @@
 #include "image.h"
 
+#include "foundation/fs.h"
 #include "foundation/memory.h"
+#include "foundation/strings.h"
 
 // NOTE (Matteo): On memory allocation
 //
 // stbi_image allows for plugging in custom memory allocation functions via the STBI_MALLOC,
 // STBI_REALLOC and STB_FREE macros.
 // These are expected to match the corresponding stdlib functions, so a context parameter cannot be
-// passed directly but a global is required instead. Obviously this is bad for concurrency.
-//
-// The behavior of stbi_image in this regard turned out to be reliable, and no temporary allocations
-// have ever leaked.
-//
-// For now I choose to let it use the stdlib allocator and keeping it responsible for allocating and
-// freeing images, until I come up with a solution that can satisfy dependencies which have this
-// kind of API.
+// passed directly but a global is required instead.
+// Obviously this is bad for concurrency, but I worked around it by setting the global allocator at
+// application load.
 
 // Custom assertions for stbi
 #define STBI_ASSERT(x) CF_ASSERT(x, "stb image assert")
+
+// Custom memory management for stbi
+static MemAllocator g_alloc;
+static void *stbiAlloc(Usize size);
+static void *stbiRealloc(void *memory, Usize size);
+static void stbiFree(void *memory);
+
+#define STBI_MALLOC stbiAlloc
+#define STBI_REALLOC stbiRealloc
+#define STBI_FREE stbiFree
+
+// Custom IO operations for stbi
+static CfFileSystem *g_fs = NULL;
+
+#define STBI_NO_STDIO
 
 // Include stbi implementation
 #if CF_COMPILER_CLANG
@@ -29,14 +41,6 @@
 #    pragma clang diagnostic ignored "-Wcast-align"
 #endif
 
-static void *stbiAlloc(Usize size);
-static void *stbiRealloc(void *memory, Usize size);
-static void stbiFree(void *memory);
-
-#define STBI_MALLOC stbiAlloc
-#define STBI_REALLOC stbiRealloc
-#define STBI_FREE stbiFree
-
 #define STB_IMAGE_IMPLEMENTATION
 
 #include <stb_image.h>
@@ -46,8 +50,7 @@ static void stbiFree(void *memory);
 #endif
 
 //------------------------------------------------------------------------------
-
-static MemAllocator g_alloc;
+// Memory management
 
 void *
 stbiAlloc(Usize size)
@@ -78,12 +81,38 @@ stbiFree(void *memory)
 }
 
 //------------------------------------------------------------------------------
+// IO operations
+
+static I32
+stbiRead(void *user, Char8 *data, I32 size)
+{
+    FileStream *file = user;
+    return (I32)g_fs->fileStreamRead(file, (U8 *)data, (Usize)size);
+}
+
+static void
+stbiSkip(void *user, I32 n)
+{
+    FileStream *file = user;
+    g_fs->fileStreamSeek(file, FileSeekPos_Current, (Usize)n);
+}
+
+static I32
+stbiEof(void *user)
+{
+    FileStream *file = user;
+    return file->flags & FileStreamFlags_Eof;
+}
+
+//------------------------------------------------------------------------------
 // Image API implementation
 
 void
-imageInit(MemAllocator alloc)
+imageInit(MemAllocator alloc, CfFileSystem *fs)
 {
+    CF_ASSERT_NOT_NULL(fs);
     g_alloc = alloc;
+    g_fs = fs;
 }
 
 bool
@@ -93,9 +122,14 @@ imageLoadFromFile(Image *image, Cstr filename)
     CF_ASSERT_NOT_NULL(filename);
     CF_ASSERT(!image->bytes, "overwriting valid image");
 
+    FileStream file = g_fs->fileStreamOpen(strFromCstr(filename), FileOpenMode_Read);
+    stbi_io_callbacks cb = {.eof = stbiEof, .read = stbiRead, .skip = stbiSkip};
+
     image->width = 0;
     image->height = 0;
-    image->bytes = stbi_load(filename, &image->width, &image->height, NULL, 4);
+    image->bytes = stbi_load_from_callbacks(&cb, &file, &image->width, &image->height, NULL, 4);
+
+    g_fs->fileStreamClose(&file);
 
     return (image->bytes != NULL);
 }

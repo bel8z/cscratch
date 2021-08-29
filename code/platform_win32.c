@@ -55,18 +55,18 @@ static void win32DirIterEnd(DirIterator *self);
 static bool win32FileCopy(Str source, Str dest, bool overwrite);
 static FileProperties win32FileProperties(Str filename);
 
-static FileHandle win32fileOpen(Str filename, FileOpenMode mode);
-static void win32fileClose(FileHandle file);
+static FileStream win32fileOpen(Str filename, FileOpenMode mode);
+static void win32fileClose(FileStream *file);
 
-static Usize win32fileSize(FileHandle file);
-static Usize win32fileSeek(FileHandle file, FileSeekPos pos, Usize offset);
-static Usize win32fileTell(FileHandle file);
+static Usize win32fileSize(FileStream *file);
+static Usize win32fileSeek(FileStream *file, FileSeekPos pos, Usize offset);
+static Usize win32fileTell(FileStream *file);
 
-static Usize win32fileRead(FileHandle file, U8 *buffer, Usize buffer_size);
-static Usize win32fileReadAt(FileHandle file, U8 *buffer, Usize buffer_size, Usize offset);
+static Usize win32fileRead(FileStream *file, U8 *buffer, Usize buffer_size);
+static Usize win32fileReadAt(FileStream *file, U8 *buffer, Usize buffer_size, Usize offset);
 
-static bool win32fileWrite(FileHandle file, U8 *data, Usize data_size);
-static bool win32fileWriteAt(FileHandle file, U8 *data, Usize data_size, Usize offset);
+static bool win32fileWrite(FileStream *file, U8 *data, Usize data_size);
+static bool win32fileWriteAt(FileStream *file, U8 *data, Usize data_size, Usize offset);
 
 //---- Timing ----//
 
@@ -111,15 +111,15 @@ static Platform g_platform = {
             .dirIterEnd = win32DirIterEnd,
             .fileCopy = win32FileCopy,
             .fileProperties = win32FileProperties,
-            .fileOpen = win32fileOpen,
-            .fileClose = win32fileClose,
-            .fileSize = win32fileSize,
-            .fileSeek = win32fileSeek,
-            .fileTell = win32fileTell,
-            .fileRead = win32fileRead,
-            .fileReadAt = win32fileReadAt,
-            .fileWrite = win32fileWrite,
-            .fileWriteAt = win32fileWriteAt,
+            .fileStreamOpen = win32fileOpen,
+            .fileStreamClose = win32fileClose,
+            .fileStreamSize = win32fileSize,
+            .fileStreamSeek = win32fileSeek,
+            .fileStreamTell = win32fileTell,
+            .fileStreamRead = win32fileRead,
+            .fileStreamReadAt = win32fileReadAt,
+            .fileStreamWrite = win32fileWrite,
+            .fileStreamWriteAt = win32fileWriteAt,
         },
     .time =
         &(CfTimeApi){
@@ -655,14 +655,14 @@ win32fileOffset(Usize offset)
     return overlapped;
 }
 
-FileHandle
+FileStream
 win32fileOpen(Str filename, FileOpenMode mode)
 {
-    FileHandle result = {0};
+    FileStream result = {0};
 
     if (mode == 0)
     {
-        result.error = true;
+        result.flags |= FileStreamFlags_Error;
     }
     else
     {
@@ -689,14 +689,14 @@ win32fileOpen(Str filename, FileOpenMode mode)
 
         if (!result.os_handle)
         {
-            result.error = true;
+            result.flags |= FileStreamFlags_Error;
             win32PrintLastError();
         }
         else if (mode & FileOpenMode_Append)
         {
             if (!SetFilePointer(result.os_handle, 0, NULL, FILE_END))
             {
-                result.error = true;
+                result.flags |= FileStreamFlags_Error;
                 win32PrintLastError();
             }
         }
@@ -706,39 +706,43 @@ win32fileOpen(Str filename, FileOpenMode mode)
 }
 
 void
-win32fileClose(FileHandle file)
+win32fileClose(FileStream *file)
 {
-    CloseHandle(file.os_handle);
+    CloseHandle(file->os_handle);
 }
 
 Usize
-win32fileRead(FileHandle file, U8 *buffer, Usize buffer_size)
+win32fileRead(FileStream *file, U8 *buffer, Usize buffer_size)
 {
-    if (file.error) return USIZE_MAX;
+    if (file->flags & FileStreamFlags_Error) return USIZE_MAX;
 
     DWORD read_bytes;
 
-    if (!ReadFile(file.os_handle, buffer, (DWORD)buffer_size, &read_bytes, NULL))
+    if (!ReadFile(file->os_handle, buffer, (DWORD)buffer_size, &read_bytes, NULL))
     {
-        file.error = true;
+        file->flags |= FileStreamFlags_Error;
         win32PrintLastError();
         return USIZE_MAX;
+    }
+    else if (read_bytes < buffer_size)
+    {
+        file->flags |= FileStreamFlags_Eof;
     }
 
     return read_bytes;
 }
 
 Usize
-win32fileReadAt(FileHandle file, U8 *buffer, Usize buffer_size, Usize offset)
+win32fileReadAt(FileStream *file, U8 *buffer, Usize buffer_size, Usize offset)
 {
-    if (file.error) return USIZE_MAX;
+    if (file->flags & FileStreamFlags_Error) return USIZE_MAX;
 
     OVERLAPPED overlapped = win32fileOffset(offset);
     DWORD read_bytes;
 
-    if (!ReadFile(file.os_handle, buffer, (DWORD)buffer_size, &read_bytes, &overlapped))
+    if (!ReadFile(file->os_handle, buffer, (DWORD)buffer_size, &read_bytes, &overlapped))
     {
-        file.error = true;
+        file->flags |= FileStreamFlags_Error;
         win32PrintLastError();
         return USIZE_MAX;
     }
@@ -747,15 +751,15 @@ win32fileReadAt(FileHandle file, U8 *buffer, Usize buffer_size, Usize offset)
 }
 
 bool
-win32fileWrite(FileHandle file, U8 *data, Usize data_size)
+win32fileWrite(FileStream *file, U8 *data, Usize data_size)
 {
-    if (file.error) return false;
+    if (file->flags & FileStreamFlags_Error) return false;
 
     DWORD written_bytes;
 
-    if (!WriteFile(file.os_handle, data, (DWORD)data_size, &written_bytes, NULL))
+    if (!WriteFile(file->os_handle, data, (DWORD)data_size, &written_bytes, NULL))
     {
-        file.error = true;
+        file->flags |= FileStreamFlags_Error;
         win32PrintLastError();
         return false;
     }
@@ -766,16 +770,16 @@ win32fileWrite(FileHandle file, U8 *data, Usize data_size)
 }
 
 bool
-win32fileWriteAt(FileHandle file, U8 *data, Usize data_size, Usize offset)
+win32fileWriteAt(FileStream *file, U8 *data, Usize data_size, Usize offset)
 {
-    if (file.error) return false;
+    if (file->flags & FileStreamFlags_Error) return false;
 
     OVERLAPPED overlapped = win32fileOffset(offset);
     DWORD written_bytes;
 
-    if (!WriteFile(file.os_handle, data, (DWORD)data_size, &written_bytes, &overlapped))
+    if (!WriteFile(file->os_handle, data, (DWORD)data_size, &written_bytes, &overlapped))
     {
-        file.error = true;
+        file->flags |= FileStreamFlags_Error;
         win32PrintLastError();
         return false;
     }
@@ -786,14 +790,14 @@ win32fileWriteAt(FileHandle file, U8 *data, Usize data_size, Usize offset)
 }
 
 Usize
-win32fileSeek(FileHandle file, FileSeekPos pos, Usize offset)
+win32fileSeek(FileStream *file, FileSeekPos pos, Usize offset)
 {
     LARGE_INTEGER temp = {.QuadPart = (LONGLONG)offset};
     LARGE_INTEGER dest = {0};
 
-    if (!SetFilePointerEx(file.os_handle, temp, &dest, pos))
+    if (!SetFilePointerEx(file->os_handle, temp, &dest, pos))
     {
-        file.error = true;
+        file->flags |= FileStreamFlags_Error;
         win32PrintLastError();
     };
 
@@ -801,19 +805,19 @@ win32fileSeek(FileHandle file, FileSeekPos pos, Usize offset)
 }
 
 Usize
-win32fileTell(FileHandle file)
+win32fileTell(FileStream *file)
 {
     return win32fileSeek(file, FileSeekPos_Current, 0);
 }
 
 Usize
-win32fileSize(FileHandle file)
+win32fileSize(FileStream *file)
 {
-    if (file.error) return USIZE_MAX;
+    if (file->flags & FileStreamFlags_Error) return USIZE_MAX;
 
     ULARGE_INTEGER size;
 
-    size.LowPart = GetFileSize(file.os_handle, &size.HighPart);
+    size.LowPart = GetFileSize(file->os_handle, &size.HighPart);
 
     return (Usize)size.QuadPart;
 }

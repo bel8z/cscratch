@@ -6,16 +6,16 @@ fileReadContent(CfFileSystem *fs, Str filename, MemAllocator alloc)
 {
     FileContent result = {0};
 
-    FileHandle file = fs->fileOpen(filename, FileOpenMode_Read);
+    FileStream file = fs->fileStreamOpen(filename, FileOpenMode_Read);
 
-    if (!file.error)
+    if (!(file.flags & FileStreamFlags_Error))
     {
-        Usize file_size = fs->fileSize(file);
+        Usize file_size = fs->fileStreamSize(&file);
         Usize read_size = file_size;
 
         result.data = memAlloc(alloc, read_size);
 
-        if (result.data && fs->fileRead(file, result.data, read_size) == read_size)
+        if (result.data && fs->fileStreamRead(&file, result.data, read_size) == read_size)
         {
             result.size = read_size;
         }
@@ -25,7 +25,7 @@ fileReadContent(CfFileSystem *fs, Str filename, MemAllocator alloc)
             result.data = NULL;
         }
 
-        fs->fileClose(file);
+        fs->fileStreamClose(&file);
     }
 
     return result;

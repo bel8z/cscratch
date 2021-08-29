@@ -34,11 +34,18 @@ enum FileSeekPos_
     FileSeekPos_End,
 };
 
-typedef struct FileHandle
+typedef U32 FileStreamFlags;
+enum FileStreamFlags_
+{
+    FileStreamFlags_Error,
+    FileStreamFlags_Eof,
+};
+
+typedef struct FileStream
 {
     void *os_handle;
-    bool error;
-} FileHandle;
+    FileStreamFlags flags;
+} FileStream;
 
 typedef struct FileContent
 {
@@ -76,18 +83,18 @@ typedef struct CfFileSystem
     bool (*fileCopy)(Str source, Str dest, bool overwrite);
     FileProperties (*fileProperties)(Str filename);
 
-    FileHandle (*fileOpen)(Str filename, FileOpenMode mode);
-    void (*fileClose)(FileHandle file);
+    FileStream (*fileStreamOpen)(Str filename, FileOpenMode mode);
+    void (*fileStreamClose)(FileStream *file);
 
-    Usize (*fileSize)(FileHandle file);
-    Usize (*fileSeek)(FileHandle file, FileSeekPos pos, Usize offset);
-    Usize (*fileTell)(FileHandle file);
+    Usize (*fileStreamSize)(FileStream *file);
+    Usize (*fileStreamSeek)(FileStream *file, FileSeekPos pos, Usize offset);
+    Usize (*fileStreamTell)(FileStream *file);
 
-    Usize (*fileRead)(FileHandle file, U8 *buffer, Usize buffer_size);
-    Usize (*fileReadAt)(FileHandle file, U8 *buffer, Usize buffer_size, Usize offset);
+    Usize (*fileStreamRead)(FileStream *file, U8 *buffer, Usize buffer_size);
+    Usize (*fileStreamReadAt)(FileStream *file, U8 *buffer, Usize buffer_size, Usize offset);
 
-    bool (*fileWrite)(FileHandle file, U8 *data, Usize data_size);
-    bool (*fileWriteAt)(FileHandle file, U8 *data, Usize data_size, Usize offset);
+    bool (*fileStreamWrite)(FileStream *file, U8 *data, Usize data_size);
+    bool (*fileStreamWriteAt)(FileStream *file, U8 *data, Usize data_size, Usize offset);
 
 } CfFileSystem;
 
