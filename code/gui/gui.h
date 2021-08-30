@@ -48,6 +48,9 @@ typedef enum GuiTheme
     GuiTheme_Count,
 } GuiTheme;
 
+/// Set a custom IMGUI color theme and sizes according to scale
+void guiSetupStyle(GuiTheme theme, F32 dpi_scale);
+
 /// Set a custom IMGUI color theme
 void guiSetTheme(GuiTheme theme);
 

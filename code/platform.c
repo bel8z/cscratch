@@ -42,7 +42,6 @@
 // Local function declarations
 //------------------------------------------------------------------------------
 
-static void guiSetupStyle(F32 dpi);
 static void guiSetupFonts(ImFontAtlas *fonts, F32 dpi, Str data_path);
 
 // TODO (Matteo): Better logging
@@ -292,7 +291,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     F32 dpi_scale = win_x_scale > win_y_scale ? win_y_scale : win_x_scale;
 
     // Setup Dear ImGui style
-    guiSetupStyle(dpi_scale);
+    guiSetupStyle(GuiTheme_Dark, dpi_scale);
     guiSetupFonts(io->Fonts, dpi_scale, paths->data);
 
     // Setup Platform/Renderer backends
@@ -488,52 +487,6 @@ appApiUpdate(AppApi *api, Platform *platform, AppState *app)
         appApiLoad(api, platform->paths, platform->fs, platform->library);
         api->load(app);
     }
-}
-
-static void
-guiSetSizes(ImGuiStyle *style)
-{
-    // Main
-    // **DEFAULT**
-
-    // Borders
-    style->WindowBorderSize = 1.0f;
-    style->ChildBorderSize = 1.0f;
-    style->PopupBorderSize = 1.0f;
-    style->FrameBorderSize = 1.0f;
-    style->TabBorderSize = 1.0f;
-
-    // Rounding
-    style->WindowRounding = 0.0f;
-    style->ChildRounding = 0.0f;
-    style->FrameRounding = 2.0f;
-    style->PopupRounding = 2.0f;
-    style->ScrollbarRounding = 4.0f;
-    style->GrabRounding = style->FrameRounding;
-    style->LogSliderDeadzone = 3.0f;
-    style->TabRounding = 4.0f;
-
-    // Alignment
-    // **DEFAULT**
-}
-
-void
-guiSetupStyle(F32 dpi_scale)
-{
-    ImGuiStyle *style = igGetStyle();
-
-    guiSetTheme(GuiTheme_Dark);
-    guiSetSizes(style);
-
-    // When viewports are enabled we tweak WindowRounding/WindowBg so platform
-    // windows can look identical to regular ones.
-    if (igGetIO()->ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        style->WindowRounding = 0.0f;
-        style->Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
-
-    ImGuiStyle_ScaleAllSizes(style, dpi_scale);
 }
 
 ImFont *

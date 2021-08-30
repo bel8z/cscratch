@@ -6,7 +6,7 @@
 #include "foundation/memory.h"
 #include "foundation/strings.h"
 
-// === Memory management ===
+//=== Memory management ===//
 
 static void *
 guiAlloc(Usize size, void *state)
@@ -31,7 +31,7 @@ guiFree(void *mem, void *state)
     }
 }
 
-// === Initialization ===
+//=== Initialization ===//
 
 void
 guiInit(Gui *gui)
@@ -55,7 +55,7 @@ guiInit(Gui *gui)
     }
 }
 
-// === Themes & styling ===
+//=== Themes & styling ===//
 
 void
 guiSetTheme(GuiTheme theme)
@@ -186,7 +186,53 @@ guiSetTheme(GuiTheme theme)
     }
 }
 
-// === Fonts handling ===
+static void
+guiSetSizes(ImGuiStyle *style)
+{
+    // Main
+    // **DEFAULT**
+
+    // Borders
+    style->WindowBorderSize = 1.0f;
+    style->ChildBorderSize = 1.0f;
+    style->PopupBorderSize = 1.0f;
+    style->FrameBorderSize = 1.0f;
+    style->TabBorderSize = 1.0f;
+
+    // Rounding
+    style->WindowRounding = 0.0f;
+    style->ChildRounding = 0.0f;
+    style->FrameRounding = 2.0f;
+    style->PopupRounding = 2.0f;
+    style->ScrollbarRounding = 4.0f;
+    style->GrabRounding = style->FrameRounding;
+    style->LogSliderDeadzone = 3.0f;
+    style->TabRounding = 4.0f;
+
+    // Alignment
+    // **DEFAULT**
+}
+
+void
+guiSetupStyle(GuiTheme theme, F32 dpi_scale)
+{
+    ImGuiStyle *style = igGetStyle();
+
+    guiSetTheme(GuiTheme_Dark);
+    guiSetSizes(style);
+
+    // When viewports are enabled we tweak WindowRounding/WindowBg so platform
+    // windows can look identical to regular ones.
+    if (igGetIO()->ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        style->WindowRounding = 0.0f;
+        style->Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+
+    ImGuiStyle_ScaleAllSizes(style, dpi_scale);
+}
+
+//=== Fonts handling ===//
 
 bool
 guiFontOptionsEdit(GuiFontOptions *state)
@@ -276,7 +322,7 @@ guiUpdateAtlas(ImFontAtlas *fonts, GuiFontOptions *font_opts)
     font_opts->tex_glyph_padding = fonts->TexGlyphPadding;
 }
 
-// === Log ===
+//=== Log ===//
 
 void
 guiLogBox(CfLog *log, bool readonly)
@@ -308,7 +354,7 @@ guiLogBox(CfLog *log, bool readonly)
     igEndChild();
 }
 
-// === Miscellanea ===
+//=== Miscellanea ===//
 
 void
 guiBeginFullScreen(Cstr label, bool docking, bool menu_bar)
@@ -422,7 +468,7 @@ guiColorEdit(Cstr label, Rgba32 *color)
     return color_changed;
 }
 
-// === File dialogs ===
+//=== File dialogs ===//
 
 // NOTE (Matteo): On windows I use the system dialogs for lazyness (and better experience actually)
 
