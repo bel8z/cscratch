@@ -99,6 +99,7 @@ typedef struct AppIo
     bool rebuild_fonts;
     bool continuous_update;
     bool fullscreen;
+    bool window_title_changed;
 } AppIo;
 
 // Application function signatures

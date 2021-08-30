@@ -18,6 +18,7 @@
 #include "api.h"
 
 #include "image.h"
+#include "version.h"
 
 #include "gui/gui.h"
 
@@ -918,6 +919,16 @@ APP_API APP_UPDATE_PROC(appUpdate)
 
     io->back_color = igGetColorU32_Col(ImGuiCol_WindowBg, 1.0f);
     io->continuous_update = false;
+
+    if (!io->window_title)
+    {
+        io->window_title = VER_PRODUCTNAME_STR;
+        io->window_title_changed = true;
+    }
+    else if (io->window_title_changed)
+    {
+        io->window_title_changed = false;
+    }
 
     //==== Main UI ====//
 
