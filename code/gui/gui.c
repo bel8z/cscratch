@@ -453,21 +453,22 @@ win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAlloc
     for (GuiFileDialogFilter *filter = filters, *end = filter + num_filters; //
          filter < end; ++filter)
     {
-        Usize name_size = win32Utf8To16C(filter->name, NULL, 0);
+        Str filter_name = strFromCstr(filter->name);
+        Usize name_size = win32Utf8To16(filter_name, NULL, 0) + 1;
 
         cfArrayReserve(&out_filter, name_size);
-        win32Utf8To16C(filter->name, cfArrayEnd(&out_filter), name_size);
+        win32Utf8To16(filter_name, cfArrayEnd(&out_filter), name_size);
         cfArrayExtend(&out_filter, name_size);
 
         for (Usize ext_no = 0; ext_no < filter->num_extensions; ++ext_no)
         {
-            Cstr ext = filter->extensions[ext_no];
-            Usize ext_size = win32Utf8To16C(ext, NULL, 0);
+            Str ext = strFromCstr(filter->extensions[ext_no]);
+            Usize ext_size = win32Utf8To16(ext, NULL, 0) + 1;
 
             // Prepend '*' to the extension - not documented but actually required
             cfArrayPush(&out_filter, L'*');
             cfArrayReserve(&out_filter, ext_size);
-            win32Utf8To16C(ext, cfArrayEnd(&out_filter), ext_size);
+            win32Utf8To16(ext, cfArrayEnd(&out_filter), ext_size);
             cfArrayExtend(&out_filter, ext_size);
 
             // Replace null terminator with ';' to separate extensions
@@ -492,9 +493,9 @@ guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc)
 
     if (strValid(parms->filename_hint))
     {
-        Usize name_size = win32Utf8To16(parms->filename_hint, NULL, 0);
-        if (name_size >= MAX_PATH) return result;
-        win32Utf8To16(parms->filename_hint, name, name_size);
+        Usize name_length = win32Utf8To16(parms->filename_hint, NULL, 0);
+        if (name_length >= MAX_PATH) return result;
+        win32Utf8To16(parms->filename_hint, name, name_length);
     }
 
     StrBuf16 filt = win32BuildFilterString(parms->filters, parms->num_filters, alloc);
@@ -513,13 +514,15 @@ guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc)
 
     if (win32FileDialog[parms->type](&ofn))
     {
-        result.filename.len = win32Utf16To8C(ofn.lpstrFile, NULL, 0) - 1;
+        Str16 filename16 = str16FromCstr(ofn.lpstrFile);
+
+        result.filename.len = win32Utf16To8(filename16, NULL, 0);
         result.filename.buf = memAlloc(alloc, result.filename.len);
 
         if (result.filename.buf)
         {
             result.code = GuiFileDialogResult_Ok;
-            win32Utf16To8C(ofn.lpstrFile, (Char8 *)result.filename.buf, result.filename.len);
+            win32Utf16To8(filename16, (Char8 *)result.filename.buf, result.filename.len);
         }
         else
         {

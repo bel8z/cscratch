@@ -157,9 +157,10 @@ win32GetCommandLineArgs(MemAllocator alloc, I32 *out_argc, Usize *out_size)
     for (I32 i = 0; i < *out_argc; ++i)
     {
         argv[i] = buf;
-        Usize size = win32Utf16To8C(argv_utf16[i], NULL, 0);
-        win32Utf16To8C(argv_utf16[i], argv[i], size);
-        buf += size;
+        Str16 arg16 = str16FromCstr(argv_utf16[i]);
+        Usize size = win32Utf16To8(arg16, NULL, 0);
+        win32Utf16To8(arg16, argv[i], size);
+        buf += size + 1; // Ensure space for the null-terminator
     }
 
     LocalFree(argv_utf16);
@@ -521,17 +522,17 @@ win32DirIterStart(DirIterator *self, Str dir_path)
     Char16 buffer[1024];
 
     // Encode path to UTF16
-    Usize size = win32Utf8To16(dir_path, buffer, CF_ARRAY_SIZE(buffer));
+    Usize length = win32Utf8To16(dir_path, buffer, CF_ARRAY_SIZE(buffer));
 
-    if (size == USIZE_MAX || (Usize)size >= CF_ARRAY_SIZE(buffer) - 2)
+    if (length == USIZE_MAX || length >= CF_ARRAY_SIZE(buffer) - 2)
     {
         CF_ASSERT(false, "Encoding error or overflow");
         return false;
     }
 
     // Append a wildcard (D:)
-    buffer[size - 1] = L'*';
-    buffer[size] = 0;
+    buffer[length] = L'*';
+    buffer[length + 1] = 0;
 
     // Start iteration
     iter->finder = FindFirstFileW(buffer, &iter->data);
@@ -557,7 +558,8 @@ win32DirIterNext(DirIterator *self, Str *filename, FileProperties *props)
 
     if (!FindNextFileW(iter->finder, &iter->data)) return false;
 
-    Usize size = win32Utf16To8C(iter->data.cFileName, iter->buffer, CF_ARRAY_SIZE(iter->buffer));
+    Usize size = win32Utf16To8(str16FromCstr(iter->data.cFileName), iter->buffer,
+                               CF_ARRAY_SIZE(iter->buffer));
 
     // NOTE (Matteo): Truncation is considered an error
     // TODO (Matteo): Maybe require a bigger buffer?
@@ -566,7 +568,7 @@ win32DirIterNext(DirIterator *self, Str *filename, FileProperties *props)
     CF_ASSERT(size > 0, "Which filename can have a size of 0???");
 
     filename->buf = iter->buffer;
-    filename->len = (Usize)(size - 1);
+    filename->len = (Usize)(size);
 
     if (props) win32ReadProperties(&iter->data, props);
 

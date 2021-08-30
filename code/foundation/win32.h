@@ -18,6 +18,18 @@
 
 #include "core.h"
 
+typedef struct Str16
+{
+    Char16 const *buf; // Pointer to string data (not a C string)
+    Usize len;         // Lenght in chars of the string (not including terminators)
+} Str16;
+
+static inline Str16
+str16FromCstr(Char16 *cstr)
+{
+    return (Str16){.buf = (cstr), .len = wcslen(cstr)};
+}
+
 static inline void
 win32PrintLastError(void)
 {
@@ -33,9 +45,10 @@ win32PrintLastError(void)
 
 // UTF8<->UTF16 helpers
 
-/// Encodes the given UTF8 string slice in UTF16 and null terminates it. The function returns the
-/// number of bytes written (including the null terminator); in case of a NULL output buffer, this
-/// number is the minimum required buffer size.
+/// Encodes the given UTF8 string slice in UTF16.
+/// The string is not null terminated, and the function returns the length of the written string in
+/// UTF16 characters; in case of a NULL output buffer, this number is the minimum required buffer
+/// size.
 static inline Usize
 win32Utf8To16(Str str, Char16 *out, Usize out_size)
 {
@@ -50,47 +63,28 @@ win32Utf8To16(Str str, Char16 *out, Usize out_size)
         return USIZE_MAX;
     }
 
-    // NOTE (Matteo): Since the input string length is given, the output string is not
-    // null-terminated and as such the terminator is not included in the write count
-    if (out)
-    {
-        CF_ASSERT((Usize)len < out_size, "The given buffer is not large enough");
-        out[len] = 0;
-    }
+    CF_ASSERT(!out || (Usize)len <= out_size, "The given buffer is not large enough");
 
-    return (Usize)(len + 1);
-}
-
-/// Encodes the given UTF8 C string in UTF16 and null terminates it. The function returns the
-/// number of bytes written (including the null terminator); in case of a NULL output buffer, this
-/// number is the minimum required buffer size.
-static inline Usize
-win32Utf8To16C(Cstr cstr, Char16 *out, Usize out_size)
-{
-    CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
-
-    I32 result = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, cstr, -1, out, (I32)out_size);
-    // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
-    // size count
-    if (result) return (Usize)result;
-
-    win32PrintLastError();
-    return USIZE_MAX;
+    return (Usize)len;
 }
 
 /// Encodes the given UTF16 C string in UTF8 and null terminates it. The function returns the
 /// number of bytes written (including the null terminator); in case of a NULL output buffer, this
 /// number is the minimum required buffer size.
 static inline Usize
-win32Utf16To8C(Char16 const *str, Char8 *out, Usize out_size)
+win32Utf16To8(Str16 str, Char8 *out, Usize out_size)
 {
     CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
 
-    I32 result = WideCharToMultiByte(CP_UTF8, 0, str, -1, out, (I32)out_size, 0, false);
-    // NOTE (Matteo): Since the input string is null-terminated, the terminator is included in the
-    // size count
-    if (result) return (Usize)result;
+    I32 len = WideCharToMultiByte(CP_UTF8, 0, str.buf, (I32)str.len, out, (I32)out_size, 0, false);
 
-    win32PrintLastError();
-    return USIZE_MAX;
+    if (len == 0)
+    {
+        win32PrintLastError();
+        return USIZE_MAX;
+    }
+
+    CF_ASSERT(!out || (Usize)len <= out_size, "The given buffer is not large enough");
+
+    return (Usize)len;
 }
