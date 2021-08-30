@@ -170,7 +170,7 @@ static void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
 //------------------------------------------------------------------------------
 
 static void
-updateFullscreen(GLFWwindow *window, bool fullscreen, IVec2 *win_pos, IVec2 *win_size)
+platformUpdateFullscreen(GLFWwindow *window, bool fullscreen, IVec2 *win_pos, IVec2 *win_size)
 {
     // TODO (Matteo): Investigate freeze when leaving fullscreen mode
     GLFWmonitor *monitor = glfwGetWindowMonitor(window);
@@ -196,7 +196,7 @@ updateFullscreen(GLFWwindow *window, bool fullscreen, IVec2 *win_pos, IVec2 *win
 }
 
 static bool
-updateDpi(ImGuiIO *io, F32 *curr_dpi, Str data_path)
+platformUpdateMainDpi(ImGuiIO *io, F32 *curr_dpi, Str data_path)
 {
     ImGuiViewport *vp = igGetMainViewport();
     ImGuiPlatformMonitor const *mon = igGetViewportPlatformMonitor(vp);
@@ -338,7 +338,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
         // NOTE (Matteo): Auto reloading of application library
         appApiUpdate(&app_api, platform, app_state);
 
-        updateFullscreen(window, app_io.fullscreen, &win_pos, &win_size);
+        platformUpdateFullscreen(window, app_io.fullscreen, &win_pos, &win_size);
 
         // Rebuild font atlas if required
         if (app_io.rebuild_fonts)
@@ -397,7 +397,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
 
         // NOTE (Matteo): Simple DPI handling for main viewport
         // TODO (Matteo): Build a font atlas per-monitor (or DPI resolution)
-        if (updateDpi(io, &dpi_scale, paths->data))
+        if (platformUpdateMainDpi(io, &dpi_scale, paths->data))
         {
             app_io.rebuild_fonts = true;
         }
@@ -489,7 +489,7 @@ appApiUpdate(AppApi *api, Platform *platform, AppState *app)
     }
 }
 
-ImFont *
+static ImFont *
 guiLoadFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size, ImWchar const *ranges)
 {
     Char8 buffer[1024] = {0};
