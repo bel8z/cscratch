@@ -508,7 +508,8 @@ appLoadFromFile(AppState *state, Str full_name)
         }
 
         state->browse_width = cfMin(BrowseWidth, images->len);
-        if (state->curr_file != USIZE_MAX) appQueueLoadFiles(state);
+        CF_ASSERT(state->curr_file != USIZE_MAX, "At least one image file should be present");
+        appQueueLoadFiles(state);
     }
 }
 
