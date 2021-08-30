@@ -321,6 +321,12 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
         // Event processing //
         //------------------//
 
+        // TODO (Matteo): Maybe improve a bit?
+        if (app_io.window_title_changed)
+        {
+            glfwSetWindowTitle(window, app_io.window_title);
+        }
+
         if (app_io.continuous_update)
         {
             glfwPollEvents();
