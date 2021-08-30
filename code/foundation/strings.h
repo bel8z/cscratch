@@ -22,15 +22,6 @@
 #define strLiteral(lit) \
     (Str) { .buf = (lit), .len = CF_ARRAY_SIZE(lit) - 1, }
 
-/// Build a string view from a C string
-#define strFromCstr(cstr) \
-    (Str) { .buf = (cstr), .len = strLength(cstr), }
-
-/// Writes the string slice as a null-terminated C string on the given buffer
-/// Returns the number of bytes written, including the null terminator, or the required buffer size
-/// if NULL
-CF_API Usize strToCstr(Str str, Char8 *buffer, Usize size);
-
 /// Compute the length of the C string (null terminator ignored)
 static inline Usize
 strLength(Cstr cstr)
@@ -47,6 +38,18 @@ strSize(Cstr cstr)
 {
     return strLength(cstr) + 1;
 }
+
+/// Build a string view from a C string
+static inline Str
+strFromCstr(Cstr cstr)
+{
+    return (Str){.buf = (cstr), .len = strLength(cstr)};
+}
+
+/// Writes the string slice as a null-terminated C string on the given buffer
+/// Returns the number of bytes written, including the null terminator, or the required buffer
+/// size if NULL
+CF_API Usize strToCstr(Str str, Char8 *buffer, Usize size);
 
 //-----------------------//
 //   String formatting   //
