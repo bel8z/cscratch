@@ -316,8 +316,6 @@ fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse
 void
 fxSine(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
 {
-    CF_UNUSED(log);
-
     // 1 Hz sinusoid, YAY!
 
     ImVec2 points[1024] = {0};
@@ -399,6 +397,69 @@ fxWindow(void)
     ImDrawList *draw_list = igGetWindowDrawList();
     ImDrawList_PushClipRect(draw_list, p0, p1, true);
     fxDraw(draw_list, p0, p1, size, mouse_data, igGetTime());
+    ImDrawList_PopClipRect(draw_list);
+
+    igEnd();
+}
+
+static void
+fxDrawArc(ImDrawList *draw_list, ImVec2 center, F32 radius, F32 start, F32 span)
+{
+    ImVec2 points[1024];
+
+    F32 step = span / (CF_ARRAY_SIZE(points) - 1);
+    F32 cos = cfCos(step);
+    F32 sin = cfSin(step);
+
+    ImVec2 v0 = {.x = radius * cfCos(start), //
+                 .y = radius * cfSin(start)};
+
+    for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
+    {
+        points[i].x = center.x + v0.x;
+        points[i].y = center.y + v0.y;
+
+        ImVec2 v1 = {.x = v0.x * cos - v0.y * sin, //
+                     .y = v0.x * sin + v0.y * cos};
+
+        v0 = v1;
+    }
+
+    ImDrawList_AddPolyline(draw_list, points, CF_ARRAY_SIZE(points), RGBA32_FUCHSIA, 0, 1.0f);
+}
+
+void
+fxTangentCircles(void)
+{
+    F32 const pi = cfAcos(-1.0f);
+    static F32 const crib = 60;
+    // static F32 const cutter_radius = 1;
+    static F32 circ_radius = 50;
+
+    igSetNextWindowSize((ImVec2){320, 180}, ImGuiCond_Once);
+    igBegin("Tangent circles", NULL, 0);
+
+    igSliderFloat("Radius", &circ_radius, 50, 1000, "%.0f", 0);
+    igSeparator();
+
+    ImVec2 size, p0, p1;
+    igGetContentRegionAvail(&size);
+    igInvisibleButton("canvas", size, ImGuiButtonFlags_None);
+    igGetItemRectMin(&p0);
+    igGetItemRectMax(&p1);
+
+    ImDrawList *draw_list = igGetWindowDrawList();
+    ImDrawList_PushClipRect(draw_list, p0, p1, true);
+
+    F32 scale = size.y / (crib + 20.0f);
+
+    ImVec2 center = {.x = p0.x + 10.0f + circ_radius * scale, //
+                     .y = p0.y + size.y / 2};
+
+    F32 ang = cfAtan((crib / 2) / circ_radius);
+
+    fxDrawArc(draw_list, center, circ_radius * scale, pi - ang, 2 * ang);
+
     ImDrawList_PopClipRect(draw_list);
 
     igEnd();
@@ -513,6 +574,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
     igEnd();
 
     fxWindow();
+    fxTangentCircles();
 
     io->back_color = state->clear_color;
 }
