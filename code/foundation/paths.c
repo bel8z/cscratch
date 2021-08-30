@@ -45,7 +45,7 @@ pathSplitNameExt(Str path, Str *ext)
     if (ext && path.len)
     {
         // TODO (Matteo): Improve
-        Usize ext_pos = strFindLast(path, strFromCstr("."));
+        Usize ext_pos = strFindLast(path, strLiteral("."));
 
         if (ext_pos == USIZE_MAX)
         {

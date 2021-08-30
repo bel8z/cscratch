@@ -108,20 +108,20 @@ main(void)
 
     Str p = {0};
 
-    p = pathSplitName(strFromCstr("c:\\Temp/IOT\\2021_02_25/"));
+    p = pathSplitName(strLiteral("c:\\Temp/IOT\\2021_02_25/"));
     pathPrint(p);
 
     p = pathSplitName(
-        strFromCstr("//srvfile/AreaComune/Utenti/Matteo.Belotti/Lavori/Generatore/!Src/"
-                    "EyeGoal-COREStation.zip"));
+        strLiteral("//srvfile/AreaComune/Utenti/Matteo.Belotti/Lavori/Generatore/!Src/"
+                   "EyeGoal-COREStation.zip"));
     pathPrint(p);
 
-    p = pathSplitName(strFromCstr("Gianni Morandi"));
+    p = pathSplitName(strLiteral("Gianni Morandi"));
     pathPrint(p);
 
-    Str dirname = strFromCstr("c:\\Temp/IOT\\2021_02_25/");
-    Str filename = strFromCstr("//srvfile/AreaComune/Utenti/Matteo.Belotti/Lavori/Generatore/!Src/"
-                               "EyeGoal-COREStation.zip");
+    Str dirname = strLiteral("c:\\Temp/IOT\\2021_02_25/");
+    Str filename = strLiteral("//srvfile/AreaComune/Utenti/Matteo.Belotti/Lavori/Generatore/!Src/"
+                              "EyeGoal-COREStation.zip");
 
     PathSplitIter pi = {0};
     pathSplitStart(&pi, dirname);

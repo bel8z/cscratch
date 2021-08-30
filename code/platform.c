@@ -270,7 +270,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     CF_ASSERT(paths->base.len + paths->exe_name.len < Paths_Size, "IMGUI ini file name too long");
     memCopy(paths->base.buf, gui_ini, paths->base.len);
     memCopy(paths->exe_name.buf, gui_ini + paths->base.len, paths->exe_name.len);
-    pathChangeExt(strFromCstr(gui_ini), strFromCstr(".gui"), gui_ini);
+    pathChangeExt(strFromCstr(gui_ini), strLiteral(".gui"), gui_ini);
     io->IniFilename = gui_ini;
 #if CF_COMPILER_MSVC
 #    pragma warning(pop)
