@@ -55,10 +55,14 @@ static CfFileSystem *g_fs = NULL;
 void *
 stbiAlloc(Usize size)
 {
-    Usize total_size = size + sizeof(size);
+    Usize total_size = size + sizeof(total_size);
     Usize *buffer = memAlloc(g_alloc, total_size);
 
-    if (buffer) *(buffer++) = total_size;
+    if (buffer)
+    {
+        *buffer = total_size;
+        ++buffer;
+    }
 
     return buffer;
 }
@@ -66,18 +70,25 @@ stbiAlloc(Usize size)
 void *
 stbiRealloc(void *memory, Usize size)
 {
-    Usize *buffer = memory;
+    Usize new_size = size + sizeof(new_size);
+    Usize old_size = 0;
+    Usize *old_buffer = memory;
 
-    if (buffer)
+    if (old_buffer)
     {
-        Usize total_size = size + sizeof(size);
-        buffer -= 1;
-        buffer = memRealloc(g_alloc, buffer, *buffer, total_size);
-
-        if (buffer) *(buffer++) = total_size;
+        old_buffer--;
+        old_size = *old_buffer;
     }
 
-    return buffer;
+    Usize *new_buffer = memRealloc(g_alloc, old_buffer, old_size, new_size);
+
+    if (new_buffer)
+    {
+        *new_buffer = new_size;
+        ++new_buffer;
+    }
+
+    return new_buffer;
 }
 
 void
@@ -86,7 +97,7 @@ stbiFree(void *memory)
     if (memory)
     {
         Usize *buffer = memory;
-        buffer -= 1;
+        buffer--;
         memFree(g_alloc, buffer, *buffer);
     }
 }
