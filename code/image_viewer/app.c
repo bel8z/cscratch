@@ -508,7 +508,7 @@ appLoadFromFile(AppState *state, Str full_name)
         }
 
         state->browse_width = cfMin(BrowseWidth, images->len);
-        appQueueLoadFiles(state);
+        if (state->curr_file != USIZE_MAX) appQueueLoadFiles(state);
     }
 }
 
@@ -629,6 +629,7 @@ appImageView(AppState *state)
             case ImageFileState_Failed:
                 // Signal error
                 state->unsupported = true;
+                curr_file->state = ImageFileState_Idle;
                 break;
         }
 
