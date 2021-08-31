@@ -10,8 +10,8 @@
 //-----------------//
 
 #define cfAbs(X) _Generic((X), default : abs, I64 : llabs, F64 : fabs, F32 : fabsf)(X)
-#define cfSign(x) (1 | cfSignBit(x))
 #define cfSignBit(x) signbit(x)
+#define cfSign(x) (1 | cfSignBit(x))
 #define cfCopySign(mag, sign) _Generic((mag, sign), default : copysign, F32 : copysignf)(mag, sign)
 
 #define cfCeil(X) _Generic((X), default : ceil, F32 : ceilf)(X)
@@ -22,9 +22,8 @@
 //   Trig   //
 //----------//
 
-#define CF_PI_128 3.1415926535897932384626433832795028841971693993751058209749445923078164062l
-#define CF_PI_64 (F64)(CF_PI_128)
-#define CF_PI_32 (F32)(CF_PI_128)
+#define CF_PI64 3.1415926535897932384626433832795028841971693993751058209749445923078164062
+#define CF_PI32 3.1415926535897932384626433832795028841971693993751058209749445923078164062f
 
 #define cfCos(X) _Generic((X), default : cos, F32 : cosf)(X)
 #define cfSin(X) _Generic((X), default : sin, F32 : sinf)(X)

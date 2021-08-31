@@ -250,7 +250,7 @@ rotateBwd(Vec2 p, F32 cos, F32 sin)
 void
 fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
 {
-    static F32 const pi2 = 2 * CF_PI_32;
+    static F32 const pi2 = 2 * CF_PI32;
 
     // Center of the view
     Vec2 const center = {.x = (p0.x + p1.x) / 2, //
@@ -320,7 +320,7 @@ fxSine(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_da
 
     static ImVec2 points[1024] = {0};
 
-    static F32 const pi2 = 2 * CF_PI_32;
+    static F32 const pi2 = 2 * CF_PI32;
     static F32 const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
 
     F32 const amp = cfMin(size.x, size.y) / 4;
@@ -458,7 +458,7 @@ fxTangentCircles(void)
 
     F32 ang = cfAtan((crib / 2) / circ_radius);
 
-    fxDrawArc(draw_list, center, circ_radius * scale, CF_PI_32 - ang, 2 * ang);
+    fxDrawArc(draw_list, center, circ_radius * scale, CF_PI32 - ang, 2 * ang);
 
     ImDrawList_PopClipRect(draw_list);
 
