@@ -153,28 +153,21 @@ guiKeyPressed(ImGuiKey key)
     return igIsKeyPressed(igGetIO()->KeyMap[key], true);
 }
 
-static inline ImVec2
-guiFromV2(Vec2 v)
-{
-    return (ImVec2){.x = v.x, .y = v.y};
-}
+// clang-format off
+#define guiCastV2(v)                                  \
+    _Generic((v),                                     \
+             ImVec2 : (Vec2)  { .x = v.x, .y = v.y }, \
+             Vec2   : (ImVec2){ .x = v.x, .y = v.y })
 
-static inline Vec2
-guiToV2(ImVec2 v)
-{
-    return (Vec2){.x = v.x, .y = v.y};
-}
+#define guiCastV4(v)                                                      \
+    _Generic((v),                                                         \
+             ImVec4 : (Vec4)  { .x = v.x, .y = v.y, .z = v.z, .w = v.w }, \
+             Vec4   : (ImVec4){ .x = v.x, .y = v.y, .z = v.z, .w = v.w })
 
-static inline ImVec4
-guiFromV4(Vec4 v)
-{
-    return (ImVec4){.x = v.x, .y = v.y, .z = v.z, .w = v.w};
-}
-
-static inline Vec4
-guiToV4(ImVec4 v)
-{
-    return (Vec4){.x = v.x, .y = v.y, .z = v.z, .w = v.w};
-}
+#define guiCastRgba(c)                                \
+    _Generic((c),                                     \
+             ImVec4 : (Rgba)  { .r = c.x, .g = c.y, .b = c.z, .a = c.w }, \
+             Vec2   : (ImVec2){ .x = c.r, .y = c.g, .z = c.b, .w = c.a })
+// clang-format on
 
 //------------------------------------------------------------------------------

@@ -404,42 +404,53 @@ fxWindow(void)
 }
 
 static void
-fxDrawArc(ImDrawList *draw_list, ImVec2 center, F32 radius, F32 start, F32 span)
+fxDrawArc(ImDrawList *draw_list, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Rgba32 color)
 {
     ImVec2 points[1024];
 
-    F32 step = span / (CF_ARRAY_SIZE(points) - 1);
+    F32 dx = p1.x - p0.x;
+    F32 dy = p1.y - p0.y;
+    F32 chord = cfSqrt(dx * dx + dy * dy);
+
+    F32 span = 2 * cfAsin(chord / (2 * cfAbs(radius)));
+
+    F32 step = cfCopySign(span / (CF_ARRAY_SIZE(points) - 1), radius);
     F32 cos = cfCos(step);
     F32 sin = cfSin(step);
 
-    ImVec2 v0 = {.x = radius * cfCos(start), //
-                 .y = radius * cfSin(start)};
+    Vec2 v0 = vecSub(p0, center);
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
     {
-        points[i].x = center.x + v0.x;
-        points[i].y = center.y + v0.y;
+        points[i] = guiCastV2(vecAdd(v0, center));
+        // points[i].x = center.x + v0.x;
+        // points[i].y = center.y + v0.y;
 
-        ImVec2 v1 = {.x = v0.x * cos - v0.y * sin, //
-                     .y = v0.x * sin + v0.y * cos};
-
-        v0 = v1;
+        v0 = rotateFwd(v0, cos, sin);
     }
 
-    ImDrawList_AddPolyline(draw_list, points, CF_ARRAY_SIZE(points), RGBA32_FUCHSIA, 0, 1.0f);
+    ImDrawList_AddPolyline(draw_list, points, CF_ARRAY_SIZE(points), color, 0, 1.0f);
 }
 
 void
 fxTangentCircles(void)
 {
-    static F32 const crib = 60;
-    // static F32 const cutter_radius = 1;
-    static F32 circ_radius = 50;
+    static const F32 deg2rad = CF_PI32 / 180.0f;
+
+    static F32 const cutter_start = deg2rad * 270.0f;
+    static F32 const cutter_end = deg2rad * 70.0f;
+
+    static F32 lens_radius_parm = 50;
+    static F32 depth = 1;
+
+    F32 crib = 60;
+    F32 cutter_radius = 1;
 
     igSetNextWindowSize((ImVec2){320, 180}, ImGuiCond_Once);
     igBegin("Tangent circles", NULL, 0);
 
-    igSliderFloat("Radius", &circ_radius, 50, 1000, "%.0f", 0);
+    igSliderFloat("Radius", &lens_radius_parm, 50, 1000, "%.0f", 0);
+    igSliderFloat("Depth", &depth, 0, 5, "%.0f", 0);
     igSeparator();
 
     ImVec2 size, p0, p1;
@@ -451,14 +462,43 @@ fxTangentCircles(void)
     ImDrawList *draw_list = igGetWindowDrawList();
     ImDrawList_PushClipRect(draw_list, p0, p1, true);
 
-    F32 const scale = size.y / (crib + 20.0f);
+    F32 scale = size.y / (crib / 2 + 5.0f);
 
-    ImVec2 center = {.x = p0.x + 10.0f + circ_radius * scale, //
-                     .y = p0.y + size.y / 2};
+    F32 lens_radius = lens_radius_parm * scale;
+    crib *= scale;
+    cutter_radius *= scale;
 
-    F32 ang = cfAtan((crib / 2) / circ_radius);
+    Vec2 lens_center = {.x = p0.x + size.x / 2 + lens_radius, //
+                        .y = p1.y};
 
-    fxDrawArc(draw_list, center, circ_radius * scale, CF_PI32 - ang, 2 * ang);
+    F32 crib_x = cfSqrt(lens_radius * lens_radius - crib * crib / 4);
+    Vec2 lens_start = {.x = lens_center.x - crib_x, .y = lens_center.y + crib / 2};
+    Vec2 lens_end = {.x = lens_center.x - crib_x, .y = lens_center.y - crib / 2};
+    F32 lens_angle = cfAtan2(crib / 2, crib_x);
+
+    fxDrawArc(draw_list, lens_center, lens_start, lens_end, lens_radius, RGBA32_FUCHSIA);
+
+    Vec2 cutter_center = {.x = lens_end.x - cfCos(lens_angle) * cutter_radius,
+                          .y = lens_end.y - cfSin(lens_angle) * cutter_radius};
+
+    F32 delta_angle = lens_angle - cutter_end;
+    F32 dcos = cfCos(delta_angle);
+    F32 dsin = cfSin(delta_angle);
+
+    Vec2 cutter_start_p = {.x = cutter_radius * cfCos(cutter_start),
+                           .y = cutter_radius * cfSin(cutter_start)};
+
+    Vec2 cutter_end_p = {.x = cutter_radius * cfCos(cutter_end),
+                         .y = cutter_radius * cfSin(cutter_end)};
+
+    cutter_start_p = vecAdd(cutter_center, rotateFwd(cutter_start_p, dcos, dsin));
+    cutter_end_p = vecAdd(cutter_center, rotateFwd(cutter_end_p, dcos, dsin));
+
+    fxDrawArc(draw_list, cutter_center, cutter_start_p, cutter_end_p, cutter_radius, RGBA32_YELLOW);
+
+    // ImDrawList_AddCircle(draw_list, cutter_center, cutter_radius, RGBA32_ORANGE, 0, 1.0f);
+    // ImDrawList_AddLine(draw_list, lens_center, lens_end, RGBA32_ORANGE, 1.0f);
+    // ImDrawList_AddLine(draw_list, lens_end, cutter_center, RGBA32_ORANGE, 1.0f);
 
     ImDrawList_PopClipRect(draw_list);
 
