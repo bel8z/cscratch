@@ -250,7 +250,7 @@ rotateBwd(Vec2 p, F32 cos, F32 sin)
 void
 fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
 {
-    F32 const pi2 = 2 * cfAcos(-1.0f);
+    static F32 const pi2 = 2 * CF_PI_32;
 
     // Center of the view
     Vec2 const center = {.x = (p0.x + p1.x) / 2, //
@@ -318,7 +318,10 @@ fxSine(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_da
 {
     // 1 Hz sinusoid, YAY!
 
-    ImVec2 points[1024] = {0};
+    static ImVec2 points[1024] = {0};
+
+    static F32 const pi2 = 2 * CF_PI_32;
+    static F32 const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
 
     F32 const amp = cfMin(size.x, size.y) / 4;
 
@@ -327,8 +330,6 @@ fxSine(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_da
     F32 const x_step = x_space / (CF_ARRAY_SIZE(points) - 1);
     F32 const y_offset = size.y / 2;
 
-    F32 const pi2 = 2 * cfAcos(-1.0f);
-    F32 const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
     F32 const phase = pi2 * (F32)time;
 
     ImVec2 const center = {p0.x + amp, p0.y + y_offset};
@@ -431,7 +432,6 @@ fxDrawArc(ImDrawList *draw_list, ImVec2 center, F32 radius, F32 start, F32 span)
 void
 fxTangentCircles(void)
 {
-    F32 const pi = cfAcos(-1.0f);
     static F32 const crib = 60;
     // static F32 const cutter_radius = 1;
     static F32 circ_radius = 50;
@@ -451,14 +451,14 @@ fxTangentCircles(void)
     ImDrawList *draw_list = igGetWindowDrawList();
     ImDrawList_PushClipRect(draw_list, p0, p1, true);
 
-    F32 scale = size.y / (crib + 20.0f);
+    F32 const scale = size.y / (crib + 20.0f);
 
     ImVec2 center = {.x = p0.x + 10.0f + circ_radius * scale, //
                      .y = p0.y + size.y / 2};
 
     F32 ang = cfAtan((crib / 2) / circ_radius);
 
-    fxDrawArc(draw_list, center, circ_radius * scale, pi - ang, 2 * ang);
+    fxDrawArc(draw_list, center, circ_radius * scale, CF_PI_32 - ang, 2 * ang);
 
     ImDrawList_PopClipRect(draw_list);
 

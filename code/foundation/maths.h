@@ -22,6 +22,10 @@
 //   Trig   //
 //----------//
 
+#define CF_PI_128 3.1415926535897932384626433832795028841971693993751058209749445923078164062l
+#define CF_PI_64 (F64)(CF_PI_128)
+#define CF_PI_32 (F32)(CF_PI_128)
+
 #define cfCos(X) _Generic((X), default : cos, F32 : cosf)(X)
 #define cfSin(X) _Generic((X), default : sin, F32 : sinf)(X)
 #define cfTan(X) _Generic((X), default : tan, F32 : tanf)(X)
