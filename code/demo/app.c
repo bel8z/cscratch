@@ -229,7 +229,7 @@ DistancePointEllipse(F32 e0, F32 e1, Vec2 p)
     return result;
 }
 
-Vec2
+static Vec2
 rotateFwd(Vec2 p, F32 cos, F32 sin)
 {
     Vec2 r = {0};
@@ -238,13 +238,19 @@ rotateFwd(Vec2 p, F32 cos, F32 sin)
     return r;
 }
 
-Vec2
+static Vec2
 rotateBwd(Vec2 p, F32 cos, F32 sin)
 {
     Vec2 r = {0};
     r.x = p.x * cos + p.y * sin;
     r.y = p.y * cos - p.x * sin;
     return r;
+}
+
+static F32
+normalize(F32 value, F32 range, F32 offset)
+{
+    return value - range * cfFloor((value + offset) / range);
 }
 
 void
@@ -257,7 +263,7 @@ fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse
                          .y = (p0.y + p1.y) / 2};
 
     // Rotation of the ellipse
-    F32 const rot = 0.5f * pi2 * (F32)time;
+    F32 const rot = normalize(0.1f * pi2 * (F32)time, CF_PI32, 0);
     F32 const cosw = cfCos(rot);
     F32 const sinw = cfSin(rot);
 
@@ -293,6 +299,24 @@ fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse
 
     ImDrawList_AddCircleFilled(draw_list, (ImVec2){query_res.x + center.x, query_res.y + center.y},
                                5.0f, RGBA32_ORANGE_RED, 0);
+
+    ImDrawList_AddLine(draw_list, //
+                       (ImVec2){mouse_data.x, mouse_data.y},
+                       (ImVec2){query_res.x + center.x, query_res.y + center.y}, //
+                       RGBA32_ORANGE_RED, 1.0f);
+
+    // Draw intersection on the Y axis
+    F32 sinw2 = sinw * sinw;
+    F32 cosw2 = cosw * cosw;
+    F32 mul = a * b * cfRsqrt(a * a * cosw2 + b * b * sinw2);
+    Vec2 itx = {.x = mul * (sinw * cosw - cosw * sinw), //
+                .y = mul * (sinw2 + cosw2)};
+
+    ImDrawList_AddLine(draw_list, (ImVec2){center.x, p0.y}, (ImVec2){center.x, p1.y}, RGBA32_CYAN,
+                       1.0f);
+
+    ImDrawList_AddLine(draw_list, guiCastV2(center), (ImVec2){center.x + itx.x, center.y + itx.y},
+                       RGBA32_ORANGE_RED, 1.0f);
 
     // Place a circle on the ellipse
     F32 const circ_rad = b / 3;
