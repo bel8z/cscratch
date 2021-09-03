@@ -52,14 +52,44 @@ guiInit(Gui *gui)
     else
     {
         gui->ctx = igCreateContext(gui->shared_atlas);
+        guiSetTheme(GuiTheme_Dark);
     }
 }
 
 //=== Themes & styling ===//
 
 void
+guiThemeSelector(Cstr label)
+{
+    static Cstr name[GuiTheme_Count] = {
+        [GuiTheme_Dark] = "Dark",
+        [GuiTheme_Light] = "Light",
+    };
+
+    GuiTheme curr = (GuiTheme)igGetIO()->UserData;
+    GuiTheme next = curr;
+
+    if (igBeginCombo(label, name[curr], 0))
+    {
+        for (GuiTheme theme = 0; theme < GuiTheme_Count; ++theme)
+        {
+            if (igSelectable_Bool(name[theme], theme == curr, 0, (ImVec2){0}))
+            {
+                next = theme;
+            }
+        }
+
+        igEndCombo();
+    }
+
+    if (next != curr) guiSetTheme(next);
+}
+
+void
 guiSetTheme(GuiTheme theme)
 {
+    igGetIO()->UserData = (void *)theme;
+
     igStyleColorsClassic(NULL);
 
     ImVec4 *colors = igGetStyle()->Colors;

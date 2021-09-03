@@ -616,6 +616,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
         igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
         guiColorEdit("clear color", &state->clear_color);
         igSeparator();
+        guiThemeSelector("Theme");
         igCheckbox("Continuous update", &io->continuous_update);
         guiSameLine();
         igCheckbox("Fullscreen", &io->fullscreen);

@@ -40,19 +40,22 @@ void guiInit(Gui *gui);
 //=== Themes & styling ===//
 
 /// Custom IMGUI color themes
-typedef enum GuiTheme
+typedef Usize GuiTheme;
+enum GuiTheme_
 {
     GuiTheme_Dark,
     GuiTheme_Light,
 
     GuiTheme_Count,
-} GuiTheme;
+};
 
 /// Set a custom IMGUI color theme and sizes according to scale
 void guiSetupStyle(GuiTheme theme, F32 dpi_scale);
 
 /// Set a custom IMGUI color theme
 void guiSetTheme(GuiTheme theme);
+
+void guiThemeSelector(Cstr label);
 
 //=== Fonts handling ===//
 
