@@ -308,9 +308,7 @@ fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse
     // Draw intersection on the Y axis
     F32 sinw2 = sinw * sinw;
     F32 cosw2 = cosw * cosw;
-    F32 mul = a * b * cfRsqrt(a * a * cosw2 + b * b * sinw2);
-    Vec2 itx = {.x = mul * (sinw * cosw - cosw * sinw), //
-                .y = mul * (sinw2 + cosw2)};
+    Vec2 itx = {.x = 0, .y = a * b * cfRsqrt(a * a * cosw2 + b * b * sinw2)};
 
     ImDrawList_AddLine(draw_list, (ImVec2){center.x, p0.y}, (ImVec2){center.x, p1.y}, RGBA32_CYAN,
                        1.0f);
