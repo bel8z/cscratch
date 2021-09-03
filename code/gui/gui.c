@@ -74,10 +74,12 @@ guiThemeSelector(Cstr label)
     {
         for (GuiTheme theme = 0; theme < GuiTheme_Count; ++theme)
         {
-            if (igSelectable_Bool(name[theme], theme == curr, 0, (ImVec2){0}))
+            bool selected = theme == curr;
+            if (igSelectable_Bool(name[theme], selected, 0, (ImVec2){0}))
             {
                 next = theme;
             }
+            if (selected) igSetItemDefaultFocus();
         }
 
         igEndCombo();
