@@ -41,13 +41,17 @@ void guiInit(Gui *gui);
 
 /// Custom IMGUI color themes
 typedef Usize GuiTheme;
+
+#define GUI_THEMES(X) \
+    X(Dark)           \
+    X(Light)          \
+    X(Dummy)
+
 enum GuiTheme_
 {
-    GuiTheme_Dark,
-    GuiTheme_Light,
-    GuiTheme_Dummy,
-
-    GuiTheme_Count,
+#define GUI_THEME_ENUM(Name) GuiTheme_##Name,
+    GUI_THEMES(GUI_THEME_ENUM) GuiTheme_Count,
+#undef GUI_THEME_ENUM
 };
 
 /// Set a custom IMGUI color theme and sizes according to scale
