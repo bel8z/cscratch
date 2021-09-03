@@ -64,6 +64,7 @@ guiThemeSelector(Cstr label)
     static Cstr name[GuiTheme_Count] = {
         [GuiTheme_Dark] = "Dark",
         [GuiTheme_Light] = "Light",
+        [GuiTheme_Dummy] = "Dummy",
     };
 
     GuiTheme curr = (GuiTheme)igGetIO()->UserData;
@@ -90,12 +91,11 @@ guiSetTheme(GuiTheme theme)
 {
     igGetIO()->UserData = (void *)theme;
 
-    igStyleColorsClassic(NULL);
-
-    ImVec4 *colors = igGetStyle()->Colors;
-
     if (theme == GuiTheme_Dark)
     {
+        igStyleColorsClassic(NULL);
+        ImVec4 *colors = igGetStyle()->Colors;
+
         // clang-format off
         colors[ImGuiCol_Text]                   = (ImVec4){1.00f, 1.00f, 1.00f, 1.00f};
         colors[ImGuiCol_TextDisabled]           = (ImVec4){0.50f, 0.50f, 0.50f, 1.00f};
@@ -156,6 +156,9 @@ guiSetTheme(GuiTheme theme)
     }
     else if (theme == GuiTheme_Light)
     {
+        igStyleColorsClassic(NULL);
+        ImVec4 *colors = igGetStyle()->Colors;
+
         // clang-format off
         colors[ImGuiCol_Text]                   = (ImVec4){0.00f, 0.00f, 0.00f, 1.00f};
         colors[ImGuiCol_TextDisabled]           = (ImVec4){0.60f, 0.60f, 0.60f, 1.00f};
@@ -212,6 +215,46 @@ guiSetTheme(GuiTheme theme)
         colors[ImGuiCol_NavWindowingHighlight]  = (ImVec4){0.70f, 0.70f, 0.70f, 0.70f};
         colors[ImGuiCol_NavWindowingDimBg]      = (ImVec4){0.20f, 0.20f, 0.20f, 0.20f};
         colors[ImGuiCol_ModalWindowDimBg]       = (ImVec4){0.20f, 0.20f, 0.20f, 0.35f};
+        // clang-format on
+    }
+    else if (theme == GuiTheme_Dummy)
+    {
+        igStyleColorsLight(NULL);
+        ImVec4 *colors = igGetStyle()->Colors;
+
+        // clang-format off
+        colors[ImGuiCol_Text]                 = (ImVec4){0.31f, 0.25f, 0.24f, 1.00f};
+        colors[ImGuiCol_WindowBg]             = (ImVec4){0.94f, 0.94f, 0.94f, 1.00f};
+        colors[ImGuiCol_MenuBarBg]            = (ImVec4){0.74f, 0.74f, 0.94f, 1.00f};
+        colors[ImGuiCol_ChildBg]              = (ImVec4){0.68f, 0.68f, 0.68f, 0.00f};
+        colors[ImGuiCol_Border]               = (ImVec4){0.50f, 0.50f, 0.50f, 0.60f};
+        colors[ImGuiCol_BorderShadow]         = (ImVec4){0.00f, 0.00f, 0.00f, 0.00f};
+        colors[ImGuiCol_FrameBg]              = (ImVec4){0.62f, 0.70f, 0.72f, 0.56f};
+        colors[ImGuiCol_FrameBgHovered]       = (ImVec4){0.95f, 0.33f, 0.14f, 0.47f};
+        colors[ImGuiCol_FrameBgActive]        = (ImVec4){0.97f, 0.31f, 0.13f, 0.81f};
+        colors[ImGuiCol_TitleBg]              = (ImVec4){0.42f, 0.75f, 1.00f, 0.53f};
+        colors[ImGuiCol_TitleBgCollapsed]     = (ImVec4){0.40f, 0.65f, 0.80f, 0.20f};
+        colors[ImGuiCol_ScrollbarBg]          = (ImVec4){0.40f, 0.62f, 0.80f, 0.15f};
+        colors[ImGuiCol_ScrollbarGrab]        = (ImVec4){0.39f, 0.64f, 0.80f, 0.30f};
+        colors[ImGuiCol_ScrollbarGrabHovered] = (ImVec4){0.28f, 0.67f, 0.80f, 0.59f};
+        colors[ImGuiCol_ScrollbarGrabActive]  = (ImVec4){0.25f, 0.48f, 0.53f, 0.67f};
+        colors[ImGuiCol_CheckMark]            = (ImVec4){0.48f, 0.47f, 0.47f, 0.71f};
+        colors[ImGuiCol_SliderGrabActive]     = (ImVec4){0.31f, 0.47f, 0.99f, 1.00f};
+        colors[ImGuiCol_Button]               = (ImVec4){1.00f, 0.79f, 0.18f, 0.78f};
+        colors[ImGuiCol_ButtonHovered]        = (ImVec4){0.42f, 0.82f, 1.00f, 0.81f};
+        colors[ImGuiCol_ButtonActive]         = (ImVec4){0.72f, 1.00f, 1.00f, 0.86f};
+        colors[ImGuiCol_Header]               = (ImVec4){0.65f, 0.78f, 0.84f, 0.80f};
+        colors[ImGuiCol_HeaderHovered]        = (ImVec4){0.75f, 0.88f, 0.94f, 0.80f};
+        colors[ImGuiCol_HeaderActive]         = (ImVec4){0.55f, 0.68f, 0.74f, 0.80f};//ImVec4(0.46f, 0.84f, 0.90f, 1.00f);
+        colors[ImGuiCol_ResizeGrip]           = (ImVec4){0.60f, 0.60f, 0.80f, 0.30f};
+        colors[ImGuiCol_ResizeGripHovered]    = (ImVec4){1.00f, 1.00f, 1.00f, 0.60f};
+        colors[ImGuiCol_ResizeGripActive]     = (ImVec4){1.00f, 1.00f, 1.00f, 0.90f};
+        colors[ImGuiCol_TextSelectedBg]       = (ImVec4){1.00f, 0.99f, 0.54f, 0.43f};
+        colors[ImGuiCol_PopupBg]              = (ImVec4){0.82f, 0.92f, 1.00f, 0.90f}; // ImVec4(0.89f, 0.98f, 1.00f, 0.99f)
+        // colors[ImGuiCol_ComboBg] = ImVec4(0.89f, 0.98f, 1.00f, 0.99f);
+        // colors[ImGuiCol_CloseButton] = ImVec4(0.41f, 0.75f, 0.98f, 0.50f);
+        // colors[ImGuiCol_CloseButtonHovered] = ImVec4(1.00f, 0.47f, 0.41f, 0.60f);
+        // colors[ImGuiCol_CloseButtonActive] = ImVec4(1.00f, 0.16f, 0.00f, 1.00f);
         // clang-format on
     }
 }

@@ -45,6 +45,7 @@ enum GuiTheme_
 {
     GuiTheme_Dark,
     GuiTheme_Light,
+    GuiTheme_Dummy,
 
     GuiTheme_Count,
 };
