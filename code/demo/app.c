@@ -33,6 +33,7 @@ struct AppState
 };
 
 static CfLog *g_log = NULL;
+static CfTimeApi *g_time = NULL;
 
 #define appLog(...) (g_log ? (cfLogAppendF(g_log, __VA_ARGS__), 1) : 0)
 
@@ -77,8 +78,9 @@ APP_API APP_PROC(appLoad)
     CF_ASSERT_NOT_NULL(app);
     CF_ASSERT_NOT_NULL(app->plat);
 
-    // Init global log
+    // Init globals
     g_log = &app->log;
+    g_time = app->plat->time;
 
     // Init Dear Imgui
     guiInit(app->plat->gui);
@@ -412,24 +414,23 @@ fxDraw(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
 static void
 fxWindow(void)
 {
-    ImGuiIO *io = igGetIO();
-    igSetNextWindowSize((ImVec2){320, 180}, ImGuiCond_Once);
-    igBegin("FX", NULL, 0);
+    guiSetNextWindowSize((Vec2){{320, 180}}, GuiCond_Once);
+    guiBegin("FX", NULL);
 
     GuiCanvas canvas = {0};
     guiCanvasBegin(&canvas);
 
     Vec4 mouse_data;
-    mouse_data.x = io->MousePos.x; // (io->MousePos.x - p0.x) / size.x;
-    mouse_data.y = io->MousePos.y; // (io->MousePos.y - p0.y) / size.y;
-    mouse_data.z = io->MouseDownDuration[0];
-    mouse_data.w = io->MouseDownDuration[1];
+    mouse_data.xyz.xy = guiGetMousePos();
+    mouse_data.z = guiGetMouseDownDuration(GuiMouseButton_Left);
+    mouse_data.w = guiGetMouseDownDuration(GuiMouseButton_Right);
 
-    fxDraw(&canvas, mouse_data, igGetTime());
+    Duration now = g_time->clock();
+    fxDraw(&canvas, mouse_data, timeGetSeconds(now));
 
     guiCanvasEnd(&canvas);
 
-    igEnd();
+    guiEnd();
 }
 
 static void
@@ -476,12 +477,12 @@ fxTangentCircles(void)
     F32 crib = 60;
     F32 cutter_radius = 1;
 
-    igSetNextWindowSize((ImVec2){320, 180}, ImGuiCond_Once);
-    igBegin("Tangent circles", NULL, 0);
+    guiSetNextWindowSize((Vec2){.x = 320, .y = 180}, GuiCond_Once);
+    guiBegin("Tangent circles", NULL);
 
-    igSliderFloat("Radius", &lens_radius_parm, 50, 1000, "%.0f", 0);
-    igSliderFloat("Depth", &depth, 0, 5, "%.0f", 0);
-    igSeparator();
+    guiSlider("Radius", &lens_radius_parm, 50, 1000);
+    guiSlider("Depth", &depth, 0, 5);
+    guiSeparator();
 
     GuiCanvas canvas = {0};
     guiCanvasBegin(&canvas);
@@ -522,7 +523,7 @@ fxTangentCircles(void)
 
     guiCanvasEnd(&canvas);
 
-    igEnd();
+    guiEnd();
 }
 
 static void
@@ -537,72 +538,71 @@ guiClock(Duration time)
     I64 mins = (total_secs - hours * secs_per_hour) / 60;
     I64 final_secs = total_secs - mins * 60;
 
-    igText("%02d:%02d:%02d.%09d", hours, mins, final_secs, time.nanos);
+    guiText("%02lld:%02lld:%02lld.%09u", hours, mins, final_secs, time.nanos);
 }
 
 APP_API APP_UPDATE_PROC(appUpdate)
 {
     Platform *plat = state->plat;
 
-    if (igBeginMainMenuBar())
+    if (guiBeginMainMenuBar())
     {
-        if (igBeginMenu("File", true)) igEndMenu();
+        if (guiBeginMenu("File", true)) guiEndMenu();
 
-        if (igBeginMenu("Windows", true))
+        if (guiBeginMenu("Windows", true))
         {
-            igMenuItem_BoolPtr("Style editor", NULL, &state->windows.style, true);
-            igMenuItem_BoolPtr("Font options", NULL, &state->windows.fonts, true);
-            igSeparator();
-            igMenuItem_BoolPtr("Stats", NULL, &state->windows.stats, true);
-            igMenuItem_BoolPtr("Metrics", NULL, &state->windows.metrics, true);
-            igSeparator();
-            igMenuItem_BoolPtr("Demo window", NULL, &state->windows.demo, true);
-            igEndMenu();
+            guiMenuItem("Style editor", &state->windows.style);
+            guiMenuItem("Font options", &state->windows.fonts);
+            guiSeparator();
+            guiMenuItem("Stats", &state->windows.stats);
+            guiMenuItem("Metrics", &state->windows.metrics);
+            guiSeparator();
+            guiMenuItem("Demo window", &state->windows.demo);
+            guiEndMenu();
         }
 
-        igEndMainMenuBar();
+        guiEndMainMenuBar();
     }
 
-    if (state->windows.demo) igShowDemoWindow(&state->windows.demo);
+    if (state->windows.demo) guiDemoWindow(&state->windows.demo);
 
     if (state->windows.fonts)
     {
-        igBegin("Font Options", &state->windows.fonts, 0);
+        guiBegin("Font Options", &state->windows.fonts);
         io->rebuild_fonts = guiFontOptionsEdit(io->font_opts);
-        igEnd();
+        guiEnd();
     }
 
     if (state->windows.stats)
     {
-        F64 framerate = (F64)igGetIO()->Framerate;
+        F64 framerate = (F64)guiGetFramerate();
 
-        igBegin("Application stats stats", &state->windows.stats,
-                ImGuiWindowFlags_HorizontalScrollbar);
-        igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
-        igSeparator();
-        igText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
-        igText("Virtual memory reserved %.3fkb - committed %.3fkb", (F64)plat->reserved_size / 1024,
-               (F64)plat->committed_size / 1024);
-        igSeparator();
-        igText("OpenGL version:\t%s", glGetString(GL_VERSION));
-        igText("OpenGL renderer:\t%s", glGetString(GL_RENDERER));
-        igText("OpenGL shader version:\t%s", glGetString(GL_SHADING_LANGUAGE_VERSION));
-        igEnd();
+        guiBegin("Application stats stats", &state->windows.stats);
+        guiText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
+        guiSeparator();
+        guiText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
+        guiText("Virtual memory reserved %.3fkb - committed %.3fkb",
+                (F64)plat->reserved_size / 1024, (F64)plat->committed_size / 1024);
+        guiSeparator();
+        guiText("OpenGL version:\t%s", glGetString(GL_VERSION));
+        guiText("OpenGL renderer:\t%s", glGetString(GL_RENDERER));
+        guiText("OpenGL shader version:\t%s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+        guiEnd();
     }
 
     if (state->windows.style)
     {
-        igBegin("Style Editor", &state->windows.style, 0);
-        igShowStyleEditor(NULL);
-        igEnd();
+        guiBegin("Style Editor", &state->windows.style);
+        guiStyleEditor();
+        guiEnd();
     }
 
     if (state->windows.metrics)
     {
-        igShowMetricsWindow(&state->windows.metrics);
+        guiMetricsWindow(&state->windows.metrics);
     }
 
-    igBegin("Test", NULL, 0);
+    guiBegin("Test", NULL);
     {
         static F32 f = 0;
 
@@ -610,19 +610,19 @@ APP_API APP_UPDATE_PROC(appUpdate)
         Duration t = time->clock();
         CalendarTime now = time->localTime(time->systemTime());
 
-        igCheckbox("Demo Window", &state->windows.demo);
-        igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);
+        guiCheckbox("Demo Window", &state->windows.demo);
+        guiSlider("float", &f, 0.0f, 1.0f);
         guiColorEdit("clear color", &state->clear_color);
-        igSeparator();
+        guiSeparator();
         guiThemeSelector("Theme");
-        igCheckbox("Continuous update", &io->continuous_update);
+        guiCheckbox("Continuous update", &io->continuous_update);
         guiSameLine();
-        igCheckbox("Fullscreen", &io->fullscreen);
-        igSeparator();
-        igText("%04d/%02d/%02d %02d:%02d:%02d.%03d", now.year, now.month, now.day, now.hour,
-               now.minute, now.second, now.milliseconds);
+        guiCheckbox("Fullscreen", &io->fullscreen);
+        guiSeparator();
+        guiText("%04d/%02d/%02d %02d:%02d:%02d.%03d", now.year, now.month, now.day, now.hour,
+                now.minute, now.second, now.milliseconds);
         guiClock(t);
-        igSeparator();
+        guiSeparator();
 
         if (timeIsGe(timeSub(t, state->log_time), timeDurationMs(1000)))
         {
@@ -632,7 +632,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
 
         guiLogBox(&state->log, false);
     }
-    igEnd();
+    guiEnd();
 
     fxWindow();
     fxTangentCircles();

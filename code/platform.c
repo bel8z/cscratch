@@ -195,8 +195,10 @@ platformUpdateFullscreen(GLFWwindow *window, bool fullscreen, IVec2 *win_pos, IV
     }
 }
 
+#if PLATFORM_DPI_HANDLING
+
 static bool
-platformUpdateMainDpi(ImGuiIO *io, F32 *curr_dpi, Str data_path)
+platformUpdateMainDpi(ImFontAtlas *fonts, F32 *curr_dpi, Str data_path)
 {
     ImGuiViewport *vp = igGetMainViewport();
     ImGuiPlatformMonitor const *mon = igGetViewportPlatformMonitor(vp);
@@ -205,20 +207,22 @@ platformUpdateMainDpi(ImGuiIO *io, F32 *curr_dpi, Str data_path)
     {
         F32 ratio = mon->DpiScale / *curr_dpi;
         *curr_dpi = mon->DpiScale;
-#if 1
-        ImFontAtlas_Clear(io->Fonts);
-        guiSetupFonts(io->Fonts, *curr_dpi, data_path);
+#    if 1
+        ImFontAtlas_Clear(fonts);
+        guiSetupFonts(fonts, *curr_dpi, data_path);
         // TODO (Matteo): Should rescale size?
         CF_UNUSED(ratio); // ImGuiStyle_ScaleAllSizes(igGetStyle(), ratio);
         return true;
-#else
+#    else
         CF_UNUSED(data_path);
         io->FontGlobalScale *= ratio;
-#endif
+#    endif
     }
 
     return false;
 }
+
+#endif
 
 I32
 platformMain(Platform *platform, Cstr argv[], I32 argc)
@@ -247,18 +251,6 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     CF_ASSERT_NOT_NULL(gl);
     platform->gl = gl;
 
-    // Setup Dear ImGui context
-    platform->gui = &(Gui){.alloc = &platform->heap};
-    guiInit(platform->gui);
-
-    // Setup application
-    AppApi app_api = {0};
-    appApiLoad(&app_api, platform->paths, platform->fs, platform->library);
-    AppState *app_state = app_api.create(platform, argv, argc);
-
-    // Configure Dear ImGui
-    ImGuiIO *io = igGetIO();
-
 // NOTE (Matteo): Custom IMGUI ini file
 // TODO (Matteo): Clean up!
 #if CF_COMPILER_MSVC
@@ -270,19 +262,18 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     memCopy(paths->base.buf, gui_ini, paths->base.len);
     memCopy(paths->exe_name.buf, gui_ini + paths->base.len, paths->exe_name.len);
     pathChangeExt(strFromCstr(gui_ini), strLiteral(".gui"), gui_ini);
-    io->IniFilename = gui_ini;
 #if CF_COMPILER_MSVC
 #    pragma warning(pop)
 #endif
 
-    // Enable Keyboard Controls
-    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    // Enable Docking
-    io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    // Enable Multi-Viewport / Platform Windows
-    io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-    // Reduce visual noise while docking, also has a benefit for out-of-sync viewport rendering
-    io->ConfigDockingTransparentPayload = true;
+    // Setup Dear ImGui context
+    platform->gui = &(Gui){.alloc = &platform->heap, .ini_filename = gui_ini};
+    guiInit(platform->gui);
+
+    // Setup application
+    AppApi app_api = {0};
+    appApiLoad(&app_api, platform->paths, platform->fs, platform->library);
+    AppState *app_state = app_api.create(platform, argv, argc);
 
     // Setup DPI handling
     F32 win_x_scale, win_y_scale;
@@ -292,7 +283,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
 
     // Setup Dear ImGui style
     guiSetupStyle(GuiTheme_Dark, dpi_scale);
-    guiSetupFonts(io->Fonts, dpi_scale, paths->data);
+    guiSetupFonts(guiFonts(), dpi_scale, paths->data);
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -344,7 +335,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
         if (app_io.rebuild_fonts)
         {
             app_io.rebuild_fonts = false;
-            guiUpdateAtlas(io->Fonts, app_io.font_opts);
+            guiUpdateAtlas(guiFonts(), app_io.font_opts);
             // Re-upload font texture on the GPU
             ImGui_ImplOpenGL3_DestroyDeviceObjects();
             ImGui_ImplOpenGL3_CreateDeviceObjects();
@@ -357,7 +348,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
-        igNewFrame();
+        guiNewFrame();
 
         // NOTE (Matteo): Setup GL viewport and clear buffers BEFORE app update in order to allow
         // the application code to draw directly using OpenGL
@@ -375,17 +366,16 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
         // Rendering //
         //-----------//
 
-        igRender();
-        ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
+        ImDrawData *draw_data = guiRender();
+        ImGui_ImplOpenGL3_RenderDrawData(draw_data);
 
         // Update and Render additional Platform Windows
         // (Platform functions may change the current OpenGL context, so we save/restore it
         // to make it easier to paste this code elsewhere.)
-        if (io->ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        if (guiViewportsEnabled())
         {
             GLFWwindow *backup_current_context = glfwGetCurrentContext();
-            igUpdatePlatformWindows();
-            igRenderPlatformWindowsDefault(NULL, NULL);
+            guiUpdateAndRenderViewports();
             glfwMakeContextCurrent(backup_current_context);
         }
 
@@ -395,18 +385,20 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
         // Post processing //
         //-----------------//
 
+#if PLATFORM_DPI_HANDLING
         // NOTE (Matteo): Simple DPI handling for main viewport
         // TODO (Matteo): Build a font atlas per-monitor (or DPI resolution)
         if (platformUpdateMainDpi(io, &dpi_scale, paths->data))
         {
             app_io.rebuild_fonts = true;
         }
+#endif
     }
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    igDestroyContext(platform->gui->ctx);
+    guiShutdown(platform->gui);
 
     glfwDestroyWindow(window);
     glfwTerminate();
@@ -490,11 +482,11 @@ appApiUpdate(AppApi *api, Platform *platform, AppState *app)
 }
 
 static ImFont *
-guiLoadFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size, ImWchar const *ranges)
+platformLoadFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
 {
     Char8 buffer[1024] = {0};
     strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
-    return ImFontAtlas_AddFontFromFileTTF(fonts, buffer, font_size, NULL, ranges);
+    return guiLoadFont(fonts, buffer, font_size);
 }
 
 void
@@ -517,16 +509,15 @@ guiSetupFonts(ImFontAtlas *atlas, F32 dpi_scale, Str data_path)
     // - Read 'docs/FONTS.md' for more instructions and details.
     // - Remember that in C/C++ if you want to include a backslash \ in a string
     // literal you need to write a double backslash \\ !
-    ImWchar const *ranges = ImFontAtlas_GetGlyphRangesDefault(atlas);
 
     F32 const scale = dpi_scale * PLATFORM_DPI / TRUETYPE_DPI;
 
     // NOTE (Matteo): This ensure the proper loading order even in optimized release builds
     ImFont const *fonts[4] = {
-        guiLoadFont(atlas, data_path, "NotoSans", cfRound(13.0f * scale), ranges),
-        guiLoadFont(atlas, data_path, "OpenSans", cfRound(13.5f * scale), ranges),
-        guiLoadFont(atlas, data_path, "SourceSansPro", cfRound(13.5f * scale), ranges),
-        guiLoadFont(atlas, data_path, "DroidSans", cfRound(12.0f * scale), ranges),
+        platformLoadFont(atlas, data_path, "NotoSans", cfRound(13.0f * scale)),
+        platformLoadFont(atlas, data_path, "OpenSans", cfRound(13.5f * scale)),
+        platformLoadFont(atlas, data_path, "SourceSansPro", cfRound(13.5f * scale)),
+        platformLoadFont(atlas, data_path, "DroidSans", cfRound(12.0f * scale)),
     };
 
     // NOTE (Matteo): Load default IMGUI font only if no custom font has been loaded
@@ -535,7 +526,7 @@ guiSetupFonts(ImFontAtlas *atlas, F32 dpi_scale, Str data_path)
     {
         load_default = !fonts[i];
     }
-    if (load_default) ImFontAtlas_AddFontDefault(atlas, NULL);
+    if (load_default) guiLoadDefaultFont(atlas);
 }
 
 //------------------------------------------------------------------------------

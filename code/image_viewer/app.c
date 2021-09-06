@@ -77,7 +77,7 @@ typedef struct ImageView
 {
     ImageTex tex[NumTextures];
 
-    ImVec2 drag;
+    Vec2 drag;
     F32 zoom;
 
     U32 tex_index;
@@ -309,7 +309,7 @@ imageViewInit(ImageView *iv)
     iv->advanced = false;
     iv->zoom = 1.0f;
     iv->dirty = true;
-    iv->drag = (ImVec2){0};
+    iv->drag = (Vec2){0};
     iv->tex_index = 0;
     iv->tex_count = CF_ARRAY_SIZE(iv->tex);
 
@@ -451,7 +451,7 @@ appQueueLoadFiles(AppState *app)
     // NOTE (Matteo): Set view as dirty
     app->iv.dirty = true;
     app->iv.zoom = 1.0f;
-    app->iv.drag = (ImVec2){0};
+    app->iv.drag = (Vec2){0};
 }
 
 static void
@@ -585,19 +585,20 @@ appImageView(AppState *state)
     if (iv->advanced)
     {
         bool double_buffer = (iv->tex_count == CF_ARRAY_SIZE(iv->tex));
-        if (igCheckbox("Double buffer", &double_buffer))
+        if (guiCheckbox("Double buffer", &double_buffer))
         {
             iv->dirty = true;
             iv->tex_count = double_buffer ? CF_ARRAY_SIZE(iv->tex) : 1;
         }
         guiSameLine();
-        igSliderFloat("zoom", &curr_zoom, min_zoom, max_zoom, "%.3f", 0);
+        guiSlider("zoom", &curr_zoom, min_zoom, max_zoom);
     }
 
     // NOTE (Matteo): Use the available content area as the image view; an invisible button
     // is used in order to catch input.
 
-    igSetNextWindowSize((ImVec2){50, 50}, ImGuiCond_Once);
+    guiSetNextWindowSize((Vec2){.x = 50, .y = 50}, GuiCond_Once);
+
     GuiCanvas canvas = {0};
     guiCanvasBegin(&canvas);
 
@@ -635,24 +636,19 @@ appImageView(AppState *state)
 
         if (can_browse)
         {
-            if (guiKeyPressed(ImGuiKey_LeftArrow)) appBrowsePrev(state);
-            if (guiKeyPressed(ImGuiKey_RightArrow)) appBrowseNext(state);
+            if (guiKeyPressed(GuiKey_LeftArrow)) appBrowsePrev(state);
+            if (guiKeyPressed(GuiKey_RightArrow)) appBrowseNext(state);
         }
 
-        ImGuiIO *io = igGetIO();
-
-        if (igIsItemHovered(0))
+        if (guiIsItemHovered())
         {
-            if (io->KeyCtrl)
+            if (guiKeyCtrl())
             {
-                curr_zoom = cfClamp(curr_zoom + io->MouseWheel, min_zoom, max_zoom);
-                igGetMousePos((ImVec2 *)(&zoom_location));
+                curr_zoom = cfClamp(curr_zoom + guiGetMouseWheel(), min_zoom, max_zoom);
+                zoom_location = guiGetMousePos();
             }
 
-            if (igIsMouseDragging(ImGuiMouseButton_Left, -1.0f))
-            {
-                igGetMouseDragDelta(&iv->drag, ImGuiMouseButton_Left, -1.0f);
-            }
+            guiGetMouseDragging(GuiMouseButton_Left, &iv->drag);
         }
 
         // NOTE (Matteo): Draw the image properly scaled to fit the view
@@ -709,7 +705,7 @@ appImageView(AppState *state)
         if (iv->advanced)
         {
             // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
-            canvas.stroke_color = igGetColorU32_U32(RGBA32_FUCHSIA);
+            canvas.stroke_color = guiGetStyledColor(RGBA32_FUCHSIA);
             guiCanvasDrawRect(&canvas, image_min, image_max);
             guiCanvasDrawRect(&canvas, view_min, view_max);
         }
@@ -753,35 +749,35 @@ appMenuBar(AppState *state)
     bool quit = false;
     bool open_file_error = false;
 
-    if (igBeginMainMenuBar())
+    if (guiBeginMainMenuBar())
     {
-        if (igBeginMenu("File", true))
+        if (guiBeginMenu("File", true))
         {
-            if (igMenuItem_Bool("Open", NULL, false, true))
+            if (guiMenuItem("Open", NULL))
             {
                 open_file_error = !appOpenFile(state);
             }
-            igSeparator();
-            quit = igMenuItem_Bool("Quit", NULL, false, true);
-            igEndMenu();
+            guiSeparator();
+            quit = guiMenuItem("Quit", NULL);
+            guiEndMenu();
         }
 
-        if (igBeginMenu("View", true))
+        if (guiBeginMenu("View", true))
         {
-            igMenuItem_BoolPtr("Advanced", NULL, &state->iv.advanced, true);
-            igSeparator();
-            igMenuItem_BoolPtr(STYLE_WINDOW, NULL, &state->style, true);
-            igMenuItem_BoolPtr(FONTS_WINDOW, NULL, &state->fonts, true);
-            igSeparator();
-            igMenuItem_BoolPtr("Stats", NULL, &state->stats, true);
-            igMenuItem_BoolPtr("Metrics", NULL, &state->metrics, true);
-            igEndMenu();
+            guiMenuItem("Advanced", &state->iv.advanced);
+            guiSeparator();
+            guiMenuItem(STYLE_WINDOW, &state->style);
+            guiMenuItem(FONTS_WINDOW, &state->fonts);
+            guiSeparator();
+            guiMenuItem("Stats", &state->stats);
+            guiMenuItem("Metrics", &state->metrics);
+            guiEndMenu();
         }
 
-        igEndMainMenuBar();
+        guiEndMainMenuBar();
     }
 
-    if (open_file_error) igOpenPopup_Str("Open file error", 0);
+    if (open_file_error) guiOpenPopup("Open file error");
 
     return quit;
 }
@@ -789,47 +785,21 @@ appMenuBar(AppState *state)
 static void
 appMainWindow(AppState *state)
 {
-    // NOTE (Matteo): Layout main window as a fixed dockspace that can host tool windows
-    // ImGuiDockNodeFlags_NoDockingInCentralNode is used to prevent tool windows from hiding the
-    // image view
-    ImGuiWindowFlags const window_flags =
-        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
-        ImGuiWindowFlags_NoNavFocus;
-    ImGuiDockNodeFlags const dock_flags = ImGuiDockNodeFlags_NoDockingInCentralNode;
-    ImGuiViewport const *viewport = igGetMainViewport();
-    ImGuiID dock_id = igDockSpaceOverViewport(viewport, dock_flags, NULL);
 
-    // NOTE (Matteo): Setup docking layout on first run (if the dockspace node is already split the
-    // layout has been setup and maybe modified by the user).
-    // This code is partially copied from github since the DockBuilder API is not documented -
-    // understand it better!
-    ImGuiDockNode *dockspace_node = igDockBuilderGetNode(dock_id);
-    if (!dockspace_node || !ImGuiDockNode_IsSplitNode(dockspace_node))
-    {
-        ImGuiID dock_id_right =
-            igDockBuilderSplitNode(dock_id, ImGuiDir_Right, 0.25f, NULL, &dock_id);
-        ImGuiID dock_id_down =
-            igDockBuilderSplitNode(dock_id, ImGuiDir_Down, 0.25f, NULL, &dock_id);
+    GuiDockLayout layout = guiDockLayout();
+    U32 dock_id_right = guiDockSplitRight(&layout, 0.25f);
+    U32 dock_id_down = guiDockSplitDown(&layout, 0.25f);
 
-        // Pre-dock application windows in the created nodes
-        igDockBuilderDockWindow(MAIN_WINDOW, dock_id);
-        igDockBuilderDockWindow(STATS_WINDOW, dock_id_down);
-        igDockBuilderDockWindow(STYLE_WINDOW, dock_id_right);
-        igDockBuilderDockWindow(FONTS_WINDOW, dock_id_right);
-        igDockBuilderFinish(dock_id);
-    }
+    // Pre-dock application windows in the created nodes
+    guiDockWindow(&layout, STATS_WINDOW, dock_id_down);
+    guiDockWindow(&layout, STYLE_WINDOW, dock_id_right);
+    guiDockWindow(&layout, FONTS_WINDOW, dock_id_right);
 
-    igBegin(MAIN_WINDOW, 0, window_flags);
-
-    // NOTE (Matteo): Instruct the docking system to consider the window's node always as the
-    // central one, thus not using it as a docking target (there's the backing dockspace already)
-    ImGuiDockNode *main_node = igGetWindowDockNode();
-    main_node->LocalFlags |= ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_CentralNode;
+    guiBeginLayout(MAIN_WINDOW, &layout);
 
     appImageView(state);
 
-    igEnd();
+    guiEnd();
 }
 
 //---------------------------------------//
@@ -913,7 +883,7 @@ APP_API APP_UPDATE_PROC(appUpdate)
 {
     Platform *plat = state->plat;
 
-    io->back_color = igGetColorU32_Col(ImGuiCol_WindowBg, 1.0f);
+    io->back_color = guiGetBackColor();
     io->continuous_update = false;
 
     if (!io->window_title)
@@ -936,64 +906,66 @@ APP_API APP_UPDATE_PROC(appUpdate)
 
     if (state->fonts)
     {
-        igBegin(FONTS_WINDOW, &state->fonts, 0);
+        guiBegin(FONTS_WINDOW, &state->fonts);
         io->rebuild_fonts = guiFontOptionsEdit(io->font_opts);
-        igEnd();
+        guiEnd();
     }
 
     if (state->stats)
     {
-        F64 framerate = (F64)igGetIO()->Framerate;
+        F64 framerate = (F64)guiGetFramerate();
 
-        igBegin(STATS_WINDOW, &state->stats, 0);
-        igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
-        igText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
-        igText("Virtual memory reserved %.3fkb - committed %.3fkb", (F64)plat->reserved_size / 1024,
-               (F64)plat->committed_size / 1024);
-        igSeparator();
-        igText("App base path:%.*s", state->plat->paths->base.len, state->plat->paths->base.buf);
-        igText("App data path:%.*s", state->plat->paths->data.len, state->plat->paths->data.buf);
-        igEnd();
+        guiBegin(STATS_WINDOW, &state->stats);
+        guiText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
+        guiText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
+        guiText("Virtual memory reserved %.3fkb - committed %.3fkb",
+                (F64)plat->reserved_size / 1024, (F64)plat->committed_size / 1024);
+        guiSeparator();
+        guiText("App base path:%.*s", (I32)state->plat->paths->base.len,
+                state->plat->paths->base.buf);
+        guiText("App data path:%.*s", (I32)state->plat->paths->data.len,
+                state->plat->paths->data.buf);
+        guiEnd();
     }
 
     if (state->style)
     {
-        igBegin(STYLE_WINDOW, &state->style, 0);
-        igShowStyleEditor(NULL);
-        igEnd();
+        guiBegin(STYLE_WINDOW, &state->style);
+        guiStyleEditor();
+        guiEnd();
     }
 
     if (state->metrics)
     {
-        igShowMetricsWindow(&state->metrics);
+        guiMetricsWindow(&state->metrics);
     }
 
     if (state->unsupported)
     {
         state->unsupported = false;
-        igOpenPopup_Str("Warning", 0);
+        guiOpenPopup("Warning");
     }
 
     //==== Popups ====//
 
-    if (igBeginPopupModal("Open file error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    if (guiBeginPopupModal("Open file error", NULL))
     {
-        igText("Error opening file");
+        guiText("Error opening file");
         if (guiCenteredButton("Ok"))
         {
-            igCloseCurrentPopup();
+            guiClosePopup();
         }
-        igEndPopup();
+        guiEndPopup();
     }
 
-    if (igBeginPopupModal("Warning", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    if (guiBeginPopupModal("Warning", NULL))
     {
-        igText("Unsupported file format");
+        guiText("Unsupported file format");
         if (guiCenteredButton("Ok"))
         {
             state->unsupported = false;
-            igCloseCurrentPopup();
+            guiClosePopup();
         }
-        igEndPopup();
+        guiEndPopup();
     }
 }

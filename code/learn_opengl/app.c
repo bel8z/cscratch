@@ -184,64 +184,64 @@ gfxProc(GfxState *gfx, CfLog *log)
 
 APP_API APP_UPDATE_PROC(appUpdate)
 {
-    if (igBeginMainMenuBar())
+    if (guiBeginMainMenuBar())
     {
-        if (igBeginMenu("File", true)) igEndMenu();
+        if (guiBeginMenu("File", true)) guiEndMenu();
 
-        if (igBeginMenu("Windows", true))
+        if (guiBeginMenu("Windows", true))
         {
-            igMenuItem_BoolPtr("Style editor", NULL, &state->style, true);
-            igMenuItem_BoolPtr("Font options", NULL, &state->fonts, true);
-            igSeparator();
-            igMenuItem_BoolPtr("Log", NULL, &state->log_box, true);
-            igMenuItem_BoolPtr("Stats", NULL, &state->stats, true);
-            igMenuItem_BoolPtr("Metrics", NULL, &state->metrics, true);
-            igEndMenu();
+            guiMenuItem("Style editor", &state->style);
+            guiMenuItem("Font options", &state->fonts);
+            guiSeparator();
+            guiMenuItem("Log", &state->log_box);
+            guiMenuItem("Stats", &state->stats);
+            guiMenuItem("Metrics", &state->metrics);
+            guiEndMenu();
         }
 
-        igEndMainMenuBar();
+        guiEndMainMenuBar();
     }
 
     if (state->fonts)
     {
-        igBegin("Font Options", &state->fonts, 0);
+        guiBegin("Font Options", &state->fonts);
         io->rebuild_fonts = guiFontOptionsEdit(io->font_opts);
-        igEnd();
+        guiEnd();
     }
 
     if (state->stats)
     {
         Platform *plat = state->plat;
-        F64 framerate = (F64)igGetIO()->Framerate;
+        F64 framerate = (F64)guiGetFramerate();
 
-        igBegin("Application stats stats", &state->stats, 0);
-        igText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
-        igText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
-        igSeparator();
-        igText("OpenGL version:\t%s", glGetString(GL_VERSION));
-        igText("OpenGL renderer:\t%s", glGetString(GL_RENDERER));
-        igText("OpenGL shader version:\t%s", glGetString(GL_SHADING_LANGUAGE_VERSION));
-        igEnd();
+        guiBegin("Application stats stats", &state->stats);
+        guiText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
+        guiText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
+        guiSeparator();
+        guiText("OpenGL version:\t%s", glGetString(GL_VERSION));
+        guiText("OpenGL renderer:\t%s", glGetString(GL_RENDERER));
+        guiText("OpenGL shader version:\t%s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+        guiEnd();
     }
 
     if (state->style)
     {
-        igBegin("Style Editor", &state->style, 0);
-        igShowStyleEditor(NULL);
-        igEnd();
+        guiBegin("Style Editor", &state->style);
+        guiStyleEditor();
+        guiEnd();
     }
 
     if (state->log_box)
     {
-        igBegin("Log", &state->log_box, 0);
-        igSetNextWindowSize((ImVec2){500, 400}, ImGuiCond_FirstUseEver);
+        guiBegin("Log", &state->log_box);
+        guiSetNextWindowSize((Vec2){.x = 500, .y = 400}, GuiCond_FirstUseEver);
         guiLogBox(&state->log, true);
-        igEnd();
+        guiEnd();
     }
 
     if (state->metrics)
     {
-        igShowMetricsWindow(&state->metrics);
+        guiMetricsWindow(&state->metrics);
     }
 
     gfxProc(&state->gfx, &state->log);

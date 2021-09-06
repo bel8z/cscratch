@@ -88,6 +88,12 @@ timeDurationNs(U64 nanoseconds)
     };
 }
 
+static inline F64
+timeGetSeconds(Duration duration)
+{
+    return (F64)duration.seconds + (F64)duration.nanos / CF_NS_PER_SEC;
+}
+
 //----------------//
 //   Comparison   //
 //----------------//

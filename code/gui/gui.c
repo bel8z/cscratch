@@ -6,6 +6,53 @@
 #include "foundation/memory.h"
 #include "foundation/strings.h"
 
+#include <stdarg.h>
+
+//------------------------------------------------------------------------------
+// Safely include cimgui.h with C declarations
+//------------------------------------------------------------------------------
+
+#if CF_COMPILER_MSVC
+#    pragma warning(push)
+#    pragma warning(disable : 4201)
+#    pragma warning(disable : 4214)
+#elif CF_COMPILER_CLANG
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wlanguage-extension-token"
+#endif
+
+#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
+#include "cimgui.h"
+
+#if CF_COMPILER_MSVC
+#    pragma warning(pop)
+#elif CF_COMPILER_CLANG
+#    pragma clang diagnostic pop
+#endif
+
+//=== Type conversions ===//
+
+CF_STATIC_ASSERT(sizeof(Vec2) == sizeof(ImVec2), "Vec2 not compatible with ImVec2");
+CF_STATIC_ASSERT(sizeof(Vec4) == sizeof(ImVec4), "Vec4 not compatible with ImVec4");
+CF_STATIC_ASSERT(sizeof(Rgba) == sizeof(ImVec4), "Rgba not compatible with ImVec4");
+
+// clang-format off
+#define guiCastV2(v)                                  \
+    _Generic((v),                                     \
+             ImVec2 : (Vec2)  { .x = v.x, .y = v.y }, \
+             Vec2   : (ImVec2){ .x = v.x, .y = v.y })
+
+#define guiCastV4(v)                                                      \
+    _Generic((v),                                                         \
+             ImVec4 : (Vec4)  { .x = v.x, .y = v.y, .z = v.z, .w = v.w }, \
+             Vec4   : (ImVec4){ .x = v.x, .y = v.y, .z = v.z, .w = v.w })
+
+#define guiCastRgba(c)                                \
+    _Generic((c),                                     \
+             ImVec4 : (Rgba)  { .r = c.x, .g = c.y, .b = c.z, .a = c.w }, \
+             Vec2   : (ImVec2){ .x = c.r, .y = c.g, .z = c.b, .w = c.a })
+// clang-format on
+
 //=== Memory management ===//
 
 static void *
@@ -52,8 +99,54 @@ guiInit(Gui *gui)
     else
     {
         gui->ctx = igCreateContext(gui->shared_atlas);
+
+        ImGuiIO *io = igGetIO();
+
+        io->IniFilename = gui->ini_filename;
+
+        // Enable Keyboard Controls
+        io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        // Enable Docking
+        io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        // Enable Multi-Viewport / Platform Windows
+        io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+        // Reduce visual noise while docking, also has a benefit for out-of-sync viewport rendering
+        io->ConfigDockingTransparentPayload = true;
+
         guiSetTheme(GuiTheme_Dark);
     }
+}
+
+void
+guiShutdown(Gui *gui)
+{
+    igDestroyContext(gui->ctx);
+}
+
+bool
+guiViewportsEnabled(void)
+{
+    return igGetIO()->ConfigFlags & ImGuiConfigFlags_ViewportsEnable;
+}
+
+void
+guiNewFrame(void)
+{
+    igNewFrame();
+}
+
+ImDrawData *
+guiRender(void)
+{
+    igRender();
+    return igGetDrawData();
+}
+
+void
+guiUpdateAndRenderViewports(void)
+{
+    igUpdatePlatformWindows();
+    igRenderPlatformWindowsDefault(NULL, NULL);
 }
 
 //=== Themes & styling ===//
@@ -84,6 +177,18 @@ guiThemeSelector(Cstr label)
     }
 
     if (next != curr) guiSetTheme(next);
+}
+
+Rgba32
+guiGetStyledColor(Rgba32 in)
+{
+    return igGetColorU32_U32(in);
+}
+
+Rgba32
+guiGetBackColor(void)
+{
+    return igGetColorU32_Col(ImGuiCol_WindowBg, 1.0f);
 }
 
 void
@@ -402,6 +507,148 @@ guiUpdateAtlas(ImFontAtlas *fonts, GuiFontOptions *font_opts)
     font_opts->tex_glyph_padding = fonts->TexGlyphPadding;
 }
 
+ImFontAtlas *
+guiFonts(void)
+{
+    return igGetIO()->Fonts;
+}
+
+ImFont *
+guiLoadFont(ImFontAtlas *fonts, Cstr file_name, F32 font_size)
+{
+    return ImFontAtlas_AddFontFromFileTTF(fonts, file_name, font_size, NULL,
+                                          ImFontAtlas_GetGlyphRangesDefault(fonts));
+}
+
+ImFont *
+guiLoadDefaultFont(ImFontAtlas *fonts)
+{
+    return ImFontAtlas_AddFontDefault(fonts, NULL);
+}
+
+//=== Windows ===//
+
+GuiDockLayout
+guiDockLayout(void)
+{
+    // NOTE (Matteo): Setup docking layout on first run (if the dockspace node is already split the
+    // layout has been setup and maybe modified by the user).
+    // This code is partially copied from github since the DockBuilder API is not documented -
+    // understand it better!
+
+    ImGuiDockNodeFlags const dock_flags = ImGuiDockNodeFlags_NoDockingInCentralNode;
+    ImGuiViewport const *viewport = igGetMainViewport();
+
+    GuiDockLayout layout = {0};
+
+    layout.id = igDockSpaceOverViewport(viewport, dock_flags, NULL);
+    layout.node = igDockBuilderGetNode(layout.id);
+    layout.open = (!layout.node || !ImGuiDockNode_IsSplitNode(layout.node));
+
+    return layout;
+}
+
+static U32
+gui_DockSplit(GuiDockLayout *layout, ImGuiDir dir, F32 size_ratio)
+{
+    U32 id = U32_MAX;
+    if (layout->open)
+    {
+        id = igDockBuilderSplitNode(layout->id, dir, size_ratio, NULL, &layout->id);
+    }
+    return id;
+}
+
+U32
+guiDockSplitUp(GuiDockLayout *layout, F32 size_ratio)
+{
+    return gui_DockSplit(layout, ImGuiDir_Up, size_ratio);
+}
+
+U32
+guiDockSplitDown(GuiDockLayout *layout, F32 size_ratio)
+{
+    return gui_DockSplit(layout, ImGuiDir_Down, size_ratio);
+}
+
+U32
+guiDockSplitLeft(GuiDockLayout *layout, F32 size_ratio)
+{
+    return gui_DockSplit(layout, ImGuiDir_Left, size_ratio);
+}
+
+U32
+guiDockSplitRight(GuiDockLayout *layout, F32 size_ratio)
+{
+    return gui_DockSplit(layout, ImGuiDir_Right, size_ratio);
+}
+
+bool
+guiDockWindow(GuiDockLayout *layout, Cstr name, U32 dock_id)
+{
+    if (layout->open && dock_id != U32_MAX)
+    {
+        igDockBuilderDockWindow(name, dock_id);
+        return true;
+    }
+
+    return false;
+}
+
+void
+guiSetNextWindowSize(Vec2 size, GuiCond cond)
+{
+    igSetNextWindowSize(guiCastV2(size), cond);
+}
+
+bool
+guiBegin(Cstr name, bool *p_open)
+{
+    return igBegin(name, p_open, ImGuiWindowFlags_HorizontalScrollbar);
+}
+
+bool
+guiBeginLayout(Cstr name, GuiDockLayout *layout)
+{
+    if (layout->open)
+    {
+        igDockBuilderDockWindow(name, layout->id);
+        igDockBuilderFinish(layout->id);
+    }
+
+    ImGuiWindowFlags const window_flags =
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
+        ImGuiWindowFlags_NoNavFocus;
+
+    bool result = igBegin(name, NULL, window_flags);
+
+    // NOTE (Matteo): Instruct the docking system to consider the window's node always as the
+    // central one, thus not using it as a docking target (there's the backing dockspace already)
+    ImGuiDockNode *main_node = igGetWindowDockNode();
+    main_node->LocalFlags |= ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_CentralNode;
+
+    return result;
+}
+
+void
+guiEnd(void)
+{
+    igEnd();
+}
+
+void
+guiMetricsWindow(bool *p_open)
+{
+    igShowMetricsWindow(p_open);
+}
+
+void
+guiDemoWindow(bool *p_open)
+{
+    igShowDemoWindow(p_open);
+}
+
 //=== Log ===//
 
 void
@@ -533,6 +780,104 @@ guiCanvasPopStrokeColor(GuiCanvas *canvas)
     canvas->stroke_color = cfBufferPop(&canvas->stroke_color_stack);
 }
 
+//=== IO ===//
+
+F32
+guiGetFramerate(void)
+{
+    return igGetIO()->Framerate;
+}
+
+bool
+guiKeyPressed(GuiKey key)
+{
+    return igIsKeyPressed(igGetIO()->KeyMap[key], true);
+}
+
+bool
+guiKeyCtrl(void)
+{
+    return igGetIO()->KeyCtrl;
+}
+
+bool
+guiKeyAlt(void)
+{
+    return igGetIO()->KeyAlt;
+}
+
+bool
+guiKeyShift(void)
+{
+    return igGetIO()->KeyShift;
+}
+
+Vec2
+guiGetMousePos(void)
+{
+    Vec2 out;
+    igGetMousePos((ImVec2 *)&out);
+    return out;
+}
+
+F32
+guiGetMouseWheel(void)
+{
+    return igGetIO()->MouseWheel;
+}
+
+F32
+guiGetMouseDownDuration(GuiMouseButton button)
+{
+    return igGetIO()->MouseDownDuration[button];
+}
+
+bool
+guiGetMouseDragging(GuiMouseButton button, Vec2 *out_delta)
+{
+    if (igIsMouseDragging(button, -1.0f))
+    {
+        if (out_delta) igGetMouseDragDelta((ImVec2 *)out_delta, button, -1.0f);
+        return true;
+    }
+
+    return false;
+}
+
+//=== Modals ===//
+
+bool
+guiBeginPopupModal(Cstr name, bool *p_open)
+{
+    return igBeginPopupModal(name, NULL, ImGuiWindowFlags_AlwaysAutoResize);
+}
+
+void
+guiEndPopup(void)
+{
+    igEndPopup();
+}
+
+void
+guiOpenPopup(Cstr name)
+{
+    igOpenPopup_Str(name, 0);
+}
+
+void
+guiClosePopup(void)
+{
+    igCloseCurrentPopup();
+}
+
+//=== Widgets ===//
+
+bool
+guiIsItemHovered(void)
+{
+    return igIsItemHovered(0);
+}
+
 //=== Miscellanea ===//
 
 void
@@ -563,6 +908,24 @@ guiEndFullScreen(void)
     igEnd();
 }
 
+void
+guiSameLine(void)
+{
+    igSameLine(0.0f, -1.0f);
+}
+
+void
+guiSeparator(void)
+{
+    igSeparator();
+}
+
+bool
+guiButton(Cstr label)
+{
+    return igButton(label, (ImVec2){0});
+}
+
 bool
 guiCenteredButton(Cstr label)
 {
@@ -584,6 +947,57 @@ guiCenteredButton(Cstr label)
     }
 
     return guiButton(label);
+}
+
+bool
+guiCheckbox(Cstr label, bool *checked)
+{
+    return igCheckbox(label, checked);
+}
+
+bool
+guiSlider(Cstr label, F32 *value, F32 min_value, F32 max_value)
+{
+    return igSliderFloat(label, value, min_value, max_value, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+}
+
+void
+guiText(Cstr fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    igTextV(fmt, args);
+    va_end(args);
+}
+
+bool
+guiBeginMainMenuBar(void)
+{
+    return igBeginMainMenuBar();
+}
+
+void
+guiEndMainMenuBar(void)
+{
+    igEndMainMenuBar();
+}
+
+bool
+guiBeginMenu(Cstr label, bool enabled)
+{
+    return igBeginMenu(label, enabled);
+}
+
+void
+guiEndMenu(void)
+{
+    return igEndMenu();
+}
+
+bool
+guiMenuItem(Cstr label, bool *p_selected)
+{
+    return igMenuItem_BoolPtr(label, NULL, p_selected, true);
 }
 
 bool
@@ -645,6 +1059,12 @@ guiColorEdit(Cstr label, Rgba32 *color)
     }
 
     return color_changed;
+}
+
+void
+guiStyleEditor(void)
+{
+    igShowStyleEditor(NULL);
 }
 
 //=== File dialogs ===//
