@@ -21,8 +21,10 @@
 /// of the public API
 
 // Note (Matteo): These are kept almost at top because are keywords
-#define alignof _Alignof
-#define alignas _Alignas
+#if !defined(__cplusplus)
+#    define alignof _Alignof
+#    define alignas _Alignas
+#endif
 
 #define CF_UNUSED(var) (void)(var)
 
@@ -153,10 +155,16 @@
 #    define CF_RELEASE_ASSERTS 1
 #endif
 
-#if CF_OS_WIN32
-#    define CF_API __declspec(dllexport)
+#if defined(__cplusplus)
+#    define CF_EXTERN_C extern "C"
 #else
-#    define CF_API
+#    define CF_EXTERN_C
+#endif
+
+#if CF_OS_WIN32
+#    define CF_API CF_EXTERN_C __declspec(dllexport)
+#else
+#    define CF_API CF_EXTERN_C
 #endif
 
 //-------------------//
@@ -183,7 +191,11 @@
 //-------------------------------//
 
 /// Compile time assertion
-#define CF_STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
+#if defined(__cplusplus)
+#    define CF_STATIC_ASSERT(expr, msg) static_assert(expr, msg)
+#else
+#    define CF_STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
+#endif
 
 #if CF_COMPILER_CLANG
 #    define CF_CRASH() __builtin_trap()
@@ -266,6 +278,13 @@
 //------------------------------------------------------------------------------
 //   TYPES
 //------------------------------------------------------------------------------
+
+#if defined(__cplusplus)
+#    if CF_COMPILER_CLANG
+#        pragma clang diagnostic push
+#        pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
+#    endif
+#endif
 
 /// Foundation types that can be used in API headers
 /// Keep more specific types (e.g. arena allocators, threading primitives) in dedicated headers and
@@ -682,8 +701,14 @@ typedef union IRect
     };
 } IRect;
 
+#if defined(__cplusplus)
+#    if CF_COMPILER_CLANG
+#        pragma clang diagnostic pop
+#    endif
+#endif
+
 //------------------------------------------------------------------------------
 
-CF_STATIC_ASSERT((Usize)CF_PTR_SIZE == sizeof(void *), "Invalid pointer size detected");
-CF_STATIC_ASSERT((Usize)CF_PTR_SIZE == sizeof(Uptr), "Invalid pointer size detected");
-CF_STATIC_ASSERT((Usize)CF_PTR_SIZE == sizeof(Iptr), "Invalid pointer size detected");
+CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(void *), "Invalid pointer size detected");
+CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(Uptr), "Invalid pointer size detected");
+CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(Iptr), "Invalid pointer size detected");

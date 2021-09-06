@@ -9,14 +9,14 @@ typedef struct CfLog
     Usize write_pos;
 } CfLog;
 
-CfLog cfLogCreate(CfVirtualMemory *vm, Usize buffer_size);
-void cfLogDestroy(CfLog *log, CfVirtualMemory *vm);
+CF_API CfLog cfLogCreate(CfVirtualMemory *vm, Usize buffer_size);
+CF_API void cfLogDestroy(CfLog *log, CfVirtualMemory *vm);
 
-Str cfLogString(CfLog *log);
-Cstr cfLogCstring(CfLog *log);
+CF_API Str cfLogString(CfLog *log);
+CF_API Cstr cfLogCstring(CfLog *log);
 
-void cfLogClear(CfLog *log);
+CF_API void cfLogClear(CfLog *log);
 
-void cfLogAppend(CfLog *log, Str string);
-void cfLogAppendC(CfLog *log, Cstr cstring);
-void cfLogAppendF(CfLog *log, Cstr format, ...) CF_PRINTF_LIKE(1, 2);
+CF_API void cfLogAppend(CfLog *log, Str string);
+CF_API void cfLogAppendC(CfLog *log, Cstr cstring);
+CF_API void cfLogAppendF(CfLog *log, Cstr format, ...) CF_PRINTF_LIKE(1, 2);

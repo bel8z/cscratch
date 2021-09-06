@@ -190,14 +190,14 @@
 //--------------------------------------------------------------------------------------------------
 // Color space manipulation utilities
 
-Rgba rgbaUnpack32(Rgba32 in);
-Rgba32 rgbaPack32(Rgba in);
+CF_API Rgba rgbaUnpack32(Rgba32 in);
+CF_API Rgba32 rgbaPack32(Rgba in);
 
-Rgba rgbaMultiplyAlpha(Rgba col);
-Rgba rgbaMultiplyAlpha32(Rgba32 col);
+CF_API Rgba rgbaMultiplyAlpha(Rgba col);
+CF_API Rgba rgbaMultiplyAlpha32(Rgba32 col);
 
-Hsva rgbaToHsva(Rgba in);
-Rgba hsvaToRgba(Hsva in);
+CF_API Hsva rgbaToHsva(Rgba in);
+CF_API Rgba hsvaToRgba(Hsva in);
 
 //--------------------------------------------------------------------------------------------------
 // Macros for automatic generation of arrays storing the common color names and values
