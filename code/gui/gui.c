@@ -434,6 +434,105 @@ guiLogBox(CfLog *log, bool readonly)
     igEndChild();
 }
 
+//=== Canvas ===//
+
+void
+guiCanvasBegin(GuiCanvas *canvas)
+{
+    ImVec2 size, p0, p1;
+
+    igGetContentRegionAvail(&size);
+    igInvisibleButton("Canvas", size, ImGuiButtonFlags_None);
+    igGetItemRectMin(&p0);
+    igGetItemRectMax(&p1);
+
+    canvas->size = guiCastV2(size);
+    canvas->p0 = guiCastV2(p0);
+    canvas->p1 = guiCastV2(p1);
+    canvas->draw_list = igGetWindowDrawList();
+
+    ImDrawList_PushClipRect(canvas->draw_list, p0, p1, true);
+
+    canvas->stroke_thick = 1.0f;
+}
+
+void
+guiCanvasEnd(GuiCanvas *canvas)
+{
+    ImDrawList_PopClipRect(canvas->draw_list);
+}
+
+void
+guiCanvasDrawLine(GuiCanvas *canvas, Vec2 p0, Vec2 p1)
+{
+    ImDrawList_AddLine(canvas->draw_list, guiCastV2(p0), guiCastV2(p1), canvas->stroke_color,
+                       canvas->stroke_thick);
+}
+
+void
+guiCanvasDrawPolyline(GuiCanvas *canvas, Vec2 points[], Usize count)
+{
+    ImDrawList_AddPolyline(canvas->draw_list, (ImVec2 *)points, count, canvas->stroke_color, 0,
+                           canvas->stroke_thick);
+}
+
+void
+guiCanvasDrawRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1)
+{
+    ImDrawList_AddRect(canvas->draw_list, guiCastV2(p0), guiCastV2(p1), canvas->stroke_color, 0.0f,
+                       0, canvas->stroke_thick);
+}
+
+void
+guiCanvasFillRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1)
+{
+    ImDrawList_AddRectFilled(canvas->draw_list, guiCastV2(p0), guiCastV2(p1), canvas->stroke_color,
+                             0.0f, 0);
+}
+
+void
+guiCanvasDrawCircle(GuiCanvas *canvas, Vec2 center, F32 radius)
+{
+    ImDrawList_AddCircle(canvas->draw_list, guiCastV2(center), radius, canvas->stroke_color, 0,
+                         canvas->stroke_thick);
+}
+
+void
+guiCanvasFillCircle(GuiCanvas *canvas, Vec2 center, F32 radius)
+{
+    ImDrawList_AddCircleFilled(canvas->draw_list, guiCastV2(center), radius, canvas->fill_color, 0);
+}
+
+void
+guiCanvasDrawText(GuiCanvas *canvas, Str text, Vec2 pos, Rgba32 color)
+{
+    ImDrawList_AddText_Vec2(canvas->draw_list, guiCastV2(pos), color, text.buf,
+                            text.buf + text.len);
+}
+
+void
+guiCanvasDrawImage(GuiCanvas *canvas, U32 texture, //
+                   Vec2 image_min, Vec2 image_max, //
+                   Vec2 uv_min, Vec2 uv_max)
+{
+    ImDrawList_AddImage(canvas->draw_list, (ImTextureID)(Iptr)texture, guiCastV2(image_min),
+                        guiCastV2(image_max), guiCastV2(uv_min), guiCastV2(uv_max),
+                        igGetColorU32_U32(RGBA32_WHITE));
+}
+
+void
+guiCanvasPushStrokeColor(GuiCanvas *canvas, Rgba32 color)
+{
+    cfBufferPush(&canvas->stroke_color_stack, canvas->stroke_color);
+    canvas->stroke_color = color;
+}
+
+void
+guiCanvasPopStrokeColor(GuiCanvas *canvas)
+{
+    canvas->stroke_color = cfBufferPop(&canvas->stroke_color_stack);
+}
+
 //=== Miscellanea ===//
 
 void

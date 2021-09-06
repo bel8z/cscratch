@@ -133,6 +133,47 @@ typedef struct CfLog CfLog;
 /// Widget for displaying log content
 void guiLogBox(CfLog *log, bool readonly);
 
+//=== Canvas ===//
+
+enum
+{
+    GuiCanvas_StackSize = 16
+};
+
+typedef struct GuiCanvas
+{
+    Vec2 size, p0, p1;
+    ImDrawList *draw_list;
+    Rgba32 stroke_color, fill_color;
+    F32 stroke_thick;
+
+    CfBuffer(Rgba32, GuiCanvas_StackSize) stroke_color_stack;
+    CfBuffer(Rgba32, GuiCanvas_StackSize) stroke_thick_stack;
+    CfBuffer(Rgba32, GuiCanvas_StackSize) fill_color_stack;
+
+} GuiCanvas;
+
+void guiCanvasBegin(GuiCanvas *canvas);
+void guiCanvasEnd(GuiCanvas *canvas);
+
+void guiCanvasDrawLine(GuiCanvas *canvas, Vec2 p0, Vec2 p1);
+void guiCanvasDrawPolyline(GuiCanvas *canvas, Vec2 points[], Usize count);
+
+void guiCanvasDrawRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1);
+void guiCanvasFillRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1);
+
+void guiCanvasDrawCircle(GuiCanvas *canvas, Vec2 center, F32 radius);
+void guiCanvasFillCircle(GuiCanvas *canvas, Vec2 center, F32 radius);
+
+void guiCanvasDrawText(GuiCanvas *canvas, Str text, Vec2 pos, Rgba32 color);
+
+void guiCanvasDrawImage(GuiCanvas *canvas, U32 texture, //
+                        Vec2 image_min, Vec2 image_max, //
+                        Vec2 uv_min, Vec2 uv_max);
+
+void guiCanvasPushStrokeColor(GuiCanvas *canvas, Rgba32 color);
+void guiCanvasPopStrokeColor(GuiCanvas *canvas);
+
 //=== Miscellanea ===//
 
 void guiBeginFullScreen(Cstr label, bool docking, bool menu_bar);
@@ -160,6 +201,10 @@ guiKeyPressed(ImGuiKey key)
 {
     return igIsKeyPressed(igGetIO()->KeyMap[key], true);
 }
+
+CF_STATIC_ASSERT(sizeof(Vec2) == sizeof(ImVec2), "Vec2 not compatible with ImVec2");
+CF_STATIC_ASSERT(sizeof(Vec4) == sizeof(ImVec4), "Vec4 not compatible with ImVec4");
+CF_STATIC_ASSERT(sizeof(Rgba) == sizeof(ImVec4), "Rgba not compatible with ImVec4");
 
 // clang-format off
 #define guiCastV2(v)                                  \

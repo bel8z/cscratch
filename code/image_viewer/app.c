@@ -597,14 +597,12 @@ appImageView(AppState *state)
     // NOTE (Matteo): Use the available content area as the image view; an invisible button
     // is used in order to catch input.
 
-    ImVec2 view_size, view_min, view_max;
-    igGetContentRegionAvail(&view_size);
-    if (view_size.x < 50.0f) view_size.x = 50.0f;
-    if (view_size.y < 50.0f) view_size.y = 50.0f;
+    igSetNextWindowSize((ImVec2){50, 50}, ImGuiCond_Once);
+    GuiCanvas canvas = {0};
+    guiCanvasBegin(&canvas);
 
-    igInvisibleButton("Image viewer##Area", view_size, 0);
-    igGetItemRectMin(&view_min);
-    igGetItemRectMax(&view_max);
+    Vec2 view_min = canvas.p0;
+    Vec2 view_max = canvas.p1;
 
     Vec2 view_center = {.x = (view_max.x + view_min.x) / 2, //
                         .y = (view_max.y + view_min.y) / 2};
@@ -666,21 +664,21 @@ appImageView(AppState *state)
 
         // NOTE (Matteo): Clamp the displayed portion of the texture to the actual image size, since
         // the texture could be larger in order to be reused
-        ImVec2 clamp_uv = {image_w / (F32)tex->width, //
-                           image_h / (F32)tex->height};
+        Vec2 clamp_uv = {.x = image_w / (F32)tex->width, //
+                         .y = image_h / (F32)tex->height};
 
         // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
         // ratio at zoom level == 1; then zoom is applied
-        if (image_w > view_size.x)
+        if (image_w > canvas.size.width)
         {
-            image_h *= view_size.x / image_w;
-            image_w = view_size.x;
+            image_h *= canvas.size.width / image_w;
+            image_w = canvas.size.width;
         }
 
-        if (image_h > view_size.y)
+        if (image_h > canvas.size.height)
         {
-            image_w *= view_size.y / image_h;
-            image_h = view_size.y;
+            image_w *= canvas.size.height / image_h;
+            image_h = canvas.size.height;
         }
 
         // NOTE (Matteo): Round image bounds to nearest pixel for stable rendering
@@ -700,22 +698,20 @@ appImageView(AppState *state)
             iv->zoom = curr_zoom;
         }
 
-        ImVec2 image_min = {iv->drag.x + cfRound(view_min.x + 0.5f * (view_size.x - image_w)),
-                            iv->drag.y + cfRound(view_min.y + 0.5f * (view_size.y - image_h))};
+        Vec2 image_min = {
+            .x = iv->drag.x + cfRound(view_min.x + 0.5f * (canvas.size.width - image_w)),
+            .y = iv->drag.y + cfRound(view_min.y + 0.5f * (canvas.size.height - image_h))};
 
-        ImVec2 image_max = {image_min.x + image_w, image_min.y + image_h};
+        Vec2 image_max = {.x = image_min.x + image_w, .y = image_min.y + image_h};
 
-        ImDrawList *draw_list = igGetWindowDrawList();
-        ImDrawList_PushClipRect(draw_list, view_min, view_max, true);
-        ImDrawList_AddImage(draw_list, (ImTextureID)(Iptr)tex->id, image_min, image_max,
-                            (ImVec2){0.0f, 0.0f}, clamp_uv, igGetColorU32_U32(RGBA32_WHITE));
+        guiCanvasDrawImage(&canvas, tex->id, image_min, image_max, (Vec2){0}, clamp_uv);
 
         if (iv->advanced)
         {
             // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
-            ImU32 debug_color = igGetColorU32_U32(RGBA32_FUCHSIA);
-            ImDrawList_AddRect(draw_list, image_min, image_max, debug_color, 0.0f, 0, 1.0f);
-            ImDrawList_AddRect(draw_list, view_min, view_max, debug_color, 0.0f, 0, 1.0f);
+            canvas.stroke_color = igGetColorU32_U32(RGBA32_FUCHSIA);
+            guiCanvasDrawRect(&canvas, image_min, image_max);
+            guiCanvasDrawRect(&canvas, view_min, view_max);
         }
     }
 }

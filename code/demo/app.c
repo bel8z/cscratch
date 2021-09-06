@@ -254,13 +254,13 @@ normalize(F32 value, F32 range, F32 offset)
 }
 
 void
-fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
+fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
 {
     static F32 const pi2 = 2 * CF_PI32;
 
     // Center of the view
-    Vec2 const center = {.x = (p0.x + p1.x) / 2, //
-                         .y = (p0.y + p1.y) / 2};
+    Vec2 const center = {.x = (canvas->p0.x + canvas->p1.x) / 2, //
+                         .y = (canvas->p0.y + canvas->p1.y) / 2};
 
     // Rotation of the ellipse
     F32 const rot = normalize(0.1f * pi2 * (F32)time, CF_PI32, 0);
@@ -268,10 +268,10 @@ fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse
     F32 const sinw = cfSin(rot);
 
     // Draw the ellipse as a series of segments
-    ImVec2 points[1024] = {0};
+    Vec2 points[1024] = {0};
     F32 const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
 
-    F32 const extent = cfMin(size.x, size.y);
+    F32 const extent = cfMin(canvas->size.x, canvas->size.y);
     F32 const a = 3 * extent / 8;
     F32 const b = 3 * a / 5;
     for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
@@ -284,7 +284,8 @@ fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse
         points[i].y = center.y + a * cost * sinw + b * sint * cosw;
     }
 
-    ImDrawList_AddPolyline(draw_list, points, CF_ARRAY_SIZE(points), RGBA32_YELLOW, 0, 1.0f);
+    canvas->stroke_color = RGBA32_YELLOW;
+    guiCanvasDrawPolyline(canvas, points, CF_ARRAY_SIZE(points));
 
     // Draw mouse position and nearest point on the ellipse
     Vec2 query_pt = {.x = mouse_data.x - center.x, //
@@ -294,31 +295,30 @@ fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse
     Vec2 query_res = DistancePointEllipse(a, b, query_pt).xy;
     query_res = rotateFwd(query_res, cosw, sinw);
 
-    ImDrawList_AddCircleFilled(draw_list, (ImVec2){mouse_data.x, mouse_data.y}, 5.0f,
-                               RGBA32_ORANGE_RED, 0);
+    canvas->stroke_color = canvas->fill_color = RGBA32_ORANGE_RED;
 
-    ImDrawList_AddCircleFilled(draw_list, (ImVec2){query_res.x + center.x, query_res.y + center.y},
-                               5.0f, RGBA32_ORANGE_RED, 0);
+    guiCanvasFillCircle(canvas, mouse_data.xyz.xy, 5.0f);
 
-    ImDrawList_AddLine(draw_list, //
-                       (ImVec2){mouse_data.x, mouse_data.y},
-                       (ImVec2){query_res.x + center.x, query_res.y + center.y}, //
-                       RGBA32_ORANGE_RED, 1.0f);
+    guiCanvasFillCircle(canvas, vecAdd(query_res, center), 5.0f);
+
+    guiCanvasDrawLine(canvas, mouse_data.xyz.xy, vecAdd(query_res, center));
 
     // Draw intersection on the Y axis
     F32 sinw2 = sinw * sinw;
     F32 cosw2 = cosw * cosw;
     Vec2 itx = {.x = 0, .y = a * b * cfRsqrt(a * a * cosw2 + b * b * sinw2)};
 
-    ImDrawList_AddLine(draw_list, (ImVec2){center.x, p0.y}, (ImVec2){center.x, p1.y}, RGBA32_CYAN,
-                       1.0f);
+    canvas->stroke_color = RGBA32_CYAN;
+    guiCanvasDrawLine(canvas,                                   //
+                      (Vec2){.x = center.x, .y = canvas->p0.y}, //
+                      (Vec2){.x = center.x, .y = canvas->p1.y});
 
-    ImDrawList_AddLine(draw_list, guiCastV2(center), (ImVec2){center.x + itx.x, center.y + itx.y},
-                       RGBA32_ORANGE_RED, 1.0f);
+    canvas->stroke_color = RGBA32_ORANGE_RED;
+    guiCanvasDrawLine(canvas, center, (Vec2){.x = center.x + itx.x, .y = center.y + itx.y});
 
     // Place a circle on the ellipse
     F32 const circ_rad = b / 3;
-    Vec2 circ_center = {.x = 0, .y = -size.y * 2};
+    Vec2 circ_center = {.x = 0, .y = -canvas->size.y * 2};
 
     query_res = DistancePointEllipse(a, b, rotateBwd(circ_center, cosw, sinw)).xy;
     query_res = rotateFwd(query_res, cosw, sinw);
@@ -328,34 +328,34 @@ fxEllipse(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse
 
     circ_center = vecAdd2(circ_center, delta);
 
-    ImDrawList_AddCircle(draw_list, (ImVec2){circ_center.x + center.x, circ_center.y + center.y},
-                         circ_rad, RGBA32_YELLOW, 0, 1.0f);
+    canvas->stroke_color = RGBA32_YELLOW;
+    guiCanvasDrawCircle(canvas, vecAdd(circ_center, center), circ_rad);
 
-    ImDrawList_AddCircleFilled(draw_list, (ImVec2){query_res.x + center.x, query_res.y + center.y},
-                               5.0f, RGBA32_FUCHSIA, 0);
+    canvas->fill_color = RGBA32_FUCHSIA;
+    guiCanvasFillCircle(canvas, vecAdd(query_res, center), 5.0f);
 }
 
 void
-fxSine(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
+fxSine(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
 {
     // 1 Hz sinusoid, YAY!
 
-    static ImVec2 points[1024] = {0};
+    static Vec2 points[1024] = {0};
 
     static F32 const pi2 = 2 * CF_PI32;
     static F32 const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
 
-    F32 const amp = cfMin(size.x, size.y) / 4;
+    F32 const amp = cfMin(canvas->size.x, canvas->size.y) / 4;
 
     F32 const x_offset = 2 * amp;
-    F32 const x_space = size.x - x_offset;
+    F32 const x_space = canvas->size.x - x_offset;
     F32 const x_step = x_space / (CF_ARRAY_SIZE(points) - 1);
-    F32 const y_offset = size.y / 2;
+    F32 const y_offset = canvas->size.y / 2;
 
     F32 const phase = pi2 * (F32)time;
 
-    ImVec2 const center = {p0.x + amp, p0.y + y_offset};
-    ImVec2 polar = {0};
+    Vec2 const center = {.x = canvas->p0.x + amp, .y = canvas->p0.y + y_offset};
+    Vec2 polar = {0};
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
     {
@@ -363,72 +363,79 @@ fxSine(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_da
         F32 sin = amp * cfSin(rad);
         F32 cos = amp * cfCos(rad);
 
-        points[i].x = p0.x + x_offset + x_step * (F32)i;
-        points[i].y = p0.y + y_offset + sin;
+        points[i].x = canvas->p0.x + x_offset + x_step * (F32)i;
+        points[i].y = canvas->p0.y + y_offset + sin;
 
         polar.x = center.x + cos;
         polar.y = center.y + sin;
     }
 
-    ImDrawList_AddCircle(draw_list, center, amp, RGBA32_YELLOW, 0, 1.0f);
-    ImDrawList_AddLine(draw_list, center, polar, RGBA32_YELLOW, 1.0f);
-    ImDrawList_AddLine(draw_list, polar, points[0], RGBA32_YELLOW, 1.0f);
-    ImDrawList_AddPolyline(draw_list, points, CF_ARRAY_SIZE(points), RGBA32_YELLOW, 0, 1.0f);
+    canvas->stroke_color = RGBA32_YELLOW;
+    guiCanvasDrawCircle(canvas, center, amp);
+    guiCanvasDrawLine(canvas, center, polar);
+    guiCanvasDrawLine(canvas, polar, points[0]);
+    guiCanvasDrawPolyline(canvas, points, CF_ARRAY_SIZE(points));
 
-    ImDrawList_AddLine(draw_list, (ImVec2){p0.x, p0.y + y_offset}, (ImVec2){p1.x, p0.y + y_offset},
-                       RGBA32_PURPLE, 1.0f);
-    ImDrawList_AddLine(draw_list, (ImVec2){p0.x + amp, p0.y}, (ImVec2){p0.x + amp, p1.y},
-                       RGBA32_PURPLE, 1.0f);
-    ImDrawList_AddLine(draw_list, (ImVec2){p0.x + 2 * amp, p0.y}, (ImVec2){p0.x + 2 * amp, p1.y},
-                       RGBA32_PURPLE, 1.0f);
+    Vec2 p0 = canvas->p0;
+    Vec2 p1 = canvas->p1;
 
-    ImDrawList_AddCircleFilled(draw_list, (ImVec2){mouse_data.x, mouse_data.y}, 5.0f,
-                               RGBA32_ORANGE_RED, 0);
+    canvas->stroke_color = RGBA32_PURPLE;
+    guiCanvasDrawLine(canvas, //
+                      (Vec2){.x = p0.x, .y = p0.y + y_offset},
+                      (Vec2){.x = p1.x, .y = p0.y + y_offset});
+
+    guiCanvasDrawLine(canvas,                             //
+                      (Vec2){.x = p0.x + amp, .y = p0.y}, //
+                      (Vec2){.x = p0.x + amp, .y = p1.y});
+
+    guiCanvasDrawLine(canvas, //
+                      (Vec2){.x = p0.x + 2 * amp, .y = p0.y},
+                      (Vec2){.x = p0.x + 2 * amp, .y = p1.y});
+
+    canvas->fill_color = RGBA32_ORANGE_RED;
+    guiCanvasFillCircle(canvas, mouse_data.xyz.xy, 5.0f);
 }
 
 static void
-fxDraw(ImDrawList *draw_list, ImVec2 p0, ImVec2 p1, ImVec2 size, ImVec4 mouse_data, F64 time)
+fxDraw(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
 {
-    ImDrawList_AddRect(draw_list, p0, p1, RGBA32_PURPLE, 0.0f, 0, 1.0f);
+    guiCanvasDrawRect(canvas, canvas->p0, canvas->p1);
 
     Char8 buffer[1024];
     strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%f", time);
-    ImDrawList_AddText_Vec2(draw_list, p0, RGBA32_RED, buffer, buffer + strLength(buffer));
+    guiCanvasDrawText(canvas, strFromCstr(buffer), canvas->p0, RGBA32_RED);
 
-    // fxSine(draw_list, p0, p1, size, mouse_data, time);
-    fxEllipse(draw_list, p0, p1, size, mouse_data, time);
+    // fxSine(canvas, mouse_data, time);
+    fxEllipse(canvas, mouse_data, time);
 }
 
 static void
 fxWindow(void)
 {
     ImGuiIO *io = igGetIO();
-    ImVec2 size, p0, p1;
     igSetNextWindowSize((ImVec2){320, 180}, ImGuiCond_Once);
     igBegin("FX", NULL, 0);
-    igGetContentRegionAvail(&size);
-    igInvisibleButton("canvas", size, ImGuiButtonFlags_None);
-    igGetItemRectMin(&p0);
-    igGetItemRectMax(&p1);
 
-    ImVec4 mouse_data;
+    GuiCanvas canvas = {0};
+    guiCanvasBegin(&canvas);
+
+    Vec4 mouse_data;
     mouse_data.x = io->MousePos.x; // (io->MousePos.x - p0.x) / size.x;
     mouse_data.y = io->MousePos.y; // (io->MousePos.y - p0.y) / size.y;
     mouse_data.z = io->MouseDownDuration[0];
     mouse_data.w = io->MouseDownDuration[1];
 
-    ImDrawList *draw_list = igGetWindowDrawList();
-    ImDrawList_PushClipRect(draw_list, p0, p1, true);
-    fxDraw(draw_list, p0, p1, size, mouse_data, igGetTime());
-    ImDrawList_PopClipRect(draw_list);
+    fxDraw(&canvas, mouse_data, igGetTime());
+
+    guiCanvasEnd(&canvas);
 
     igEnd();
 }
 
 static void
-fxDrawArc(ImDrawList *draw_list, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Rgba32 color)
+fxDrawArc(GuiCanvas *canvas, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Rgba32 color)
 {
-    ImVec2 points[1024];
+    Vec2 points[1024];
 
     F32 dx = p1.x - p0.x;
     F32 dy = p1.y - p0.y;
@@ -444,14 +451,15 @@ fxDrawArc(ImDrawList *draw_list, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Rgba
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
     {
-        points[i] = guiCastV2(vecAdd(v0, center));
+        points[i] = vecAdd(v0, center);
         // points[i].x = center.x + v0.x;
         // points[i].y = center.y + v0.y;
-
         v0 = rotateFwd(v0, cos, sin);
     }
 
-    ImDrawList_AddPolyline(draw_list, points, CF_ARRAY_SIZE(points), color, 0, 1.0f);
+    guiCanvasPushStrokeColor(canvas, color);
+    guiCanvasDrawPolyline(canvas, points, CF_ARRAY_SIZE(points));
+    guiCanvasPopStrokeColor(canvas);
 }
 
 void
@@ -475,30 +483,24 @@ fxTangentCircles(void)
     igSliderFloat("Depth", &depth, 0, 5, "%.0f", 0);
     igSeparator();
 
-    ImVec2 size, p0, p1;
-    igGetContentRegionAvail(&size);
-    igInvisibleButton("canvas", size, ImGuiButtonFlags_None);
-    igGetItemRectMin(&p0);
-    igGetItemRectMax(&p1);
+    GuiCanvas canvas = {0};
+    guiCanvasBegin(&canvas);
 
-    ImDrawList *draw_list = igGetWindowDrawList();
-    ImDrawList_PushClipRect(draw_list, p0, p1, true);
-
-    F32 scale = size.y / (crib / 2 + 5.0f);
+    F32 scale = canvas.size.y / (crib / 2 + 5.0f);
 
     F32 lens_radius = lens_radius_parm * scale;
     crib *= scale;
     cutter_radius *= scale;
 
-    Vec2 lens_center = {.x = p0.x + size.x / 2 + lens_radius, //
-                        .y = p1.y};
+    Vec2 lens_center = {.x = canvas.p0.x + canvas.size.x / 2 + lens_radius, //
+                        .y = canvas.p1.y};
 
     F32 crib_x = cfSqrt(lens_radius * lens_radius - crib * crib / 4);
     Vec2 lens_start = {.x = lens_center.x - crib_x, .y = lens_center.y + crib / 2};
     Vec2 lens_end = {.x = lens_center.x - crib_x, .y = lens_center.y - crib / 2};
     F32 lens_angle = cfAtan2(crib / 2, crib_x);
 
-    fxDrawArc(draw_list, lens_center, lens_start, lens_end, lens_radius, RGBA32_FUCHSIA);
+    fxDrawArc(&canvas, lens_center, lens_start, lens_end, lens_radius, RGBA32_FUCHSIA);
 
     Vec2 cutter_center = {.x = lens_end.x - cfCos(lens_angle) * cutter_radius,
                           .y = lens_end.y - cfSin(lens_angle) * cutter_radius};
@@ -516,13 +518,9 @@ fxTangentCircles(void)
     cutter_start_p = vecAdd(cutter_center, rotateFwd(cutter_start_p, dcos, dsin));
     cutter_end_p = vecAdd(cutter_center, rotateFwd(cutter_end_p, dcos, dsin));
 
-    fxDrawArc(draw_list, cutter_center, cutter_start_p, cutter_end_p, cutter_radius, RGBA32_YELLOW);
+    fxDrawArc(&canvas, cutter_center, cutter_start_p, cutter_end_p, cutter_radius, RGBA32_YELLOW);
 
-    // ImDrawList_AddCircle(draw_list, cutter_center, cutter_radius, RGBA32_ORANGE, 0, 1.0f);
-    // ImDrawList_AddLine(draw_list, lens_center, lens_end, RGBA32_ORANGE, 1.0f);
-    // ImDrawList_AddLine(draw_list, lens_end, cutter_center, RGBA32_ORANGE, 1.0f);
-
-    ImDrawList_PopClipRect(draw_list);
+    guiCanvasEnd(&canvas);
 
     igEnd();
 }
