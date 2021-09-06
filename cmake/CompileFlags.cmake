@@ -41,7 +41,6 @@ function(set_c_compile_flags project_name)
         -Wnull-dereference # warn if a null dereference is detected
         -Wconversion # warn on type conversions that may lose data
         -Wsign-conversion # warn on sign conversions
-        -Wold-style-cast # warn for c-style casts
         -Wdouble-promotion # warn if float is implicit promoted to double
         -Wformat=2 # warn on security issues around functions that format output (ie printf)
         
@@ -106,7 +105,6 @@ function(set_cxx_compile_flags project_name)
                            # This helps catch hard to track down memory errors
         -Wold-style-cast # warn for c-style casts
         -Woverloaded-virtual # warn if you overload (not override) a virtual function
-        -Wdouble-promotion # warn if float is implicit promoted to double
         -Wcast-align # warn for potential performance problem casts
     )
 
