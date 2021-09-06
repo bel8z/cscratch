@@ -168,14 +168,14 @@
     operator Vec2() const { return Vec2{{x, y}}; }
 
 #define IM_VEC4_CLASS_EXTRA \
-    ImVec4(const Vec4 &f)   \
+    ImVec4(const Rgba &f)   \
     {                       \
-        x = f.x;            \
-        y = f.y;            \
-        z = f.z;            \
-        w = f.w;            \
+        x = f.r;            \
+        y = f.g;            \
+        z = f.b;            \
+        w = f.a;            \
     }                       \
-    operator Vec4() const { return Vec4{{x, y, z, w}}; }
+    operator Rgba() const { return Rgba{{x, y, z, w}}; }
 
 //---- Use 32-bit vertex indices (default is 16-bit) is one way to allow large meshes with more than
 // 64K vertices.
