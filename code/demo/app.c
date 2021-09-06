@@ -458,9 +458,10 @@ fxDrawArc(GuiCanvas *canvas, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Rgba32 c
         v0 = rotateFwd(v0, cos, sin);
     }
 
-    guiCanvasPushStrokeColor(canvas, color);
+    Rgba32 prev_color = canvas->stroke_color;
+    canvas->stroke_color = color;
     guiCanvasDrawPolyline(canvas, points, CF_ARRAY_SIZE(points));
-    guiCanvasPopStrokeColor(canvas);
+    canvas->stroke_color = prev_color;
 }
 
 void

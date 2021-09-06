@@ -5,19 +5,28 @@ extern "C"
 {
 #endif
 
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma warning(push)
-#pragma warning(disable : 5105)
+#if defined(_MSC_VER)
+#    if defined(__clang__)
+#        pragma clang diagnostic push
+#        pragma clang diagnostic ignored "-Wlanguage-extension-token"
+#    else
+#        pragma warning(push)
+#        pragma warning(disable : 5105)
+#    endif
 #endif
 
 #include "glcorearb.h"
 
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma warning(pop)
+#if defined(_MSC_VER)
+#    if defined(__clang__)
+#        pragma clang diagnostic pop
+#    else
+#        pragma warning(pop)
+#    endif
 #endif
 
 #ifndef __gl_h_
-#define __gl_h_
+#    define __gl_h_
 #endif
 
     //-----------

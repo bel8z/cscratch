@@ -73,14 +73,14 @@ typedef struct Gui
 } Gui;
 
 /// Initialize IMGUI global state
-void guiInit(Gui *gui);
-void guiShutdown(Gui *gui);
+CF_API void guiInit(Gui *gui);
+CF_API void guiShutdown(Gui *gui);
 
-bool guiViewportsEnabled(void);
+CF_API bool guiViewportsEnabled(void);
 
-void guiNewFrame(void);
-ImDrawData *guiRender(void);
-void guiUpdateAndRenderViewports(void);
+CF_API void guiNewFrame(void);
+CF_API ImDrawData *guiRender(void);
+CF_API void guiUpdateAndRenderViewports(void);
 
 //=== Themes & styling ===//
 
@@ -100,30 +100,30 @@ enum GuiTheme_
 };
 
 /// Set a custom IMGUI color theme and sizes according to scale
-void guiSetupStyle(GuiTheme theme, F32 dpi_scale);
+CF_API void guiSetupStyle(GuiTheme theme, F32 dpi_scale);
 
 /// Set a custom IMGUI color theme
-void guiSetTheme(GuiTheme theme);
+CF_API void guiSetTheme(GuiTheme theme);
 
-void guiThemeSelector(Cstr label);
+CF_API void guiThemeSelector(Cstr label);
 
-Rgba32 guiGetStyledColor(Rgba32 in);
+CF_API Rgba32 guiGetStyledColor(Rgba32 in);
 
-Rgba32 guiGetBackColor(void);
+CF_API Rgba32 guiGetBackColor(void);
 
 //=== IO ===//
 
-F32 guiGetFramerate(void);
+CF_API F32 guiGetFramerate(void);
 
-bool guiKeyPressed(GuiKey key);
-bool guiKeyCtrl(void);
-bool guiKeyAlt(void);
-bool guiKeyShift(void);
+CF_API bool guiKeyPressed(GuiKey key);
+CF_API bool guiKeyCtrl(void);
+CF_API bool guiKeyAlt(void);
+CF_API bool guiKeyShift(void);
 
-Vec2 guiGetMousePos(void);
-F32 guiGetMouseWheel(void);
-bool guiGetMouseDragging(GuiMouseButton button, Vec2 *out_delta);
-F32 guiGetMouseDownDuration(GuiMouseButton button);
+CF_API Vec2 guiGetMousePos(void);
+CF_API F32 guiGetMouseWheel(void);
+CF_API bool guiGetMouseDragging(GuiMouseButton button, Vec2 *out_delta);
+CF_API F32 guiGetMouseDownDuration(GuiMouseButton button);
 
 //=== Windows ===//
 
@@ -134,58 +134,57 @@ typedef struct GuiDockLayout
     bool open;
 } GuiDockLayout;
 
-GuiDockLayout guiDockLayout(void);
-U32 guiDockSplitUp(GuiDockLayout *layout, F32 size_ratio);
-U32 guiDockSplitDown(GuiDockLayout *layout, F32 size_ratio);
-U32 guiDockSplitLeft(GuiDockLayout *layout, F32 size_ratio);
-U32 guiDockSplitRight(GuiDockLayout *layout, F32 size_ratio);
-bool guiDockWindow(GuiDockLayout *layout, Cstr name, U32 dock_id);
+CF_API GuiDockLayout guiDockLayout(void);
+CF_API U32 guiDockSplitUp(GuiDockLayout *layout, F32 size_ratio);
+CF_API U32 guiDockSplitDown(GuiDockLayout *layout, F32 size_ratio);
+CF_API U32 guiDockSplitLeft(GuiDockLayout *layout, F32 size_ratio);
+CF_API U32 guiDockSplitRight(GuiDockLayout *layout, F32 size_ratio);
+CF_API bool guiDockWindow(GuiDockLayout *layout, Cstr name, U32 dock_id);
 
-void guiSetNextWindowSize(Vec2 size, GuiCond cond);
+CF_API void guiSetNextWindowSize(Vec2 size, GuiCond cond);
 
-bool guiBegin(Cstr name, bool *p_open);
-bool guiBeginLayout(Cstr name, GuiDockLayout *layout);
-void guiEnd(void);
+CF_API bool guiBegin(Cstr name, bool *p_open);
+CF_API bool guiBeginLayout(Cstr name, GuiDockLayout *layout);
+CF_API void guiEnd(void);
 
-void guiMetricsWindow(bool *p_open);
-void guiDemoWindow(bool *p_open);
+CF_API void guiMetricsWindow(bool *p_open);
+CF_API void guiDemoWindow(bool *p_open);
 
 // NOTE (Matteo): Deprecated?
-void guiBeginFullScreen(Cstr label, bool docking, bool menu_bar);
-void guiEndFullScreen(void);
+CF_API void guiBeginFullScreen(Cstr label, bool docking, bool menu_bar);
+CF_API void guiEndFullScreen(void);
 
 //=== Modals ===//
 
-bool guiBeginPopupModal(Cstr name, bool *p_open);
-void guiEndPopup(void);
+CF_API bool guiBeginPopupModal(Cstr name, bool *p_open);
+CF_API void guiEndPopup(void);
 
-void guiOpenPopup(Cstr name);
-void guiClosePopup(void);
+CF_API void guiOpenPopup(Cstr name);
+CF_API void guiClosePopup(void);
 
 //=== Widgets ===//
 
-bool guiIsItemHovered(void);
+CF_API bool guiIsItemHovered(void);
 
-bool guiButton(Cstr label);
-bool guiCenteredButton(Cstr label);
+CF_API bool guiButton(Cstr label);
+CF_API bool guiCenteredButton(Cstr label);
 
-bool guiCheckbox(Cstr label, bool *checked);
+CF_API bool guiCheckbox(Cstr label, bool *checked);
 
-bool guiSlider(Cstr label, F32 *value, F32 min_value, F32 max_value);
+CF_API bool guiSlider(Cstr label, F32 *value, F32 min_value, F32 max_value);
 
-CF_PRINTF_LIKE(0, 1)
-void guiText(Cstr fmt, ...);
+CF_API void guiText(Cstr fmt, ...) CF_PRINTF_LIKE(0, 1);
 
-bool guiBeginMainMenuBar(void);
-void guiEndMainMenuBar(void);
-bool guiBeginMenu(Cstr label, bool enabled);
-void guiEndMenu(void);
-bool guiMenuItem(Cstr label, bool *p_selected);
+CF_API bool guiBeginMainMenuBar(void);
+CF_API void guiEndMainMenuBar(void);
+CF_API bool guiBeginMenu(Cstr label, bool enabled);
+CF_API void guiEndMenu(void);
+CF_API bool guiMenuItem(Cstr label, bool *p_selected);
 
 /// Custom color edit with an additional combobox for choosing X11 named colors
-bool guiColorEdit(Cstr label, Rgba32 *color);
+CF_API bool guiColorEdit(Cstr label, Rgba32 *color);
 
-void guiStyleEditor(void);
+CF_API void guiStyleEditor(void);
 
 //=== Fonts handling ===//
 
@@ -203,15 +202,15 @@ typedef struct GuiFontOptions
 } GuiFontOptions;
 
 /// Widget for the editing of font options
-bool guiFontOptionsEdit(GuiFontOptions *state);
+CF_API bool guiFontOptionsEdit(GuiFontOptions *state);
 /// Update the given atlas with the given options
-void guiUpdateAtlas(ImFontAtlas *fonts, GuiFontOptions *font_opts);
+CF_API void guiUpdateAtlas(ImFontAtlas *fonts, GuiFontOptions *font_opts);
 /// Update the current font atlas with the given options
 #define guiUpdateFonts(font_opts) guiUpdateAtlas(igGetIO()->Fonts, font_opts)
 
-ImFontAtlas *guiFonts(void);
-ImFont *guiLoadFont(ImFontAtlas *fonts, Cstr file_name, F32 font_size);
-ImFont *guiLoadDefaultFont(ImFontAtlas *fonts);
+CF_API ImFontAtlas *guiFonts(void);
+CF_API ImFont *guiLoadFont(ImFontAtlas *fonts, Cstr file_name, F32 font_size);
+CF_API ImFont *guiLoadDefaultFont(ImFontAtlas *fonts);
 
 //=== File dialogs ===//
 
@@ -253,14 +252,14 @@ typedef struct GuiFileDialogResult
     U8 code;
 } GuiFileDialogResult;
 
-GuiFileDialogResult guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc);
+CF_API GuiFileDialogResult guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc);
 
 //=== Log ===//
 
 typedef struct CfLog CfLog;
 
 /// Widget for displaying log content
-void guiLogBox(CfLog *log, bool readonly);
+CF_API void guiLogBox(CfLog *log, bool readonly);
 
 //=== Canvas ===//
 
@@ -282,30 +281,30 @@ typedef struct GuiCanvas
 
 } GuiCanvas;
 
-void guiCanvasBegin(GuiCanvas *canvas);
-void guiCanvasEnd(GuiCanvas *canvas);
+CF_API void guiCanvasBegin(GuiCanvas *canvas);
+CF_API void guiCanvasEnd(GuiCanvas *canvas);
 
-void guiCanvasDrawLine(GuiCanvas *canvas, Vec2 p0, Vec2 p1);
-void guiCanvasDrawPolyline(GuiCanvas *canvas, Vec2 points[], Usize count);
+CF_API void guiCanvasDrawLine(GuiCanvas *canvas, Vec2 p0, Vec2 p1);
+CF_API void guiCanvasDrawPolyline(GuiCanvas *canvas, Vec2 points[], Usize count);
 
-void guiCanvasDrawRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1);
-void guiCanvasFillRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1);
+CF_API void guiCanvasDrawRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1);
+CF_API void guiCanvasFillRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1);
 
-void guiCanvasDrawCircle(GuiCanvas *canvas, Vec2 center, F32 radius);
-void guiCanvasFillCircle(GuiCanvas *canvas, Vec2 center, F32 radius);
+CF_API void guiCanvasDrawCircle(GuiCanvas *canvas, Vec2 center, F32 radius);
+CF_API void guiCanvasFillCircle(GuiCanvas *canvas, Vec2 center, F32 radius);
 
-void guiCanvasDrawText(GuiCanvas *canvas, Str text, Vec2 pos, Rgba32 color);
+CF_API void guiCanvasDrawText(GuiCanvas *canvas, Str text, Vec2 pos, Rgba32 color);
 
-void guiCanvasDrawImage(GuiCanvas *canvas, U32 texture, //
-                        Vec2 image_min, Vec2 image_max, //
-                        Vec2 uv_min, Vec2 uv_max);
+CF_API void guiCanvasDrawImage(GuiCanvas *canvas, U32 texture, //
+                               Vec2 image_min, Vec2 image_max, //
+                               Vec2 uv_min, Vec2 uv_max);
 
-void guiCanvasPushStrokeColor(GuiCanvas *canvas, Rgba32 color);
-void guiCanvasPopStrokeColor(GuiCanvas *canvas);
+CF_API void guiCanvasPushStrokeColor(GuiCanvas *canvas, Rgba32 color);
+CF_API void guiCanvasPopStrokeColor(GuiCanvas *canvas);
 
 //=== Miscellanea ===//
 
-void guiSameLine(void);
-void guiSeparator(void);
+CF_API void guiSameLine(void);
+CF_API void guiSeparator(void);
 
 //------------------------------------------------------------------------------

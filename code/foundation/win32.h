@@ -5,9 +5,15 @@
 #pragma warning(push)
 #pragma warning(disable : 5105)
 
-#define NOMINMAX 1
-#define VC_EXTRALEAN 1
-#define WIN32_LEAN_AND_MEAN 1
+#if !defined(NOMINMAX)
+#    define NOMINMAX 1
+#endif
+#if !defined(VC_EXTRALEAN)
+#    define VC_EXTRALEAN 1
+#endif
+#if !defined(WIN32_LEAN_AND_MEAN)
+#    define WIN32_LEAN_AND_MEAN 1
+#endif
 #include <Windows.h>
 // Must be included AFTER <windows.h>
 #include <commdlg.h>
@@ -23,6 +29,8 @@ typedef struct Str16
     Char16 const *buf; // Pointer to string data (not a C string)
     Usize len;         // Lenght in chars of the string (not including terminators)
 } Str16;
+
+typedef CfArray(Char16) StrBuf16;
 
 static inline Str16
 str16FromCstr(Char16 *cstr)

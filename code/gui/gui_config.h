@@ -21,6 +21,14 @@
 
 #include "foundation/core.h"
 
+#if CF_COMPILER_CLANG
+#    pragma clang diagnostic ignored "-Wsign-conversion"
+#    pragma clang diagnostic ignored "-Wimplicit-int-float-conversion"
+#    pragma clang diagnostic ignored "-Wunused-function"
+#    pragma clang diagnostic ignored "-Wfloat-conversion"
+#elif CF_COMPILER_MSVC
+#endif
+
 //---- Define assertion handler. Defaults to calling assert().
 // If your macro uses multiple statements, make sure is enclosed in a 'do { .. } while (0)' block
 // so it can be used as a single statement.
@@ -39,7 +47,7 @@
 //---- Don't define obsolete functions/enums/behaviors.
 // Consider enabling from time to time after updating to avoid using soon-to-be obsolete
 // function/names.
-// #define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
+#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 
 //---- Disable all of Dear ImGui or don't implement standard windows.
 
@@ -139,27 +147,35 @@
 // provided). On Windows you may use vcpkg with 'vcpkg install freetype --triplet=x64-windows' +
 // 'vcpkg integrate install'.
 
-//#define IMGUI_ENABLE_FREETYPE
+#define IMGUI_ENABLE_FREETYPE
 
 //---- Use stb_truetype to build and rasterize the font atlas (default)
 // The only purpose of this define is if you want force compilation of the stb_truetype backend
 // ALONG with the FreeType backend.
 
-//#define IMGUI_ENABLE_STB_TRUETYPE
+#define IMGUI_ENABLE_STB_TRUETYPE
 
 //---- Define constructor and implicit cast operators to convert back<>forth between your math types
 // and ImVec2/ImVec4.
 // This will be inlined as part of ImVec2 and ImVec4 class declarations.
-/*
 
-#define IM_VEC2_CLASS_EXTRA                                                 \
-        ImVec2(const MyVec2& f) { x = f.x; y = f.y; }                       \
-        operator MyVec2() const { return MyVec2(x,y); }
+#define IM_VEC2_CLASS_EXTRA \
+    ImVec2(const Vec2 &f)   \
+    {                       \
+        x = f.x;            \
+        y = f.y;            \
+    }                       \
+    operator Vec2() const { return Vec2{{x, y}}; }
 
-#define IM_VEC4_CLASS_EXTRA                                                 \
-        ImVec4(const MyVec4& f) { x = f.x; y = f.y; z = f.z; w = f.w; }     \
-        operator MyVec4() const { return MyVec4(x,y,z,w); }
-*/
+#define IM_VEC4_CLASS_EXTRA \
+    ImVec4(const Vec4 &f)   \
+    {                       \
+        x = f.x;            \
+        y = f.y;            \
+        z = f.z;            \
+        w = f.w;            \
+    }                       \
+    operator Vec4() const { return Vec4{{x, y, z, w}}; }
 
 //---- Use 32-bit vertex indices (default is 16-bit) is one way to allow large meshes with more than
 // 64K vertices.
