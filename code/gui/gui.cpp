@@ -1,10 +1,12 @@
 #include "gui.h"
 
+// Restore warnings disabled for DearImgui compilation
 #if CF_COMPILER_CLANG
-#    pragma clang diagnostic push
-#    pragma clang diagnostic ignored "-Wc99-designator"
-#else
-// TODO (Matteo): MSVC Diagnostics
+#    pragma clang diagnostic warning "-Wsign-conversion"
+#    pragma clang diagnostic warning "-Wimplicit-int-float-conversion"
+#    pragma clang diagnostic warning "-Wunused-function"
+#    pragma clang diagnostic warning "-Wfloat-conversion"
+#elif CF_COMPILER_MSVC
 #endif
 
 #include "gui_config.h"
@@ -964,8 +966,21 @@ guiColorEdit(Cstr label, Rgba32 *color)
 {
     // TODO (Matteo): Fix redundant label
 
+#if CF_COMPILER_CLANG
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wc99-designator"
+#else
+// TODO (Matteo): MSVC Diagnostics
+#endif
+
     static Rgba32 const colors[] = CF_COLOR_VALUES;
     static Cstr const names[] = CF_COLOR_NAMES;
+
+#if CF_COMPILER_CLANG
+#    pragma clang diagnostic pop
+#else
+// TODO (Matteo): MSVC Diagnostics
+#endif
 
     bool color_changed = false;
     Usize color_index = USIZE_MAX;
@@ -1043,10 +1058,4 @@ guiOpenFileDialog(Str filename_hint, GuiFileDialogFilter *filters, Usize num_fil
     return (GuiFileDialogResult){.code = FileDialogResult_Error};
 }
 
-#endif
-
-#if CF_COMPILER_CLANG
-#    pragma clang diagnostic pop
-#else
-// TODO (Matteo): MSVC Diagnostics
 #endif

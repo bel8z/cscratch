@@ -3,6 +3,15 @@
 #include "foundation/array.h"
 #include "foundation/strings.h"
 
+// Restore warnings disabled for DearImgui compilation
+#if CF_COMPILER_CLANG
+#    pragma clang diagnostic warning "-Wsign-conversion"
+#    pragma clang diagnostic warning "-Wimplicit-int-float-conversion"
+#    pragma clang diagnostic warning "-Wunused-function"
+#    pragma clang diagnostic warning "-Wfloat-conversion"
+#elif CF_COMPILER_MSVC
+#endif
+
 #if CF_OS_WIN32
 #    include "foundation/win32.h"
 
