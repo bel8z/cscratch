@@ -162,10 +162,12 @@
 #endif
 
 #if CF_OS_WIN32
-#    define CF_API CF_EXTERN_C __declspec(dllexport)
+#    define CF_DLL_EXPORT __declspec(dllexport)
 #else
-#    define CF_API CF_EXTERN_C
+#    define CF_DLL_EXPORT
 #endif
+
+#define CF_API CF_EXTERN_C CF_DLL_EXPORT
 
 //-------------------//
 //   Macro helpers   //

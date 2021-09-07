@@ -15,16 +15,6 @@ set(BACKEND_DIR ${IMGUI_DIR}/backends)
 set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
 set(GLFW_DIR ${EXT_DIR}/glfw-3)
 
-#---------------------#
-# Compilation options #
-#---------------------#
-
-if (WIN32)
-    add_definitions("-DIMGUI_IMPL_API=extern \"C\" __declspec\(dllexport\)")
-else(WIN32)
-    add_definitions("-DIMGUI_IMPL_API=extern \"C\" ")
-endif(WIN32)
-
 #----------------------#
 # Dependency libraries #
 #----------------------#
@@ -58,15 +48,14 @@ add_library(${GUI_NAME} STATIC ${GUI_SOURCES})
 
 target_compile_definitions(${GUI_NAME} PUBLIC IMGUI_USER_CONFIG="${GUI_CONFIG}")
 
-target_include_directories(${GUI_NAME} PUBLIC 
-    ${IMGUI_DIR}
-    ${IMGUI_DIR}/misc/freetype
-    ${CODE_DIR})
+target_include_directories(${GUI_NAME} 
+    PRIVATE 
+        ${IMGUI_DIR}
+        ${IMGUI_DIR}/misc/freetype
+    PUBLIC
+        ${CODE_DIR})
 
 target_link_libraries(${GUI_NAME} PRIVATE freetype)
-
-target_compile_features(${GUI_NAME} PUBLIC c_std_11)
-target_compile_features(${GUI_NAME} PUBLIC cxx_std_14)
 
 #-----------------#
 # Backend library #
@@ -82,13 +71,26 @@ add_library(${BACKEND_NAME} STATIC ${BACKEND_SOURCES})
 
 target_compile_definitions(${BACKEND_NAME} PRIVATE IMGUI_IMPL_OPENGL_LOADER_CUSTOM=<gl/gload.h>)
 
-target_include_directories(${BACKEND_NAME} INTERFACE ${IMGUI_DIR})
+target_include_directories(${BACKEND_NAME} PRIVATE ${IMGUI_DIR})
 
 target_link_libraries(${BACKEND_NAME} PUBLIC 
     ${GUI_NAME} 
-    ${OPENGL_gl_LIBRARY})
+    ${OPENGL_gl_LIBRARY}
+    glfw)
 
-target_link_libraries(${BACKEND_NAME} PUBLIC glfw)
+#----------------------------#
+# Common compilation options #
+#----------------------------#
+
+target_compile_features(${GUI_NAME}     PUBLIC c_std_11) 
+target_compile_features(${GUI_NAME}     PUBLIC cxx_std_14)
+target_compile_features(${BACKEND_NAME} PUBLIC c_std_11) 
+target_compile_features(${BACKEND_NAME} PUBLIC cxx_std_14)
+
+include(${PARENT_DIR}/cmake/CompileFlags.cmake)
+
+set_c_compile_flags(${GUI_NAME})
+set_c_compile_flags(${BACKEND_NAME})
 
 #-----------------------#
 # Unity build all  libs #

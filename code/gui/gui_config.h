@@ -21,6 +21,7 @@
 
 #include "foundation/core.h"
 
+// NOTE (Matteo): Suppress some warnings for Imgui compilation
 #if CF_COMPILER_CLANG
 #    pragma clang diagnostic ignored "-Wsign-conversion"
 #    pragma clang diagnostic ignored "-Wimplicit-int-float-conversion"
@@ -28,6 +29,10 @@
 #    pragma clang diagnostic ignored "-Wfloat-conversion"
 #elif CF_COMPILER_MSVC
 #endif
+
+// NOTE (Matteo): Core Dear Imgui has a C++ Api, while backends have a C API
+#define IMGUI_API CF_DLL_EXPORT
+#define IMGUI_IMPL_API CF_API
 
 //---- Define assertion handler. Defaults to calling assert().
 // If your macro uses multiple statements, make sure is enclosed in a 'do { .. } while (0)' block
