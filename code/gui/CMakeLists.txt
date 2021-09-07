@@ -10,7 +10,7 @@ message(STATUS "backend parent directory: ${PARENT_DIR}")
 
 set(CODE_DIR ${PARENT_DIR}/code)
 set(EXT_DIR ${PARENT_DIR}/ext)
-set(IMGUI_DIR ${EXT_DIR}/cimgui-dock/imgui)
+set(IMGUI_DIR ${EXT_DIR}/imgui)
 set(BACKEND_DIR ${IMGUI_DIR}/backends)
 set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
 set(GLFW_DIR ${EXT_DIR}/glfw-3)
@@ -69,7 +69,7 @@ set(BACKEND_SOURCES
 
 add_library(${BACKEND_NAME} STATIC ${BACKEND_SOURCES})
 
-target_compile_definitions(${BACKEND_NAME} PRIVATE IMGUI_IMPL_OPENGL_LOADER_CUSTOM=<gl/gload.h>)
+# target_compile_definitions(${BACKEND_NAME} PRIVATE IMGUI_IMPL_OPENGL_LOADER_CUSTOM=<gl/gload.h>)
 
 target_include_directories(${BACKEND_NAME} PRIVATE ${IMGUI_DIR})
 

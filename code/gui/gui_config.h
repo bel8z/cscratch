@@ -21,6 +21,9 @@
 
 #include "foundation/core.h"
 
+#define IMGUI_IMPL_OPENGL_LOADER_CUSTOM <gl/gload.h>
+#include IMGUI_IMPL_OPENGL_LOADER_CUSTOM
+
 // NOTE (Matteo): Suppress some warnings for Imgui compilation
 #if CF_COMPILER_CLANG
 #    pragma clang diagnostic ignored "-Wsign-conversion"
