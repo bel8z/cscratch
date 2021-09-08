@@ -107,13 +107,13 @@ typedef struct QueryResult
 static F32
 RobustLength(F32 x, F32 y)
 {
-    F32 abs_x = cfAbs(x);
-    F32 abs_y = cfAbs(y);
+    F32 abs_x = mAbs(x);
+    F32 abs_y = mAbs(y);
 
-    if (abs_x > abs_y) return abs_x * cfSqrt(1 + cfSquare(y / x));
-    if (abs_x < abs_y) return abs_y * cfSqrt(1 + cfSquare(x / y));
+    if (abs_x > abs_y) return abs_x * mSqrt(1 + mSquare(y / x));
+    if (abs_x < abs_y) return abs_y * mSqrt(1 + mSquare(x / y));
 
-    return cfSqrt(x * x + y * y);
+    return mSqrt(x * x + y * y);
 }
 
 static F32
@@ -138,7 +138,7 @@ GetRoot(F32 r0, F32 z0, F32 z1, F32 g)
         F32 ratio0 = n0 / (s + r0);
         F32 ratio1 = z1 / (s + 1);
 
-        g = cfSquare(ratio0) + cfSquare(ratio1) - 1;
+        g = mSquare(ratio0) + mSquare(ratio1) - 1;
 
         if (g > 0)
         {
@@ -172,8 +172,8 @@ DistancePointEllipse(F32 e0, F32 e1, Vec2 p)
 
     Vec2 p_ori = p;
 
-    p.x = cfAbs(p.x);
-    p.y = cfAbs(p.y);
+    p.x = mAbs(p.x);
+    p.y = mAbs(p.y);
 
     if (p.y > 0)
     {
@@ -181,15 +181,15 @@ DistancePointEllipse(F32 e0, F32 e1, Vec2 p)
         {
             F32 z0 = p.x / e0;
             F32 z1 = p.y / e1;
-            F32 g = cfSquare(z0) + cfSquare(z1) - 1;
+            F32 g = mSquare(z0) + mSquare(z1) - 1;
 
             if (g != 0)
             {
-                F32 r0 = cfSquare(e0 / e1);
+                F32 r0 = mSquare(e0 / e1);
                 F32 sbar = GetRoot(r0, z0, z1, g);
                 result.x = r0 * p.x / (sbar + r0);
                 result.y = p.y / (sbar + 1);
-                result.z = cfSqrt(cfSquare(result.x - p.x) + cfSquare(result.y - p.y));
+                result.z = mSqrt(mSquare(result.x - p.x) + mSquare(result.y - p.y));
             }
             else
             {
@@ -202,31 +202,31 @@ DistancePointEllipse(F32 e0, F32 e1, Vec2 p)
         {
             result.x = 0;
             result.y = e1;
-            result.z = cfAbs(p.y - e1);
+            result.z = mAbs(p.y - e1);
         }
     }
     else //  p.y == 0
     {
         F32 numer0 = e0 * p.x;
-        F32 denom0 = cfSquare(e0) - cfSquare(e1);
+        F32 denom0 = mSquare(e0) - mSquare(e1);
 
         if (numer0 < denom0)
         {
             F32 xde0 = numer0 / denom0;
             result.x = e0 * xde0;
-            result.y = e1 * cfSqrt(1 - xde0 * xde0);
-            result.z = cfSqrt(cfSquare(result.x - p.x) + cfSquare(result.y - p.y));
+            result.y = e1 * mSqrt(1 - xde0 * xde0);
+            result.z = mSqrt(mSquare(result.x - p.x) + mSquare(result.y - p.y));
         }
         else
         {
             result.x = e0;
             result.y = 0;
-            result.z = cfAbs(p.x - e0);
+            result.z = mAbs(p.x - e0);
         }
     }
 
-    result.x = cfCopySign(result.x, p_ori.x);
-    result.y = cfCopySign(result.y, p_ori.y);
+    result.x = mCopySign(result.x, p_ori.x);
+    result.y = mCopySign(result.y, p_ori.y);
 
     return result;
 }
@@ -252,22 +252,22 @@ rotateBwd(Vec2 p, F32 cos, F32 sin)
 static F32
 normalize(F32 value, F32 range, F32 offset)
 {
-    return value - range * cfFloor((value + offset) / range);
+    return value - range * mFloor((value + offset) / range);
 }
 
 void
 fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
 {
-    static F32 const pi2 = 2 * CF_PI32;
+    static F32 const pi2 = 2 * M_PI32;
 
     // Center of the view
     Vec2 const center = {.x = (canvas->p0.x + canvas->p1.x) / 2, //
                          .y = (canvas->p0.y + canvas->p1.y) / 2};
 
     // Rotation of the ellipse
-    F32 const rot = normalize(0.1f * pi2 * (F32)time, CF_PI32, 0);
-    F32 const cosw = cfCos(rot);
-    F32 const sinw = cfSin(rot);
+    F32 const rot = normalize(0.1f * pi2 * (F32)time, M_PI32, 0);
+    F32 const cosw = mCos(rot);
+    F32 const sinw = mSin(rot);
 
     // Draw the ellipse as a series of segments
     Vec2 points[1024] = {0};
@@ -279,8 +279,8 @@ fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
     {
         F32 rad = (F32)i * rad_step;
-        F32 cost = cfCos(rad);
-        F32 sint = cfSin(rad);
+        F32 cost = mCos(rad);
+        F32 sint = mSin(rad);
 
         points[i].x = center.x + a * cost * cosw - b * sint * sinw;
         points[i].y = center.y + a * cost * sinw + b * sint * cosw;
@@ -308,7 +308,7 @@ fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     // Draw intersection on the Y axis
     F32 sinw2 = sinw * sinw;
     F32 cosw2 = cosw * cosw;
-    Vec2 itx = {.x = 0, .y = a * b * cfRsqrt(a * a * cosw2 + b * b * sinw2)};
+    Vec2 itx = {.x = 0, .y = a * b * mRsqrt(a * a * cosw2 + b * b * sinw2)};
 
     canvas->stroke_color = RGBA32_CYAN;
     guiCanvasDrawLine(canvas,                                   //
@@ -344,7 +344,7 @@ fxSine(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
 
     static Vec2 points[1024] = {0};
 
-    static F32 const pi2 = 2 * CF_PI32;
+    static F32 const pi2 = 2 * M_PI32;
     static F32 const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
 
     F32 const amp = cfMin(canvas->size.x, canvas->size.y) / 4;
@@ -362,8 +362,8 @@ fxSine(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
     {
         F32 rad = (F32)i * rad_step + phase;
-        F32 sin = amp * cfSin(rad);
-        F32 cos = amp * cfCos(rad);
+        F32 sin = amp * mSin(rad);
+        F32 cos = amp * mCos(rad);
 
         points[i].x = canvas->p0.x + x_offset + x_step * (F32)i;
         points[i].y = canvas->p0.y + y_offset + sin;
@@ -440,13 +440,13 @@ fxDrawArc(GuiCanvas *canvas, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Rgba32 c
 
     F32 dx = p1.x - p0.x;
     F32 dy = p1.y - p0.y;
-    F32 chord = cfSqrt(dx * dx + dy * dy);
+    F32 chord = mSqrt(dx * dx + dy * dy);
 
-    F32 span = 2 * cfAsin(chord / (2 * cfAbs(radius)));
+    F32 span = 2 * mAsin(chord / (2 * mAbs(radius)));
 
-    F32 step = cfCopySign(span / (CF_ARRAY_SIZE(points) - 1), radius);
-    F32 cos = cfCos(step);
-    F32 sin = cfSin(step);
+    F32 step = mCopySign(span / (CF_ARRAY_SIZE(points) - 1), radius);
+    F32 cos = mCos(step);
+    F32 sin = mSin(step);
 
     Vec2 v0 = vecSub(p0, center);
 
@@ -467,7 +467,7 @@ fxDrawArc(GuiCanvas *canvas, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Rgba32 c
 void
 fxTangentCircles(void)
 {
-    static const F32 deg2rad = CF_PI32 / 180.0f;
+    static const F32 deg2rad = M_PI32 / 180.0f;
 
     static F32 const cutter_start = deg2rad * 270.0f;
     static F32 const cutter_end = deg2rad * 70.0f;
@@ -497,25 +497,25 @@ fxTangentCircles(void)
     Vec2 lens_center = {.x = canvas.p0.x + canvas.size.x / 2 + lens_radius, //
                         .y = canvas.p1.y};
 
-    F32 crib_x = cfSqrt(lens_radius * lens_radius - crib * crib / 4);
+    F32 crib_x = mSqrt(lens_radius * lens_radius - crib * crib / 4);
     Vec2 lens_start = {.x = lens_center.x - crib_x, .y = lens_center.y + crib / 2};
     Vec2 lens_end = {.x = lens_center.x - crib_x, .y = lens_center.y - crib / 2};
-    F32 lens_angle = cfAtan2(crib / 2, crib_x);
+    F32 lens_angle = mAtan2(crib / 2, crib_x);
 
     fxDrawArc(&canvas, lens_center, lens_start, lens_end, lens_radius, RGBA32_FUCHSIA);
 
-    Vec2 cutter_center = {.x = lens_end.x - cfCos(lens_angle) * cutter_radius,
-                          .y = lens_end.y - cfSin(lens_angle) * cutter_radius};
+    Vec2 cutter_center = {.x = lens_end.x - mCos(lens_angle) * cutter_radius,
+                          .y = lens_end.y - mSin(lens_angle) * cutter_radius};
 
     F32 delta_angle = lens_angle - cutter_end;
-    F32 dcos = cfCos(delta_angle);
-    F32 dsin = cfSin(delta_angle);
+    F32 dcos = mCos(delta_angle);
+    F32 dsin = mSin(delta_angle);
 
-    Vec2 cutter_start_p = {.x = cutter_radius * cfCos(cutter_start),
-                           .y = cutter_radius * cfSin(cutter_start)};
+    Vec2 cutter_start_p = {.x = cutter_radius * mCos(cutter_start),
+                           .y = cutter_radius * mSin(cutter_start)};
 
-    Vec2 cutter_end_p = {.x = cutter_radius * cfCos(cutter_end),
-                         .y = cutter_radius * cfSin(cutter_end)};
+    Vec2 cutter_end_p = {.x = cutter_radius * mCos(cutter_end),
+                         .y = cutter_radius * mSin(cutter_end)};
 
     cutter_start_p = vecAdd(cutter_center, rotateFwd(cutter_start_p, dcos, dsin));
     cutter_end_p = vecAdd(cutter_center, rotateFwd(cutter_end_p, dcos, dsin));
@@ -534,7 +534,7 @@ guiClock(Duration time)
     I64 const secs_per_day = secs_per_hour * 24;
 
     // Euclidean reminder to compute the number of seconds in a day boundary
-    I64 total_secs = cfModEuclid(time.seconds, secs_per_day);
+    I64 total_secs = mModEuclid(time.seconds, secs_per_day);
     I64 hours = total_secs / secs_per_hour;
     I64 mins = (total_secs - hours * secs_per_hour) / 60;
     I64 final_secs = total_secs - mins * 60;

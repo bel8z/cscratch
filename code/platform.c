@@ -514,10 +514,10 @@ guiSetupFonts(ImFontAtlas *atlas, F32 dpi_scale, Str data_path)
 
     // NOTE (Matteo): This ensure the proper loading order even in optimized release builds
     ImFont const *fonts[4] = {
-        platformLoadFont(atlas, data_path, "NotoSans", cfRound(13.0f * scale)),
-        platformLoadFont(atlas, data_path, "OpenSans", cfRound(13.5f * scale)),
-        platformLoadFont(atlas, data_path, "SourceSansPro", cfRound(13.5f * scale)),
-        platformLoadFont(atlas, data_path, "DroidSans", cfRound(12.0f * scale)),
+        platformLoadFont(atlas, data_path, "NotoSans", mRound(13.0f * scale)),
+        platformLoadFont(atlas, data_path, "OpenSans", mRound(13.5f * scale)),
+        platformLoadFont(atlas, data_path, "SourceSansPro", mRound(13.5f * scale)),
+        platformLoadFont(atlas, data_path, "DroidSans", mRound(12.0f * scale)),
     };
 
     // NOTE (Matteo): Load default IMGUI font only if no custom font has been loaded

@@ -74,7 +74,7 @@ rgbaToHsva(Rgba in)
 
     // NOTE (Matteo): F32_MIN is added below to avoid checking against divisions by 0
     return (Hsva){
-        .h = cfAbs(K + (in.g - in.b) / (6.f * chroma + F32_MIN)),
+        .h = mAbs(K + (in.g - in.b) / (6.f * chroma + F32_MIN)),
         .s = chroma / (in.r + F32_MIN),
         .v = in.r,
         .a = in.a,
@@ -95,7 +95,7 @@ hsvaToRgba(Hsva in)
     }
     else
     {
-        F32 h = cfFmod(in.h, 1.0f) / (60.0f / 360.0f);
+        F32 h = mFmod(in.h, 1.0f) / (60.0f / 360.0f);
         I32 i = (I32)h;
         F32 f = h - (F32)i;
         F32 p = in.v * (1.0f - in.s);

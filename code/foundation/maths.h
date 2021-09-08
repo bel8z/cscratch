@@ -9,173 +9,173 @@
 //   Miscellanea   //
 //-----------------//
 
-#define cfAbs(X) _Generic((X), default : abs, I64 : llabs, F64 : fabs, F32 : fabsf)(X)
-#define cfSignBit(x) signbit(x)
-#define cfSign(x) (1 | cfSignBit(x))
-#define cfCopySign(mag, sign) _Generic((mag, sign), default : copysign, F32 : copysignf)(mag, sign)
+#define mAbs(X) _Generic((X), default : abs, I64 : llabs, F64 : fabs, F32 : fabsf)(X)
+#define mSignBit(x) signbit(x)
+#define mSign(x) (1 | mSignBit(x))
+#define mCopySign(mag, sign) _Generic((mag, sign), default : copysign, F32 : copysignf)(mag, sign)
 
-#define cfCeil(X) _Generic((X), default : ceil, F32 : ceilf)(X)
-#define cfFloor(X) _Generic((X), default : floor, F32 : floorf)(X)
-#define cfRound(X) _Generic((X), default : round, F32 : roundf)(X)
+#define mCeil(X) _Generic((X), default : ceil, F32 : ceilf)(X)
+#define mFloor(X) _Generic((X), default : floor, F32 : floorf)(X)
+#define mRound(X) _Generic((X), default : round, F32 : roundf)(X)
 
 //----------//
 //   Trig   //
 //----------//
 
-#define CF_PI64 3.1415926535897932384626433832795028841971693993751058209749445923078164062
-#define CF_PI32 3.1415926535897932384626433832795028841971693993751058209749445923078164062f
+#define M_PI64 3.1415926535897932384626433832795028841971693993751058209749445923078164062
+#define M_PI32 3.1415926535897932384626433832795028841971693993751058209749445923078164062f
 
-#define cfCos(X) _Generic((X), default : cos, F32 : cosf)(X)
-#define cfSin(X) _Generic((X), default : sin, F32 : sinf)(X)
-#define cfTan(X) _Generic((X), default : tan, F32 : tanf)(X)
+#define mCos(X) _Generic((X), default : cos, F32 : cosf)(X)
+#define mSin(X) _Generic((X), default : sin, F32 : sinf)(X)
+#define mTan(X) _Generic((X), default : tan, F32 : tanf)(X)
 
-#define cfAcos(X) _Generic((X), default : acos, F32 : acosf)(X)
-#define cfAsin(X) _Generic((X), default : asin, F32 : asinf)(X)
-#define cfAtan(X) _Generic((X), default : atan, F32 : atanf)(X)
-#define cfAtan2(X, Y) _Generic((X, Y), default : atan2, F32 : atan2f)(X, Y)
+#define mAcos(X) _Generic((X), default : acos, F32 : acosf)(X)
+#define mAsin(X) _Generic((X), default : asin, F32 : asinf)(X)
+#define mAtan(X) _Generic((X), default : atan, F32 : atanf)(X)
+#define mAtan2(X, Y) _Generic((X, Y), default : atan2, F32 : atan2f)(X, Y)
 
-#define cfCosH(X) _Generic((X), default : cosh, F32 : coshf)(X)
-#define cfSinH(X) _Generic((X), default : sinh, F32 : sinhf)(X)
-#define cfTanH(X) _Generic((X), default : tanh, F32 : tanhf)(X)
+#define mCosH(X) _Generic((X), default : cosh, F32 : coshf)(X)
+#define mSinH(X) _Generic((X), default : sinh, F32 : sinhf)(X)
+#define mTanH(X) _Generic((X), default : tanh, F32 : tanhf)(X)
 
 //-------------------//
 //  Powers & roots   //
 //-------------------//
 
-#define cfSqrt(X) _Generic((X), default : sqrt, F32 : sqrtf, I32 : ISqrt32, I64 : ISqrt64)(X)
-#define cfRsqrt(X) _Generic((X), default : (1 / cfSqrt(X)), F32 : cfRsqrt32(X))
-#define cfPow(base, xp) _Generic((base, xp), default : pow, F32 : powf)(base, xp)
-#define cfSquare(x) ((x) * (x))
-#define cfCube(x) ((x) * (x) * (x))
-#define cfExp(base, xp) _Generic((base, xp), default : exp, F32 : expf)(base, xp)
-#define cfLog(x) _Generic((x), default : log, F32 : logf)(x)
+#define mSqrt(X) _Generic((X), default : sqrt, F32 : sqrtf, I32 : mISqrt32, I64 : mISqrt64)(X)
+#define mRsqrt(X) _Generic((X), default : (1 / mSqrt(X)), F32 : mRsqrt32(X))
+#define mPow(base, xp) _Generic((base, xp), default : pow, F32 : powf)(base, xp)
+#define mSquare(x) ((x) * (x))
+#define mCube(x) ((x) * (x) * (x))
+#define mExp(base, xp) _Generic((base, xp), default : exp, F32 : expf)(base, xp)
+#define mLog(x) _Generic((x), default : log, F32 : logf)(x)
 
 static inline F32
-cfRsqrt32(F32 x)
+mRsqrt32(F32 x)
 {
     return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(x)));
 }
 
-#define CF__ISQRT(Size)                          \
-    static inline I##Size ISqrt##Size(I##Size x) \
-    {                                            \
-        I##Size q = 1;                           \
-        I##Size r = 0;                           \
-                                                 \
-        while (q <= x) q <<= 2;                  \
-                                                 \
-        while (q > 1)                            \
-        {                                        \
-            q >>= 2;                             \
-                                                 \
-            I##Size t = x - r - q;               \
-                                                 \
-            r >>= 1;                             \
-                                                 \
-            if (t >= 0)                          \
-            {                                    \
-                x = t;                           \
-                r += q;                          \
-            }                                    \
-        }                                        \
-                                                 \
-        return r;                                \
+#define M__ISQRT(Size)                            \
+    static inline I##Size mISqrt##Size(I##Size x) \
+    {                                             \
+        I##Size q = 1;                            \
+        I##Size r = 0;                            \
+                                                  \
+        while (q <= x) q <<= 2;                   \
+                                                  \
+        while (q > 1)                             \
+        {                                         \
+            q >>= 2;                              \
+                                                  \
+            I##Size t = x - r - q;                \
+                                                  \
+            r >>= 1;                              \
+                                                  \
+            if (t >= 0)                           \
+            {                                     \
+                x = t;                            \
+                r += q;                           \
+            }                                     \
+        }                                         \
+                                                  \
+        return r;                                 \
     }
 
-CF__ISQRT(32)
-CF__ISQRT(64)
+M__ISQRT(32)
+M__ISQRT(64)
 
-#undef CF__ISQRT
+#undef M__ISQRT
 
 //-----------------//
 //  Float modulo   //
 //-----------------//
 
-#define cfFmod(X, Y) _Generic((X, Y), default : fmod, F32 : fmodf)(X, Y)
+#define mFmod(X, Y) _Generic((X, Y), default : fmod, F32 : fmodf)(X, Y)
 
 //------------------------------//
 //  Integer division & modulo   //
 //------------------------------//
 
 // clang-format off
-#define cfDivEuclid(a, b)           \
+#define mDivEuclid(a, b)           \
     _Generic((a, b),                \
-             I8  : cf_I8DivEuclid,  \
-             I16 : cf_I16DivEuclid, \
-             I32 : cf_I32DivEuclid, \
-             I64 : cf_I64DivEuclid)(a, b)
+             I8  : m_I8DivEuclid,  \
+             I16 : m_I16DivEuclid, \
+             I32 : m_I32DivEuclid, \
+             I64 : m_I64DivEuclid)(a, b)
 
-#define cfModEuclid(a, b)           \
+#define mModEuclid(a, b)           \
     _Generic((a, b),                \
-             I8  : cf_I8ModEuclid,  \
-             I16 : cf_I16ModEuclid, \
-             I32 : cf_I32ModEuclid, \
-             I64 : cf_I64ModEuclid)(a, b)
+             I8  : m_I8ModEuclid,  \
+             I16 : m_I16ModEuclid, \
+             I32 : m_I32ModEuclid, \
+             I64 : m_I64ModEuclid)(a, b)
 
-#define cfDivModEuclid(a, b, c)        \
+#define mDivModEuclid(a, b, c)        \
     _Generic((a, b),                   \
-             I8  : cf_I8DivModEuclid,  \
-             I16 : cf_I16DivModEuclid, \
-             I32 : cf_I32DivModEuclid, \
-             I64 : cf_I64DivModEuclid)(a, b, c)
+             I8  : m_I8DivModEuclid,  \
+             I16 : m_I16DivModEuclid, \
+             I32 : m_I32DivModEuclid, \
+             I64 : m_I64DivModEuclid)(a, b, c)
 
 // clang-format on
 
-#define CF__EUCLID_OPS(Type)                                                  \
-    static inline Type cf_##Type##DivEuclid(Type lhs, Type rhs)               \
-    {                                                                         \
-        Type quot = lhs / rhs;                                                \
-        Type rem = lhs % rhs;                                                 \
-        return (rem < 0) ? (rhs > 0 ? quot - 1 : quot + 1) : quot;            \
-    }                                                                         \
-                                                                              \
-    static inline Type cf_##Type##ModEuclid(Type lhs, Type rhs)               \
-    {                                                                         \
-        Type rem = lhs % rhs;                                                 \
-        return (rem < 0) ? (rhs < 0 ? rem - rhs : rem + rhs) : rem;           \
-    }                                                                         \
-                                                                              \
-    static inline Type cf_##Type##DivModEuclid(Type lhs, Type rhs, Type *mod) \
-    {                                                                         \
-        Type quot = lhs / rhs;                                                \
-        Type rem = lhs % rhs;                                                 \
-                                                                              \
-        if (rem < 0)                                                          \
-        {                                                                     \
-            *mod = (rhs < 0 ? rem - rhs : rem + rhs);                         \
-            return (rhs > 0 ? quot - 1 : quot + 1);                           \
-        }                                                                     \
-                                                                              \
-        *mod = rem;                                                           \
-        return quot;                                                          \
+#define M__EUCLID_OPS(Type)                                                  \
+    static inline Type m_##Type##DivEuclid(Type lhs, Type rhs)               \
+    {                                                                        \
+        Type quot = lhs / rhs;                                               \
+        Type rem = lhs % rhs;                                                \
+        return (rem < 0) ? (rhs > 0 ? quot - 1 : quot + 1) : quot;           \
+    }                                                                        \
+                                                                             \
+    static inline Type m_##Type##ModEuclid(Type lhs, Type rhs)               \
+    {                                                                        \
+        Type rem = lhs % rhs;                                                \
+        return (rem < 0) ? (rhs < 0 ? rem - rhs : rem + rhs) : rem;          \
+    }                                                                        \
+                                                                             \
+    static inline Type m_##Type##DivModEuclid(Type lhs, Type rhs, Type *mod) \
+    {                                                                        \
+        Type quot = lhs / rhs;                                               \
+        Type rem = lhs % rhs;                                                \
+                                                                             \
+        if (rem < 0)                                                         \
+        {                                                                    \
+            *mod = (rhs < 0 ? rem - rhs : rem + rhs);                        \
+            return (rhs > 0 ? quot - 1 : quot + 1);                          \
+        }                                                                    \
+                                                                             \
+        *mod = rem;                                                          \
+        return quot;                                                         \
     }
 
-CF__EUCLID_OPS(I8)
-CF__EUCLID_OPS(I16)
-CF__EUCLID_OPS(I32)
-CF__EUCLID_OPS(I64)
+M__EUCLID_OPS(I8)
+M__EUCLID_OPS(I16)
+M__EUCLID_OPS(I32)
+M__EUCLID_OPS(I64)
 
-#undef CF__EUCLID_OPS
+#undef M__EUCLID_OPS
 
 // clang-format off
-#define cfMulDiv(a, b, c)        \
+#define mMulDiv(a, b, c)        \
     _Generic((a, b, c),          \
-             U8  : cf_U8MulDiv,  \
-             U16 : cf_U16MulDiv, \
-             U32 : cf_U32MulDiv, \
-             U64 : cf_U64MulDiv, \
-             I8  : cf_I8MulDiv,  \
-             I16 : cf_I16MulDiv, \
-             I32 : cf_I32MulDiv, \
-             I64 : cf_I64MulDiv)(a, b, c)
+             U8  : m_U8MulDiv,  \
+             U16 : m_U16MulDiv, \
+             U32 : m_U32MulDiv, \
+             U64 : m_U64MulDiv, \
+             I8  : m_I8MulDiv,  \
+             I16 : m_I16MulDiv, \
+             I32 : m_I32MulDiv, \
+             I64 : m_I64MulDiv)(a, b, c)
 // clang-format on
 
 // Taken from the Rust code base:
 // https://github.com/rust-lang/rust/blob/3809bbf47c8557bd149b3e52ceb47434ca8378d5/src/libstd/sys_common/mod.rs#L124
 // Computes (value*numer)/denom without overflow, as long as both (numer*denom) and the overall
 // result fit into i64 (which is the case for our time conversions).
-#define CF__MULDIV(Type)                                                       \
-    static inline Type cf_##Type##MulDiv(Type value, Type numer, Type denom)   \
+#define M__MULDIV(Type)                                                        \
+    static inline Type m_##Type##MulDiv(Type value, Type numer, Type denom)    \
     {                                                                          \
         CF_DEBUG_ASSERT(numer *denom < T_MAX(Type), "Operation can overflow"); \
                                                                                \
@@ -189,31 +189,31 @@ CF__EUCLID_OPS(I64)
         return q * numer + r * numer / denom;                                  \
     }
 
-CF__MULDIV(U8)
-CF__MULDIV(U16)
-CF__MULDIV(U32)
-CF__MULDIV(U64)
-CF__MULDIV(I8)
-CF__MULDIV(I16)
-CF__MULDIV(I32)
-CF__MULDIV(I64)
+M__MULDIV(U8)
+M__MULDIV(U16)
+M__MULDIV(U32)
+M__MULDIV(U64)
+M__MULDIV(I8)
+M__MULDIV(I16)
+M__MULDIV(I32)
+M__MULDIV(I64)
 
-#undef CF__MULDIV
+#undef M__MULDIV
 
 //---------//
 //  Lerp   //
 //---------//
 
-#define cfLerp(x, y, t) _Generic((x, y, t), default : cfLerp64, F32 : cfLerp32)(x, y, t)
+#define mLerp(x, y, t) _Generic((x, y, t), default : mLerp64, F32 : mLerp32)(x, y, t)
 
 static inline F32
-cfLerp32(F32 x, F32 y, F32 t)
+mLerp32(F32 x, F32 y, F32 t)
 {
     return x * (1 - t) + y * t;
 }
 
 static inline F64
-cfLerp64(F64 x, F64 y, F64 t)
+mLerp64(F64 x, F64 y, F64 t)
 {
     return x * (1 - t) + y * t;
 }
@@ -223,16 +223,16 @@ cfLerp64(F64 x, F64 y, F64 t)
 //--------//
 
 // clang-format off
-#define cfGcd(a, b)                \
+#define mGcd(a, b)                \
     _Generic((a, b),               \
-             U8  : cfGcdU8,        \
-             U16 : cfGcdU16,       \
-             U32 : cfGcdU32,       \
-             U64 : cfGcdU64)(a, b)
+             U8  : mGcdU8,        \
+             U16 : mGcdU16,       \
+             U32 : mGcdU32,       \
+             U64 : mGcdU64)(a, b)
 // clang-format on
 
-#define CF__GCD(Type)                                                            \
-    static inline Type cfGcd##Type(Type a, Type b)                               \
+#define M__GCD(Type)                                                             \
+    static inline Type mGcd##Type(Type a, Type b)                                \
     {                                                                            \
         /* GCD(0, b) == b, */                                                    \
         /* GCD(a, 0) == a, */                                                    \
@@ -273,12 +273,12 @@ cfLerp64(F64 x, F64 y, F64 t)
         return (Type)(a << k);                                                   \
     }
 
-CF__GCD(U8)
-CF__GCD(U16)
-CF__GCD(U32)
-CF__GCD(U64)
+M__GCD(U8)
+M__GCD(U16)
+M__GCD(U32)
+M__GCD(U64)
 
-#undef CF__GCD
+#undef M__GCD
 
 //-------------------------------------//
 //   N-dimensional vector operations   //
@@ -425,7 +425,7 @@ CF__GCD(U64)
                                                                                                  \
     static inline Scalar vec_##Scalar##DistanceN(Scalar const *a, Scalar const *b, Usize length) \
     {                                                                                            \
-        return cfSqrt(vec_##Scalar##DistanceSquaredN(a, b, length));                             \
+        return mSqrt(vec_##Scalar##DistanceSquaredN(a, b, length));                              \
     }                                                                                            \
                                                                                                  \
     static inline void vec_##Scalar##LerpN(Scalar const *a, Scalar const *b, Usize length,       \
@@ -447,7 +447,7 @@ CF__GCD(U64)
                                                                                                  \
     static inline Scalar vec_##Scalar##NormN(Scalar const *a, Usize length)                      \
     {                                                                                            \
-        return cfSqrt(vec_##Scalar##NormSquaredN(a, length));                                    \
+        return mSqrt(vec_##Scalar##NormSquaredN(a, length));                                     \
     }
 
 VEC__N_OPS(F32)

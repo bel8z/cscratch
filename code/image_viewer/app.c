@@ -678,8 +678,8 @@ appImageView(AppState *state)
         }
 
         // NOTE (Matteo): Round image bounds to nearest pixel for stable rendering
-        image_w = cfRound(image_w * curr_zoom);
-        image_h = cfRound(image_h * curr_zoom);
+        image_w = mRound(image_w * curr_zoom);
+        image_h = mRound(image_h * curr_zoom);
 
         // NOTE (Matteo): Handle zoom target
         if (curr_zoom != iv->zoom)
@@ -695,8 +695,8 @@ appImageView(AppState *state)
         }
 
         Vec2 image_min = {
-            .x = iv->drag.x + cfRound(view_min.x + 0.5f * (canvas.size.width - image_w)),
-            .y = iv->drag.y + cfRound(view_min.y + 0.5f * (canvas.size.height - image_h))};
+            .x = iv->drag.x + mRound(view_min.x + 0.5f * (canvas.size.width - image_w)),
+            .y = iv->drag.y + mRound(view_min.y + 0.5f * (canvas.size.height - image_h))};
 
         Vec2 image_max = {.x = image_min.x + image_w, .y = image_min.y + image_h};
 

@@ -839,7 +839,7 @@ win32Clock(void)
     U64 curr_ticks = (U64)(now.QuadPart);
     CF_ASSERT(curr_ticks > g_clock.start_ticks, "QueryPerformanceCounter wrapped around");
 
-    U64 nanos = cfMulDiv((curr_ticks - g_clock.start_ticks), CF_NS_PER_SEC, g_clock.freq);
+    U64 nanos = mMulDiv((curr_ticks - g_clock.start_ticks), CF_NS_PER_SEC, g_clock.freq);
 
     return timeDurationNs(nanos);
 }
