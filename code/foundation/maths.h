@@ -98,56 +98,56 @@ CF__ISQRT(64)
 //------------------------------//
 
 // clang-format off
-#define cfDivEuclid(a, b)          \
-    _Generic((a, b),               \
-             I8  : cfDivEuclidI8,  \
-             I16 : cfDivEuclidI16, \
-             I32 : cfDivEuclidI32, \
-             I64 : cfDivEuclidI64)(a, b)
+#define cfDivEuclid(a, b)           \
+    _Generic((a, b),                \
+             I8  : cf_I8DivEuclid,  \
+             I16 : cf_I16DivEuclid, \
+             I32 : cf_I32DivEuclid, \
+             I64 : cf_I64DivEuclid)(a, b)
 
-#define cfModEuclid(a, b)          \
-    _Generic((a, b),               \
-             I8  : cfModEuclidI8,  \
-             I16 : cfModEuclidI16, \
-             I32 : cfModEuclidI32, \
-             I64 : cfModEuclidI64)(a, b)
+#define cfModEuclid(a, b)           \
+    _Generic((a, b),                \
+             I8  : cf_I8ModEuclid,  \
+             I16 : cf_I16ModEuclid, \
+             I32 : cf_I32ModEuclid, \
+             I64 : cf_I64ModEuclid)(a, b)
 
-#define cfDivModEuclid(a, b, c)       \
-    _Generic((a, b),                  \
-             I8  : cfDivModEuclidI8,  \
-             I16 : cfDivModEuclidI16, \
-             I32 : cfDivModEuclidI32, \
-             I64 : cfDivModEuclidI64)(a, b, c)
+#define cfDivModEuclid(a, b, c)        \
+    _Generic((a, b),                   \
+             I8  : cf_I8DivModEuclid,  \
+             I16 : cf_I16DivModEuclid, \
+             I32 : cf_I32DivModEuclid, \
+             I64 : cf_I64DivModEuclid)(a, b, c)
 
 // clang-format on
 
-#define CF__EUCLID_OPS(Type)                                               \
-    static inline Type cfDivEuclid##Type(Type lhs, Type rhs)               \
-    {                                                                      \
-        Type quot = lhs / rhs;                                             \
-        Type rem = lhs % rhs;                                              \
-        return (rem < 0) ? (rhs > 0 ? quot - 1 : quot + 1) : quot;         \
-    }                                                                      \
-                                                                           \
-    static inline Type cfModEuclid##Type(Type lhs, Type rhs)               \
-    {                                                                      \
-        Type rem = lhs % rhs;                                              \
-        return (rem < 0) ? (rhs < 0 ? rem - rhs : rem + rhs) : rem;        \
-    }                                                                      \
-                                                                           \
-    static inline Type cfDivModEuclid##Type(Type lhs, Type rhs, Type *mod) \
-    {                                                                      \
-        Type quot = lhs / rhs;                                             \
-        Type rem = lhs % rhs;                                              \
-                                                                           \
-        if (rem < 0)                                                       \
-        {                                                                  \
-            *mod = (rhs < 0 ? rem - rhs : rem + rhs);                      \
-            return (rhs > 0 ? quot - 1 : quot + 1);                        \
-        }                                                                  \
-                                                                           \
-        *mod = rem;                                                        \
-        return quot;                                                       \
+#define CF__EUCLID_OPS(Type)                                                  \
+    static inline Type cf_##Type##DivEuclid(Type lhs, Type rhs)               \
+    {                                                                         \
+        Type quot = lhs / rhs;                                                \
+        Type rem = lhs % rhs;                                                 \
+        return (rem < 0) ? (rhs > 0 ? quot - 1 : quot + 1) : quot;            \
+    }                                                                         \
+                                                                              \
+    static inline Type cf_##Type##ModEuclid(Type lhs, Type rhs)               \
+    {                                                                         \
+        Type rem = lhs % rhs;                                                 \
+        return (rem < 0) ? (rhs < 0 ? rem - rhs : rem + rhs) : rem;           \
+    }                                                                         \
+                                                                              \
+    static inline Type cf_##Type##DivModEuclid(Type lhs, Type rhs, Type *mod) \
+    {                                                                         \
+        Type quot = lhs / rhs;                                                \
+        Type rem = lhs % rhs;                                                 \
+                                                                              \
+        if (rem < 0)                                                          \
+        {                                                                     \
+            *mod = (rhs < 0 ? rem - rhs : rem + rhs);                         \
+            return (rhs > 0 ? quot - 1 : quot + 1);                           \
+        }                                                                     \
+                                                                              \
+        *mod = rem;                                                           \
+        return quot;                                                          \
     }
 
 CF__EUCLID_OPS(I8)
@@ -158,16 +158,16 @@ CF__EUCLID_OPS(I64)
 #undef CF__EUCLID_OPS
 
 // clang-format off
-#define cfMulDiv(a, b, c)       \
-    _Generic((a, b, c),         \
-             U8  : cfMulDivU8,  \
-             U16 : cfMulDivU16, \
-             U32 : cfMulDivU32, \
-             U64 : cfMulDivU64, \
-             I8  : cfMulDivI8,  \
-             I16 : cfMulDivI16, \
-             I32 : cfMulDivI32, \
-             I64 : cfMulDivI64)(a, b, c)
+#define cfMulDiv(a, b, c)        \
+    _Generic((a, b, c),          \
+             U8  : cf_U8MulDiv,  \
+             U16 : cf_U16MulDiv, \
+             U32 : cf_U32MulDiv, \
+             U64 : cf_U64MulDiv, \
+             I8  : cf_I8MulDiv,  \
+             I16 : cf_I16MulDiv, \
+             I32 : cf_I32MulDiv, \
+             I64 : cf_I64MulDiv)(a, b, c)
 // clang-format on
 
 // Taken from the Rust code base:
@@ -175,7 +175,7 @@ CF__EUCLID_OPS(I64)
 // Computes (value*numer)/denom without overflow, as long as both (numer*denom) and the overall
 // result fit into i64 (which is the case for our time conversions).
 #define CF__MULDIV(Type)                                                       \
-    static inline Type cfMulDiv##Type(Type value, Type numer, Type denom)      \
+    static inline Type cf_##Type##MulDiv(Type value, Type numer, Type denom)   \
     {                                                                          \
         CF_DEBUG_ASSERT(numer *denom < T_MAX(Type), "Operation can overflow"); \
                                                                                \
@@ -291,88 +291,88 @@ CF__GCD(U64)
 // clang-format off
 
 /// Add two vectors of arbitrary length
-#define vecAddN(a, b, length, out)     \
-    _Generic((a),                      \
-             F32* : vec_F32AddN, \
-             F64* : vec_F64AddN, \
-             I32* : vec_I32AddN, \
+#define vecAddN(a, b, length, out) \
+    _Generic((a),                  \
+             F32* : vec_F32AddN,   \
+             F64* : vec_F64AddN,   \
+             I32* : vec_I32AddN,   \
              I64* : vec_I64AddN)(a, b, length, out)
 
 /// Subtract two vectors of arbitrary length
-#define vecSubN(a, b, length, out)     \
-    _Generic((a),                      \
-             F32* : vec_F32SubN, \
-             F64* : vec_F64SubN, \
-             I32* : vec_I32SubN, \
+#define vecSubN(a, b, length, out) \
+    _Generic((a),                  \
+             F32* : vec_F32SubN,   \
+             F64* : vec_F64SubN,   \
+             I32* : vec_I32SubN,   \
              I64* : vec_I64SubN)(a, b, length, out)
 
 /// Multiply a vector of arbitrary length times a scalar value
-#define vecMulN(a, b, length, out)     \
-    _Generic((a),                      \
-             F32* : vec_F32MulN, \
-             F64* : vec_F64MulN, \
-             I32* : vec_I32MulN, \
+#define vecMulN(a, b, length, out) \
+    _Generic((a),                  \
+             F32* : vec_F32MulN,   \
+             F64* : vec_F64MulN,   \
+             I32* : vec_I32MulN,   \
              I64* : vec_I64MulN)(a, b, length, out)
 
 /// Divide a vector of arbitrary length times a scalar value
-#define vecDivN(a, b, length, out)          \
-    _Generic((a),               \
-             F32* : vec_F32DivN,  \
-             F64* : vec_F64DivN, \
-             I32* : vec_I32DivN, \
+#define vecDivN(a, b, length, out) \
+    _Generic((a),                  \
+             F32* : vec_F32DivN,   \
+             F64* : vec_F64DivN,   \
+             I32* : vec_I32DivN,   \
              I64* : vec_I64DivN)(a, b, length, out)
 
 /// Dot product of two vectors of arbitrary length
-#define vecDotN(a, b, length)          \
-    _Generic((a),               \
-             F32* : vec_F32DotN,  \
+#define vecDotN(a, b, length)    \
+    _Generic((a),                \
+             F32* : vec_F32DotN, \
              F64* : vec_F64DotN, \
              I32* : vec_I32DotN, \
              I64* : vec_I64DotN)(a, b, length)
 
 /// Squared distance between two vectors of arbitrary length
-#define vecDistanceSquaredN(a, b, length)          \
-    _Generic((a),               \
-             F32* : vec_F32DistanceSquaredN,  \
+#define vecDistanceSquaredN(a, b, length)    \
+    _Generic((a),                            \
+             F32* : vec_F32DistanceSquaredN, \
              F64* : vec_F64DistanceSquaredN, \
              I32* : vec_I32DistanceSquaredN, \
              I64* : vec_I64DistanceSquaredN)(a, b, length)
 
 /// Distance between two vectors of arbitrary length
-#define vecDistanceN(a, b, length)          \
-    _Generic((a),               \
-             F32* : vec_F32DistanceN,  \
+#define vecDistanceN(a, b, length)    \
+    _Generic((a),                     \
+             F32* : vec_F32DistanceN, \
              F64* : vec_F64DistanceN, \
              I32* : vec_I32DistanceN, \
              I64* : vec_I64DistanceN)(a, b, length)
 
 /// Linear interpolation of two vectors of arbitrary length
-#define vecLerpN(a, b, length, t, out)          \
-    _Generic((a),               \
-             F32* : vec_F32LerpN,  \
-             F64* : vec_F64LerpN, \
-             I32* : vec_I32LerpN, \
+#define vecLerpN(a, b, length, t, out) \
+    _Generic((a),                      \
+             F32* : vec_F32LerpN,      \
+             F64* : vec_F64LerpN,      \
+             I32* : vec_I32LerpN,      \
              I64* : vec_I64LerpN)(a, b, length, t, out)
 
 /// Negate a vector of arbitrary length
-#define vecNegateN(v, length, out)          \
-    _Generic((v),               \
-             F32* : vec_F32NegateN,  \
+#define vecNegateN(v, length, out)  \
+    _Generic((v),                   \
+             F32* : vec_F32NegateN, \
              F64* : vec_F64NegateN, \
              I32* : vec_I32NegateN, \
              I64* : vec_I64NegateN)(v, length, out)
 
 /// Squared norm of a vector of arbitrary length
-#define vecNormSquaredN(v, length)             \
-    _Generic((v),                              \
+#define vecNormSquaredN(v, length)       \
+    _Generic((v),                        \
              F32* : vec_F32NormSquaredN, \
              F64* : vec_F64NormSquaredN, \
              I32* : vec_I32NormSquaredN, \
              I64* : vec_I64NormSquaredN)(v, length)
 
 /// Norm of a vector of arbitrary length
-#define vecNormN(v, length)             \
-    _Generic((v),                       \
+#define vecNormN(v, length)       \
+    _Generic((v),                 \
              F32* : vec_F32NormN, \
              F64* : vec_F64NormN, \
              I32* : vec_I32NormN, \
