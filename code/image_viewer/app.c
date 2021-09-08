@@ -371,9 +371,9 @@ imageViewUpdate(ImageView *iv, Image const *image)
 static void
 appClearImages(AppState *app)
 {
-    for (U32 i = 0; i < app->images.len; ++i)
+    for (U32 i = 0; i < app->images.size; ++i)
     {
-        ImageFile *file = app->images.buf + i;
+        ImageFile *file = app->images.data + i;
 
         CF_ASSERT(file->state != ImageFileState_Queued, "Leaking queued files");
 
@@ -412,8 +412,8 @@ appQueueLoadFiles(AppState *app)
 {
     // NOTE (Matteo): improve browsing performance by pre-loading previous and next files
 
-    ImageFile *files = app->images.buf;
-    Usize num_files = app->images.len;
+    ImageFile *files = app->images.data;
+    Usize num_files = app->images.size;
     Usize curr = app->curr_file;
 
     loadQueuePush(&app->queue, files + curr);
@@ -497,18 +497,18 @@ appLoadFromFile(AppState *state, Str full_name)
 #    pragma warning(pop)
 #endif
 
-        for (U32 index = 0; index < images->len; ++index)
+        for (U32 index = 0; index < images->size; ++index)
         {
-            Str temp_name = strFromCstr(state->images.buf[index].filename);
+            Str temp_name = strFromCstr(state->images.data[index].filename);
             if (strEqualInsensitive(full_name, temp_name))
             {
                 state->curr_file = index;
-                state->images.buf[index] = file;
+                state->images.data[index] = file;
                 break;
             }
         }
 
-        state->browse_width = cfMin(BrowseWidth, images->len);
+        state->browse_width = cfMin(BrowseWidth, images->size);
         CF_ASSERT(state->curr_file != USIZE_MAX, "At least one image file should be present");
         appQueueLoadFiles(state);
     }
@@ -523,12 +523,12 @@ appBrowseNext(AppState *app)
 {
     CF_ASSERT(app->curr_file != U32_MAX, "Invalid browse command");
 
-    Usize next = cfWrapInc(app->curr_file, app->images.len);
+    Usize next = cfWrapInc(app->curr_file, app->images.size);
 
-    if (app->browse_width != app->images.len)
+    if (app->browse_width != app->images.size)
     {
-        Usize lru = cfMod(app->curr_file - app->browse_width / 2, app->images.len);
-        ImageFile *file = app->images.buf + lru;
+        Usize lru = cfMod(app->curr_file - app->browse_width / 2, app->images.size);
+        ImageFile *file = app->images.data + lru;
         if (file->state == ImageFileState_Loaded)
         {
             imageUnload(&file->image);
@@ -537,7 +537,7 @@ appBrowseNext(AppState *app)
     }
     else
     {
-        CF_ASSERT(app->images.buf[next].state != ImageFileState_Idle, "");
+        CF_ASSERT(app->images.data[next].state != ImageFileState_Idle, "");
     }
 
     app->curr_file = next;
@@ -549,12 +549,12 @@ appBrowsePrev(AppState *app)
 {
     CF_ASSERT(app->curr_file != USIZE_MAX, "Invalid browse command");
 
-    Usize prev = cfWrapDec(app->curr_file, app->images.len);
+    Usize prev = cfWrapDec(app->curr_file, app->images.size);
 
-    if (app->browse_width != app->images.len)
+    if (app->browse_width != app->images.size)
     {
-        Usize lru = cfMod(app->curr_file + app->browse_width / 2, app->images.len);
-        ImageFile *file = app->images.buf + lru;
+        Usize lru = cfMod(app->curr_file + app->browse_width / 2, app->images.size);
+        ImageFile *file = app->images.data + lru;
         if (file->state == ImageFileState_Loaded)
         {
             imageUnload(&file->image);
@@ -563,7 +563,7 @@ appBrowsePrev(AppState *app)
     }
     else
     {
-        CF_ASSERT(app->images.buf[prev].state != ImageFileState_Idle, "");
+        CF_ASSERT(app->images.data[prev].state != ImageFileState_Idle, "");
     }
 
     app->curr_file = prev;
@@ -611,7 +611,7 @@ appImageView(AppState *state)
 
     if (state->curr_file != USIZE_MAX)
     {
-        ImageFile *curr_file = state->images.buf + state->curr_file;
+        ImageFile *curr_file = state->images.data + state->curr_file;
         bool can_browse = true;
 
         switch (curr_file->state)
@@ -727,7 +727,7 @@ appOpenFile(AppState *state)
 
         if (state->curr_file != USIZE_MAX)
         {
-            dlg_parms.filename_hint = strFromCstr(state->images.buf[state->curr_file].filename);
+            dlg_parms.filename_hint = strFromCstr(state->images.data[state->curr_file].filename);
         }
 
         GuiFileDialogResult dlg_result =

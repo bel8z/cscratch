@@ -493,22 +493,22 @@ typedef struct MemAllocator
         /* Allocator used for growing the array dynamically */                           \
         MemAllocator alloc;                                                              \
         /* Actual array storage */                                                       \
-        Type *buf;                                                                       \
+        Type *data;                                                                      \
         /* Size of the array (number of stored items) */                                 \
-        Usize len;                                                                       \
+        Usize size;                                                                      \
         /* Capacity of the array (number of elements that can be stored before the array \
          * grows) */                                                                     \
-        Usize cap;                                                                       \
+        Usize capacity;                                                                  \
     }
 
 /// Macro to define a typed, fixed size buffer with a dynamic interface (useful for small string
 /// building or temporary arrays without dynamic allocation)
 /// Functionality is implemented in array.h
-#define CfBuffer(Type, Cap) \
-    struct                  \
-    {                       \
-        Type buf[Cap];      \
-        Usize len;          \
+#define CfBuffer(Type, Capacity) \
+    struct                       \
+    {                            \
+        Type data[Capacity];     \
+        Usize size;              \
     }
 
 //-------------//

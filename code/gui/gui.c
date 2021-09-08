@@ -90,7 +90,7 @@ guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc)
     ofn.hwndOwner = NULL;
     ofn.lpstrFile = name;
     ofn.nMaxFile = MAX_PATH;
-    ofn.lpstrFilter = filt.buf; // L"Image files\0*.jpg;*.jpeg;*.bmp;*.png\0";
+    ofn.lpstrFilter = filt.data; // L"Image files\0*.jpg;*.jpeg;*.bmp;*.png\0";
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;

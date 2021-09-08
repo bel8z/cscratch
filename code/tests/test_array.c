@@ -16,9 +16,9 @@ arrayPrint(MyArray *a)
 
     fprintf(out, "{");
 
-    for (Usize i = 0; i < a->len; ++i)
+    for (Usize i = 0; i < a->size; ++i)
     {
-        fprintf(out, "%d, ", a->buf[i]);
+        fprintf(out, "%d, ", a->data[i]);
     }
 
     fprintf(out, "}\n");
@@ -42,9 +42,9 @@ main(int32_t argc, char **argv)
 
     arrayPrint(&array);
 
-    for (Usize i = 0; i < array.len; ++i)
+    for (Usize i = 0; i < array.size; ++i)
     {
-        CF_ASSERT(array.buf[i] == (MyType)i, "Array push FAILED");
+        CF_ASSERT(array.data[i] == (MyType)i, "Array push FAILED");
     }
 
     CF_ASSERT(cfArrayPop(&array) == 2, "Array pop FAILED");
@@ -63,9 +63,9 @@ main(int32_t argc, char **argv)
 
     arrayPrint(&array);
 
-    for (Usize i = 0; i < array.len; ++i)
+    for (Usize i = 0; i < array.size; ++i)
     {
-        CF_ASSERT(array.buf[i] == (MyType)i, "");
+        CF_ASSERT(array.data[i] == (MyType)i, "");
     }
 
     cfArrayRemove(&array, 1);
@@ -76,7 +76,7 @@ main(int32_t argc, char **argv)
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(test_remove); ++i)
     {
-        CF_ASSERT(array.buf[i] == test_remove[i], "Array remove FAILED");
+        CF_ASSERT(array.data[i] == test_remove[i], "Array remove FAILED");
     }
 
     cfArraySwapRemove(&array, 1);
@@ -85,7 +85,7 @@ main(int32_t argc, char **argv)
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(test_swap_remove); ++i)
     {
-        CF_ASSERT(array.buf[i] == test_swap_remove[i], "Array swap remove FAILED");
+        CF_ASSERT(array.data[i] == test_swap_remove[i], "Array swap remove FAILED");
     }
 
     cfArrayInsert(&array, 1, 8);
@@ -94,7 +94,7 @@ main(int32_t argc, char **argv)
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(test_insert); ++i)
     {
-        CF_ASSERT(array.buf[i] == test_insert[i], "Array insert FAILED");
+        CF_ASSERT(array.data[i] == test_insert[i], "Array insert FAILED");
     }
 
     cfArrayFree(&array);

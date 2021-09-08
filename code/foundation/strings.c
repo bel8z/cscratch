@@ -66,14 +66,14 @@ stackStrPrintf(StackStr *str, Cstr fmt, ...)
 
     va_start(args, fmt);
 
-    I32 len = strPrintfV(str->buf, str->len, fmt, args);
+    I32 len = strPrintfV(str->data, str->size, fmt, args);
 
     va_end(args);
 
     if (len < 0) return false;
 
     // TODO (Matteo): Should account for the null terminator?
-    str->len = len;
+    str->size = len;
 
     return true;
 }
@@ -174,7 +174,7 @@ strContains(Str str, Char8 c)
 //-----------------------------//
 
 #define _sbValidate(sb) \
-    (CF_ASSERT((sb) && (sb)->buf && (sb)->len >= 1, "Invalid string builder state")) // NOLINT
+    (CF_ASSERT((sb) && (sb)->data && (sb)->size >= 1, "Invalid string builder state")) // NOLINT
 
 void
 strBufferInit(StrBuffer *sb, MemAllocator alloc)
@@ -190,7 +190,7 @@ strBufferInitFrom(StrBuffer *sb, MemAllocator alloc, Str str)
     CF_ASSERT_NOT_NULL(sb);
     cfArrayInitCap(sb, alloc, str.len + 1);
     cfArrayExtend(sb, str.len);
-    memCopy(str.buf, sb->buf, str.len);
+    memCopy(str.buf, sb->data, str.len);
     cfArrayPush(sb, 0);
 }
 
@@ -214,13 +214,13 @@ strBufferAppend(StrBuffer *sb, Str what)
     _sbValidate(sb);
 
     // Write over the previous null terminator
-    Usize nul_pos = sb->len - 1;
+    Usize nul_pos = sb->size - 1;
 
     cfArrayExtend(sb, what.len);
-    memCopy(what.buf, sb->buf + nul_pos, what.len);
+    memCopy(what.buf, sb->data + nul_pos, what.len);
 
     // Null terminate again
-    sb->buf[sb->len - 1] = 0;
+    sb->data[sb->size - 1] = 0;
 }
 
 bool
@@ -247,10 +247,10 @@ strBufferPrintf(StrBuffer *sb, Cstr fmt, ...)
     Usize size = len + 1;
     cfArrayResize(sb, size);
 
-    vsnprintf(sb->buf, size, fmt, args); // NOLINT
+    vsnprintf(sb->data, size, fmt, args); // NOLINT
     va_end(args);
 
-    CF_ASSERT(sb->buf && sb->buf[sb->len - 1] == 0, "Missing null terminator");
+    CF_ASSERT(sb->data && sb->data[sb->size - 1] == 0, "Missing null terminator");
 
     return true;
 }
@@ -276,16 +276,16 @@ strBufferAppendf(StrBuffer *sb, Cstr fmt, ...)
     };
 
     // Write over the previous null terminator
-    Usize nul_pos = sb->len - 1;
+    Usize nul_pos = sb->size - 1;
 
     cfArrayExtend(sb, len);
-    CF_ASSERT(sb->len >= len + 1, "Buffer not extended correctly");
+    CF_ASSERT(sb->size >= len + 1, "Buffer not extended correctly");
 
-    vsnprintf(sb->buf + nul_pos, len + 1, fmt, args); // NOLINT
+    vsnprintf(sb->data + nul_pos, len + 1, fmt, args); // NOLINT
     va_end(args);
 
     // Null terminate again
-    sb->buf[sb->len - 1] = 0;
+    sb->data[sb->size - 1] = 0;
 
     return true;
 }
@@ -294,12 +294,12 @@ Str
 strBufferView(StrBuffer *sb)
 {
     _sbValidate(sb);
-    return (Str){.buf = sb->buf, .len = sb->len - 1};
+    return (Str){.buf = sb->data, .len = sb->size - 1};
 }
 
 Cstr
 strBufferCstr(StrBuffer *sb)
 {
     _sbValidate(sb);
-    return sb->buf;
+    return sb->data;
 }
