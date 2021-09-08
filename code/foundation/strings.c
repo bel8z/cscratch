@@ -60,7 +60,7 @@ strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...)
 }
 
 bool
-stackStrPrintf(StackStr *str, Cstr fmt, ...)
+strBufferPrintf(StrBuffer *str, Cstr fmt, ...)
 {
     va_list args;
 
@@ -177,7 +177,7 @@ strContains(Str str, Char8 c)
     (CF_ASSERT((sb) && (sb)->data && (sb)->size >= 1, "Invalid string builder state")) // NOLINT
 
 void
-strBufferInit(StrBuffer *sb, MemAllocator alloc)
+strBuilderInit(StrBuilder *sb, MemAllocator alloc)
 {
     CF_ASSERT_NOT_NULL(sb);
     cfArrayInit(sb, alloc);
@@ -185,7 +185,7 @@ strBufferInit(StrBuffer *sb, MemAllocator alloc)
 }
 
 void
-strBufferInitFrom(StrBuffer *sb, MemAllocator alloc, Str str)
+strBuilderInitFrom(StrBuilder *sb, MemAllocator alloc, Str str)
 {
     CF_ASSERT_NOT_NULL(sb);
     cfArrayInitCap(sb, alloc, str.len + 1);
@@ -195,7 +195,7 @@ strBufferInitFrom(StrBuffer *sb, MemAllocator alloc, Str str)
 }
 
 void
-strBufferInitWith(StrBuffer *sb, MemAllocator alloc, Usize cap)
+strBuilderInitWith(StrBuilder *sb, MemAllocator alloc, Usize cap)
 {
     CF_ASSERT_NOT_NULL(sb);
     cfArrayInitCap(sb, alloc, cap);
@@ -203,13 +203,13 @@ strBufferInitWith(StrBuffer *sb, MemAllocator alloc, Usize cap)
 }
 
 void
-strBufferShutdown(StrBuffer *sb)
+strBuilderShutdown(StrBuilder *sb)
 {
     cfArrayFree(sb);
 }
 
 void
-strBufferAppend(StrBuffer *sb, Str what)
+strBuilderAppend(StrBuilder *sb, Str what)
 {
     _sbValidate(sb);
 
@@ -224,7 +224,7 @@ strBufferAppend(StrBuffer *sb, Str what)
 }
 
 bool
-strBufferPrintf(StrBuffer *sb, Cstr fmt, ...)
+strBuilderPrintf(StrBuilder *sb, Cstr fmt, ...)
 {
     _sbValidate(sb);
 
@@ -256,7 +256,7 @@ strBufferPrintf(StrBuffer *sb, Cstr fmt, ...)
 }
 
 bool
-strBufferAppendf(StrBuffer *sb, Cstr fmt, ...)
+strBuilderAppendf(StrBuilder *sb, Cstr fmt, ...)
 {
     _sbValidate(sb);
 
@@ -291,14 +291,14 @@ strBufferAppendf(StrBuffer *sb, Cstr fmt, ...)
 }
 
 Str
-strBufferView(StrBuffer *sb)
+strBuilderView(StrBuilder *sb)
 {
     _sbValidate(sb);
     return (Str){.buf = sb->data, .len = sb->size - 1};
 }
 
 Cstr
-strBufferCstr(StrBuffer *sb)
+strBuilderCstr(StrBuilder *sb)
 {
     _sbValidate(sb);
     return sb->data;

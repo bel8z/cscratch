@@ -61,7 +61,7 @@ CF_API Usize strToCstr(Str str, Char8 *buffer, Usize size);
 CF_API bool strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...) CF_PRINTF_LIKE(2, 3);
 
 /// Print formatted string on the given dynamic buffer
-CF_API bool stackStrPrintf(StackStr *str, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
+CF_API bool strBufferPrintf(StrBuffer *str, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
 
 //------------------------------//
 //   String (view) comparison   //
@@ -84,16 +84,16 @@ CF_API Usize strFindLast(Str haystack, Str needle);
 //   Dynamic string building   //
 //-----------------------------//
 
-CF_API void strBufferInit(StrBuffer *sb, MemAllocator alloc);
-CF_API void strBufferInitFrom(StrBuffer *sb, MemAllocator alloc, Str str);
-CF_API void strBufferInitWith(StrBuffer *sb, MemAllocator alloc, Usize cap);
-CF_API void strBufferShutdown(StrBuffer *sb);
+CF_API void strBuilderInit(StrBuilder *sb, MemAllocator alloc);
+CF_API void strBuilderInitFrom(StrBuilder *sb, MemAllocator alloc, Str str);
+CF_API void strBuilderInitWith(StrBuilder *sb, MemAllocator alloc, Usize cap);
+CF_API void strBuilderShutdown(StrBuilder *sb);
 
-CF_API void strBufferAppend(StrBuffer *sb, Str what);
-CF_API bool strBufferAppendf(StrBuffer *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
-CF_API bool strBufferPrintf(StrBuffer *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
+CF_API void strBuilderAppend(StrBuilder *sb, Str what);
+CF_API bool strBuilderAppendf(StrBuilder *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
+CF_API bool strBuilderPrintf(StrBuilder *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
 
-CF_API Str strBufferView(StrBuffer *sb);
-CF_API Cstr strBufferCstr(StrBuffer *sb);
+CF_API Str strBuilderView(StrBuilder *sb);
+CF_API Cstr strBuilderCstr(StrBuilder *sb);
 
 //------------------------------------------------------------------------------

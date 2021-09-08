@@ -240,15 +240,15 @@ main()
     printf("String builder\n");
     printf("-------------------------\n");
 
-    StrBuffer sb = {0};
+    StrBuilder sb = {0};
 
-    strBufferInit(&sb, alloc);
-    strBufferPrintf(&sb, "%s", "This is");
-    strBufferAppend(&sb, strFromCstr(" a"));
-    strBufferAppendf(&sb, " %s %s", "string", "buffer");
-    printf("%s\n", strBufferCstr(&sb));
+    strBuilderInit(&sb, alloc);
+    strBuilderPrintf(&sb, "%s", "This is");
+    strBuilderAppend(&sb, strFromCstr(" a"));
+    strBuilderAppendf(&sb, " %s %s", "string", "buffer");
+    printf("%s\n", strBuilderCstr(&sb));
 
-    strBufferShutdown(&sb);
+    strBuilderShutdown(&sb);
 
     //======================================================//
 

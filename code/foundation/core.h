@@ -511,6 +511,12 @@ typedef struct MemAllocator
         Usize size;              \
     }
 
+/// Dynamic buffer for raw memory
+typedef CfArray(U8) MemArray;
+
+/// Fixed size buffer for raw memory
+#define MemBuffer(Capacity) CfBuffer(U8, Capacity)
+
 //-------------//
 //   Strings   //
 //-------------//
@@ -529,18 +535,18 @@ typedef struct Str
 } Str;
 
 /// Dynamic string buffer
-typedef struct StrBuffer
+typedef struct StrBuilder
 {
     // NOTE (Matteo): Including a dynamic array as an anonymous struct allows for both extension and
     // easy usage of the array API
     CfArray(Char8);
-} StrBuffer;
+} StrBuilder;
 
 /// Fixed size string buffer, useful for temporary small strings allocation on the stack
-typedef struct StackStr
+typedef struct StrBuffer
 {
     CfBuffer(Char8, 1024);
-} StackStr;
+} StrBuffer;
 
 //-------------//
 //   Vectors   //
