@@ -56,57 +56,36 @@ cfRsqrt32(F32 x)
     return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(x)));
 }
 
-static inline I32
-ISqrt32(I32 x)
-{
-    I32 q = 1;
-    I32 r = 0;
-
-    while (q <= x) q <<= 2;
-
-    while (q > 1)
-    {
-        q >>= 2;
-
-        I32 t = x - r - q;
-
-        r >>= 1;
-
-        if (t >= 0)
-        {
-            x = t;
-            r += q;
-        }
+#define CF__ISQRT(Size)                          \
+    static inline I##Size ISqrt##Size(I##Size x) \
+    {                                            \
+        I##Size q = 1;                           \
+        I##Size r = 0;                           \
+                                                 \
+        while (q <= x) q <<= 2;                  \
+                                                 \
+        while (q > 1)                            \
+        {                                        \
+            q >>= 2;                             \
+                                                 \
+            I##Size t = x - r - q;               \
+                                                 \
+            r >>= 1;                             \
+                                                 \
+            if (t >= 0)                          \
+            {                                    \
+                x = t;                           \
+                r += q;                          \
+            }                                    \
+        }                                        \
+                                                 \
+        return r;                                \
     }
 
-    return r;
-}
+CF__ISQRT(32)
+CF__ISQRT(64)
 
-static inline I64
-ISqrt64(I64 x)
-{
-    I64 q = 1;
-    I64 r = 0;
-
-    while (q <= x) q <<= 2;
-
-    while (q > 1)
-    {
-        q >>= 2;
-
-        I64 t = x - r - q;
-
-        r >>= 1;
-
-        if (t >= 0)
-        {
-            x = t;
-            r += q;
-        }
-    }
-
-    return r;
-}
+#undef CF__ISQRT
 
 //-----------------//
 //  Float modulo   //
