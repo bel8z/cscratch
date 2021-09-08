@@ -26,6 +26,16 @@ CF_API void memWrite(U8 *mem, U8 value, Usize count);
 CF_API I32 memCompare(void const *left, void const *right, Usize count);
 CF_API bool memMatch(void const *left, void const *right, Usize count);
 
+#define memClearStruct(ptr) memClear(ptr, sizeof(*(ptr)))
+#define memClearArray(ptr, count) memClear(ptr, (count) * sizeof(*(ptr)))
+
+#define memCopyArray(from, to, count) \
+    (CF_SAME_TYPE(*(from), *(to)), memCopy(from, to, (count) * sizeof(*(from))))
+
+#define memMatchStruct(a, b) (CF_SAME_TYPE(a, b), memMatch(&a, &b, sizeof(a)))
+#define memMatchArray(a, b, count) \
+    (CF_SAME_TYPE(*(a), *(b)), memMatch(a, b, (count) * sizeof(*(a))))
+
 inline U8 const *
 memAlignForward(U8 const *address, Usize alignment)
 {
@@ -35,8 +45,6 @@ memAlignForward(U8 const *address, Usize alignment)
     // Move pointer forward if needed
     return modulo ? address + alignment - modulo : address;
 }
-
-#define cfEqual(a, b) (CF_SAME_TYPE(a, b), memMatch(&a, &b, sizeof(a)))
 
 //------------------------//
 //   Virtual memory API   //
@@ -194,15 +202,15 @@ CF_API void memArenaFree(MemArena *arena, void *memory, Usize size);
 
 /// Allocates a block which fits the given array on top of the arena stack
 #define memArenaAllocArray(arena, Type, count) \
-    (Type *)memArenaAllocAlign(arena, count * sizeof(Type), alignof(Type))
+    (Type *)memArenaAllocAlign(arena, (count) * sizeof(Type), alignof(Type))
 
 /// Allocates a block which fits the given array on top of the arena stack
-#define memArenaReallocArray(arena, Type, array, old_count, new_count)                             \
-    (Type *)memArenaReallocAlign(arena, array, old_count * sizeof(Type), new_count * sizeof(Type), \
-                                 alignof(Type))
+#define memArenaReallocArray(arena, Type, array, old_count, new_count)     \
+    (Type *)memArenaReallocAlign(arena, array, (old_count) * sizeof(Type), \
+                                 (new_count) * sizeof(Type), alignof(Type))
 
 /// Try freeing a block which fits the given array on top of the arena stack
-#define memArenaFreeArray(arena, Type, count, ptr) memArenaFree(arena, ptr, count * sizeof(Type))
+#define memArenaFreeArray(arena, Type, count, ptr) memArenaFree(arena, ptr, (count) * sizeof(Type))
 
 /// Save the current state of the arena, in order to restore it after temporary allocations.
 CF_API MemArenaState memArenaSave(MemArena *arena);

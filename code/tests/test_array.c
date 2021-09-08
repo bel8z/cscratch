@@ -81,6 +81,8 @@ main(int32_t argc, char **argv)
 
     cfArraySwapRemove(&array, 1);
 
+    arrayPrint(&array);
+
     MyType test_swap_remove[] = {0, 4, 3};
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(test_swap_remove); ++i)
@@ -90,6 +92,8 @@ main(int32_t argc, char **argv)
 
     cfArrayInsert(&array, 1, 8);
 
+    arrayPrint(&array);
+
     MyType test_insert[] = {0, 8, 4, 3};
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(test_insert); ++i)
@@ -97,7 +101,7 @@ main(int32_t argc, char **argv)
         CF_ASSERT(array.data[i] == test_insert[i], "Array insert FAILED");
     }
 
-    cfArrayFree(&array);
+    cfArrayShutdown(&array);
 
     return 0;
 }

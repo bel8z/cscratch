@@ -275,7 +275,7 @@
 #define cfWrapDec(val, len) (val == 0 ? (len - 1) : (val - 1)) // ((val + len - 1) % len)
 
 /// Check at compile time that the two arguments have the same type
-#define CF_SAME_TYPE(l, r) (0 && (l = r, 0))
+#define CF_SAME_TYPE(l, r) (0 && ((l) = (r), 0))
 
 //------------------------------------------------------------------------------
 //   TYPES

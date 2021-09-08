@@ -76,7 +76,8 @@ cfReverseBuf(void *array, Usize size, U8 *swap_buf, Usize swap_size)
     }
 }
 
-#define cfReverse(array, size) cfReverseBuf(array, size, (u8[sizeof(*array)]){0}, sizeof(*array))
+#define cfReverse(array, size) \
+    cfReverseBuf(array, size, (u8[sizeof(*(array))]){0}, sizeof(*(array)))
 
 //------------------------------------------------------------------------------
 // Array rotation
@@ -94,7 +95,7 @@ cf__rotateReversal(void *array, Usize size, Usize pos, U8 *swap_buf, Usize swap_
 }
 
 #define cfRotateReversal(array, size, pos) \
-    cf__rotateReversal(array, size, pos, (U8[sizeof(*array)]){0}, sizeof(*array))
+    cf__rotateReversal(array, size, pos, (U8[sizeof(*(array)]){0}, sizeof(*(array))
 
 // Rotate array elements
 #define cfRotateLeft(array, size, pos) cfRotateReversal(array, size, pos)

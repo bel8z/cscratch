@@ -855,7 +855,7 @@ appDestroy(AppState *app)
     appUnload(app);
     appClearImages(app);
     imageViewShutdown(&app->iv);
-    cfArrayFree(&app->images);
+    cfArrayShutdown(&app->images);
     memArenaClear(app->scratch);
     memArenaClear(app->main);
 

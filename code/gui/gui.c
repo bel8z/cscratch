@@ -119,7 +119,7 @@ guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc)
         result.code = GuiFileDialogResult_Cancel;
     }
 
-    cfArrayFree(&filt);
+    cfArrayShutdown(&filt);
 
     return result;
 }

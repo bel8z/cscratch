@@ -205,7 +205,7 @@ strBuilderInitWith(StrBuilder *sb, MemAllocator alloc, Usize cap)
 void
 strBuilderShutdown(StrBuilder *sb)
 {
-    cfArrayFree(sb);
+    cfArrayShutdown(sb);
 }
 
 void

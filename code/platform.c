@@ -438,7 +438,7 @@ appApiLoad(AppApi *api, Paths *paths, CfFileSystem *fs, LibraryApi *library)
     {
         CF_ASSERT(api->create, "");
         library->unload(api->lib);
-        memClear(api, sizeof(*api));
+        memClearStruct(api);
     }
 
     strPrintf(api->src_file, Paths_Size, "%.*s%.*s", //
