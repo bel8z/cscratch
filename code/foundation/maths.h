@@ -42,7 +42,7 @@
 //  Powers & roots   //
 //-------------------//
 
-#define cfSqrt(X) _Generic((X), default : sqrt, F32 : sqrtf)(X)
+#define cfSqrt(X) _Generic((X), default : sqrt, F32 : sqrtf, I32 : ISqrt32, I64 : ISqrt64)(X)
 #define cfRsqrt(X) _Generic((X), default : (1 / cfSqrt(X)), F32 : cfRsqrt32(X))
 #define cfPow(base, xp) _Generic((base, xp), default : pow, F32 : powf)(base, xp)
 #define cfSquare(x) ((x) * (x))
@@ -54,6 +54,58 @@ static inline F32
 cfRsqrt32(F32 x)
 {
     return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(x)));
+}
+
+static inline I32
+ISqrt32(I32 x)
+{
+    I32 q = 1;
+    I32 r = 0;
+
+    while (q <= x) q <<= 2;
+
+    while (q > 1)
+    {
+        q >>= 2;
+
+        I32 t = x - r - q;
+
+        r >>= 1;
+
+        if (t >= 0)
+        {
+            x = t;
+            r += q;
+        }
+    }
+
+    return r;
+}
+
+static inline I64
+ISqrt64(I64 x)
+{
+    I64 q = 1;
+    I64 r = 0;
+
+    while (q <= x) q <<= 2;
+
+    while (q > 1)
+    {
+        q >>= 2;
+
+        I64 t = x - r - q;
+
+        r >>= 1;
+
+        if (t >= 0)
+        {
+            x = t;
+            r += q;
+        }
+    }
+
+    return r;
 }
 
 //-----------------//
@@ -253,106 +305,177 @@ CF__GCD(U64)
 //   N-dimensional vector operations   //
 //-------------------------------------//
 
-static inline void
-vecAddN(F32 const *a, F32 const *b, size_t len, F32 *out)
-{
-    for (F32 const *end = out + len; out != end; ++a, ++b, ++out)
-    {
-        *out = *a + *b;
+// NOTE (Matteo): Sorry for the macro abuse, but they are quite handy to generate all the functions
+// for the most common arithmetic types. Also generic macros are convenient for reducing the typing
+// effort (USER side obviously).
+
+// clang-format off
+
+/// Add two vectors of arbitrary length
+#define vecAddN(a, b, length, out)     \
+    _Generic((a),                      \
+             F32* : vec_F32AddN, \
+             F64* : vec_F64AddN, \
+             I32* : vec_I32AddN, \
+             I64* : vec_I64AddN)(a, b, length, out)
+
+/// Subtract two vectors of arbitrary length
+#define vecSubN(a, b, length, out)     \
+    _Generic((a),                      \
+             F32* : vec_F32SubN, \
+             F64* : vec_F64SubN, \
+             I32* : vec_I32SubN, \
+             I64* : vec_I64SubN)(a, b, length, out)
+
+/// Multiply a vector of arbitrary length times a scalar value
+#define vecMulN(a, b, length, out)     \
+    _Generic((a),                      \
+             F32* : vec_F32MulN, \
+             F64* : vec_F64MulN, \
+             I32* : vec_I32MulN, \
+             I64* : vec_I64MulN)(a, b, length, out)
+
+/// Divide a vector of arbitrary length times a scalar value
+#define vecDivN(a, b, length, out)          \
+    _Generic((a),               \
+             F32* : vec_F32DivN,  \
+             F64* : vec_F64DivN, \
+             I32* : vec_I32DivN, \
+             I64* : vec_I64DivN)(a, b, length, out)
+
+/// Dot product of two vectors of arbitrary length
+#define vecDotN(a, b, length)          \
+    _Generic((a),               \
+             F32* : vec_F32DotN,  \
+             F64* : vec_F64DotN, \
+             I32* : vec_I32DotN, \
+             I64* : vec_I64DotN)(a, b, length)
+
+/// Squared distance between two vectors of arbitrary length
+#define vecDistanceSquaredN(a, b, length)          \
+    _Generic((a),               \
+             F32* : vec_F32DistanceSquaredN,  \
+             F64* : vec_F64DistanceSquaredN, \
+             I32* : vec_I32DistanceSquaredN, \
+             I64* : vec_I64DistanceSquaredN)(a, b, length)
+
+/// Distance between two vectors of arbitrary length
+#define vecDistanceN(a, b, length)          \
+    _Generic((a),               \
+             F32* : vec_F32DistanceN,  \
+             F64* : vec_F64DistanceN, \
+             I32* : vec_I32DistanceN, \
+             I64* : vec_I64DistanceN)(a, b, length)
+
+/// Linear interpolation of two vectors of arbitrary length
+#define vecLerpN(a, b, length, t, out)          \
+    _Generic((a),               \
+             F32* : vec_F32LerpN,  \
+             F64* : vec_F64LerpN, \
+             I32* : vec_I32LerpN, \
+             I64* : vec_I64LerpN)(a, b, length, t, out)
+
+/// Negate a vector of arbitrary length
+#define vecNegateN(v, length, out)          \
+    _Generic((v),               \
+             F32* : vec_F32NegateN,  \
+             F64* : vec_F64NegateN, \
+             I32* : vec_I32NegateN, \
+             I64* : vec_I64NegateN)(v, length, out)
+
+/// Squared norm of a vector of arbitrary length
+#define vecNormSquaredN(v, length)             \
+    _Generic((v),                              \
+             F32* : vec_F32NormSquaredN, \
+             F64* : vec_F64NormSquaredN, \
+             I32* : vec_I32NormSquaredN, \
+             I64* : vec_I64NormSquaredN)(v, length)
+
+/// Norm of a vector of arbitrary length
+#define vecNormN(v, length)             \
+    _Generic((v),                       \
+             F32* : vec_F32NormN, \
+             F64* : vec_F64NormN, \
+             I32* : vec_I32NormN, \
+             I64* : vec_I64NormN)(v, length)
+
+// clang-format on
+
+#define VEC__N_OPS(Scalar)                                                                       \
+    static inline void vec_##Scalar##AddN(Scalar const *a, Scalar const *b, Usize length,        \
+                                          Scalar *out)                                           \
+    {                                                                                            \
+        for (Usize n = 0; n < length; ++n) out[n] = a[n] + b[n];                                 \
+    }                                                                                            \
+                                                                                                 \
+    static inline void vec_##Scalar##SubN(Scalar const *a, Scalar const *b, Usize length,        \
+                                          Scalar *out)                                           \
+    {                                                                                            \
+        for (Usize n = 0; n < length; ++n) out[n] = a[n] - b[n];                                 \
+    }                                                                                            \
+                                                                                                 \
+    static inline void vec_##Scalar##MulN(Scalar const *a, Scalar b, Usize length, Scalar *out)  \
+    {                                                                                            \
+        for (Usize n = 0; n < length; ++n) out[n] = a[n] * b;                                    \
+    }                                                                                            \
+                                                                                                 \
+    static inline void vec_##Scalar##DivN(Scalar const *a, Scalar b, Usize length, Scalar *out)  \
+    {                                                                                            \
+        for (Usize n = 0; n < length; ++n) out[n] = a[n] / b;                                    \
+    }                                                                                            \
+                                                                                                 \
+    static inline Scalar vec_##Scalar##DotN(Scalar const *a, Scalar const *b, Usize length)      \
+    {                                                                                            \
+        Scalar out = 0;                                                                          \
+        for (Usize n = 0; n < length; ++n) out += a[n] * b[n];                                   \
+        return out;                                                                              \
+    }                                                                                            \
+                                                                                                 \
+    static inline Scalar vec_##Scalar##DistanceSquaredN(Scalar const *a, Scalar const *b,        \
+                                                        Usize length)                            \
+    {                                                                                            \
+                                                                                                 \
+        Scalar out = 0;                                                                          \
+        for (Usize n = 0; n < length; ++n)                                                       \
+        {                                                                                        \
+            Scalar diff = a[n] - b[n];                                                           \
+            out += diff * diff;                                                                  \
+        }                                                                                        \
+        return out;                                                                              \
+    }                                                                                            \
+                                                                                                 \
+    static inline Scalar vec_##Scalar##DistanceN(Scalar const *a, Scalar const *b, Usize length) \
+    {                                                                                            \
+        return cfSqrt(vec_##Scalar##DistanceSquaredN(a, b, length));                             \
+    }                                                                                            \
+                                                                                                 \
+    static inline void vec_##Scalar##LerpN(Scalar const *a, Scalar const *b, Usize length,       \
+                                           Scalar t, Scalar *out)                                \
+    {                                                                                            \
+        Scalar t1 = (Scalar)1 - t;                                                               \
+        for (Usize n = 0; n < length; ++n) out[n] = t1 * a[n] + t * b[n];                        \
+    }                                                                                            \
+                                                                                                 \
+    static inline void vec_##Scalar##NegateN(Scalar const *a, Usize length, Scalar *out)         \
+    {                                                                                            \
+        for (Usize n = 0; n < length; ++n) out[n] = -a[n];                                       \
+    }                                                                                            \
+                                                                                                 \
+    static inline Scalar vec_##Scalar##NormSquaredN(Scalar const *a, Usize length)               \
+    {                                                                                            \
+        return vec_##Scalar##DotN(a, a, length);                                                 \
+    }                                                                                            \
+                                                                                                 \
+    static inline Scalar vec_##Scalar##NormN(Scalar const *a, Usize length)                      \
+    {                                                                                            \
+        return cfSqrt(vec_##Scalar##NormSquaredN(a, length));                                    \
     }
-}
 
-static inline void
-vecSubN(F32 const *a, F32 const *b, size_t len, F32 *out)
-{
-    for (F32 const *end = out + len; out != end; ++a, ++b, ++out)
-    {
-        *out = *a - *b;
-    }
-}
-
-static inline void
-vecMulN(F32 const *a, F32 b, size_t len, F32 *out)
-{
-    for (F32 const *end = out + len; out != end; ++a, ++out)
-    {
-        *out = *a * b;
-    }
-}
-
-static inline void
-vecDivN(F32 const *a, F32 b, size_t len, F32 *out)
-{
-    for (F32 const *end = out + len; out != end; ++a, ++out)
-    {
-        *out = *a / b;
-    }
-}
-
-static inline void
-vecNegateN(F32 const *a, size_t len, F32 *out)
-{
-    for (F32 const *end = out + len; out != end; ++a, ++out)
-    {
-        *out = -(*a);
-    }
-}
-
-static inline F32
-vecDotN(F32 const *a, F32 const *b, size_t len)
-{
-    F32 out = 0;
-
-    for (F32 const *end = a + len; a != end; ++a, ++b)
-    {
-        out += *a * *b;
-    }
-
-    return out;
-}
-
-static inline F32
-vecNormSquaredN(F32 const *a, size_t len)
-{
-    return vecDotN(a, a, len);
-}
-
-static inline F32
-vecNormN(F32 const *a, size_t len)
-{
-    return cfSqrt(vecNormSquaredN(a, len));
-}
-
-static inline F32
-vecDistanceSquaredN(F32 const *a, F32 const *b, size_t len)
-{
-    F32 out = 0;
-
-    for (F32 const *end = a + len; a != end; ++a, ++b)
-    {
-        F32 diff = *a - *b;
-        out += diff * diff;
-    }
-
-    return out;
-}
-
-static inline F32
-vecDistanceN(F32 const *a, F32 const *b, size_t len)
-{
-    return cfSqrt(vecDistanceSquaredN(a, b, len));
-}
-
-static inline void
-vecLerpN(F32 const *a, F32 const *b, size_t len, F32 t, F32 *out)
-{
-    F32 t1 = 1.0f - t;
-
-    for (F32 const *end = out + len; out != end; ++a, ++b, ++out)
-    {
-        *out = *a * t1 + *b * t;
-    }
-}
+VEC__N_OPS(F32)
+VEC__N_OPS(F64)
+VEC__N_OPS(I32)
+VEC__N_OPS(I64)
+#undef VEC__N_OPS
 
 //------------------------------------//
 //   Type-generic vector operations   //
@@ -402,11 +525,12 @@ vecDotPerp2(Vec2 a, Vec2 b)
 static inline Vec3
 vecCross3(Vec3 a, Vec3 b)
 {
-    return (Vec3){
-        .x = a.y * b.z - a.z + b.y, .y = a.z * b.x - a.x * b.z, .z = a.x * b.y - a.y * b.x};
+    return (Vec3){.x = a.y * b.z - a.z + b.y, //
+                  .y = a.z * b.x - a.x * b.z,
+                  .z = a.x * b.y - a.y * b.x};
 }
 
-#define VEC_OPS(N)                                                                         \
+#define VEC__OPS(N)                                                                        \
     static inline Vec##N vecAdd##N(Vec##N a, Vec##N b)                                     \
     {                                                                                      \
         Vec##N out = {0};                                                                  \
@@ -465,11 +589,10 @@ vecCross3(Vec3 a, Vec3 b)
         return out;                                                                        \
     }
 
-VEC_OPS(2)
-VEC_OPS(3)
-VEC_OPS(4)
-
-#undef VEC_OPS
+VEC__OPS(2)
+VEC__OPS(3)
+VEC__OPS(4)
+#undef VEC__OPS
 
 // Mat 4
 // TODO
