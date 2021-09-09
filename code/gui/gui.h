@@ -274,11 +274,6 @@ typedef struct GuiCanvas
     ImDrawList *draw_list;
     Rgba32 stroke_color, fill_color;
     F32 stroke_thick;
-
-    CfBuffer(Rgba32, GuiCanvas_StackSize) stroke_color_stack;
-    CfBuffer(Rgba32, GuiCanvas_StackSize) stroke_thick_stack;
-    CfBuffer(Rgba32, GuiCanvas_StackSize) fill_color_stack;
-
 } GuiCanvas;
 
 CF_API void guiCanvasBegin(GuiCanvas *canvas);

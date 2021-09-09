@@ -6,15 +6,7 @@
 #include "core.h"
 #include "memory.h"
 
-//-------------------------------//
-//   Dynamic growth primitives   //
-//-------------------------------//
-
 #define cfArrayGrowCapacity(array, req) cfMax(req, memGrowArrayCapacity((array)->capacity))
-
-//----------------------------//
-//   CfArray implementation   //
-//----------------------------//
 
 #define cfArrayInit(array, allocator) \
     do                                \
@@ -102,27 +94,3 @@
 // TODO (Matteo):
 // * Range insertion/removal
 // * Trim unused memory
-
-//--------------//
-//   CfBuffer   //
-//--------------//
-
-// TODO (Matteo): Is this API really useful?
-
-#define cfBufferEmpty(buff) ((buff)->size == 0)
-#define cfBufferFull(buff) ((buff)->size == CF_ARRAY_SIZE((buff)->data))
-
-#define cfBufferPush(buff, item) \
-    (CF_ASSERT(!cfBufferFull(buff), "buffer is full"), (buff)->data[(buff)->size++] = item)
-
-#define cfBufferPop(buff) \
-    (CF_ASSERT(!cfBufferEmpty(buff), "buffer is empty"), (buff)->data[--(buff)->size])
-
-#define cfBufferResize(buff, new_size)                                                \
-    (CF_ASSERT(new_size < CF_ARRAY_SIZE((buff)->data), "Not enough buffer capacity"), \
-     (buff)->size = new_size)
-
-#define cfBufferExtend(buff, amount) cfBufferResize((buff), ((buff)->size + (amount)))
-
-// TODO (Matteo):
-// * Range insertion/removal

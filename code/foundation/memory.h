@@ -9,22 +9,12 @@
 //   Basic memory utilities   //
 //----------------------------//
 
-#define memAlloc(a, size) memAllocAlign(a, size, CF_MAX_ALIGN)
-#define memAllocAlign(a, size, align) (a).func((a).state, NULL, 0, (size), (align))
-
-#define memReallocAlign(a, mem, old_size, new_size, align) \
-    (a).func((a).state, (mem), (old_size), (new_size), (align))
-#define memRealloc(a, mem, old_size, new_size) \
-    memReallocAlign(a, mem, old_size, new_size, CF_MAX_ALIGN)
-
-#define memFree(a, mem, size) (a).func((a).state, (void *)(mem), (size), 0, 0)
+//=== Write/Copy ===//
 
 CF_API void memClear(void *mem, Usize count);
+CF_API void memWrite(U8 *mem, U8 value, Usize count);
 CF_API void memCopy(void const *from, void *to, Usize count);
 CF_API void memCopySafe(void const *from, Usize from_size, void *to, Usize to_size);
-CF_API void memWrite(U8 *mem, U8 value, Usize count);
-CF_API I32 memCompare(void const *left, void const *right, Usize count);
-CF_API bool memMatch(void const *left, void const *right, Usize count);
 
 #define memClearStruct(ptr) memClear(ptr, sizeof(*(ptr)))
 #define memClearArray(ptr, count) memClear(ptr, (count) * sizeof(*(ptr)))
@@ -32,9 +22,16 @@ CF_API bool memMatch(void const *left, void const *right, Usize count);
 #define memCopyArray(from, to, count) \
     (CF_SAME_TYPE(*(from), *(to)), memCopy(from, to, (count) * sizeof(*(from))))
 
+//=== Comparison ===//
+
+CF_API I32 memCompare(void const *left, void const *right, Usize count);
+CF_API bool memMatch(void const *left, void const *right, Usize count);
+
 #define memMatchStruct(a, b) (CF_SAME_TYPE(a, b), memMatch(&a, &b, sizeof(a)))
 #define memMatchArray(a, b, count) \
     (CF_SAME_TYPE(*(a), *(b)), memMatch(a, b, (count) * sizeof(*(a))))
+
+//=== Alignment ===//
 
 inline U8 const *
 memAlignForward(U8 const *address, Usize alignment)
@@ -45,6 +42,18 @@ memAlignForward(U8 const *address, Usize alignment)
     // Move pointer forward if needed
     return modulo ? address + alignment - modulo : address;
 }
+
+//=== Allocation ===//
+
+#define memAlloc(a, size) memAllocAlign(a, size, CF_MAX_ALIGN)
+#define memAllocAlign(a, size, align) (a).func((a).state, NULL, 0, (size), (align))
+
+#define memRealloc(a, mem, old_size, new_size) \
+    memReallocAlign(a, mem, old_size, new_size, CF_MAX_ALIGN)
+#define memReallocAlign(a, mem, old_size, new_size, align) \
+    (a).func((a).state, mem, old_size, new_size, align)
+
+#define memFree(a, mem, size) (a).func((a).state, (void *)(mem), size, 0, 0)
 
 // NOTE (Matteo): Those are the very basics required to implement a dynamic array
 // and are offered in case the full-fledged CfArray is not needed or suitable.
@@ -244,3 +253,5 @@ CF_API MemAllocator memArenaAllocator(MemArena *arena);
 #define MEM_ARENA_TEMP_SCOPE(arena)                              \
     for (MemArenaState CF_MACRO_VAR(temp) = memArenaSave(arena); \
          CF_MACRO_VAR(temp).stack_id == arena->save_stack; memArenaRestore(CF_MACRO_VAR(temp)))
+
+//----------------------------//

@@ -1,6 +1,6 @@
 #include "strings.h"
 
-#include "array.h"
+#include "memory.h"
 
 #include <ctype.h>
 #include <stdarg.h>
@@ -176,36 +176,58 @@ strContains(Str str, Char8 c)
 #define _sbValidate(sb) \
     (CF_ASSERT((sb) && (sb)->data && (sb)->size >= 1, "Invalid string builder state")) // NOLINT
 
+static void
+strBuilderResize(StrBuilder *sb, Usize new_size)
+{
+    if (sb->capacity < new_size)
+    {
+        Usize next_cap = cfMax(sb->size, memGrowArrayCapacity(sb->capacity));
+        sb->data = memRealloc(sb->alloc, sb->data, sb->capacity, next_cap);
+        sb->capacity = next_cap;
+    }
+
+    sb->size = new_size;
+}
+
 void
 strBuilderInit(StrBuilder *sb, MemAllocator alloc)
 {
     CF_ASSERT_NOT_NULL(sb);
-    cfArrayInit(sb, alloc);
-    cfArrayPush(sb, 0);
+    sb->alloc = alloc;
+    sb->capacity = sb->size = 1;
+    sb->data = memAlloc(alloc, sb->capacity);
+
+    sb->data[0] = 0;
 }
 
 void
 strBuilderInitFrom(StrBuilder *sb, MemAllocator alloc, Str str)
 {
     CF_ASSERT_NOT_NULL(sb);
-    cfArrayInitCap(sb, alloc, str.len + 1);
-    cfArrayExtend(sb, str.len);
+
+    sb->alloc = alloc;
+    sb->capacity = sb->size = str.len + 1;
+    sb->data = memAlloc(alloc, sb->capacity);
+
     memCopy(str.buf, sb->data, str.len);
-    cfArrayPush(sb, 0);
+    sb->data[str.len] = 0;
 }
 
 void
 strBuilderInitWith(StrBuilder *sb, MemAllocator alloc, Usize cap)
 {
-    CF_ASSERT_NOT_NULL(sb);
-    cfArrayInitCap(sb, alloc, cap);
-    cfArrayPush(sb, 0);
+    sb->alloc = alloc;
+    sb->capacity = cfMin(1, cap);
+    sb->data = memAlloc(alloc, sb->capacity);
+    sb->size = 1;
+
+    sb->data[0] = 0;
 }
 
 void
 strBuilderShutdown(StrBuilder *sb)
 {
-    cfArrayShutdown(sb);
+    memFree(sb->alloc, sb->data, sb->capacity);
 }
 
 void
@@ -216,7 +238,8 @@ strBuilderAppend(StrBuilder *sb, Str what)
     // Write over the previous null terminator
     Usize nul_pos = sb->size - 1;
 
-    cfArrayExtend(sb, what.len);
+    strBuilderResize(sb, sb->size + what.len);
+
     memCopy(what.buf, sb->data + nul_pos, what.len);
 
     // Null terminate again
@@ -244,10 +267,9 @@ strBuilderPrintf(StrBuilder *sb, Cstr fmt, ...)
     };
 
     // Keep room for the null terminator
-    Usize size = len + 1;
-    cfArrayResize(sb, size);
+    strBuilderResize(sb, len + 1);
 
-    vsnprintf(sb->data, size, fmt, args); // NOLINT
+    vsnprintf(sb->data, sb->size, fmt, args); // NOLINT
     va_end(args);
 
     CF_ASSERT(sb->data && sb->data[sb->size - 1] == 0, "Missing null terminator");
@@ -278,7 +300,7 @@ strBuilderAppendf(StrBuilder *sb, Cstr fmt, ...)
     // Write over the previous null terminator
     Usize nul_pos = sb->size - 1;
 
-    cfArrayExtend(sb, len);
+    strBuilderResize(sb, sb->size + len);
     CF_ASSERT(sb->size >= len + 1, "Buffer not extended correctly");
 
     vsnprintf(sb->data + nul_pos, len + 1, fmt, args); // NOLINT
