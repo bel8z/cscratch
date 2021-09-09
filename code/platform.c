@@ -9,7 +9,6 @@
 #include <GLFW/glfw3.h>
 
 // Foundation library
-#include "foundation/array.h"
 #include "foundation/colors.h"
 #include "foundation/core.h"
 #include "foundation/fs.h"

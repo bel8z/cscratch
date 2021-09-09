@@ -1,6 +1,5 @@
 #include "api.h"
 
-#include "foundation/array.h"
 #include "foundation/core.h"
 #include "foundation/fs.h"
 #include "foundation/maths.h"

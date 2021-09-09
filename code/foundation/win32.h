@@ -76,9 +76,9 @@ win32Utf8To16(Str str, Char16 *out, Usize out_size)
     return (Usize)len;
 }
 
-/// Encodes the given UTF16 C string in UTF8 and null terminates it. The function returns the
-/// number of bytes written (including the null terminator); in case of a NULL output buffer, this
-/// number is the minimum required buffer size.
+/// Encodes the given UTF8 string slice in UTF16.
+/// The string is not null terminated, and the function returns the length of the written string in
+/// bytes; in case of a NULL output buffer, this number is the minimum required buffer size.
 static inline Usize
 win32Utf16To8(Str16 str, Char8 *out, Usize out_size)
 {

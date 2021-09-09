@@ -4,7 +4,6 @@
 /// This is not an API header, include it in implementation files only
 
 #include "core.h"
-#include "strings.h" // For strValid
 
 CF_API Str pathSplitName(Str path);
 CF_API Str pathSplitExt(Str path);

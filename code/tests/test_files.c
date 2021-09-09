@@ -1,5 +1,6 @@
 #include "foundation/core.h"
 #include "foundation/paths.h"
+#include "foundation/strings.h"
 #include "foundation/win32.h"
 
 #include <stdio.h>
@@ -32,6 +33,7 @@ win32DirIterStart(DirIterator *self, Str dir_path)
     Char16 buffer[1024];
 
     // Encode path to UTF16
+
     I32 size = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED,         //
                                    dir_path.buf, (I32)dir_path.len, //
                                    buffer, (I32)CF_ARRAY_SIZE(buffer));
@@ -71,17 +73,16 @@ win32DirIterNext(DirIterator *self, Str *filename)
 
     if (!FindNextFileW(iter->finder, &data)) return false;
 
-    I32 size = WideCharToMultiByte(CP_UTF8, 0, data.cFileName, -1, iter->buffer,
-                                   CF_ARRAY_SIZE(iter->buffer), 0, false);
+    Usize len =
+        win32Utf16To8(str16FromCstr(data.cFileName), iter->buffer, CF_ARRAY_SIZE(iter->buffer));
 
-    // NOTE (Matteo): Truncation is considered an error
     // TODO (Matteo): Maybe require a bigger buffer?
-    if (size < 0 || size == CF_ARRAY_SIZE(iter->buffer)) return false;
+    if (len == USIZE_MAX) return false;
 
-    CF_ASSERT(size > 0, "Which filename can have a size of 0???");
+    CF_ASSERT(len > 0, "Which filename can have a size of 0???");
 
     filename->buf = iter->buffer;
-    filename->len = (Usize)size;
+    filename->len = len;
 
     return true;
 }
