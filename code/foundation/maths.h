@@ -12,7 +12,8 @@
 #define mAbs(X) _Generic((X), default : abs, I64 : llabs, F64 : fabs, F32 : fabsf)(X)
 #define mSignBit(x) signbit(x)
 #define mSign(x) (1 | mSignBit(x))
-#define mCopySign(mag, sign) _Generic((mag, sign), default : copysign, F32 : copysignf)(mag, sign)
+#define mCopySign(mag, sign) \
+    _Generic(((mag), (sign)), default : copysign, F32 : copysignf)(mag, sign)
 
 #define mCeil(X) _Generic((X), default : ceil, F32 : ceilf)(X)
 #define mFloor(X) _Generic((X), default : floor, F32 : floorf)(X)
@@ -32,7 +33,7 @@
 #define mAcos(X) _Generic((X), default : acos, F32 : acosf)(X)
 #define mAsin(X) _Generic((X), default : asin, F32 : asinf)(X)
 #define mAtan(X) _Generic((X), default : atan, F32 : atanf)(X)
-#define mAtan2(X, Y) _Generic((X, Y), default : atan2, F32 : atan2f)(X, Y)
+#define mAtan2(X, Y) _Generic(((X), (Y)), default : atan2, F32 : atan2f)(X, Y)
 
 #define mCosH(X) _Generic((X), default : cosh, F32 : coshf)(X)
 #define mSinH(X) _Generic((X), default : sinh, F32 : sinhf)(X)
