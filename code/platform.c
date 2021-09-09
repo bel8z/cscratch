@@ -262,13 +262,13 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     memCopy(paths->base.buf, gui_ini, paths->base.len);
     memCopy(paths->exe_name.buf, gui_ini + paths->base.len, paths->exe_name.len);
     pathChangeExt(strFromCstr(gui_ini), strLiteral(".gui"), gui_ini);
-#if CF_COMPILER_MSVC
-#    pragma warning(pop)
-#endif
 
     // Setup Dear ImGui context
     platform->gui = &(Gui){.alloc = &platform->heap, .ini_filename = gui_ini};
     guiInit(platform->gui);
+#if CF_COMPILER_MSVC
+#    pragma warning(pop)
+#endif
 
     // Setup application
     AppApi app_api = {0};

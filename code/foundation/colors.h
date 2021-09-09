@@ -352,7 +352,7 @@ CF_API Rgba hsvaToRgba(Hsva in);
     X(YELLOW_GREEN)
 
 #define CF__COLOR_ENUM_ENTRY(name, ...) RGBA32__##name,
-#define CF__COLOR_VALUE(name, ...) [RGBA32__##name] = RGBA32_##name,
+#define CF__COLOR_VALUE(name, ...) /* [RGBA32__##name] = */ RGBA32_##name,
 #define CF__COLOR_STRING(name, ...) CF_STRINGIFY(name),
 
 enum

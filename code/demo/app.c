@@ -345,7 +345,7 @@ fxSine(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     static Vec2 points[1024] = {0};
 
     static F32 const pi2 = 2 * M_PI32;
-    static F32 const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
+    static F32 const rad_step = 4 * M_PI32 / (CF_ARRAY_SIZE(points) - 1);
 
     F32 const amp = cfMin(canvas->size.x, canvas->size.y) / 4;
 
@@ -467,7 +467,7 @@ fxDrawArc(GuiCanvas *canvas, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Rgba32 c
 void
 fxTangentCircles(void)
 {
-    static const F32 deg2rad = M_PI32 / 180.0f;
+#define deg2rad (M_PI32 / 180.0f)
 
     static F32 const cutter_start = deg2rad * 270.0f;
     static F32 const cutter_end = deg2rad * 70.0f;
