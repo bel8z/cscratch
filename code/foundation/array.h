@@ -33,13 +33,14 @@
         (array)->size = 0;            \
     } while (0)
 
-#define cfArrayInitCap(array, allocator, init_capacity)                      \
-    do                                                                       \
-    {                                                                        \
-        (array)->alloc = (allocator);                                        \
-        (array)->data = cfArrayRealloc((allocator), NULL, 0, init_capacity); \
-        (array)->capacity = (init_capacity);                                 \
-        (array)->size = 0;                                                   \
+#define cfArrayInitCap(array, allocator, init_capacity)                               \
+    do                                                                                \
+    {                                                                                 \
+        (array)->alloc = (allocator);                                                 \
+        (array)->data = 0;                                                            \
+        (array)->data = cfArrayRealloc((allocator), (array)->data, 0, init_capacity); \
+        (array)->capacity = (init_capacity);                                          \
+        (array)->size = 0;                                                            \
     } while (0)
 
 #define cfArrayShutdown(array) cfArrayFree((array)->alloc, (array)->data, (array)->capacity)
