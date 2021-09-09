@@ -78,12 +78,10 @@ typedef AtomU64 AtomUsize;
         _InterlockedCompareExchangePointer, _InterlockedExchange8, _InterlockedExchange16,         \
         _InterlockedExchange, _InterlockedExchange64, _InterlockedExchangePointer,                 \
         _InterlockedExchangeAdd8, _InterlockedExchangeAdd16, _InterlockedExchangeAdd,              \
-        _InterlockedExchangeAdd64, _InterlockedExchangeSub8, _InterlockedExchangeSub16,            \
-        _InterlockedExchangeSub, _InterlockedExchangeSub64, _InterlockedIncrement16,               \
-        _InterlockedIncrement, _InterlockedIncrement64, _InterlockedDecrement16,                   \
-        _InterlockedDecrement, _InterlockedDecrement64, _InterlockedAnd8, _InterlockedAnd16,       \
-        _InterlockedAnd, _InterlockedAnd64, _InterlockedOr8, _InterlockedOr16, _InterlockedOr,     \
-        _InterlockedOr64)
+        _InterlockedExchangeAdd64, _InterlockedIncrement16, _InterlockedIncrement,                 \
+        _InterlockedIncrement64, _InterlockedDecrement16, _InterlockedDecrement,                   \
+        _InterlockedDecrement64, _InterlockedAnd8, _InterlockedAnd16, _InterlockedAnd,             \
+        _InterlockedAnd64, _InterlockedOr8, _InterlockedOr16, _InterlockedOr, _InterlockedOr64)
 
 //-----------------------//
 //   CPU memory fences   //
@@ -165,14 +163,14 @@ typedef AtomU64 AtomUsize;
 
 #define atomFetchSub(value, operand)                                                 \
     _Generic((value),                                                                \
-             AtomI8 * : _InterlockedExchangeSub8 ((char volatile*)(value), operand), \
-             AtomI16* : _InterlockedExchangeSub16((I16  volatile*)(value), operand), \
-             AtomI32* : _InterlockedExchangeSub  ((long volatile*)(value), operand), \
-             AtomI64* : _InterlockedExchangeSub64((I64  volatile*)(value), operand), \
-             AtomU8 * : _InterlockedExchangeSub8 ((char volatile*)(value), operand), \
-             AtomU16* : _InterlockedExchangeSub16((I16  volatile*)(value), operand), \
-             AtomU32* : _InterlockedExchangeSub  ((long volatile*)(value), operand), \
-             AtomU64* : _InterlockedExchangeSub64((I64  volatile*)(value), operand))
+             AtomI8 * : _InterlockedExchangeAdd8 ((char volatile*)(value), -(char)(operand)), \
+             AtomI16* : _InterlockedExchangeAdd16((I16  volatile*)(value), -(I16 )(operand)), \
+             AtomI32* : _InterlockedExchangeAdd  ((long volatile*)(value), -(long)(operand)), \
+             AtomI64* : _InterlockedExchangeAdd64((I64  volatile*)(value), -(I64 )(operand)), \
+             AtomU8 * : _InterlockedExchangeAdd8 ((char volatile*)(value), -(char)(operand)), \
+             AtomU16* : _InterlockedExchangeAdd16((I16  volatile*)(value), -(I16 )(operand)), \
+             AtomU32* : _InterlockedExchangeAdd  ((long volatile*)(value), -(long)(operand)), \
+             AtomU64* : _InterlockedExchangeAdd64((I64  volatile*)(value), -(I64 )(operand)))
 
 #define atomFetchInc(value)                                                     \
     _Generic((value),                                                           \
