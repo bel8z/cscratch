@@ -75,7 +75,7 @@ main()
 
     MEM_ARENA_TEMP_BEGIN(&arena);
 
-    ints = memArenaReallocArray(&arena, I32, ints, 1024, 2048);
+    ints = memArenaReallocArray(&arena, ints, 1024, 2048);
 
     for (I32 i = 0; i < 1024; ++i)
     {

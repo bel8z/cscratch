@@ -46,6 +46,18 @@ memAlignForward(U8 const *address, Usize alignment)
     return modulo ? address + alignment - modulo : address;
 }
 
+// NOTE (Matteo): Those are the very basics required to implement a dynamic array
+// and are offered in case the full-fledged CfArray is not needed or suitable.
+
+#define memAllocArray(allocator, Type, cap) memRealloc(allocator, NULL, 0, (cap) * sizeof(Type))
+
+#define memReallocArray(allocator, ptr, old_cap, new_cap) \
+    memRealloc(allocator, ptr, (old_cap) * sizeof(*(ptr)), (new_cap) * sizeof(*(ptr)))
+
+#define memFreeArray(allocator, ptr, cap) memFree(allocator, ptr, (cap) * sizeof(*(ptr)))
+
+#define memGrowArrayCapacity(cap) ((cap) ? 2 * (cap) : 1)
+
 //------------------------//
 //   Virtual memory API   //
 //------------------------//
@@ -194,23 +206,20 @@ memArenaRealloc(MemArena *arena, void *memory, Usize old_size, Usize new_size)
 CF_API void memArenaFree(MemArena *arena, void *memory, Usize size);
 
 /// Allocates a block which fits the given struct on top of the arena stack
-#define memArenaAllocStruct(arena, Type) \
-    (Type *)memArenaAllocAlign(arena, sizeof(Type), alignof(Type))
+#define memArenaAllocStruct(arena, Type) memArenaAllocAlign(arena, sizeof(Type), alignof(Type))
 
 /// Try freeing a block which fits the given struct on top of the arena stack
 #define memArenaFreeStruct(arena, Type, ptr) memArenaFree(arena, ptr, sizeof(Type))
 
 /// Allocates a block which fits the given array on top of the arena stack
-#define memArenaAllocArray(arena, Type, count) \
-    (Type *)memArenaAllocAlign(arena, (count) * sizeof(Type), alignof(Type))
+#define memArenaAllocArray(arena, Type, count) memArenaAlloc(arena, (count) * sizeof(Type))
 
 /// Allocates a block which fits the given array on top of the arena stack
-#define memArenaReallocArray(arena, Type, array, old_count, new_count)     \
-    (Type *)memArenaReallocAlign(arena, array, (old_count) * sizeof(Type), \
-                                 (new_count) * sizeof(Type), alignof(Type))
+#define memArenaReallocArray(arena, ptr, old_count, new_count) \
+    memArenaRealloc(arena, ptr, (old_count) * sizeof(*(ptr)), (new_count) * sizeof(*(ptr)))
 
 /// Try freeing a block which fits the given array on top of the arena stack
-#define memArenaFreeArray(arena, Type, count, ptr) memArenaFree(arena, ptr, (count) * sizeof(Type))
+#define memArenaFreeArray(arena, ptr, count) memArenaFree(arena, ptr, (count) * sizeof(*(ptr)))
 
 /// Save the current state of the arena, in order to restore it after temporary allocations.
 CF_API MemArenaState memArenaSave(MemArena *arena);

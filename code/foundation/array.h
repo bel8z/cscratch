@@ -10,15 +10,7 @@
 //   Dynamic growth primitives   //
 //-------------------------------//
 
-// NOTE (Matteo): Those are the very basics required to implement a dynamic array
-// and are offered in case the full-fledged CfArray is not needed or suitable.
-
-#define cfArrayGrowCapacity(array, req) cfMax(req, (array)->capacity ? 2 * (array)->capacity : 1)
-
-#define cfArrayRealloc(allocator, ptr, old_cap, new_cap) \
-    memRealloc(allocator, ptr, (old_cap) * sizeof(*(ptr)), (new_cap) * sizeof(*(ptr)))
-
-#define cfArrayFree(allocator, ptr, cap) memFree(allocator, ptr, (cap) * sizeof(*(ptr)))
+#define cfArrayGrowCapacity(array, req) cfMax(req, memGrowArrayCapacity((array)->capacity))
 
 //----------------------------//
 //   CfArray implementation   //
@@ -33,17 +25,17 @@
         (array)->size = 0;            \
     } while (0)
 
-#define cfArrayInitCap(array, allocator, init_capacity)                               \
-    do                                                                                \
-    {                                                                                 \
-        (array)->alloc = (allocator);                                                 \
-        (array)->data = 0;                                                            \
-        (array)->data = cfArrayRealloc((allocator), (array)->data, 0, init_capacity); \
-        (array)->capacity = (init_capacity);                                          \
-        (array)->size = 0;                                                            \
+#define cfArrayInitCap(array, allocator, init_capacity)                                \
+    do                                                                                 \
+    {                                                                                  \
+        (array)->alloc = (allocator);                                                  \
+        (array)->data = 0;                                                             \
+        (array)->data = memReallocArray((allocator), (array)->data, 0, init_capacity); \
+        (array)->capacity = (init_capacity);                                           \
+        (array)->size = 0;                                                             \
     } while (0)
 
-#define cfArrayShutdown(array) cfArrayFree((array)->alloc, (array)->data, (array)->capacity)
+#define cfArrayShutdown(array) memFreeArray((array)->alloc, (array)->data, (array)->capacity)
 
 /// Size of the stored items in bytes (useful for 'memcpy' and the like)
 #define cfArrayBytes(array) ((array)->size * sizeof(*(array)->data))
@@ -63,11 +55,11 @@
 
 /// Ensure the array have the requested capacity by growing it if needed
 // TODO (Matteo): Geometric growth here too?
-#define cfArrayEnsure(array, required_cap)                                                   \
-    ((array)->capacity < required_cap                                                        \
-         ? ((array)->data = cfArrayRealloc((array)->alloc, (array)->data, (array)->capacity, \
-                                           cfArrayGrowCapacity(array, required_cap)),        \
-            (array)->capacity = cfArrayGrowCapacity(array, required_cap))                    \
+#define cfArrayEnsure(array, required_cap)                                                    \
+    ((array)->capacity < required_cap                                                         \
+         ? ((array)->data = memReallocArray((array)->alloc, (array)->data, (array)->capacity, \
+                                            cfArrayGrowCapacity(array, required_cap)),        \
+            (array)->capacity = cfArrayGrowCapacity(array, required_cap))                     \
          : 0)
 
 /// Reserve capacity for the requested room
