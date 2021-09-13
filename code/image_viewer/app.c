@@ -28,7 +28,7 @@
 
 #include "foundation/colors.h"
 #include "foundation/fs.h"
-#include "foundation/maths.h"
+#include "foundation/math.inl"
 #include "foundation/memory.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"

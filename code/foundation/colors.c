@@ -1,5 +1,5 @@
 #include "colors.h"
-#include "maths.h"
+#include "math.inl"
 #include "util.h"
 
 Rgba

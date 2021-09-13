@@ -2,7 +2,7 @@
 
 #include "foundation/colors.h"
 #include "foundation/log.h"
-#include "foundation/maths.h"
+#include "foundation/math.inl"
 #include "foundation/strings.h"
 #include "foundation/time.h"
 
