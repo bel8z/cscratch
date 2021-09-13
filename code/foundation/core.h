@@ -541,107 +541,71 @@ typedef struct StrBuffer
 //   Vectors   //
 //-------------//
 
+// TODO (Matteo): Review naming convention?
+
 /// Affinity matrix (floating point)
 typedef F32 Mat4[4][4];
+typedef F64 DMat4[4][4];
+typedef I32 IMat4[4][4];
 
-// TODO (Matteo): Maybe rename VecN to FVecN?
+#define VEC_TYPES(Scalar, prefix) \
+    /* 2D vector */               \
+    typedef union prefix##Vec2    \
+    {                             \
+        struct                    \
+        {                         \
+            Scalar x, y;          \
+        };                        \
+        struct                    \
+        {                         \
+            Scalar u, v;          \
+        };                        \
+        struct                    \
+        {                         \
+            Scalar width, height; \
+        };                        \
+        Scalar elem[2];           \
+    } prefix##Vec2;               \
+                                  \
+    /* 3D vector */               \
+    typedef union prefix##Vec3    \
+    {                             \
+        struct                    \
+        {                         \
+            Scalar x, y, z;       \
+        };                        \
+        struct                    \
+        {                         \
+            prefix##Vec2 xy;      \
+            Scalar _;             \
+        };                        \
+        Scalar elem[3];           \
+    } prefix##Vec3;               \
+                                  \
+    /* 4D vector (quaternion) */  \
+    typedef union prefix##Vec4    \
+    {                             \
+        struct                    \
+        {                         \
+            Scalar x, y, z, w;    \
+        };                        \
+        struct                    \
+        {                         \
+            prefix##Vec3 xyz;     \
+            Scalar _;             \
+        };                        \
+        struct                    \
+        {                         \
+            prefix##Vec2 xy;      \
+            prefix##Vec2 zw;      \
+        };                        \
+        Scalar elem[4];           \
+    } prefix##Vec4;
 
-/// 2D vector of F32s
-typedef union Vec2
-{
-    struct
-    {
-        F32 x, y;
-    };
-    struct
-    {
-        F32 u, v;
-    };
-    struct
-    {
-        F32 width, height;
-    };
-    F32 elem[2];
-} Vec2;
-
-/// 3D vector of F32s
-typedef union Vec3
-{
-    struct
-    {
-        F32 x, y, z;
-    };
-    struct
-    {
-        Vec2 xy;
-        F32 _;
-    };
-    F32 elem[3];
-} Vec3;
-
-/// 4D vector of F32s (quaternion)
-typedef union Vec4
-{
-    struct
-    {
-        F32 x, y, z, w;
-    };
-    struct
-    {
-        Vec3 xyz;
-        F32 _;
-    };
-    F32 elem[4];
-} Vec4;
-
-/// 2D vector of I32s
-typedef union IVec2
-{
-    struct
-    {
-        I32 x, y;
-    };
-    struct
-    {
-        I32 u, v;
-    };
-    struct
-    {
-        I32 width, height;
-    };
-    I32 elem[2];
-} IVec2;
-
-/// 3D vector of I32s
-typedef union IVec3
-{
-    struct
-    {
-        I32 x, y, z;
-    };
-    struct
-    {
-        IVec2 xy;
-        I32 _;
-    };
-    I32 elem[3];
-} IVec3;
-
-/// 4D vector of I32s (quaternion)
-typedef union IVec4
-{
-    struct
-    {
-        I32 x, y, z, w;
-    };
-    struct
-    {
-        IVec3 xyz;
-        I32 _;
-    };
-
-    I32 elem[4];
-} IVec4;
+VEC_TYPES(F32, )
+VEC_TYPES(F64, D)
+VEC_TYPES(I32, I)
+#undef VEC_TYPES
 
 //------------------//
 //   Color spaces   //
