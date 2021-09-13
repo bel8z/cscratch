@@ -548,9 +548,9 @@ typedef F32 Mat4[4][4];
 typedef F64 DMat4[4][4];
 typedef I32 IMat4[4][4];
 
-#define VEC_TYPES(Scalar, prefix) \
+#define VEC_TYPES(Scalar, tag)    \
     /* 2D vector */               \
-    typedef union prefix##Vec2    \
+    typedef union tag##Vec2       \
     {                             \
         struct                    \
         {                         \
@@ -565,10 +565,10 @@ typedef I32 IMat4[4][4];
             Scalar width, height; \
         };                        \
         Scalar elem[2];           \
-    } prefix##Vec2;               \
+    } tag##Vec2;                  \
                                   \
     /* 3D vector */               \
-    typedef union prefix##Vec3    \
+    typedef union tag##Vec3       \
     {                             \
         struct                    \
         {                         \
@@ -576,14 +576,14 @@ typedef I32 IMat4[4][4];
         };                        \
         struct                    \
         {                         \
-            prefix##Vec2 xy;      \
+            tag##Vec2 xy;         \
             Scalar _;             \
         };                        \
         Scalar elem[3];           \
-    } prefix##Vec3;               \
+    } tag##Vec3;                  \
                                   \
     /* 4D vector (quaternion) */  \
-    typedef union prefix##Vec4    \
+    typedef union tag##Vec4       \
     {                             \
         struct                    \
         {                         \
@@ -591,20 +591,21 @@ typedef I32 IMat4[4][4];
         };                        \
         struct                    \
         {                         \
-            prefix##Vec3 xyz;     \
+            tag##Vec3 xyz;        \
             Scalar _;             \
         };                        \
         struct                    \
         {                         \
-            prefix##Vec2 xy;      \
-            prefix##Vec2 zw;      \
+            tag##Vec2 xy;         \
+            tag##Vec2 zw;         \
         };                        \
         Scalar elem[4];           \
-    } prefix##Vec4;
+    } tag##Vec4;
 
-VEC_TYPES(F32, )
-VEC_TYPES(F64, D)
-VEC_TYPES(I32, I)
+VEC_TYPES(F32, )  // Vectors with single-precision float components
+VEC_TYPES(F64, D) // Vectors with double-precision float components
+VEC_TYPES(I32, I) // Vectors with integer components
+
 #undef VEC_TYPES
 
 //------------------//
