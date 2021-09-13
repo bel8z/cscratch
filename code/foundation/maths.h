@@ -340,12 +340,7 @@ M__GCD(U64)
              I64* : vec_I64DistanceSquaredN)(a, b, length)
 
 /// Distance between two vectors of arbitrary length
-#define vecDistanceN(a, b, length)    \
-    _Generic((a),                     \
-             F32* : vec_F32DistanceN, \
-             F64* : vec_F64DistanceN, \
-             I32* : vec_I32DistanceN, \
-             I64* : vec_I64DistanceN)(a, b, length)
+#define vecDistanceN(v, length) mSqrt(vecDistanceSquaredN(v, length))
 
 /// Linear interpolation of two vectors of arbitrary length
 #define vecLerpN(a, b, length, t, out) \
@@ -363,92 +358,67 @@ M__GCD(U64)
              I32* : vec_I32NegateN, \
              I64* : vec_I64NegateN)(v, length, out)
 
-/// Squared norm of a vector of arbitrary length
-#define vecNormSquaredN(v, length)       \
-    _Generic((v),                        \
-             F32* : vec_F32NormSquaredN, \
-             F64* : vec_F64NormSquaredN, \
-             I32* : vec_I32NormSquaredN, \
-             I64* : vec_I64NormSquaredN)(v, length)
-
-/// Norm of a vector of arbitrary length
-#define vecNormN(v, length)       \
-    _Generic((v),                 \
-             F32* : vec_F32NormN, \
-             F64* : vec_F64NormN, \
-             I32* : vec_I32NormN, \
-             I64* : vec_I64NormN)(v, length)
-
 // clang-format on
 
-#define VEC__N_OPS(Scalar)                                                                       \
-    static inline void vec_##Scalar##AddN(Scalar const *a, Scalar const *b, Usize length,        \
-                                          Scalar *out)                                           \
-    {                                                                                            \
-        for (Usize n = 0; n < length; ++n) out[n] = a[n] + b[n];                                 \
-    }                                                                                            \
-                                                                                                 \
-    static inline void vec_##Scalar##SubN(Scalar const *a, Scalar const *b, Usize length,        \
-                                          Scalar *out)                                           \
-    {                                                                                            \
-        for (Usize n = 0; n < length; ++n) out[n] = a[n] - b[n];                                 \
-    }                                                                                            \
-                                                                                                 \
-    static inline void vec_##Scalar##MulN(Scalar const *a, Scalar b, Usize length, Scalar *out)  \
-    {                                                                                            \
-        for (Usize n = 0; n < length; ++n) out[n] = a[n] * b;                                    \
-    }                                                                                            \
-                                                                                                 \
-    static inline void vec_##Scalar##DivN(Scalar const *a, Scalar b, Usize length, Scalar *out)  \
-    {                                                                                            \
-        for (Usize n = 0; n < length; ++n) out[n] = a[n] / b;                                    \
-    }                                                                                            \
-                                                                                                 \
-    static inline Scalar vec_##Scalar##DotN(Scalar const *a, Scalar const *b, Usize length)      \
-    {                                                                                            \
-        Scalar out = 0;                                                                          \
-        for (Usize n = 0; n < length; ++n) out += a[n] * b[n];                                   \
-        return out;                                                                              \
-    }                                                                                            \
-                                                                                                 \
-    static inline Scalar vec_##Scalar##DistanceSquaredN(Scalar const *a, Scalar const *b,        \
-                                                        Usize length)                            \
-    {                                                                                            \
-                                                                                                 \
-        Scalar out = 0;                                                                          \
-        for (Usize n = 0; n < length; ++n)                                                       \
-        {                                                                                        \
-            Scalar diff = a[n] - b[n];                                                           \
-            out += diff * diff;                                                                  \
-        }                                                                                        \
-        return out;                                                                              \
-    }                                                                                            \
-                                                                                                 \
-    static inline Scalar vec_##Scalar##DistanceN(Scalar const *a, Scalar const *b, Usize length) \
-    {                                                                                            \
-        return mSqrt(vec_##Scalar##DistanceSquaredN(a, b, length));                              \
-    }                                                                                            \
-                                                                                                 \
-    static inline void vec_##Scalar##LerpN(Scalar const *a, Scalar const *b, Usize length,       \
-                                           Scalar t, Scalar *out)                                \
-    {                                                                                            \
-        Scalar t1 = (Scalar)1 - t;                                                               \
-        for (Usize n = 0; n < length; ++n) out[n] = t1 * a[n] + t * b[n];                        \
-    }                                                                                            \
-                                                                                                 \
-    static inline void vec_##Scalar##NegateN(Scalar const *a, Usize length, Scalar *out)         \
-    {                                                                                            \
-        for (Usize n = 0; n < length; ++n) out[n] = -a[n];                                       \
-    }                                                                                            \
-                                                                                                 \
-    static inline Scalar vec_##Scalar##NormSquaredN(Scalar const *a, Usize length)               \
-    {                                                                                            \
-        return vec_##Scalar##DotN(a, a, length);                                                 \
-    }                                                                                            \
-                                                                                                 \
-    static inline Scalar vec_##Scalar##NormN(Scalar const *a, Usize length)                      \
-    {                                                                                            \
-        return mSqrt(vec_##Scalar##NormSquaredN(a, length));                                     \
+/// Squared norm of a vector of arbitrary length
+#define vecNormSquaredN(v, length) vecDotN(v, v, length)
+
+/// Norm of a vector of arbitrary length
+#define vecNormN(v, length) mSqrt(vecNormSquaredN(v, length))
+
+#define VEC__N_OPS(Scalar)                                                                      \
+    static inline void vec_##Scalar##AddN(Scalar const *a, Scalar const *b, Usize length,       \
+                                          Scalar *out)                                          \
+    {                                                                                           \
+        for (Usize n = 0; n < length; ++n) out[n] = a[n] + b[n];                                \
+    }                                                                                           \
+                                                                                                \
+    static inline void vec_##Scalar##SubN(Scalar const *a, Scalar const *b, Usize length,       \
+                                          Scalar *out)                                          \
+    {                                                                                           \
+        for (Usize n = 0; n < length; ++n) out[n] = a[n] - b[n];                                \
+    }                                                                                           \
+                                                                                                \
+    static inline void vec_##Scalar##MulN(Scalar const *a, Scalar b, Usize length, Scalar *out) \
+    {                                                                                           \
+        for (Usize n = 0; n < length; ++n) out[n] = a[n] * b;                                   \
+    }                                                                                           \
+                                                                                                \
+    static inline void vec_##Scalar##DivN(Scalar const *a, Scalar b, Usize length, Scalar *out) \
+    {                                                                                           \
+        for (Usize n = 0; n < length; ++n) out[n] = a[n] / b;                                   \
+    }                                                                                           \
+                                                                                                \
+    static inline Scalar vec_##Scalar##DotN(Scalar const *a, Scalar const *b, Usize length)     \
+    {                                                                                           \
+        Scalar out = 0;                                                                         \
+        for (Usize n = 0; n < length; ++n) out += a[n] * b[n];                                  \
+        return out;                                                                             \
+    }                                                                                           \
+                                                                                                \
+    static inline Scalar vec_##Scalar##DistanceSquaredN(Scalar const *a, Scalar const *b,       \
+                                                        Usize length)                           \
+    {                                                                                           \
+                                                                                                \
+        Scalar out = 0;                                                                         \
+        for (Usize n = 0; n < length; ++n)                                                      \
+        {                                                                                       \
+            Scalar diff = a[n] - b[n];                                                          \
+            out += diff * diff;                                                                 \
+        }                                                                                       \
+        return out;                                                                             \
+    }                                                                                           \
+                                                                                                \
+    static inline void vec_##Scalar##LerpN(Scalar const *a, Scalar const *b, Usize length,      \
+                                           Scalar t, Scalar *out)                               \
+    {                                                                                           \
+        Scalar t1 = (Scalar)1 - t;                                                              \
+        for (Usize n = 0; n < length; ++n) out[n] = t1 * a[n] + t * b[n];                       \
+    }                                                                                           \
+                                                                                                \
+    static inline void vec_##Scalar##NegateN(Scalar const *a, Usize length, Scalar *out)        \
+    {                                                                                           \
+        for (Usize n = 0; n < length; ++n) out[n] = -a[n];                                      \
     }
 
 VEC__N_OPS(F32)
@@ -461,36 +431,66 @@ VEC__N_OPS(I64)
 //   Type-generic vector operations   //
 //------------------------------------//
 
-#define vecAdd(a, b) _Generic((a, b), Vec2 : vecAdd2, Vec3 : vecAdd3, Vec4 : vecAdd4)(a, b)
-#define vecSub(a, b) _Generic((a, b), Vec2 : vecSub2, Vec3 : vecSub3, Vec4 : vecSub4)(a, b)
-#define vecMul(a, b) _Generic((a), Vec2 : vecMul2, Vec3 : vecMul3, Vec4 : vecMul4)(a, b)
-#define vecDiv(a, b) _Generic((a), Vec2 : vecDiv2, Vec3 : vecDiv3, Vec4 : vecDiv4)(a, b)
+// clang-format off
+#define vecAdd(a, b)                                          \
+    _Generic(((a), (b)),                                      \
+        Vec2  : vecAdd2,  Vec3  : vecAdd3,  Vec4  : vecAdd4,  \
+        DVec2 : vecAdd2D, DVec3 : vecAdd3D, DVec4 : vecAdd4D, \
+        IVec2 : vecAdd2I, IVec3 : vecAdd3I, IVec4 : vecAdd4I)(a, b)
 
-#define vecNegate(a) _Generic((a), Vec2 : vecNegate2, Vec3 : vecNegate3, Vec4 : vecNegate4)(a)
+#define vecSub(a, b)                                          \
+    _Generic(((a), (b)),                                      \
+        Vec2  : vecSub2,  Vec3  : vecSub3,  Vec4  : vecSub4,  \
+        DVec2 : vecSub2D, DVec3 : vecSub3D, DVec4 : vecSub4D, \
+        IVec2 : vecSub2I, IVec3 : vecSub3I, IVec4 : vecSub4I)(a, b)
 
-#define vecDot(a, b) _Generic((a, b), Vec2 : vecDot2, Vec3 : vecDot3, Vec4 : vecDot4)(a, b)
+#define vecMul(a, b)                                          \
+    _Generic((a),                                             \
+        Vec2  : vecMul2,  Vec3  : vecMul3,  Vec4  : vecMul4,  \
+        DVec2 : vecMul2D, DVec3 : vecMul3D, DVec4 : vecMul4D, \
+        IVec2 : vecMul2I, IVec3 : vecMul3I, IVec4 : vecMul4I)(a, b)
 
-#define vecNormSquared(a) \
-    _Generic((a), Vec2 : vecNormSquared2, Vec3 : vecNormSquared3, Vec4 : vecNormSquared4)(a)
+#define vecDiv(a, b)                                          \
+    _Generic((a),                                             \
+        Vec2  : vecDiv2,  Vec3  : vecDiv3,  Vec4  : vecDiv4,  \
+        DVec2 : vecDiv2D, DVec3 : vecDiv3D, DVec4 : vecDiv4D, \
+        IVec2 : vecDiv2I, IVec3 : vecDiv3I, IVec4 : vecDiv4I)(a, b)
 
-#define vecNorm(a) _Generic((a), Vec2 : vecNorm2, Vec3 : vecNorm3, Vec4 : vecNorm4)(a)
+#define vecNegate(a)                                                   \
+    _Generic((a),                                             \
+        Vec2  : vecNegate2,  Vec3  : vecNegate3,  Vec4  : vecNegate4,  \
+        DVec2 : vecNegate2D, DVec3 : vecNegate3D, DVec4 : vecNegate4D, \
+        IVec2 : vecNegate2I, IVec3 : vecNegate3I, IVec4 : vecNegate4I)(a)
 
-#define vecNormalize(a) vecDiv(a, vecNorm(a))
+#define vecDot(a, b)                                          \
+    _Generic(((a), (b)),                                      \
+        Vec2  : vecDot2,  Vec3  : vecDot3,  Vec4  : vecDot4,  \
+        DVec2 : vecDot2D, DVec3 : vecDot3D, DVec4 : vecDot4D, \
+        IVec2 : vecDot2I, IVec3 : vecDot3I, IVec4 : vecDot4I)(a, b)
 
-#define vecDistanceSquared(a, b)         \
-    _Generic((a, b), Vec2                \
-             : vecDistanceSquared2, Vec3 \
-             : vecDistanceSquared3, Vec4 \
-             : vecDistanceSquared4)(a, b)
+#define vecDistanceSquared(a, b)                                                                  \
+    _Generic(((a), (b)),                                                                          \
+        Vec2  : vecDistanceSquared2,  Vec3  : vecDistanceSquared3,  Vec4  : vecDistanceSquared4,  \
+        DVec2 : vecDistanceSquared2D, DVec3 : vecDistanceSquared3D, DVec4 : vecDistanceSquared4D, \
+        IVec2 : vecDistanceSquared2I, IVec3 : vecDistanceSquared3I, IVec4 : vecDistanceSquared4I)(a, b)
 
-#define vecDistance(a, b) \
-    _Generic((a, b), Vec2 : vecDistance2, Vec3 : vecDistance3, Vec4 : vecDistance4)(a, b)
+#define vecLerp(a, b, t)                                         \
+    _Generic(((a), (b)),                                         \
+        Vec2  : vecLerp2,  Vec3  : vecLerp3,  Vec4  : vecLerp4,  \
+        DVec2 : vecLerp2D, DVec3 : vecLerp3D, DVec4 : vecLerp4D, \
+        IVec2 : vecLerp2I, IVec3 : vecLerp3I, IVec4 : vecLerp4I)(a, b, t)
 
-#define vecLerp(a, b) _Generic((a), Vec2 : vecLerp2, Vec3 : vecLerp3, Vec4 : vecLerp4)(a, b)
+// clang-format on
 
-#define vecDotPerp(a, b) _Generic((a, b), Vec2 : vecDotPerp2)(a, b)
+#define vecDistance(a, b) mSqrt(vecDistanceSquared(a, b))
 
-#define vecCross(a, b) _Generic((a, b), Vec3 : vecCross3)(a, b)
+#define vecNormSquared(v) vecDot(v, v)
+#define vecNorm(v) mSqrt(vecNormSquared(v))
+#define vecNormalize(v) vecDiv(v, vecNorm(v))
+
+#define vecDotPerp(a, b) _Generic(((a), (b)), Vec2 : vecDotPerp2, DVec2 : vecDotPerp2D)(a, b)
+
+#define vecCross(a, b) _Generic(((a), (b)), Vec3 : vecCross3, DVec3 : vecCross3D)(a, b)
 
 //-------------------------------------//
 //   Type-specific vector operations   //
@@ -498,6 +498,12 @@ VEC__N_OPS(I64)
 
 static inline F32
 vecDotPerp2(Vec2 a, Vec2 b)
+{
+    return a.x * b.y - a.y * b.x;
+}
+
+static inline F64
+vecDotPerp2D(DVec2 a, DVec2 b)
 {
     return a.x * b.y - a.y * b.x;
 }
@@ -510,68 +516,77 @@ vecCross3(Vec3 a, Vec3 b)
                   .z = a.x * b.y - a.y * b.x};
 }
 
-#define VEC__OPS(N)                                                                        \
-    static inline Vec##N vecAdd##N(Vec##N a, Vec##N b)                                     \
-    {                                                                                      \
-        Vec##N out = {0};                                                                  \
-        vecAddN(a.elem, b.elem, N, out.elem);                                              \
-        return out;                                                                        \
-    }                                                                                      \
-                                                                                           \
-    static inline Vec##N vecSub##N(Vec##N a, Vec##N b)                                     \
-    {                                                                                      \
-        Vec##N out = {0};                                                                  \
-        vecSubN(a.elem, b.elem, N, out.elem);                                              \
-        return out;                                                                        \
-    }                                                                                      \
-                                                                                           \
-    static inline Vec##N vecMul##N(Vec##N a, F32 b)                                        \
-    {                                                                                      \
-        Vec##N out = {0};                                                                  \
-        vecMulN(a.elem, b, N, out.elem);                                                   \
-        return out;                                                                        \
-    }                                                                                      \
-                                                                                           \
-    static inline Vec##N vecDiv##N(Vec##N a, F32 b)                                        \
-    {                                                                                      \
-        Vec##N out = {0};                                                                  \
-        vecDivN(a.elem, b, N, out.elem);                                                   \
-        return out;                                                                        \
-    }                                                                                      \
-                                                                                           \
-    static inline Vec##N vecNegate##N(Vec##N a)                                            \
-    {                                                                                      \
-        Vec##N out = {0};                                                                  \
-        vecNegateN(a.elem, N, out.elem);                                                   \
-        return out;                                                                        \
-    }                                                                                      \
-                                                                                           \
-    static inline F32 vecDot##N(Vec##N a, Vec##N b) { return vecDotN(a.elem, b.elem, N); } \
-                                                                                           \
-    static inline F32 vecNormSquared##N(Vec##N a) { return vecNormSquaredN(a.elem, N); }   \
-                                                                                           \
-    static inline F32 vecNorm##N(Vec##N a) { return vecNormN(a.elem, N); }                 \
-                                                                                           \
-    static inline F32 vecDistanceSquared##N(Vec##N a, Vec##N b)                            \
-    {                                                                                      \
-        return vecDistanceSquaredN(a.elem, b.elem, N);                                     \
-    }                                                                                      \
-                                                                                           \
-    static inline F32 vecDistance##N(Vec##N a, Vec##N b)                                   \
-    {                                                                                      \
-        return vecDistanceN(a.elem, b.elem, N);                                            \
-    }                                                                                      \
-                                                                                           \
-    static inline Vec##N vecLerp##N(Vec##N a, Vec##N b, F32 t)                             \
-    {                                                                                      \
-        Vec##N out = {0};                                                                  \
-        vecLerpN(a.elem, b.elem, N, t, out.elem);                                          \
-        return out;                                                                        \
+static inline DVec3
+vecCross3D(DVec3 a, DVec3 b)
+{
+    return (DVec3){.x = a.y * b.z - a.z + b.y, //
+                   .y = a.z * b.x - a.x * b.z,
+                   .z = a.x * b.y - a.y * b.x};
+}
+
+#define VEC__OPS(Scalar, N, tag)                                                      \
+    static inline tag##Vec##N vecAdd##N##tag(tag##Vec##N a, tag##Vec##N b)            \
+    {                                                                                 \
+        tag##Vec##N out = {0};                                                        \
+        vecAddN(a.elem, b.elem, N, out.elem);                                         \
+        return out;                                                                   \
+    }                                                                                 \
+                                                                                      \
+    static inline tag##Vec##N vecSub##N##tag(tag##Vec##N a, tag##Vec##N b)            \
+    {                                                                                 \
+        tag##Vec##N out = {0};                                                        \
+        vecSubN(a.elem, b.elem, N, out.elem);                                         \
+        return out;                                                                   \
+    }                                                                                 \
+                                                                                      \
+    static inline tag##Vec##N vecMul##N##tag(tag##Vec##N a, Scalar b)                 \
+    {                                                                                 \
+        tag##Vec##N out = {0};                                                        \
+        vecMulN(a.elem, b, N, out.elem);                                              \
+        return out;                                                                   \
+    }                                                                                 \
+                                                                                      \
+    static inline tag##Vec##N vecDiv##N##tag(tag##Vec##N a, Scalar b)                 \
+    {                                                                                 \
+        tag##Vec##N out = {0};                                                        \
+        vecDivN(a.elem, b, N, out.elem);                                              \
+        return out;                                                                   \
+    }                                                                                 \
+                                                                                      \
+    static inline Scalar vecDot##N##tag(tag##Vec##N a, tag##Vec##N b)                 \
+    {                                                                                 \
+        return vecDotN(a.elem, b.elem, N);                                            \
+    }                                                                                 \
+                                                                                      \
+    static inline Scalar vecDistanceSquared##N##tag(tag##Vec##N a, tag##Vec##N b)     \
+    {                                                                                 \
+        return vecDistanceSquaredN(a.elem, b.elem, N);                                \
+    }                                                                                 \
+                                                                                      \
+    static inline tag##Vec##N vecLerp##N##tag(tag##Vec##N a, tag##Vec##N b, Scalar t) \
+    {                                                                                 \
+        tag##Vec##N out = {0};                                                        \
+        vecLerpN(a.elem, b.elem, N, t, out.elem);                                     \
+        return out;                                                                   \
+    }                                                                                 \
+                                                                                      \
+    static inline tag##Vec##N vecNegate##N##tag(tag##Vec##N a)                        \
+    {                                                                                 \
+        tag##Vec##N out = {0};                                                        \
+        vecNegateN(a.elem, N, out.elem);                                              \
+        return out;                                                                   \
     }
 
-VEC__OPS(2)
-VEC__OPS(3)
-VEC__OPS(4)
+VEC__OPS(F32, 2, )
+VEC__OPS(F32, 3, )
+VEC__OPS(F32, 4, )
+VEC__OPS(F64, 2, D)
+VEC__OPS(F64, 3, D)
+VEC__OPS(F64, 4, D)
+VEC__OPS(I32, 2, I)
+VEC__OPS(I32, 3, I)
+VEC__OPS(I32, 4, I)
+
 #undef VEC__OPS
 
 // Mat 4
