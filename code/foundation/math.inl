@@ -1,5 +1,8 @@
 #pragma once
 
+/// Foundation math utilities
+/// Lots of macros and inline functions - definetely NOT an API header
+
 #include "core.h"
 
 #include <immintrin.h>
@@ -588,6 +591,24 @@ VEC__OPS(I32, 3, I)
 VEC__OPS(I32, 4, I)
 
 #undef VEC__OPS
+
+static inline IVec2
+vec2Round(Vec2 v)
+{
+    return (IVec2){.x = (I32)mRound(v.x), .y = (I32)mRound(v.y)};
+}
+
+static inline IVec2
+vec2Floor(Vec2 v)
+{
+    return (IVec2){.x = (I32)mFloor(v.x), .y = (I32)mFloor(v.y)};
+}
+
+static inline IVec2
+vec2Ceil(Vec2 v)
+{
+    return (IVec2){.x = (I32)mCeil(v.x), .y = (I32)mCeil(v.y)};
+}
 
 // Mat 4
 // TODO
