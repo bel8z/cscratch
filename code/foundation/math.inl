@@ -102,6 +102,7 @@ M__ISQRT(64)
 //------------------------------//
 
 // clang-format off
+
 #define mDivEuclid(a, b)           \
     _Generic((a, b),                \
              I8  : m_I8DivEuclid,  \
@@ -162,6 +163,7 @@ M__EUCLID_OPS(I64)
 #undef M__EUCLID_OPS
 
 // clang-format off
+
 #define mMulDiv(a, b, c)        \
     _Generic((a, b, c),          \
              U8  : m_U8MulDiv,  \
@@ -172,6 +174,7 @@ M__EUCLID_OPS(I64)
              I16 : m_I16MulDiv, \
              I32 : m_I32MulDiv, \
              I64 : m_I64MulDiv)(a, b, c)
+
 // clang-format on
 
 // Taken from the Rust code base:
@@ -197,6 +200,7 @@ M__MULDIV(U8)
 M__MULDIV(U16)
 M__MULDIV(U32)
 M__MULDIV(U64)
+
 M__MULDIV(I8)
 M__MULDIV(I16)
 M__MULDIV(I32)
@@ -227,12 +231,14 @@ mLerp64(F64 x, F64 y, F64 t)
 //--------//
 
 // clang-format off
+
 #define mGcd(a, b)                \
-    _Generic((a, b),               \
+    _Generic((a, b),              \
              U8  : mGcdU8,        \
              U16 : mGcdU16,       \
              U32 : mGcdU32,       \
              U64 : mGcdU64)(a, b)
+
 // clang-format on
 
 #define M__GCD(Type)                                                             \
@@ -435,48 +441,43 @@ VEC__N_OPS(I64)
 //------------------------------------//
 
 // clang-format off
+
+/// Add two vectors
 #define vecAdd(a, b)                                          \
     _Generic(((a), (b)),                                      \
         Vec2  : vecAdd2,  Vec3  : vecAdd3,  Vec4  : vecAdd4,  \
         DVec2 : vecAdd2D, DVec3 : vecAdd3D, DVec4 : vecAdd4D, \
         IVec2 : vecAdd2I, IVec3 : vecAdd3I, IVec4 : vecAdd4I)(a, b)
 
+/// Subtract two vectors
 #define vecSub(a, b)                                          \
     _Generic(((a), (b)),                                      \
         Vec2  : vecSub2,  Vec3  : vecSub3,  Vec4  : vecSub4,  \
         DVec2 : vecSub2D, DVec3 : vecSub3D, DVec4 : vecSub4D, \
         IVec2 : vecSub2I, IVec3 : vecSub3I, IVec4 : vecSub4I)(a, b)
 
+/// Multiply a vector by a scalar
 #define vecMul(a, b)                                          \
     _Generic((a),                                             \
         Vec2  : vecMul2,  Vec3  : vecMul3,  Vec4  : vecMul4,  \
         DVec2 : vecMul2D, DVec3 : vecMul3D, DVec4 : vecMul4D, \
         IVec2 : vecMul2I, IVec3 : vecMul3I, IVec4 : vecMul4I)(a, b)
 
+/// Divide a vector by a scalar
 #define vecDiv(a, b)                                          \
     _Generic((a),                                             \
         Vec2  : vecDiv2,  Vec3  : vecDiv3,  Vec4  : vecDiv4,  \
         DVec2 : vecDiv2D, DVec3 : vecDiv3D, DVec4 : vecDiv4D, \
         IVec2 : vecDiv2I, IVec3 : vecDiv3I, IVec4 : vecDiv4I)(a, b)
 
+/// Negate a vector
 #define vecNegate(a)                                                   \
-    _Generic((a),                                             \
+    _Generic((a),                                                      \
         Vec2  : vecNegate2,  Vec3  : vecNegate3,  Vec4  : vecNegate4,  \
         DVec2 : vecNegate2D, DVec3 : vecNegate3D, DVec4 : vecNegate4D, \
         IVec2 : vecNegate2I, IVec3 : vecNegate3I, IVec4 : vecNegate4I)(a)
 
-#define vecDot(a, b)                                          \
-    _Generic(((a), (b)),                                      \
-        Vec2  : vecDot2,  Vec3  : vecDot3,  Vec4  : vecDot4,  \
-        DVec2 : vecDot2D, DVec3 : vecDot3D, DVec4 : vecDot4D, \
-        IVec2 : vecDot2I, IVec3 : vecDot3I, IVec4 : vecDot4I)(a, b)
-
-#define vecDistanceSquared(a, b)                                                                  \
-    _Generic(((a), (b)),                                                                          \
-        Vec2  : vecDistanceSquared2,  Vec3  : vecDistanceSquared3,  Vec4  : vecDistanceSquared4,  \
-        DVec2 : vecDistanceSquared2D, DVec3 : vecDistanceSquared3D, DVec4 : vecDistanceSquared4D, \
-        IVec2 : vecDistanceSquared2I, IVec3 : vecDistanceSquared3I, IVec4 : vecDistanceSquared4I)(a, b)
-
+/// Linear interpolation of two vectors
 #define vecLerp(a, b, t)                                         \
     _Generic(((a), (b)),                                         \
         Vec2  : vecLerp2,  Vec3  : vecLerp3,  Vec4  : vecLerp4,  \
@@ -485,14 +486,30 @@ VEC__N_OPS(I64)
 
 // clang-format on
 
+/// Dot (scalar) product of two vectors
+#define vecDot(a, b) vecDotN((a).elem, (b).elem, CF_ARRAY_SIZE((a).elem))
+
+/// Squared distance between two vectors
+#define vecDistanceSquared(a, b) vecDistanceSquaredN((a).elem, (b).elem, CF_ARRAY_SIZE((a).elem))
+
+/// Distance between two vectors
 #define vecDistance(a, b) mSqrt(vecDistanceSquared(a, b))
 
+/// Squared norm of a vector
 #define vecNormSquared(v) vecDot(v, v)
+
+/// Norm of a vector
 #define vecNorm(v) mSqrt(vecNormSquared(v))
+
+/// Compute the normalized vector
 #define vecNormalize(v) vecDiv(v, vecNorm(v))
 
-#define vecDotPerp(a, b) _Generic(((a), (b)), Vec2 : vecDotPerp2, DVec2 : vecDotPerp2D)(a, b)
+/// The "perp dot product" a^_|_·b for a and b vectors in the plane is a modification of the
+/// two-dimensional dot product in which a is replaced by the perpendicular vector rotated 90
+/// degrees to the left defined by Hill (1994). It satisfies the identities
+#define vecPerpDot(a, b) _Generic(((a), (b)), Vec2 : vecPerpDot2, DVec2 : vecPerpDot2D)(a, b)
 
+/// Cross product of two 3D vectors
 #define vecCross(a, b) _Generic(((a), (b)), Vec3 : vecCross3, DVec3 : vecCross3D)(a, b)
 
 //-------------------------------------//
@@ -500,13 +517,13 @@ VEC__N_OPS(I64)
 //-------------------------------------//
 
 static inline F32
-vecDotPerp2(Vec2 a, Vec2 b)
+vecPerpDot2(Vec2 a, Vec2 b)
 {
     return a.x * b.y - a.y * b.x;
 }
 
 static inline F64
-vecDotPerp2D(DVec2 a, DVec2 b)
+vecPerpDot2D(DVec2 a, DVec2 b)
 {
     return a.x * b.y - a.y * b.x;
 }
@@ -556,16 +573,6 @@ vecCross3D(DVec3 a, DVec3 b)
         return out;                                                                   \
     }                                                                                 \
                                                                                       \
-    static inline Scalar vecDot##N##tag(tag##Vec##N a, tag##Vec##N b)                 \
-    {                                                                                 \
-        return vecDotN(a.elem, b.elem, N);                                            \
-    }                                                                                 \
-                                                                                      \
-    static inline Scalar vecDistanceSquared##N##tag(tag##Vec##N a, tag##Vec##N b)     \
-    {                                                                                 \
-        return vecDistanceSquaredN(a.elem, b.elem, N);                                \
-    }                                                                                 \
-                                                                                      \
     static inline tag##Vec##N vecLerp##N##tag(tag##Vec##N a, tag##Vec##N b, Scalar t) \
     {                                                                                 \
         tag##Vec##N out = {0};                                                        \
@@ -583,32 +590,16 @@ vecCross3D(DVec3 a, DVec3 b)
 VEC__OPS(F32, 2, )
 VEC__OPS(F32, 3, )
 VEC__OPS(F32, 4, )
+
 VEC__OPS(F64, 2, D)
 VEC__OPS(F64, 3, D)
 VEC__OPS(F64, 4, D)
+
 VEC__OPS(I32, 2, I)
 VEC__OPS(I32, 3, I)
 VEC__OPS(I32, 4, I)
 
 #undef VEC__OPS
-
-static inline IVec2
-vec2Round(Vec2 v)
-{
-    return (IVec2){.x = (I32)mRound(v.x), .y = (I32)mRound(v.y)};
-}
-
-static inline IVec2
-vec2Floor(Vec2 v)
-{
-    return (IVec2){.x = (I32)mFloor(v.x), .y = (I32)mFloor(v.y)};
-}
-
-static inline IVec2
-vec2Ceil(Vec2 v)
-{
-    return (IVec2){.x = (I32)mCeil(v.x), .y = (I32)mCeil(v.y)};
-}
 
 // Mat 4
 // TODO
