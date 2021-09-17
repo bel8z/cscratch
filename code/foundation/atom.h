@@ -84,7 +84,7 @@ typedef AtomU64 AtomUsize;
         _InterlockedAnd64, _InterlockedOr8, _InterlockedOr16, _InterlockedOr, _InterlockedOr64)
 
 #    if CF_COMPILER_CLANG
-#        define ATOM__UNDEPRECATE(intrin)                                                \
+#        define ATOM__UNDEPRECATE(intrin)                                         \
             _Pragma("clang diagnostic push")                                      \
                 _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"") \
                     intrin _Pragma("clang diagnostic pop")
@@ -112,6 +112,8 @@ typedef AtomU64 AtomUsize;
 //   Atomic operations   //
 //-----------------------//
 
+// TODO (Matteo): Restore pointer operations
+
 // clang-format off
 #define atomCompareExchange(value, expected, desired)                                                   \
     _Generic((value),                                                                                   \
@@ -122,8 +124,7 @@ typedef AtomU64 AtomUsize;
              AtomU8 * : _InterlockedCompareExchange8      ((char volatile*)(value), desired, expected), \
              AtomU16* : _InterlockedCompareExchange16     ((I16  volatile*)(value), desired, expected), \
              AtomU32* : _InterlockedCompareExchange       ((long volatile*)(value), desired, expected), \
-             AtomU64* : _InterlockedCompareExchange64     ((I64  volatile*)(value), desired, expected), \
-             AtomPtr* : _InterlockedCompareExchangePointer((void volatile*)(value), desired, expected))
+             AtomU64* : _InterlockedCompareExchange64     ((I64  volatile*)(value), desired, expected))
 
 #define atomExchange(value, desired)                                                    \
     _Generic((value),                                                                   \
@@ -134,8 +135,7 @@ typedef AtomU64 AtomUsize;
              AtomU8 * : _InterlockedExchange8      ((char volatile *)(value), desired), \
              AtomU16* : _InterlockedExchange16     ((I16  volatile *)(value), desired), \
              AtomU32* : _InterlockedExchange       ((long volatile *)(value), desired), \
-             AtomU64* : _InterlockedExchange64     ((I64  volatile *)(value), desired), \
-             AtomPtr* : _InterlockedExchangePointer((void volatile *)(value), desired))
+             AtomU64* : _InterlockedExchange64     ((I64  volatile *)(value), desired))
 
 #define atomFetchAnd(value, operand)                                          \
     _Generic((value),                                                         \
