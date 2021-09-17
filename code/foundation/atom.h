@@ -46,11 +46,11 @@ typedef AtomU64 AtomUsize;
              AtomI8 * : (x)->inner,     \
              AtomI16* : (x)->inner,     \
              AtomI32* : (x)->inner,     \
-             AtomI64* : atomReadI64(x), \
+             AtomI64* : atomRead64(x),  \
              AtomU8 * : (x)->inner,     \
              AtomU16* : (x)->inner,     \
              AtomU32* : (x)->inner,     \
-             AtomU64* : atomReadU64(x), \
+             AtomU64* : atomRead64(x),  \
              AtomPtr* : (x)->inner)
 
 #define atomWrite(x, y)                     \
@@ -58,11 +58,11 @@ typedef AtomU64 AtomUsize;
              AtomI8 * : (x)->inner = y,     \
              AtomI16* : (x)->inner = y,     \
              AtomI32* : (x)->inner = y,     \
-             AtomI64* : atomWriteI64(x, y), \
+             AtomI64* : atomWrite64(x, y),  \
              AtomU16* : (x)->inner = y,     \
              AtomU32* : (x)->inner = y,     \
              AtomU8 * : (x)->inner = y,     \
-             AtomU64* : atomWriteU64(x, y), \
+             AtomU64* : atomWrite64(x, y),  \
              AtomPtr* : (x)->inner = y)
 // clang-format on
 
@@ -83,21 +83,30 @@ typedef AtomU64 AtomUsize;
         _InterlockedDecrement64, _InterlockedAnd8, _InterlockedAnd16, _InterlockedAnd,             \
         _InterlockedAnd64, _InterlockedOr8, _InterlockedOr16, _InterlockedOr, _InterlockedOr64)
 
+#    if CF_COMPILER_CLANG
+#        define ATOM__UNDEPRECATE(intrin)                                                \
+            _Pragma("clang diagnostic push")                                      \
+                _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"") \
+                    intrin _Pragma("clang diagnostic pop")
+#    else
+#        define ATOM__UNDEPRECATE(intrin)
+#    endif
+
 //-----------------------//
 //   CPU memory fences   //
 //-----------------------//
 
-#    define atomAcquireFence() _ReadBarrier()
-#    define atomReleaseFence() _WriteBarrier()
-#    define atomSequentialFence() MemoryBarrier()
+#    define atomAcquireFence() ATOM__UNDEPRECATE(_ReadBarrier())
+#    define atomReleaseFence() ATOM__UNDEPRECATE(_WriteBarrier())
+#    define atomSequentialFence() ATOM__UNDEPRECATE(MemoryBarrier())
 
 //---------------------//
 //   Compiler fences   //
 //---------------------//
 
-#    define atomAcquireCompFence() _ReadBarrier()
-#    define atomReleaseCompFence() _WriteBarrier()
-#    define atomSequentialCompFence() _ReadWriteBarrier()
+#    define atomAcquireCompFence() ATOM__UNDEPRECATE(_ReadBarrier())
+#    define atomReleaseCompFence() ATOM__UNDEPRECATE(_WriteBarrier())
+#    define atomSequentialCompFence() ATOM__UNDEPRECATE(_ReadWriteBarrier())
 
 //-----------------------//
 //   Atomic operations   //
@@ -229,34 +238,16 @@ atom__FetchDec8(char volatile *value)
 //   64bit specializations   //
 //---------------------------//
 
-static inline I64
-atomReadI64(AtomI64 const *object)
-{
 #    if (CF_PTR_SIZE == 8)
-    return object->inner;
+#        define atomRead64(x) (x)->inner
+#        define atomWrite64(x, y) (x)->inner = (y)
 #    else
-    // On 32-bit x86, the most compatible way to get an atomic 64-bit load is with
-    // cmpxchg8b. This essentially performs atomCompareExchange(object, _dummyValue,
-    // _dummyValue).
-    I64 result;
-    __asm {
-        mov esi, object;
-        mov ebx, eax;
-        mov ecx, edx;
-        lock cmpxchg8b [esi];
-        mov dword ptr result, eax;
-        mov dword ptr result[4], edx;
-    }
-    return result;
-#    endif
-}
+#        define atomRead64(x) atom__Read64((U64 volatile *)(x))
+#        define atomWrite64(x, y) atom__Write64((U64 volatile *)(x), (U64)(y))
 
 static inline U64
-atomReadU64(AtomU64 const *object)
+atom__Read64(U64 volatile *object)
 {
-#    if (CF_PTR_SIZE == 8)
-    return object->inner;
-#    else
     // On 32-bit x86, the most compatible way to get an atomic 64-bit load is with
     // cmpxchg8b. This essentially performs atomCompareExchange(object, _dummyValue,
     // _dummyValue).
@@ -270,15 +261,11 @@ atomReadU64(AtomU64 const *object)
         mov dword ptr result[4], edx;
     }
     return result;
-#    endif
 }
 
 static inline void
-atomWriteU64(AtomU64 *object, U64 value)
+atom__Write64(U64 volatile *object, U64 value)
 {
-#    if (CF_PTR_SIZE == 8)
-    object->inner = value;
-#    else
     // On 32-bit x86, the most compatible way to get an atomic 64-bit store is with
     // cmpxchg8b. Essentially, we perform atomCompareExchange(object, object->inner,
     // desired) in a loop until it returns the previous value. According to the Linux
@@ -292,30 +279,9 @@ atomWriteU64(AtomU64 *object, U64 value)
         cmpxchg8b [esi];
         jne retry;
     }
-#    endif
 }
 
-static inline void
-atomWriteI64(AtomI64 *object, I64 value)
-{
-#    if (CF_PTR_SIZE == 8)
-    object->inner = value;
-#    else
-    // On 32-bit x86, the most compatible way to get an atomic 64-bit store is with
-    // cmpxchg8b. Essentially, we perform atomCompareExchange(object, object->inner,
-    // desired) in a loop until it returns the previous value. According to the Linux
-    // kernel (atomic64_cx8_32.S), we don't need the "lock;" prefix on cmpxchg8b since
-    // aligned 64-bit writes are already atomic on 586 and newer.
-    __asm {
-        mov esi, object;
-        mov ebx, dword ptr value;
-        mov ecx, dword ptr value[4];
-    retry:
-        cmpxchg8b [esi];
-        jne retry;
-    }
 #    endif
-}
 
 //----------------------------------------------------------------------------//
 
