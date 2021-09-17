@@ -65,7 +65,7 @@ CF_API bool cfThreadWaitAll(CfThread *threads, Usize num_threads, Duration durat
 /// This mutex cannot be acquired recursively.
 typedef struct CfMutex
 {
-    U8 data[sizeof(void *)];
+    U8 data[CF_PTR_SIZE];
 #if CF_THREADING_DEBUG
     U32 internal;
 #endif
@@ -86,7 +86,7 @@ CF_API void cfMutexRelease(CfMutex *mutex);
 /// The lock cannot be taken recursively, neither by readers nor writers.
 typedef struct CfRwLock
 {
-    U8 data[sizeof(void *)];
+    U8 data[CF_PTR_SIZE];
 #if CF_THREADING_DEBUG
     U32 reserved0;
     U32 reserved1;
@@ -110,7 +110,7 @@ CF_API void cfRwUnlockWriter(CfRwLock *lock);
 /// particular condition occurs.
 typedef struct CfConditionVariable
 {
-    U8 data[sizeof(void *)];
+    U8 data[CF_PTR_SIZE];
 } CfConditionVariable;
 
 CF_API void cfCvInit(CfConditionVariable *cv);
@@ -119,5 +119,20 @@ CF_API bool cfCvWaitMutex(CfConditionVariable *cv, CfMutex *mutex, Duration dura
 CF_API bool cfCvWaitRwLock(CfConditionVariable *cv, CfRwLock *lock, Duration duration);
 CF_API void cfCvSignalOne(CfConditionVariable *cv);
 CF_API void cfCvSignalAll(CfConditionVariable *cv);
+
+//----------------//
+//   Semaphores   //
+//----------------//
+
+typedef struct CfSemaphore
+{
+    U8 data[2 * CF_PTR_SIZE];
+} CfSemaphore;
+
+CF_API void cfSemaInit(CfSemaphore *sema, I32 init_count);
+CF_API bool cfSemaTryWait(CfSemaphore *sema);
+CF_API void cfSemaWait(CfSemaphore *sema);
+CF_API void cfSemaSignalOne(CfSemaphore *sema);
+CF_API void cfSemaSignal(CfSemaphore *sema, I32 count);
 
 //------------------------------------------------------------------------------

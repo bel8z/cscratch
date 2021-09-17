@@ -37,7 +37,7 @@ typedef struct Win32ThreadData
     SRWLOCK sync;
     CONDITION_VARIABLE signal;
     // NOTE (Matteo): This is a char for compliance with the Interlocked API
-    AtomU8 started;
+    AtomU32 started;
 
 } Win32ThreadData;
 
@@ -396,4 +396,83 @@ cfCvSignalAll(CfConditionVariable *cv)
 {
     CF_ASSERT_NOT_NULL(cv);
     WakeAllConditionVariable((CONDITION_VARIABLE *)(cv->data));
+}
+
+//------------------------------------------------------------------------------
+// Semaphore implementation
+
+// NOTE (Matteo): Lightweight semaphore with partial spinning based on
+// https://preshing.com/20150316/semaphores-are-surprisingly-versatile/
+
+typedef struct RawSemaphore
+{
+    HANDLE handle;
+    AtomI32 count;
+} RawSemaphore;
+
+// TODO (Matteo): Tweak spin count
+#define SEMA_SPIN_COUNT 10000
+
+CF_STATIC_ASSERT(sizeof(CfSemaphore) >= sizeof(RawSemaphore), "Invalid CfSemaphore internal size");
+
+CF_API void
+cfSemaInit(CfSemaphore *sema, I32 init_count)
+{
+    RawSemaphore *self = (RawSemaphore *)sema->data;
+
+    self->handle = CreateSemaphore(NULL, 0, MAXLONG, NULL);
+    atomWrite(&self->count, init_count);
+}
+
+CF_API bool
+cfSemaTryWait(CfSemaphore *sema)
+{
+    RawSemaphore *self = (RawSemaphore *)sema->data;
+    I32 prev_count = atomRead(&self->count);
+    atomAcquireFence();
+    return (prev_count > 0 && atomCompareExchange(&self->count, prev_count, prev_count - 1));
+}
+
+CF_API void
+cfSemaWait(CfSemaphore *sema)
+{
+    RawSemaphore *self = (RawSemaphore *)sema->data;
+
+    I32 prev_count;
+    I32 spin_count = SEMA_SPIN_COUNT;
+
+    while (spin_count--)
+    {
+        prev_count = atomRead(&self->count);
+        atomAcquireFence();
+        if (prev_count > 0 && atomCompareExchange(&self->count, prev_count, prev_count - 1))
+        {
+            return;
+        }
+        // Prevent compiler from collapsing loop
+        atomAcquireCompFence();
+    }
+
+    prev_count = atomFetchDec(&self->count);
+    atomAcquireFence();
+    if (prev_count <= 0) WaitForSingleObject(self->handle, INFINITE);
+}
+
+CF_API void
+cfSemaSignalOne(CfSemaphore *sema)
+{
+    cfSemaSignal(sema, 1);
+}
+
+CF_API void
+cfSemaSignal(CfSemaphore *sema, I32 count)
+{
+    RawSemaphore *self = (RawSemaphore *)sema->data;
+    atomReleaseFence();
+    I32 prev_count = atomFetchAdd(&self->count, count);
+    I32 signal_count = -prev_count < count ? -prev_count : count;
+    if (signal_count > 0)
+    {
+        ReleaseSemaphore(self->handle, count, NULL);
+    }
 }

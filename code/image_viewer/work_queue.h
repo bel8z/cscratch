@@ -18,10 +18,10 @@ typedef struct WorkItem
 typedef struct WorkQueue WorkQueue;
 
 WorkQueueConfig wkConfig(Usize buffer_size);
+
 WorkQueue *wkAllocate(WorkQueueConfig config);
+void wkTerminate(WorkQueue *queue);
 
 bool wkIsFull(WorkQueue *queue);
 bool wkIsEmpty(WorkQueue *queue);
-
 bool wkPush(WorkQueue *queue, WorkItem item);
-bool wkPop(WorkQueue *queue, WorkItem *item);
