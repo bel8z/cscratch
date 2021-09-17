@@ -1,8 +1,13 @@
 #pragma once
 
-#include "foundation/atom.h"
 #include "foundation/core.h"
-#include "foundation/threading.h"
+
+typedef struct WorkQueueConfig
+{
+    void *memory;
+    Usize footprint;
+    Usize buffer_size;
+} WorkQueueConfig;
 
 typedef struct WorkItem
 {
@@ -10,22 +15,13 @@ typedef struct WorkItem
     void *data;
 } WorkItem;
 
-typedef struct WorkQueue
-{
-    AtomUsize read, write;
-    Usize size;
-    WorkItem *buffer;
-} WorkQueue;
+typedef struct WorkQueue WorkQueue;
 
-bool
-wkPush(WorkQueue *queue, WorkItem item)
-{
-    Usize write = atomRead(&queue->write);
-    if (write < atomRead(&queue->read) + queue->size)
-    {
-        atomAcquireFence();
-        queue->buffer[write] = item;
-        atomAcquireFence();
-        atomWrite(&queue->write, write + 1);
-    }
-}
+WorkQueueConfig wkConfig(Usize buffer_size);
+WorkQueue *wkAllocate(WorkQueueConfig config);
+
+bool wkIsFull(WorkQueue *queue);
+bool wkIsEmpty(WorkQueue *queue);
+
+bool wkPush(WorkQueue *queue, WorkItem item);
+bool wkPop(WorkQueue *queue, WorkItem *item);
