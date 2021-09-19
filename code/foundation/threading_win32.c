@@ -430,7 +430,7 @@ cfSemaTryWait(CfSemaphore *sema)
     RawSemaphore *self = (RawSemaphore *)sema->data;
     I32 prev_count = atomRead(&self->count);
     atomAcquireFence();
-    return (prev_count > 0 && atomCompareExchange(&self->count, prev_count, prev_count - 1));
+    return (prev_count > 0 && atomCompareExchange(&self->count, &prev_count, prev_count - 1));
 }
 
 CF_API void
@@ -445,7 +445,7 @@ cfSemaWait(CfSemaphore *sema)
     {
         prev_count = atomRead(&self->count);
         atomAcquireFence();
-        if (prev_count > 0 && atomCompareExchange(&self->count, prev_count, prev_count - 1))
+        if (prev_count > 0 && atomCompareExchange(&self->count, &prev_count, prev_count - 1))
         {
             return;
         }
