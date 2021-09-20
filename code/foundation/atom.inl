@@ -85,14 +85,17 @@
 
 #    define atomFetchDec(value) atomFetchSub(value, 1)
 
-#    define ATOM__COMPARE_EXCHANGE(Type)                                                  \
-        static inline Type atomCompareExchange##Type(Atom##Type *object, Type expected,   \
-                                                     Type desired)                        \
-        {                                                                                 \
-            Type got = expected;                                                          \
-            __c11_atomic_compare_exchange_strong(object, &got, desired, __ATOMIC_RELAXED, \
-                                                 __ATOMIC_RELAXED);                       \
-            return got;                                                                   \
+#    define ATOM__COMPARE_EXCHANGE(Type)                                                      \
+        static inline Type atomCompareExchange##Type(Atom##Type *object, Type expected,       \
+                                                     Type desired)                            \
+        {                                                                                     \
+            Type got = expected;                                                              \
+            if (__c11_atomic_compare_exchange_strong(object, &got, desired, __ATOMIC_RELAXED, \
+                                                     __ATOMIC_RELAXED))                       \
+            {                                                                                 \
+                CF_ASSERT(got == expected, "");                                               \
+            }                                                                                 \
+            return got;                                                                       \
         }
 
 ATOM__COMPARE_EXCHANGE(I8)
