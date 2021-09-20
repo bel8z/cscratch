@@ -32,12 +32,10 @@ typedef struct Win32ThreadData
 {
     CfThreadProc proc;
     void *args;
-
     // Data for synchronization with the creation routine
     SRWLOCK sync;
     CONDITION_VARIABLE signal;
-    // NOTE (Matteo): This is a char for compliance with the Interlocked API
-    AtomU32 started;
+    bool started;
 
 } Win32ThreadData;
 
@@ -52,7 +50,7 @@ win32threadProc(void *data_ptr)
 
     // NOTE (Matteo): Signal that the thread is started so the creation routine can complete
     AcquireSRWLockExclusive(&data->sync);
-    atomFetchOr(&data->started, 1);
+    data->started = true;
     ReleaseSRWLockExclusive(&data->sync);
     WakeConditionVariable(&data->signal);
 
@@ -96,9 +94,9 @@ cfThreadCreate(CfThreadParms *parms)
 
         // NOTE (Matteo): Request thread start and wait until this actually happens
         ResumeThread((HANDLE)thread.handle);
-        while (atomFetchInc(&data.started) != 1)
+        AcquireSRWLockExclusive(&data.sync);
+        while (!data.started)
         {
-            AcquireSRWLockExclusive(&data.sync);
             SleepConditionVariableSRW(&data.signal, &data.sync, INFINITE, 0);
             ReleaseSRWLockExclusive(&data.sync);
         }
