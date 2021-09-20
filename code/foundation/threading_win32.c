@@ -416,9 +416,13 @@ CF_API bool
 cfSemaTryWait(CfSemaphore *sema)
 {
     I32 prev_count = atomRead(&sema->count);
-    atomAcquireFence();
-    return (prev_count > 0 &&
-            prev_count == atomCompareExchange(&sema->count, prev_count, prev_count - 1));
+    if (prev_count > 0 &&
+        prev_count == atomCompareExchange(&sema->count, prev_count, prev_count - 1))
+    {
+        atomAcquireFence();
+        return true;
+    }
+    return false;
 }
 
 CF_API void
@@ -430,10 +434,10 @@ cfSemaWait(CfSemaphore *sema)
     while (spin_count--)
     {
         prev_count = atomRead(&sema->count);
-        atomAcquireFence();
         if (prev_count > 0 &&
             prev_count == atomCompareExchange(&sema->count, prev_count, prev_count - 1))
         {
+            atomAcquireFence();
             return;
         }
         // Prevent compiler from collapsing loop
@@ -490,7 +494,6 @@ cfArEventWait(CfAutoResetEvent *event)
             atomAcquireFence();
             break;
         }
-        prev_status = next_status;
         // The compare-exchange failed, likely because another thread changed status.
         // prev_status has been updated. Retry the CAS loop.
     }
