@@ -1,6 +1,6 @@
-#include "atom.h"
-#include "core.h"
 #include "threading.h"
+
+#include "atom.inl"
 #include "time.h"
 #include "win32.h"
 
@@ -402,50 +402,37 @@ cfCvSignalAll(CfConditionVariable *cv)
 // NOTE (Matteo): Lightweight semaphore with partial spinning based on
 // https://preshing.com/20150316/semaphores-are-surprisingly-versatile/
 
-typedef struct RawSemaphore
-{
-    HANDLE handle;
-    AtomI32 count;
-} RawSemaphore;
-
 // TODO (Matteo): Tweak spin count
 #define SEMA_SPIN_COUNT 10000
-
-CF_STATIC_ASSERT(sizeof(CfSemaphore) >= sizeof(RawSemaphore), "Invalid CfSemaphore internal size");
 
 CF_API void
 cfSemaInit(CfSemaphore *sema, I32 init_count)
 {
-    RawSemaphore *self = (RawSemaphore *)sema->data;
-
-    self->handle = CreateSemaphore(NULL, 0, MAXLONG, NULL);
-    atomWrite(&self->count, init_count);
+    sema->handle = CreateSemaphore(NULL, 0, MAXLONG, NULL);
+    atomWrite(&sema->count, init_count);
 }
 
 CF_API bool
 cfSemaTryWait(CfSemaphore *sema)
 {
-    RawSemaphore *self = (RawSemaphore *)sema->data;
-    I32 prev_count = atomRead(&self->count);
+    I32 prev_count = atomRead(&sema->count);
     atomAcquireFence();
     return (prev_count > 0 &&
-            prev_count == atomCompareExchange(&self->count, prev_count, prev_count - 1));
+            prev_count == atomCompareExchange(&sema->count, prev_count, prev_count - 1));
 }
 
 CF_API void
 cfSemaWait(CfSemaphore *sema)
 {
-    RawSemaphore *self = (RawSemaphore *)sema->data;
-
     I32 prev_count;
     I32 spin_count = SEMA_SPIN_COUNT;
 
     while (spin_count--)
     {
-        prev_count = atomRead(&self->count);
+        prev_count = atomRead(&sema->count);
         atomAcquireFence();
         if (prev_count > 0 &&
-            prev_count == atomCompareExchange(&self->count, prev_count, prev_count - 1))
+            prev_count == atomCompareExchange(&sema->count, prev_count, prev_count - 1))
         {
             return;
         }
@@ -453,9 +440,9 @@ cfSemaWait(CfSemaphore *sema)
         atomAcquireCompFence();
     }
 
-    prev_count = atomFetchDec(&self->count);
+    prev_count = atomFetchDec(&sema->count);
     atomAcquireFence();
-    if (prev_count <= 0) WaitForSingleObject(self->handle, INFINITE);
+    if (prev_count <= 0) WaitForSingleObject(sema->handle, INFINITE);
 }
 
 CF_API void
@@ -467,12 +454,58 @@ cfSemaSignalOne(CfSemaphore *sema)
 CF_API void
 cfSemaSignal(CfSemaphore *sema, I32 count)
 {
-    RawSemaphore *self = (RawSemaphore *)sema->data;
     atomReleaseFence();
-    I32 prev_count = atomFetchAdd(&self->count, count);
+    I32 prev_count = atomFetchAdd(&sema->count, count);
     I32 signal_count = -prev_count < count ? -prev_count : count;
     if (signal_count > 0)
     {
-        ReleaseSemaphore(self->handle, count, NULL);
+        ReleaseSemaphore(sema->handle, count, NULL);
+    }
+}
+
+//------------------------------------------------------------------------------
+// Auto-reset event implementation
+
+// NOTE (Matteo):  https://preshing.com/20150316/semaphores-are-surprisingly-versatile/
+
+CF_API void
+cfArEventInit(CfAutoResetEvent *event)
+{
+    atomInit(&event->status, 0);
+    cfSemaInit(&event->sema, 0);
+}
+
+CF_API void
+cfArEventWait(CfAutoResetEvent *event)
+{
+    I32 prev_status = atomRead(&event->status);
+
+    for (;;)
+    {
+        CF_ASSERT(prev_status <= 1, "");
+
+        I32 next_status = prev_status < 1 ? prev_status + 1 : 1;
+        if (atomCompareExchangeWeak(&event->status, &prev_status, next_status))
+        {
+            atomAcquireFence();
+            break;
+        }
+        prev_status = next_status;
+        // The compare-exchange failed, likely because another thread changed status.
+        // prev_status has been updated. Retry the CAS loop.
+    }
+
+    if (prev_status < 0) cfSemaSignalOne(&event->sema); // Release one waiting thread.
+}
+
+CF_API void
+cfArEventSignal(CfAutoResetEvent *event)
+{
+    I32 prev_status = atomFetchDec(&event->status);
+    atomAcquireFence();
+    CF_ASSERT(prev_status <= 1, "");
+    if (prev_status < 1)
+    {
+        cfSemaWait(&event->sema);
     }
 }

@@ -9,6 +9,7 @@
 
 //------------------------------------------------------------------------------
 
+#include "atom.h"
 #include "core.h"
 
 #if !defined(CF_THREADING_DEBUG)
@@ -126,7 +127,8 @@ CF_API void cfCvSignalAll(CfConditionVariable *cv);
 
 typedef struct CfSemaphore
 {
-    U8 data[2 * CF_PTR_SIZE];
+    void *handle;
+    AtomI32 count;
 } CfSemaphore;
 
 CF_API void cfSemaInit(CfSemaphore *sema, I32 init_count);
@@ -134,5 +136,19 @@ CF_API bool cfSemaTryWait(CfSemaphore *sema);
 CF_API void cfSemaWait(CfSemaphore *sema);
 CF_API void cfSemaSignalOne(CfSemaphore *sema);
 CF_API void cfSemaSignal(CfSemaphore *sema, I32 count);
+
+//----------------------//
+//   Auto-reset event   //
+//----------------------//
+
+typedef struct CfAutoResetEvent
+{
+    CfSemaphore sema;
+    AtomI32 status;
+} CfAutoResetEvent;
+
+CF_API void cfArEventInit(CfAutoResetEvent *event);
+CF_API void cfArEventWait(CfAutoResetEvent *event);
+CF_API void cfArEventSignal(CfAutoResetEvent *event);
 
 //------------------------------------------------------------------------------

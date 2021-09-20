@@ -1,13 +1,14 @@
 #include "work_queue.h"
 
 #include "foundation/atom.h"
+#include "foundation/atom.inl"
 #include "foundation/memory.h"
 #include "foundation/threading.h"
 
 struct WorkQueue
 {
     CfThread worker;
-    CfSemaphore sema;
+    CfAutoResetEvent wake;
 
     Usize size;
     AtomUsize read, write;
@@ -63,7 +64,7 @@ static CF_THREAD_PROC(wkWorkerProc)
         }
         else
         {
-            cfSemaWait(&queue->sema);
+            cfArEventWait(&queue->wake);
         }
     }
 }
@@ -88,7 +89,7 @@ wkAllocate(WorkQueueConfig config)
     atomWrite(&queue->read, 0);
     atomWrite(&queue->write, 0);
     queue->worker = cfThreadStart(wkWorkerProc);
-    cfSemaInit(&queue->sema, 0);
+    cfArEventInit(&queue->wake);
 
     return queue;
 }
@@ -132,7 +133,7 @@ wkPush(WorkQueue *queue, WorkItem item)
         atomReleaseFence();
         atomWrite(&queue->write, write + 1);
 
-        cfSemaSignalOne(&queue->sema);
+        cfArEventSignal(&queue->wake);
 
         return true;
     }
