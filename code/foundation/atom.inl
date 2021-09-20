@@ -5,7 +5,7 @@
 //----------------------------------------------------------------------------//
 // Common read-write operations
 
-#if ATOM__CLANG_BUILTIN
+#if ATOM__CLANG_BUILTINS
 #    define atomInit(object, value) __c11_atomic_init(object, value)
 #    define atomRead(object) __c11_atomic_load(object, __ATOMIC_RELAXED)
 #    define atomWrite(object, value) __c11_atomic_store(object, value, __ATOMIC_RELAXED)
@@ -26,12 +26,12 @@
              AtomI64* : atomWrite64(object, value), \
              AtomU64* : atomWrite64(object, value))
 // clang-format on
-#endif // ATOM__CLANG_BUILTIN
+#endif // ATOM__CLANG_BUILTINS
 
 //----------------------------------------------------------------------------//
 // Platform specific built-ins
 
-#if ATOM__CLANG_BUILTIN
+#if ATOM__CLANG_BUILTINS
 //-----------------------//
 //   CPU memory fences   //
 //-----------------------//
@@ -107,7 +107,7 @@ ATOM__COMPARE_EXCHANGE(U16)
 ATOM__COMPARE_EXCHANGE(U32)
 ATOM__COMPARE_EXCHANGE(U64)
 
-// ATOM__CLANG_BUILTIN
+// ATOM__CLANG_BUILTINS
 //----------------------------------------------------------------------------//
 #elif CF_OS_WIN32
 
