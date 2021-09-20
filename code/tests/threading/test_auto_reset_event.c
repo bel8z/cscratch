@@ -1,10 +1,12 @@
+#include "auto_reset_event.h"
+
 #include "foundation/atom.inl"
 #include "foundation/threading.h"
 
 #include <stdlib.h>
 
 #define THREAD_COUNT 4
-#define ITERATION_COUNT 1000 // 10000
+#define ITERATION_COUNT 10 // 10000
 
 typedef struct TestArEventState
 {

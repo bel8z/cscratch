@@ -8,7 +8,7 @@
 struct WorkQueue
 {
     CfThread worker;
-    CfAutoResetEvent wake;
+    CfSemaphore wake;
 
     Usize size;
     AtomUsize read, write;
@@ -64,7 +64,7 @@ static CF_THREAD_PROC(wkWorkerProc)
         }
         else
         {
-            cfArEventWait(&queue->wake);
+            cfSemaWait(&queue->wake);
         }
     }
 }
@@ -89,7 +89,7 @@ wkAllocate(WorkQueueConfig config)
     atomWrite(&queue->read, 0);
     atomWrite(&queue->write, 0);
     queue->worker = cfThreadStart(wkWorkerProc);
-    cfArEventInit(&queue->wake);
+    cfSemaInit(&queue->wake, 0);
 
     return queue;
 }
@@ -133,7 +133,7 @@ wkPush(WorkQueue *queue, WorkItem item)
         atomReleaseFence();
         atomWrite(&queue->write, write + 1);
 
-        cfArEventSignal(&queue->wake);
+        cfSemaSignalOne(&queue->wake);
 
         return true;
     }
