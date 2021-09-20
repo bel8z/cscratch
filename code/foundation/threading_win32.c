@@ -408,13 +408,18 @@ cfCvSignalAll(CfConditionVariable *cv)
 CF_API void
 cfSemaInit(CfSemaphore *sema, I32 init_count)
 {
+#if SEMA_SPIN_COUNT != 0
     sema->handle = CreateSemaphore(NULL, 0, MAXLONG, NULL);
     atomWrite(&sema->count, init_count);
+#else
+    sema->handle = CreateSemaphore(NULL, init_count, MAXLONG, NULL);
+#endif
 }
 
 CF_API bool
 cfSemaTryWait(CfSemaphore *sema)
 {
+#if SEMA_SPIN_COUNT != 0
     I32 prev_count = atomRead(&sema->count);
     if (prev_count > 0 &&
         prev_count == atomCompareExchange(&sema->count, prev_count, prev_count - 1))
@@ -422,12 +427,14 @@ cfSemaTryWait(CfSemaphore *sema)
         atomAcquireFence();
         return true;
     }
+#endif
     return false;
 }
 
 CF_API void
 cfSemaWait(CfSemaphore *sema)
 {
+#if SEMA_SPIN_COUNT != 0
     I32 prev_count;
     I32 spin_count = SEMA_SPIN_COUNT;
 
@@ -447,6 +454,9 @@ cfSemaWait(CfSemaphore *sema)
     prev_count = atomFetchDec(&sema->count);
     atomAcquireFence();
     if (prev_count <= 0) WaitForSingleObject(sema->handle, INFINITE);
+#else
+    WaitForSingleObject(sema->handle, INFINITE);
+#endif
 }
 
 CF_API void
@@ -458,6 +468,7 @@ cfSemaSignalOne(CfSemaphore *sema)
 CF_API void
 cfSemaSignal(CfSemaphore *sema, I32 count)
 {
+#if SEMA_SPIN_COUNT != 0
     atomReleaseFence();
     I32 prev_count = atomFetchAdd(&sema->count, count);
     I32 signal_count = -prev_count < count ? -prev_count : count;
@@ -465,6 +476,9 @@ cfSemaSignal(CfSemaphore *sema, I32 count)
     {
         ReleaseSemaphore(sema->handle, count, NULL);
     }
+#else
+    ReleaseSemaphore(sema->handle, count, NULL);
+#endif
 }
 
 //------------------------------------------------------------------------------
