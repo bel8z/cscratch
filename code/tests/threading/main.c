@@ -1,45 +1,36 @@
-#include "benaphore.h"
+#include "foundation/core.h"
 
-#define THREAD_COUNT 4
+#include <stdio.h>
 
-typedef struct TestState
+bool testBenaphore(void);
+bool testAutoResetEvent(void);
+
+I32
+main(I32 argc, Cstr argv[])
 {
-    Benaphore mutex;
-    I32 iteration_count;
-    I32 value;
-} TestState;
 
-CF_THREAD_PROC(threadFun)
-{
-    TestState *test = args;
-
-    for (I32 i = 0; i < test->iteration_count; ++i)
+    if (argc != 2)
     {
-        benaLock(&test->mutex);
-        test->value++;
-        benaRelease(&test->mutex);
-    }
-}
-
-int
-main(void)
-{
-    TestState test = {.iteration_count = 400000};
-    benaInit(&test.mutex);
-
-    CfThread threads[THREAD_COUNT] = {0};
-
-    for (I32 i = 0; i < THREAD_COUNT; ++i)
-    {
-        threads[i] = cfThreadStart(threadFun, .args = &test);
+        return -1;
     }
 
-    for (I32 i = 0; i < THREAD_COUNT; ++i)
+    I32 code = -1;
+
+    if (sscanf_s(argv[1], "%d", &code) != 1)
     {
-        cfThreadWait(threads[i], DURATION_INFINITE);
+        return -2;
     }
 
-    if (test.value == THREAD_COUNT * test.iteration_count) return 0;
+    bool result = false;
 
-    return -1;
+    switch (code)
+    {
+        case 0: result = testBenaphore(); break;
+        case 1: result = testAutoResetEvent(); break;
+        default: break;
+    }
+
+    if (!result) return -3;
+
+    return 0;
 }

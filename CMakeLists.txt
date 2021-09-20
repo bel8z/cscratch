@@ -165,10 +165,10 @@ set_c_compile_flags(test_files)
 # set_c_compile_flags(test_threading)
 
 # add_executable(test_threading ${TESTS_DIR}/threading/auto_reset_event.c)
-add_executable(test_threading 
-    ${TESTS_DIR}/threading/main.c
-    ${TESTS_DIR}/threading/benaphore.c)
+file(GLOB_RECURSE TEST_SOURCES ${TESTS_DIR}/threading/*.c)
+add_executable(test_threading ${TEST_SOURCES})
 target_link_libraries(test_threading PRIVATE foundation)
 target_include_directories(test_threading PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_threading)
-add_test(test_threading test_threading)
+add_test(test_benaphore test_threading 0)
+add_test(test_auto_reset_event test_threading 1)
