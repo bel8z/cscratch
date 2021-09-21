@@ -22,6 +22,7 @@
 
 void cfSleep(Duration duration);
 void cfYield(void);
+U32 cfCurrentThreadId(void);
 
 //------------//
 //   Thread   //

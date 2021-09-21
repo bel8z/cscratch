@@ -28,6 +28,12 @@ cfYield(void)
     SwitchToThread();
 }
 
+U32
+cfCurrentThreadId(void)
+{
+    return GetCurrentThreadId();
+}
+
 //------------------------------------------------------------------------------
 // Thread implementation
 
