@@ -68,7 +68,7 @@ struct WorkQueue
 
 static bool worqDequeue(WorkQueue *queue, WorkQueueProc *out_proc, void **out_data);
 
-static void
+static bool
 worqTryWork(WorkQueue *queue)
 {
     WorkQueueProc proc;
@@ -77,11 +77,10 @@ worqTryWork(WorkQueue *queue)
     if (worqDequeue(queue, &proc, &data))
     {
         proc(data);
+        return true;
     }
-    else
-    {
-        cfSemaWait(&queue->semaphore);
-    }
+
+    return false;
 }
 
 static CF_THREAD_PROC(worqTheadProc)
@@ -90,7 +89,7 @@ static CF_THREAD_PROC(worqTheadProc)
 
     while (!atomRead(&queue->stop))
     {
-        worqTryWork(queue);
+        if (!worqTryWork(queue)) cfSemaWait(&queue->semaphore);
     }
 }
 
@@ -208,6 +207,8 @@ worqEnqueue(WorkQueue *queue, WorkQueueProc proc, void *data)
     cell->data = data;
     atomReleaseFence();
     atomWrite(&cell->sequence, pos + 1);
+
+    cfSemaSignalOne(&queue->semaphore);
 
     return true;
 }
