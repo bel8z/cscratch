@@ -1,19 +1,12 @@
 #include "work_queue.h"
 
+// Work queue implementation, using the bounded MPMC queue described in
+// https://www.1024cores.net/home/lock-free-algorithms/queues/bounded-mpmc-queue
+
 #include "foundation/atom.h"
 #include "foundation/atom.inl"
 #include "foundation/memory.h"
 #include "foundation/threading.h"
-
-struct WorkQueue
-{
-    CfThread worker;
-    CfSemaphore wake;
-
-    Usize size;
-    AtomUsize read, write;
-    WorkItem *buffer;
-};
 
 static inline Usize
 nextPowerOf2(Usize x)
@@ -32,111 +25,228 @@ nextPowerOf2(Usize x)
     return x;
 }
 
-static bool
-wkTryDequeue(WorkQueue *queue, WorkItem *item)
+//===================================//
+// Data
+
+typedef struct WorkQueueCell
 {
-    Usize read = atomRead(&queue->read);
+    // User data
+    WorkQueueProc proc;
+    void *data;
+    // Sequence counter
+    AtomUsize sequence;
+} WorkQueueCell;
 
-    if (atomRead(&queue->write) - read > 0)
+// TODO (Matteo): Better cache line alignment strategy to avoid wasting memory
+
+struct WorkQueue
+{
+    // TODO (Matteo): Is this padding required?
+    CF_CACHELINE_PAD;
+
+    WorkQueueCell *buffer;
+    Usize buffer_mask;
+    // TODO (Matteo): Should the semaphore be kept in a different cache line from the buffer?
+    CfSemaphore semaphore;
+    AtomBool stop;
+
+    // NOTE (Matteo): Read and write indices are kept in separate cache lines to avoid false sharing
+    CF_CACHELINE_PAD;
+    AtomUsize enqueue_pos;
+    CF_CACHELINE_PAD;
+    AtomUsize dequeue_pos;
+
+    // TODO (Matteo): Is this padding required?
+    CF_CACHELINE_PAD;
+
+    CfThread *workers;
+    Usize num_workers;
+};
+
+//===================================//
+// Internals
+
+static bool worqDequeue(WorkQueue *queue, WorkQueueProc *out_proc, void **out_data);
+
+static void
+worqTryWork(WorkQueue *queue)
+{
+    WorkQueueProc proc;
+    void *data;
+
+    if (worqDequeue(queue, &proc, &data))
     {
-        atomAcquireFence();
-
-        *item = queue->buffer[read & (queue->size - 1)];
-        atomReleaseFence();
-        atomWrite(&queue->read, read + 1);
-
-        return true;
+        proc(data);
     }
-
-    return false;
+    else
+    {
+        cfSemaWait(&queue->semaphore);
+    }
 }
 
-static CF_THREAD_PROC(wkWorkerProc)
+static CF_THREAD_PROC(worqTheadProc)
 {
     WorkQueue *queue = args;
 
-    for (;;)
+    while (!atomRead(&queue->stop))
     {
-        WorkItem item;
-        if (wkTryDequeue(queue, &item))
-        {
-            item.proc(item.data);
-        }
-        else
-        {
-            cfSemaWait(&queue->wake);
-        }
+        worqTryWork(queue);
     }
 }
 
-WorkQueueConfig
-wkConfig(Usize buffer_size)
+//===================================//
+// Config/init/shutdown
+
+bool
+worqConfig(WorkQueueConfig *config)
 {
-    buffer_size = nextPowerOf2(buffer_size);
-    return (WorkQueueConfig){
-        .buffer_size = buffer_size,
-        .footprint = sizeof(WorkQueue) + sizeof(WorkItem) * buffer_size,
-    };
+    Usize buffer_size = config->buffer_size;
+
+    if (buffer_size <= 2) return false;
+    if (buffer_size & (buffer_size - 1)) return false;
+
+    if (config->num_workers == 0)
+    {
+        // TODO (Matteo): Detect number of cores
+        return false;
+    }
+
+    config->footprint = sizeof(WorkQueue) + buffer_size * sizeof(WorkQueueCell) +
+                        config->num_workers * sizeof(CfThread);
+
+    return true;
 }
 
 WorkQueue *
-wkAllocate(WorkQueueConfig config)
+worqInit(WorkQueueConfig *config, void *memory)
 {
-    WorkQueue *queue = config.memory;
+    WorkQueue *queue = memory;
 
-    queue->buffer = (WorkItem *)(queue + 1);
-    queue->size = config.buffer_size;
-    atomWrite(&queue->read, 0);
-    atomWrite(&queue->write, 0);
-    queue->worker = cfThreadStart(wkWorkerProc);
-    cfSemaInit(&queue->wake, 0);
+    atomInit(&queue->enqueue_pos, 0);
+    atomInit(&queue->dequeue_pos, 0);
+    atomInit(&queue->stop, false);
+    cfSemaInit(&queue->semaphore, 0);
+
+    Usize buffer_size = config->buffer_size;
+
+    CF_ASSERT(buffer_size >= 2, "Buffer size is too small");
+    CF_ASSERT((buffer_size & (buffer_size - 1)) == 0, "Buffer size is not a power of 2");
+
+    queue->buffer_mask = buffer_size - 1;
+    queue->buffer = (WorkQueueCell *)(queue + 1);
+
+    for (Usize i = 0; i != buffer_size; i += 1)
+    {
+        atomWrite(&queue->buffer[i].sequence, i);
+    }
+
+    CF_ASSERT(config->num_workers > 0, "Invalid number of workers");
+
+    queue->workers = (CfThread *)((U8 *)queue->buffer + buffer_size * sizeof(*queue->buffer));
+    queue->num_workers = config->num_workers;
 
     return queue;
 }
 
 void
-wkTerminate(WorkQueue *queue)
+worqShutdown(WorkQueue *queue)
 {
-    // BUG (Matteo): This stalls
-    cfThreadWait(queue->worker, DURATION_INFINITE);
-    queue->size = 0;
+    atomWrite(&queue->stop, true);
+    cfThreadWaitAll(queue->workers, queue->num_workers, DURATION_INFINITE);
 }
 
-bool
-wkIsFull(WorkQueue *queue)
+void
+worqStartProcessing(WorkQueue *queue)
 {
-    Usize write = atomRead(&queue->write);
-    Usize read = atomRead(&queue->read);
-    atomAcquireFence();
-    return write < read + queue->size;
-}
-
-bool
-wkIsEmpty(WorkQueue *queue)
-{
-    Usize write = atomRead(&queue->write);
-    Usize read = atomRead(&queue->read);
-    atomAcquireFence();
-    return (write - read) == 0;
-}
-
-bool
-wkPush(WorkQueue *queue, WorkItem item)
-{
-    Usize write = atomRead(&queue->write);
-
-    if (write < atomRead(&queue->read) + queue->size)
+    atomWrite(&queue->stop, false);
+    for (Usize i = 0; i < queue->num_workers; ++i)
     {
+        queue->workers[i] = cfThreadStart(worqTheadProc, .args = queue);
+    }
+}
+
+void
+worqStopProcessing(WorkQueue *queue)
+{
+    atomWrite(&queue->stop, true);
+    cfThreadWaitAll(queue->workers, queue->num_workers, DURATION_INFINITE);
+}
+
+//===================================//
+// Enqueue/dequeue logic
+
+bool
+worqEnqueue(WorkQueue *queue, WorkQueueProc proc, void *data)
+{
+    WorkQueueCell *cell = NULL;
+    Usize pos = atomRead(&queue->enqueue_pos);
+
+    for (;;)
+    {
+        cell = queue->buffer + (pos & queue->buffer_mask);
+
+        Usize seq = atomRead(&cell->sequence);
         atomAcquireFence();
 
-        queue->buffer[write & (queue->size - 1)] = item;
-        atomReleaseFence();
-        atomWrite(&queue->write, write + 1);
+        Isize dif = (Isize)seq - (Isize)pos;
 
-        cfSemaSignalOne(&queue->wake);
+        if (dif < 0) return false; // Full
 
-        return true;
+        if (dif > 0)
+        {
+            pos = atomRead(&queue->enqueue_pos);
+        }
+        else if (atomCompareExchangeWeak(&queue->enqueue_pos, &pos, pos + 1))
+        {
+            break;
+        }
     }
 
-    return false;
+    CF_ASSERT_NOT_NULL(cell);
+
+    cell->proc = proc;
+    cell->data = data;
+    atomReleaseFence();
+    atomWrite(&cell->sequence, pos + 1);
+
+    return true;
 }
+
+bool
+worqDequeue(WorkQueue *queue, WorkQueueProc *out_proc, void **out_data)
+{
+    WorkQueueCell *cell = NULL;
+    Usize pos = atomRead(&queue->dequeue_pos);
+
+    for (;;)
+    {
+        cell = queue->buffer + (pos & queue->buffer_mask);
+
+        Usize seq = atomRead(&cell->sequence);
+        atomAcquireFence();
+
+        Isize dif = (Isize)seq - (Isize)(pos + 1);
+
+        if (dif < 0) return false; // Empty
+
+        if (dif > 0)
+        {
+            pos = atomRead(&queue->dequeue_pos);
+        }
+        else if (atomCompareExchangeWeak(&queue->dequeue_pos, &pos, pos + 1))
+        {
+            break;
+        }
+    }
+
+    CF_ASSERT_NOT_NULL(cell);
+
+    *out_proc = cell->proc;
+    *out_data = cell->data;
+    atomReleaseFence();
+    atomWrite(&cell->sequence, pos + queue->buffer_mask + 1);
+
+    return true;
+}
+
+//===================================//

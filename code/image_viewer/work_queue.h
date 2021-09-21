@@ -2,26 +2,25 @@
 
 #include "foundation/core.h"
 
+#define WORK_QUEUE_PROC(name) void name(void *data)
+
+typedef WORK_QUEUE_PROC((*WorkQueueProc));
+
 typedef struct WorkQueueConfig
 {
-    void *memory;
-    Usize footprint;
+    // In
     Usize buffer_size;
+    Usize num_workers;
+    // Out
+    Usize footprint;
 } WorkQueueConfig;
-
-typedef struct WorkItem
-{
-    void (*proc)(void *data);
-    void *data;
-} WorkItem;
 
 typedef struct WorkQueue WorkQueue;
 
-WorkQueueConfig wkConfig(Usize buffer_size);
+bool worqConfig(WorkQueueConfig *config);
+WorkQueue *worqInit(WorkQueueConfig *config, void *memory);
+void worqShutdown(WorkQueue *queue);
 
-WorkQueue *wkAllocate(WorkQueueConfig config);
-void wkTerminate(WorkQueue *queue);
-
-bool wkIsFull(WorkQueue *queue);
-bool wkIsEmpty(WorkQueue *queue);
-bool wkPush(WorkQueue *queue, WorkItem item);
+void worqStartProcessing(WorkQueue *queue);
+void worqStopProcessing(WorkQueue *queue);
+bool worqEnqueue(WorkQueue *queue, WorkQueueProc proc, void *data);
