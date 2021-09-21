@@ -21,6 +21,7 @@
 //---------------------//
 
 void cfSleep(Duration duration);
+void cfYield(void);
 
 //------------//
 //   Thread   //

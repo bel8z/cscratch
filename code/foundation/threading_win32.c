@@ -22,6 +22,12 @@ cfSleep(Duration duration)
     Sleep(win32DurationMs(duration));
 }
 
+void
+cfYield(void)
+{
+    SwitchToThread();
+}
+
 //------------------------------------------------------------------------------
 // Thread implementation
 
