@@ -4,6 +4,7 @@
 
 bool testBenaphore(void);
 bool testAutoResetEvent(void);
+bool testMpmcQueue(void);
 
 I32
 main(I32 argc, Cstr argv[])
@@ -27,6 +28,7 @@ main(I32 argc, Cstr argv[])
     {
         case 0: result = testBenaphore(); break;
         case 1: result = testAutoResetEvent(); break;
+        case 2: result = testMpmcQueue(); break;
         default: break;
     }
 
