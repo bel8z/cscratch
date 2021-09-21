@@ -22,5 +22,5 @@ WorkQueue *worqInit(WorkQueueConfig *config, void *memory);
 void worqShutdown(WorkQueue *queue);
 
 void worqStartProcessing(WorkQueue *queue);
-void worqStopProcessing(WorkQueue *queue);
+void worqStopProcessing(WorkQueue *queue, bool flush);
 bool worqEnqueue(WorkQueue *queue, WorkQueueProc proc, void *data);

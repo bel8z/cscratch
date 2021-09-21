@@ -116,16 +116,27 @@ worqConfig(WorkQueueConfig *config)
     return true;
 }
 
+static void
+worqClear(WorkQueue *queue)
+{
+    CF_ASSERT_NOT_NULL(queue->buffer);
+    CF_ASSERT(atomRead(&queue->stop), "Cannot flush while running");
+
+    Usize buffer_size = queue->buffer_mask + 1;
+
+    atomWrite(&queue->enqueue_pos, 0);
+    atomWrite(&queue->dequeue_pos, 0);
+
+    for (Usize i = 0; i != buffer_size; i += 1)
+    {
+        atomWrite(&queue->buffer[i].sequence, i);
+    }
+}
+
 WorkQueue *
 worqInit(WorkQueueConfig *config, void *memory)
 {
     WorkQueue *queue = memory;
-
-    atomInit(&queue->enqueue_pos, 0);
-    atomInit(&queue->dequeue_pos, 0);
-    atomInit(&queue->stop, false);
-    cfSemaInit(&queue->semaphore, 0);
-
     Usize buffer_size = config->buffer_size;
 
     CF_ASSERT(buffer_size >= 2, "Buffer size is too small");
@@ -133,16 +144,15 @@ worqInit(WorkQueueConfig *config, void *memory)
 
     queue->buffer_mask = buffer_size - 1;
     queue->buffer = (WorkQueueCell *)(queue + 1);
-
-    for (Usize i = 0; i != buffer_size; i += 1)
-    {
-        atomWrite(&queue->buffer[i].sequence, i);
-    }
+    worqClear(queue);
 
     CF_ASSERT(config->num_workers > 0, "Invalid number of workers");
 
     queue->workers = (CfThread *)((U8 *)queue->buffer + buffer_size * sizeof(*queue->buffer));
     queue->num_workers = config->num_workers;
+
+    atomInit(&queue->stop, true);
+    cfSemaInit(&queue->semaphore, 0);
 
     return queue;
 }
@@ -150,13 +160,14 @@ worqInit(WorkQueueConfig *config, void *memory)
 void
 worqShutdown(WorkQueue *queue)
 {
-    atomWrite(&queue->stop, true);
-    cfThreadWaitAll(queue->workers, queue->num_workers, DURATION_INFINITE);
+    worqStopProcessing(queue, true);
 }
 
 void
 worqStartProcessing(WorkQueue *queue)
 {
+    CF_ASSERT(atomRead(&queue->stop), "Queue already started");
+
     atomWrite(&queue->stop, false);
     for (Usize i = 0; i < queue->num_workers; ++i)
     {
@@ -165,10 +176,14 @@ worqStartProcessing(WorkQueue *queue)
 }
 
 void
-worqStopProcessing(WorkQueue *queue)
+worqStopProcessing(WorkQueue *queue, bool flush)
 {
+    CF_ASSERT(!atomRead(&queue->stop), "Queue not running");
+
     atomWrite(&queue->stop, true);
     cfThreadWaitAll(queue->workers, queue->num_workers, DURATION_INFINITE);
+
+    if (flush) worqClear(queue);
 }
 
 //===================================//
