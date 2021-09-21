@@ -6,8 +6,6 @@
 
 #include "std_allocator.h"
 
-#define CACHE_LINE_PAD U8 CF_MACRO_VAR(_pad)[64]
-
 typedef struct QueueCell
 {
     AtomUsize sequence;
@@ -16,20 +14,20 @@ typedef struct QueueCell
 
 typedef struct MpmcQueue
 {
-    CACHE_LINE_PAD;
+    CF_CACHELINE_PAD;
 
     QueueCell *buffer;
     Usize buffer_mask;
 
-    CACHE_LINE_PAD;
+    CF_CACHELINE_PAD;
 
     AtomUsize enqueue_pos;
 
-    CACHE_LINE_PAD;
+    CF_CACHELINE_PAD;
 
     AtomUsize dequeue_pos;
 
-    CACHE_LINE_PAD;
+    CF_CACHELINE_PAD;
 } MpmcQueue;
 
 void

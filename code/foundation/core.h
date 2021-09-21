@@ -117,8 +117,10 @@
 
 #if CF_ARCH_X86
 #    define CF_PTR_SIZE 4
+#    define CF_CACHELINE_SIZE 64
 #elif CF_ARCH_X64
 #    define CF_PTR_SIZE 8
+#    define CF_CACHELINE_SIZE 64
 #else
 #    error "Architecture not detected"
 #endif
@@ -276,6 +278,9 @@
 
 /// Check at compile time that the two arguments have the same type
 #define CF_SAME_TYPE(l, r) (0 && ((l) = (r), 0))
+
+#define CF_PAD(size) U8 CF_MACRO_VAR(_pad)[size]
+#define CF_CACHELINE_PAD CF_PAD(CF_CACHELINE_SIZE)
 
 //------------------------------------------------------------------------------
 //   TYPES
