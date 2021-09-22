@@ -19,6 +19,7 @@
 #include "platform.h"
 
 #include "image.h"
+#include "task_queue.h"
 #include "version.h"
 
 #include "gui/gui.h"
@@ -103,23 +104,6 @@ typedef struct ImageFile
     I32 state;
 } ImageFile;
 
-typedef struct LoadQueue
-{
-    // Dependencies
-    CfFileSystem *fs;
-
-    // Sync
-    CfThread thread;
-    CfMutex mutex;
-    CfConditionVariable wake;
-
-    // Data
-    ImageFile *buf[16];
-    U16 pos;
-    U16 len;
-    bool stop;
-} LoadQueue;
-
 struct AppState
 {
     //=== Application memory storage ===//
@@ -146,7 +130,7 @@ struct AppState
 
     //=== Async file loading ===//
 
-    LoadQueue queue;
+    TaskQueue *queue;
 
     //=== GUI ===//
 
@@ -162,95 +146,38 @@ struct AppState
 //   Async file loading   //
 //------------------------//
 
+WORK_QUEUE_PROC(loadFileTask)
+{
+    CF_ASSERT_NOT_NULL(data);
+
+    ImageFile *file = data;
+
+    if (file->state == ImageFileState_Queued)
+    {
+        file->state = ImageFileState_Loading;
+
+        if (imageLoadFromFile(&file->image, file->filename))
+        {
+            file->state = ImageFileState_Loaded;
+        }
+        else
+        {
+            file->state = ImageFileState_Failed;
+        }
+    }
+}
+
 static void
-loadQueuePush(LoadQueue *queue, ImageFile *file)
+loadFileEnqueue(TaskQueue *queue, ImageFile *file)
 {
     if (file->state == ImageFileState_Idle)
     {
-        cfMutexAcquire(&queue->mutex);
+        file->state = ImageFileState_Queued;
+        if (!taskEnqueue(queue, loadFileTask, file))
         {
-            CF_ASSERT(queue->len < CF_ARRAY_SIZE(queue->buf), "Queue is full!");
-
-            U16 write_pos = (queue->pos + queue->len) % CF_ARRAY_SIZE(queue->buf);
-            queue->buf[write_pos] = file;
-            queue->len++;
-
-            file->state = ImageFileState_Queued;
-
-            cfCvSignalOne(&queue->wake);
-        }
-        cfMutexRelease(&queue->mutex);
-    }
-}
-
-static CF_THREAD_PROC(loadQueueProc)
-{
-    LoadQueue *queue = args;
-    for (;;)
-    {
-        ImageFile *file = NULL;
-
-        // Wait and dequeue file
-        cfMutexAcquire(&queue->mutex);
-        {
-            while (!queue->stop && queue->len == 0)
-            {
-                cfCvWaitMutex(&queue->wake, &queue->mutex, DURATION_INFINITE);
-            }
-
-            if (queue->stop)
-            {
-                cfMutexRelease(&queue->mutex);
-                break;
-            }
-
-            file = queue->buf[queue->pos];
-            if (++queue->pos == CF_ARRAY_SIZE(queue->buf)) queue->pos = 0;
-            queue->len--;
-        }
-        cfMutexRelease(&queue->mutex);
-
-        // Process file
-        CF_ASSERT_NOT_NULL(file);
-
-        if (file->state == ImageFileState_Queued)
-        {
-            file->state = ImageFileState_Loading;
-
-            if (imageLoadFromFile(&file->image, file->filename))
-            {
-                file->state = ImageFileState_Loaded;
-            }
-            else
-            {
-                file->state = ImageFileState_Failed;
-            }
+            CF_INVALID_CODE_PATH();
         }
     }
-}
-
-static void
-loadQueueStart(LoadQueue *queue)
-{
-    CF_ASSERT_NOT_NULL(queue);
-    CF_ASSERT(!queue->thread.handle, "Load queue thread is running");
-
-    queue->stop = false;
-    queue->thread = cfThreadStart(loadQueueProc, .args = queue, .debug_name = "Load queue");
-}
-
-static void
-loadQueueStop(LoadQueue *queue)
-{
-    cfMutexAcquire(&queue->mutex);
-    {
-        queue->stop = true;
-        cfCvSignalOne(&queue->wake);
-    }
-    cfMutexRelease(&queue->mutex);
-
-    cfThreadWait(queue->thread, DURATION_INFINITE);
-    queue->thread.handle = 0;
 }
 
 //-----------------------//
@@ -412,19 +339,20 @@ appQueueLoadFiles(AppState *app)
     // NOTE (Matteo): improve browsing performance by pre-loading previous and next files
 
     Usize curr = app->curr_file;
+    TaskQueue *queue = app->queue;
 
-    loadQueuePush(&app->queue, app->files + curr);
+    loadFileEnqueue(queue, app->files + curr);
 
     if (app->browse_width == app->num_files)
     {
         for (Usize i = curr + 1; i < app->num_files; ++i)
         {
-            loadQueuePush(&app->queue, app->files + i);
+            loadFileEnqueue(queue, app->files + i);
         }
 
         for (Usize i = 0; i < curr; ++i)
         {
-            loadQueuePush(&app->queue, app->files + curr - i - 1);
+            loadFileEnqueue(queue, app->files + curr - i - 1);
         }
     }
     else
@@ -440,8 +368,8 @@ appQueueLoadFiles(AppState *app)
             CF_ASSERT(next != curr, "");
             CF_ASSERT(next != prev, "");
             CF_ASSERT(prev != curr, "");
-            loadQueuePush(&app->queue, app->files + next);
-            loadQueuePush(&app->queue, app->files + prev);
+            loadFileEnqueue(queue, app->files + next);
+            loadFileEnqueue(queue, app->files + prev);
         }
     }
 
@@ -843,9 +771,15 @@ appCreate(Platform *plat, Cstr argv[], I32 argc)
     app->filter.num_extensions = CF_ARRAY_SIZE(g_supported_ext);
     app->curr_file = USIZE_MAX;
 
-    app->queue.fs = app->plat->fs;
-    cfCvInit(&app->queue.wake);
-    cfMutexInit(&app->queue.mutex);
+    TaskQueueConfig cfg = {.buffer_size = 128, .num_workers = 1};
+    if (taskConfig(&cfg))
+    {
+        app->queue = taskInit(&cfg, memArenaAlloc(main, cfg.footprint));
+    }
+    else
+    {
+        CF_INVALID_CODE_PATH();
+    }
 
     // NOTE (Matteo): Init global state (same as library re-load)
     appLoad(app);
@@ -861,6 +795,7 @@ APP_API void
 appDestroy(AppState *app)
 {
     appUnload(app);
+    taskShutdown(app->queue);
     appClearImages(app);
     imageViewShutdown(&app->iv);
     memArenaFreeArray(app->main, app->files, app->max_files);
@@ -879,12 +814,13 @@ APP_API APP_PROC(appLoad)
     // Init image loading
     gloadInit(app->plat->gl);
     imageInit(app->plat->heap, app->plat->fs);
-    loadQueueStart(&app->queue);
+
+    taskStartProcessing(app->queue);
 }
 
 APP_API APP_PROC(appUnload)
 {
-    loadQueueStop(&app->queue);
+    taskStopProcessing(app->queue, true);
 }
 
 APP_API APP_UPDATE_PROC(appUpdate)
