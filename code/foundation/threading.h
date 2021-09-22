@@ -130,13 +130,13 @@ CF_API void cfCvSignalAll(CfConditionVariable *cv);
 typedef struct CfSemaphore
 {
     void *handle;
-    AtomI32 count;
+    AtomIsize count;
 } CfSemaphore;
 
-CF_API void cfSemaInit(CfSemaphore *sema, I32 init_count);
+CF_API void cfSemaInit(CfSemaphore *sema, Usize init_count);
 CF_API bool cfSemaTryWait(CfSemaphore *sema);
 CF_API void cfSemaWait(CfSemaphore *sema);
 CF_API void cfSemaSignalOne(CfSemaphore *sema);
-CF_API void cfSemaSignal(CfSemaphore *sema, I32 count);
+CF_API void cfSemaSignal(CfSemaphore *sema, Usize count);
 
 //------------------------------------------------------------------------------

@@ -418,7 +418,7 @@ cfCvSignalAll(CfConditionVariable *cv)
 #define SEMA_SPIN_COUNT 10000
 
 CF_API void
-cfSemaInit(CfSemaphore *sema, I32 init_count)
+cfSemaInit(CfSemaphore *sema, Usize init_count)
 {
 #if SEMA_SPIN_COUNT != 0
     sema->handle = CreateSemaphore(NULL, 0, MAXLONG, NULL);
@@ -432,7 +432,7 @@ CF_API bool
 cfSemaTryWait(CfSemaphore *sema)
 {
 #if SEMA_SPIN_COUNT != 0
-    I32 prev_count = atomRead(&sema->count);
+    Isize prev_count = atomRead(&sema->count);
     if (prev_count > 0 &&
         prev_count == atomCompareExchange(&sema->count, prev_count, prev_count - 1))
     {
@@ -447,8 +447,8 @@ CF_API void
 cfSemaWait(CfSemaphore *sema)
 {
 #if SEMA_SPIN_COUNT != 0
-    I32 prev_count;
-    I32 spin_count = SEMA_SPIN_COUNT;
+    Isize prev_count;
+    Isize spin_count = SEMA_SPIN_COUNT;
 
     while (spin_count--)
     {
@@ -478,12 +478,12 @@ cfSemaSignalOne(CfSemaphore *sema)
 }
 
 CF_API void
-cfSemaSignal(CfSemaphore *sema, I32 count)
+cfSemaSignal(CfSemaphore *sema, Usize count)
 {
 #if SEMA_SPIN_COUNT != 0
     atomReleaseFence();
-    I32 prev_count = atomFetchAdd(&sema->count, count);
-    I32 signal_count = -prev_count < count ? -prev_count : count;
+    Isize prev_count = atomFetchAdd(&sema->count, count);
+    Isize signal_count = -prev_count < count ? -prev_count : count;
     if (signal_count > 0)
     {
         ReleaseSemaphore(sema->handle, count, NULL);
