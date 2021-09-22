@@ -19,7 +19,6 @@
 #include "platform.h"
 
 #include "image.h"
-#include "task_queue.h"
 #include "version.h"
 
 #include "gui/gui.h"
@@ -34,7 +33,7 @@
 #include "foundation/memory.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"
-#include "foundation/threading.h"
+#include "foundation/task.h"
 
 //-------------------//
 //     Constants     //

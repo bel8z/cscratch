@@ -1,12 +1,11 @@
-#include "task_queue.h"
+#include "task.h"
 
 // Task system implementation based on the bounded MPMC queue described in
 // https://www.1024cores.net/home/lock-free-algorithms/queues/bounded-mpmc-queue
 
-#include "foundation/atom.h"
-#include "foundation/atom.inl"
-#include "foundation/memory.h"
-#include "foundation/threading.h"
+#include "atom.inl"
+#include "memory.h"
+#include "threading.h"
 
 static inline Usize
 nextPowerOf2(Usize x)

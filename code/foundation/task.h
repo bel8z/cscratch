@@ -1,6 +1,6 @@
 #pragma once
 
-#include "foundation/core.h"
+#include "core.h"
 
 /// Task queue configuration struct
 typedef struct TaskQueueConfig
