@@ -125,6 +125,10 @@ TaskQueue *
 taskInit(TaskQueueConfig *config, void *memory)
 {
     TaskQueue *queue = memory;
+
+    atomInit(&queue->stop, true);
+    cfSemaInit(&queue->semaphore, 0);
+
     Usize buffer_size = config->buffer_size;
 
     CF_ASSERT(buffer_size >= 2, "Buffer size is too small");
@@ -138,9 +142,6 @@ taskInit(TaskQueueConfig *config, void *memory)
 
     queue->workers = (CfThread *)((U8 *)queue->buffer + buffer_size * sizeof(*queue->buffer));
     queue->num_workers = config->num_workers;
-
-    atomInit(&queue->stop, true);
-    cfSemaInit(&queue->semaphore, 0);
 
     return queue;
 }
@@ -169,6 +170,7 @@ taskStopProcessing(TaskQueue *queue, bool flush)
     CF_ASSERT(!atomRead(&queue->stop), "Queue not running");
 
     atomWrite(&queue->stop, true);
+    cfSemaSignal(&queue->semaphore, queue->num_workers);
     cfThreadWaitAll(queue->workers, queue->num_workers, DURATION_INFINITE);
 
     if (flush) taskClear(queue);
