@@ -1,11 +1,12 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "api.h"
 
 #include "foundation/list.h"
 #include "foundation/memory.h"
 #include "foundation/strings.h"
+
+#include <stdio.h>
+
+static MemAllocator g_heap;
 
 //======================================================//
 
@@ -24,9 +25,9 @@ typedef struct FreeListAlloc
 } FreeListAlloc;
 
 void
-freeListAllocInit(FreeListAlloc *fl, Usize size)
+freeListAllocInit(FreeListAlloc *fl, void *buffer, Usize buffer_size)
 {
-    memArenaInitOnBuffer(&fl->arena, calloc(1, size), size);
+    memArenaInitOnBuffer(&fl->arena, buffer, buffer_size);
     cfListInit(&fl->sentinel);
 }
 
@@ -161,7 +162,7 @@ ioCallback(TP_CALLBACK_INSTANCE *Instance,     //
     CF_ASSERT(Overlapped == &ioctxt->ovp, "");
 
     CloseThreadpoolIo(Io);
-    free(ioctxt);
+    memFree(g_heap, ioctxt, sizeof(*ioctxt));
 }
 
 TP_IO *
@@ -189,7 +190,7 @@ IO_CALLBACK(fileIoCallback)
 void
 fileBeginWrite(Cstr filename, U8 const *buffer, Usize size, FileIoToken *token)
 {
-    IoContext *context = calloc(1, sizeof(*context));
+    IoContext *context = memAlloc(g_heap, sizeof(*context));
     context->callback = fileIoCallback;
     context->user_data = token;
 
@@ -212,11 +213,16 @@ fileBeginWrite(Cstr filename, U8 const *buffer, Usize size, FileIoToken *token)
 #define ALLOC_SIZE CF_MB(1)
 #define BUFF_SIZE 1024
 
-int
-main()
+I32
+platformMain(Platform *platform, Cstr argv[], I32 argc)
 {
+    CF_UNUSED(argv);
+    CF_UNUSED(argc);
+
+    g_heap = platform->heap;
+
     FreeListAlloc fl = {0};
-    freeListAllocInit(&fl, ALLOC_SIZE);
+    freeListAllocInit(&fl, memAlloc(g_heap, ALLOC_SIZE), ALLOC_SIZE);
     MemAllocator alloc = freeListAllocator(&fl);
 
     //======================================================//
@@ -252,17 +258,18 @@ main()
 
     //======================================================//
 
-    U8 *big_block = calloc(1, CF_GB(1));
+    Usize big_block_size = CF_GB(1);
+    U8 *big_block = memAlloc(g_heap, big_block_size);
     FileIoToken token = {0};
 
-    fileBeginWrite("C:/Temp/BigFile.bin", big_block, CF_GB(1), &token);
+    fileBeginWrite("C:/Temp/BigFile.bin", big_block, big_block_size, &token);
 
     while (!token.completed)
     {
         Sleep(1);
     }
 
-    free(big_block);
+    memFree(g_heap, big_block, big_block_size);
     printf("%s\n", token.success ? "SUCCESS" : "FAILURE");
 
     return 0;

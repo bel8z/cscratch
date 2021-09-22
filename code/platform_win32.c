@@ -205,14 +205,9 @@ pathsInit(Paths *g_paths)
     g_paths->data.len = strLength(g_paths->data.buf);
 }
 
-int WINAPI
-wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
+static void
+win32PlatformInit(void)
 {
-    CF_UNUSED(hInstance);
-    CF_UNUSED(hPrevInstance);
-    CF_UNUSED(pCmdLine);
-    CF_UNUSED(nCmdShow);
-
     // ** Init memory management **
 
     SYSTEM_INFO sysinfo;
@@ -235,6 +230,24 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
     // ** Init paths **
 
     pathsInit(g_platform.paths);
+}
+
+static void
+win32PlatformShutdown(void)
+{
+    CF_ASSERT(g_platform.heap_blocks == 0, "Potential memory leak");
+    CF_ASSERT(g_platform.heap_size == 0, "Potential memory leak");
+}
+
+int WINAPI
+wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
+{
+    CF_UNUSED(hInstance);
+    CF_UNUSED(hPrevInstance);
+    CF_UNUSED(pCmdLine);
+    CF_UNUSED(nCmdShow);
+
+    win32PlatformInit();
 
     // ** Platform-agnostic entry point **
 
@@ -248,9 +261,17 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     memFree(g_platform.heap, argv, cmd_line_size);
 
-    CF_ASSERT(g_platform.heap_blocks == 0, "Potential memory leak");
-    CF_ASSERT(g_platform.heap_size == 0, "Potential memory leak");
+    win32PlatformShutdown();
 
+    return result;
+}
+
+I32
+main(I32 argc, Cstr argv[])
+{
+    win32PlatformInit();
+    I32 result = platformMain(&g_platform, argv, argc);
+    win32PlatformShutdown();
     return result;
 }
 

@@ -4,7 +4,7 @@
 #include <sqlext.h>
 #pragma comment(lib, "odbc32.lib")
 
-#include "foundation/core.h"
+typedef struct Platform Platform;
 
 static bool
 sqlHandleResult(SQLRETURN code, I16 handle_type, SQLHANDLE handle)
@@ -49,8 +49,12 @@ sqlEnvDestroy(SQLHENV env)
 }
 
 I32
-main(void)
+platformMain(Platform *platform, Cstr argv[], I32 argc)
 {
+    CF_UNUSED(platform);
+    CF_UNUSED(argv);
+    CF_UNUSED(argc);
+
     SQLRETURN code = SQL_SUCCESS;
 
     SQLHENV env = sqlEnvCreate();
@@ -75,4 +79,6 @@ main(void)
     }
 
     sqlEnvDestroy(env);
+
+    return 0;
 }

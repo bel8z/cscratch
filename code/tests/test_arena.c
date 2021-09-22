@@ -1,66 +1,21 @@
 
+#include "api.h"
+
 #include "foundation/memory.h"
-#include "foundation/win32.h"
 
 #include <stdio.h>
 
-VM_RESERVE_FUNC(win32VmReserve)
+I32
+platformMain(Platform *platform, Cstr argv[], I32 argc)
 {
-    return VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_NOACCESS);
-}
-
-VM_COMMIT_FUNC(win32VmCommit)
-{
-    void *committed = VirtualAlloc(memory, size, MEM_COMMIT, PAGE_READWRITE);
-    CF_ASSERT(committed, "Memory not previously reserved");
-    return committed != NULL;
-}
-
-VM_REVERT_FUNC(win32VmDecommit)
-{
-    bool result = VirtualFree(memory, size, MEM_DECOMMIT);
-    if (!result)
-    {
-        U32 err = GetLastError();
-        CF_UNUSED(err);
-        CF_ASSERT(false, "VM decommit failed");
-    }
-}
-
-VM_RELEASE_FUNC(win32VmRelease)
-{
-    // NOTE (Matteo): VirtualFree(..., MEM_RELEASE) requires the base pointer
-    // returned by VirtualFree(..., MEM_RESERVE) and a size of 0 to succeed.
-    CF_UNUSED(size);
-
-    bool result = VirtualFree(memory, 0, MEM_RELEASE);
-    if (!result)
-    {
-        U32 err = GetLastError();
-        CF_UNUSED(err);
-        CF_ASSERT(false, "VM release failed");
-    }
-}
-
-int
-main()
-{
-    SYSTEM_INFO sysinfo;
-    GetSystemInfo(&sysinfo);
-
-    CfVirtualMemory vm = {
-        .page_size = sysinfo.dwPageSize,
-        .reserve = win32VmReserve,
-        .commit = win32VmCommit,
-        .revert = win32VmDecommit,
-        .release = win32VmRelease,
-    };
+    CF_UNUSED(argc);
+    CF_UNUSED(argv);
 
     MemArena arena;
     Usize const storage_size = 1024 * 1024 * 1024;
-    void *storage = vmReserve(&vm, storage_size);
+    void *storage = vmReserve(platform->vm, storage_size);
 
-    if (!memArenaInitOnVm(&arena, &vm, storage, storage_size))
+    if (!memArenaInitOnVm(&arena, platform->vm, storage, storage_size))
     {
         printf("Cannot init memory arena");
         return -1;
@@ -96,7 +51,7 @@ main()
         CF_ASSERT(ints[i] == i, "");
     }
 
-    vmRelease(&vm, storage, storage_size);
+    vmRelease(platform->vm, storage, storage_size);
 
     return 0;
 }

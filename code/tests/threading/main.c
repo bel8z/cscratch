@@ -2,12 +2,14 @@
 
 #include <stdio.h>
 
-bool testBenaphore(void);
-bool testAutoResetEvent(void);
-bool testMpmcQueue(void);
+typedef struct Platform Platform;
+
+bool testBenaphore(Platform *platform);
+bool testAutoResetEvent(Platform *platform);
+bool testMpmcQueue(Platform *platform);
 
 I32
-main(I32 argc, Cstr argv[])
+platformMain(Platform *platform, Cstr argv[], I32 argc)
 {
 
     if (argc != 2)
@@ -26,9 +28,9 @@ main(I32 argc, Cstr argv[])
 
     switch (code)
     {
-        case 0: result = testBenaphore(); break;
-        case 1: result = testAutoResetEvent(); break;
-        case 2: result = testMpmcQueue(); break;
+        case 0: result = testBenaphore(platform); break;
+        case 1: result = testAutoResetEvent(platform); break;
+        case 2: result = testMpmcQueue(platform); break;
         default: break;
     }
 

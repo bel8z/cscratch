@@ -1,10 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
+
+#include "api.h"
 
 #include "foundation/array.h"
 #include "foundation/core.h"
 
-#include "std_allocator.h"
+#include <stdio.h>
 
 typedef I32 MyType;
 typedef CfArray(MyType) MyArray;
@@ -25,13 +25,13 @@ arrayPrint(MyArray *a)
     fflush(out);
 }
 
-int32_t
-main(int32_t argc, char **argv)
+I32
+platformMain(Platform *platform, Cstr argv[], I32 argc)
 {
     (void)argc;
     (void)argv;
 
-    MemAllocator std_alloc = stdAllocator();
+    MemAllocator std_alloc = platform->heap;
 
     MyArray array = {0};
     cfArrayInit(&array, std_alloc);

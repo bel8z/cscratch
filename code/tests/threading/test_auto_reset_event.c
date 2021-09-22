@@ -5,6 +5,8 @@
 
 #include <stdlib.h>
 
+typedef struct Platform Platform;
+
 #define THREAD_COUNT 4
 #define ITERATION_COUNT 10 // 10000
 
@@ -67,8 +69,10 @@ static CF_THREAD_PROC(testArEventWork)
 }
 
 bool
-testAutoResetEvent(void)
+testAutoResetEvent(Platform *platform)
 {
+    CF_UNUSED(platform);
+
     CfThread threads[THREAD_COUNT] = {0};
     ThreadData thread_data[THREAD_COUNT] = {0};
 

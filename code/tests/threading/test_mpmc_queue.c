@@ -1,10 +1,12 @@
+#include "api.h"
+
 #include "foundation/atom.h"
 #include "foundation/atom.inl"
 #include "foundation/memory.h"
 #include "foundation/threading.h"
 #include "foundation/time.h"
 
-#include "std_allocator.h"
+typedef struct Platform Platform;
 
 typedef struct QueueCell
 {
@@ -163,9 +165,9 @@ CF_THREAD_PROC(thread_func)
 }
 
 bool
-testMpmcQueue(void)
+testMpmcQueue(Platform *platform)
 {
-    MemAllocator alloc = stdAllocator();
+    MemAllocator alloc = platform->heap;
     MpmcQueue queue = {0};
 
     mpmcInit(&queue, 1024, alloc);

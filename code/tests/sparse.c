@@ -46,7 +46,7 @@ sparse_remove(Sparse *sparse, U32 index)
 }
 
 I32
-main(void)
+platformMain(Platform *platform, Cstr argv[], I32 argc)
 {
     Sparse sparse = {0};
 

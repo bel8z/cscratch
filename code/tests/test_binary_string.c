@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct Platform Platform;
+
 bool
 from_string(const char *str, Usize *val)
 {

@@ -1,100 +1,11 @@
+#include "api.h"
+
 #include "foundation/core.h"
+#include "foundation/fs.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"
-#include "foundation/win32.h"
 
 #include <stdio.h>
-
-typedef struct DirIterator
-{
-    U8 opaque[1024];
-} DirIterator;
-
-typedef struct Win32DirIterator
-{
-    HANDLE finder;
-    Char8 buffer[sizeof(DirIterator) - sizeof(HANDLE)];
-} Win32DirIterator;
-
-CF_STATIC_ASSERT(sizeof(DirIterator) >= sizeof(Win32DirIterator),
-                 "DirIterator storage size is too small");
-
-bool win32DirIterStart(DirIterator *self, Str dir_path);
-bool win32DirIterNext(DirIterator *self, Str *filename);
-void win32DirIterEnd(DirIterator *self);
-
-bool
-win32DirIterStart(DirIterator *self, Str dir_path)
-{
-    CF_ASSERT_NOT_NULL(self);
-
-    Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
-    WIN32_FIND_DATAW data = {0};
-    Char16 buffer[1024];
-
-    // Encode path to UTF16
-
-    I32 size = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED,         //
-                                   dir_path.buf, (I32)dir_path.len, //
-                                   buffer, (I32)CF_ARRAY_SIZE(buffer));
-
-    if (size < 0 || (Usize)size >= CF_ARRAY_SIZE(buffer) - 2)
-    {
-        CF_ASSERT(false, "Encoding error or overflow");
-        return false;
-    }
-
-    // Append a wildcard (D:)
-    buffer[size] = L'*';
-    buffer[size + 1] = 0;
-
-    // Start iteration
-    iter->finder = FindFirstFileW(buffer, &data);
-    if (iter->finder == INVALID_HANDLE_VALUE) return false;
-
-    // Skip to ".." so that the "advance" method can call FindNextFileW directly
-    if (!wcscmp(data.cFileName, L".") && !FindNextFileW(iter->finder, &data))
-    {
-        FindClose(iter->finder);
-        iter->finder = INVALID_HANDLE_VALUE;
-        return false;
-    }
-
-    return true;
-}
-
-bool
-win32DirIterNext(DirIterator *self, Str *filename)
-{
-    CF_ASSERT_NOT_NULL(self);
-
-    Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
-    WIN32_FIND_DATAW data = {0};
-
-    if (!FindNextFileW(iter->finder, &data)) return false;
-
-    Usize len =
-        win32Utf16To8(str16FromCstr(data.cFileName), iter->buffer, CF_ARRAY_SIZE(iter->buffer));
-
-    // TODO (Matteo): Maybe require a bigger buffer?
-    if (len == USIZE_MAX) return false;
-
-    CF_ASSERT(len > 0, "Which filename can have a size of 0???");
-
-    filename->buf = iter->buffer;
-    filename->len = len;
-
-    return true;
-}
-
-void
-win32DirIterEnd(DirIterator *self)
-{
-    CF_ASSERT_NOT_NULL(self);
-
-    Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
-    FindClose(iter->finder);
-}
 
 void
 pathPrint(Str p)
@@ -102,9 +13,12 @@ pathPrint(Str p)
     if (strValid(p)) printf("%.*s\n", (I32)p.len, p.buf);
 }
 
-int
-main(void)
+I32
+platformMain(Platform *platform, Cstr argv[], I32 argc)
 {
+    CF_UNUSED(argv);
+    CF_UNUSED(argc);
+
     printf("Splitting paths:\n");
 
     Str p = {0};
@@ -142,17 +56,18 @@ main(void)
     printf("Browsing dir:\n");
 
     // Platform plat = cfPlatformCreate();
+    CfFileSystem *fs = platform->fs;
     DirIterator iter = {0};
 
-    if (win32DirIterStart(&iter, dirname))
+    if (fs->dirIterStart(&iter, dirname))
     {
         Str f = {0};
-        while (win32DirIterNext(&iter, &f))
+        while (fs->dirIterNext(&iter, &f, NULL))
         {
             pathPrint(f);
         }
 
-        win32DirIterEnd(&iter);
+        fs->dirIterEnd(&iter);
     }
 
     // U32 sz = 0;

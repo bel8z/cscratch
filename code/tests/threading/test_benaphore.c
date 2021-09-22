@@ -3,6 +3,8 @@
 #include "foundation/atom.inl"
 #include "foundation/threading.h"
 
+typedef struct Platform Platform;
+
 #define THREAD_COUNT 4
 
 typedef struct TestBenaphoreState
@@ -25,8 +27,10 @@ static CF_THREAD_PROC(testBenaphoreWork)
 }
 
 bool
-testBenaphore(void)
+testBenaphore(Platform *platform)
 {
+    CF_UNUSED(platform);
+
     TestBenaphoreState test = {.iteration_count = 400000};
     benaInit(&test.mutex);
 
