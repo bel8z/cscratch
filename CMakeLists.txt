@@ -79,8 +79,10 @@ endif()
 #----------------------#
 
 set(PLATFORM_SOURCES ${CODE_DIR}/platform.c)
-
 set_source_files_properties(${PLATFORM_SOURCES} PROPERTIES LANGUAGE C)
+
+set(CONSOLE_ENTRY ${CODE_DIR}/console.c)
+set_source_files_properties(${CONSOLE_ENTRY} PROPERTIES LANGUAGE C)
 
 #--------------#
 # Applications #
@@ -132,39 +134,39 @@ endforeach()
 include(CTest)
 enable_testing()
 
-add_executable(test_array ${TESTS_DIR}/test_array.c ${CODE_DIR}/console.c)
+add_executable(test_array ${TESTS_DIR}/test_array.c ${CONSOLE_ENTRY})
 target_link_libraries(test_array PRIVATE foundation)
 target_include_directories(test_array PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_array)
 add_test(test_array test_array)
 
-add_executable(test_arena ${TESTS_DIR}/test_arena.c ${CODE_DIR}/console.c)
+add_executable(test_arena ${TESTS_DIR}/test_arena.c ${CONSOLE_ENTRY})
 target_link_libraries(test_arena PRIVATE foundation)
 target_include_directories(test_arena PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_arena)
 add_test(test_arena test_arena)
 
-add_executable(dummy ${TESTS_DIR}/dummy.c ${CODE_DIR}/console.c)
+add_executable(dummy ${TESTS_DIR}/dummy.c ${CONSOLE_ENTRY})
 target_link_libraries(dummy PRIVATE foundation)
 target_include_directories(dummy PRIVATE ${CODE_DIR})
 set_c_compile_flags(dummy)
 
-add_executable(test_odbc ${TESTS_DIR}/test_odbc.c ${CODE_DIR}/console.c)
+add_executable(test_odbc ${TESTS_DIR}/test_odbc.c ${CONSOLE_ENTRY})
 target_link_libraries(test_odbc PRIVATE foundation)
 target_include_directories(test_odbc PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_odbc)
 
-add_executable(test_files ${TESTS_DIR}/test_files.c ${CODE_DIR}/console.c)
+add_executable(test_files ${TESTS_DIR}/test_files.c ${CONSOLE_ENTRY})
 target_link_libraries(test_files PRIVATE foundation)
 target_include_directories(test_files PRIVATE ${CODE_DIR})
 set_c_compile_flags(test_files)
 
-# add_executable(test_threading ${TESTS_DIR}/test_threading.c ${CODE_DIR}/console.c)
+# add_executable(test_threading ${TESTS_DIR}/test_threading.c ${CONSOLE_ENTRY})
 # target_link_libraries(test_threading PRIVATE foundation)
 # target_include_directories(test_threading PRIVATE ${CODE_DIR})
 # set_c_compile_flags(test_threading)
 
-file(GLOB_RECURSE TEST_SOURCES ${TESTS_DIR}/threading/*.c ${CODE_DIR}/console.c)
+file(GLOB_RECURSE TEST_SOURCES ${TESTS_DIR}/threading/*.c ${CONSOLE_ENTRY})
 add_executable(test_threading ${TEST_SOURCES})
 target_link_libraries(test_threading PRIVATE foundation)
 target_include_directories(test_threading PRIVATE ${CODE_DIR})
