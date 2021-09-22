@@ -1,4 +1,5 @@
-#include "api.h"
+#include "app.h"
+#include "platform.h"
 
 #define SHADER_IMPL
 #include "shader.h"

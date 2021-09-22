@@ -1,4 +1,4 @@
-#include "foundation/core.h"
+#include "platform.h"
 
 #if CF_OS_WIN32
 #    include "platform_win32.c"

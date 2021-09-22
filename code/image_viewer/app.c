@@ -15,7 +15,8 @@
 //
 //================================//
 
-#include "api.h"
+#include "app.h"
+#include "platform.h"
 
 #include "image.h"
 #include "version.h"

@@ -1,5 +1,5 @@
 // Interface between platform layer and hosted applicatiom
-#include "api.h"
+#include "app.h"
 
 // Gui library
 #include "gui/gui.h"
