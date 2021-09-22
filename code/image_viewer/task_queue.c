@@ -69,8 +69,6 @@ struct TaskQueue
 //===================================//
 // Internals
 
-static bool taskDequeue(TaskQueue *queue, Task *out_task);
-
 static CF_THREAD_PROC(taskThreadProc)
 {
     TaskQueue *queue = args;
@@ -152,6 +150,9 @@ taskShutdown(TaskQueue *queue)
     taskStopProcessing(queue, true);
 }
 
+//===================================//
+// Start/stop processing
+
 void
 taskStartProcessing(TaskQueue *queue)
 {
@@ -218,7 +219,7 @@ taskEnqueue(TaskQueue *queue, TaskProc proc, void *data)
     return true;
 }
 
-bool
+static bool
 taskDequeue(TaskQueue *queue, Task *out_task)
 {
     TaskQueueCell *cell = NULL;
@@ -255,6 +256,7 @@ taskDequeue(TaskQueue *queue, Task *out_task)
 }
 
 //===================================//
+// Misc
 
 bool
 taskTryWork(TaskQueue *queue)
@@ -269,11 +271,3 @@ taskTryWork(TaskQueue *queue)
 
     return false;
 }
-
-// bool
-// taskIsCompleted(TaskQueue *queue, TaskID id)
-// {
-//     Usize pos = ~id;
-//     TaskQueueCell *cell = queue->buffer + (pos & queue->buffer_mask);
-//     return ((pos + 1) == atomRead(&cell->sequence));
-// }
