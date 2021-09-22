@@ -28,18 +28,25 @@ nextPowerOf2(Usize x)
 //===================================//
 // Data
 
-typedef struct Task
+typedef struct
 {
-    TaskID id;
+    TaskId id;
     TaskProc proc;
     void *data;
+    bool canceled;
 } Task;
 
-typedef struct TaskQueueCell
+typedef struct
 {
     Task task;
     AtomUsize sequence;
 } TaskQueueCell;
+
+typedef struct
+{
+    TaskQueue *queue;
+    Task curr_task;
+} TaskWorkerSlot;
 
 // TODO (Matteo): Better cache line alignment strategy to avoid wasting memory
 
@@ -63,22 +70,79 @@ struct TaskQueue
     // TODO (Matteo): Is this padding required?
     CF_CACHELINE_PAD;
 
-    CfThread *workers;
     Usize num_workers;
+    CfThread *workers;
+    TaskWorkerSlot *worker_slots;
 };
 
 //===================================//
 // Internals
 
+static bool taskDequeue(TaskQueue *queue, Task *out_task);
+
 static CF_THREAD_PROC(taskThreadProc)
 {
-    TaskQueue *queue = args;
+    TaskWorkerSlot *slot = args;
+    TaskQueue *queue = slot->queue;
 
     while (!atomRead(&queue->stop))
     {
-        atomAcquireFence();
-        if (!taskTryWork(queue)) cfSemaWait(&queue->semaphore);
+        Task *task = &slot->curr_task;
+
+        if (taskDequeue(queue, task))
+        {
+            task->proc(task->data, &task->canceled);
+        }
+        else
+        {
+            cfSemaWait(&queue->semaphore);
+        }
     }
+}
+
+static void
+taskClear(TaskQueue *queue)
+{
+    CF_ASSERT_NOT_NULL(queue->buffer);
+    CF_ASSERT(atomRead(&queue->stop), "Cannot flush while running");
+
+    Usize buffer_size = queue->buffer_mask + 1;
+
+    atomWrite(&queue->enqueue_pos, 0);
+    atomWrite(&queue->dequeue_pos, 0);
+
+    for (Usize i = 0; i != buffer_size; i += 1)
+    {
+        atomWrite(&queue->buffer[i].sequence, i);
+    }
+}
+
+static Task *
+taskFindInQueue(TaskQueue *queue, TaskId id)
+{
+    Task *task = NULL;
+
+    Usize pos = ~id;
+    TaskQueueCell *cell = queue->buffer + (pos & queue->buffer_mask);
+    Usize seq = atomRead(&cell->sequence);
+
+    atomAcquireFence();
+
+    if (seq == pos + 1) task = &cell->task;
+
+    return task;
+}
+
+static Task *
+taskFindInProgress(TaskQueue *queue, TaskId id)
+{
+    for (Usize i = 0; i < queue->num_workers; ++i)
+    {
+        Task *task = &queue->worker_slots[i].curr_task;
+        if (task->id == id) return task;
+    }
+
+    return NULL;
 }
 
 //===================================//
@@ -99,26 +163,9 @@ taskConfig(TaskQueueConfig *config)
     }
 
     config->footprint = sizeof(TaskQueue) + buffer_size * sizeof(TaskQueueCell) +
-                        config->num_workers * sizeof(CfThread);
+                        config->num_workers * (sizeof(CfThread) + sizeof(TaskWorkerSlot));
 
     return true;
-}
-
-static void
-taskClear(TaskQueue *queue)
-{
-    CF_ASSERT_NOT_NULL(queue->buffer);
-    CF_ASSERT(atomRead(&queue->stop), "Cannot flush while running");
-
-    Usize buffer_size = queue->buffer_mask + 1;
-
-    atomWrite(&queue->enqueue_pos, 0);
-    atomWrite(&queue->dequeue_pos, 0);
-
-    for (Usize i = 0; i != buffer_size; i += 1)
-    {
-        atomWrite(&queue->buffer[i].sequence, i);
-    }
 }
 
 TaskQueue *
@@ -140,8 +187,12 @@ taskInit(TaskQueueConfig *config, void *memory)
 
     CF_ASSERT(config->num_workers > 0, "Invalid number of workers");
 
-    queue->workers = (CfThread *)((U8 *)queue->buffer + buffer_size * sizeof(*queue->buffer));
+    Usize workers_offset = buffer_size * sizeof(*queue->buffer);
+    Usize slots_offset = workers_offset + config->num_workers * (sizeof(*queue->workers));
+
     queue->num_workers = config->num_workers;
+    queue->workers = (CfThread *)((U8 *)queue->buffer + workers_offset);
+    queue->worker_slots = (TaskWorkerSlot *)((U8 *)queue->buffer + slots_offset);
 
     return queue;
 }
@@ -158,12 +209,13 @@ taskShutdown(TaskQueue *queue)
 bool
 taskStartProcessing(TaskQueue *queue)
 {
-    atomReleaseFence();
     if (atomExchange(&queue->stop, false))
     {
         for (Usize i = 0; i < queue->num_workers; ++i)
         {
-            queue->workers[i] = cfThreadStart(taskThreadProc, .args = queue);
+            TaskWorkerSlot *slot = queue->worker_slots + i;
+            slot->queue = queue;
+            queue->workers[i] = cfThreadStart(taskThreadProc, .args = slot);
         }
 
         return true;
@@ -175,7 +227,6 @@ taskStartProcessing(TaskQueue *queue)
 bool
 taskStopProcessing(TaskQueue *queue, bool flush)
 {
-    atomReleaseFence();
     if (!atomExchange(&queue->stop, true))
     {
         cfSemaSignal(&queue->semaphore, queue->num_workers);
@@ -192,7 +243,7 @@ taskStopProcessing(TaskQueue *queue, bool flush)
 //===================================//
 // Enqueue/dequeue logic
 
-Usize
+TaskId
 taskEnqueue(TaskQueue *queue, TaskProc proc, void *data)
 {
     TaskQueueCell *cell = NULL;
@@ -224,6 +275,7 @@ taskEnqueue(TaskQueue *queue, TaskProc proc, void *data)
     cell->task.id = ~pos;
     cell->task.proc = proc;
     cell->task.data = data;
+    cell->task.canceled = false;
     atomReleaseFence();
     atomWrite(&cell->sequence, pos + 1);
 
@@ -280,7 +332,37 @@ taskTryWork(TaskQueue *queue)
 
     if (taskDequeue(queue, &task))
     {
-        task.proc(task.data);
+        // TODO (Matteo): This task cannot be canceled after it is dequeued
+        task.proc(task.data, &task.canceled);
+        return true;
+    }
+
+    return false;
+}
+
+bool
+taskCompleted(TaskQueue *queue, TaskId id)
+{
+    CF_ASSERT(id, "Invalid task ID");
+
+    if (taskFindInQueue(queue, id)) return false;
+    if (taskFindInProgress(queue, id)) return false;
+
+    return true;
+}
+
+bool
+taskCancel(TaskQueue *queue, TaskId id)
+{
+    CF_ASSERT(id, "Invalid task ID");
+
+    Task *task = taskFindInQueue(queue, id);
+
+    if (!task) task = taskFindInProgress(queue, id);
+
+    if (task)
+    {
+        task->canceled = true;
         return true;
     }
 
