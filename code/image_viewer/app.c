@@ -156,7 +156,7 @@ TASK_QUEUE_PROC(loadFileTask)
     {
         file->state = ImageFileState_Loading;
 
-        if (imageLoadFromFile(&file->image, file->filename))
+        if (!(*canceled) && imageLoadFromFile(&file->image, file->filename))
         {
             file->state = ImageFileState_Loaded;
         }

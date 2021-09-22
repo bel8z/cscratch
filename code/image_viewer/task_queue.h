@@ -13,10 +13,13 @@ typedef struct TaskQueueConfig
     Usize footprint;
 } TaskQueueConfig;
 
-#define TASK_QUEUE_PROC(name) void name(void *data)
+#define TASK_QUEUE_PROC(name) void name(void *data, bool *canceled)
+
+/// Type of the task procedure
 typedef TASK_QUEUE_PROC((*TaskProc));
 
-typedef Usize TaskID;
+/// Task identifier
+typedef Usize TaskId;
 
 /// Opaque type representing the task queue
 typedef struct TaskQueue TaskQueue;
@@ -38,7 +41,14 @@ bool taskStartProcessing(TaskQueue *queue);
 bool taskStopProcessing(TaskQueue *queue, bool flush);
 
 /// Enqueue a task for processing
-Usize taskEnqueue(TaskQueue *queue, TaskProc proc, void *data);
+TaskId taskEnqueue(TaskQueue *queue, TaskProc proc, void *data);
 
-/// Assist the task queue by performing a pending task on the current thread, if present
+/// Assist the task queue by performing a pending task, if present, on the current thread
 bool taskTryWork(TaskQueue *queue);
+
+/// Check if the given task has been completed
+bool taskCompleted(TaskQueue *queue, TaskId id);
+
+/// Mark the given task as canceled. The execution of the task is not prevented,
+/// the user should check the value of the 'canceled' pointer inside the task code.
+bool taskCancel(TaskQueue *queue, TaskId id);
