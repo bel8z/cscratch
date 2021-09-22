@@ -30,6 +30,7 @@ nextPowerOf2(Usize x)
 
 typedef struct Task
 {
+    TaskID id;
     TaskProc proc;
     void *data;
 } Task;
@@ -75,6 +76,7 @@ static CF_THREAD_PROC(taskThreadProc)
 
     while (!atomRead(&queue->stop))
     {
+        atomAcquireFence();
         if (!taskTryWork(queue)) cfSemaWait(&queue->semaphore);
     }
 }
@@ -153,34 +155,44 @@ taskShutdown(TaskQueue *queue)
 //===================================//
 // Start/stop processing
 
-void
+bool
 taskStartProcessing(TaskQueue *queue)
 {
-    CF_ASSERT(atomRead(&queue->stop), "Queue already started");
-
-    atomWrite(&queue->stop, false);
-    for (Usize i = 0; i < queue->num_workers; ++i)
+    atomReleaseFence();
+    if (atomExchange(&queue->stop, false))
     {
-        queue->workers[i] = cfThreadStart(taskThreadProc, .args = queue);
+        for (Usize i = 0; i < queue->num_workers; ++i)
+        {
+            queue->workers[i] = cfThreadStart(taskThreadProc, .args = queue);
+        }
+
+        return true;
     }
+
+    return false;
 }
 
-void
+bool
 taskStopProcessing(TaskQueue *queue, bool flush)
 {
-    CF_ASSERT(!atomRead(&queue->stop), "Queue not running");
+    atomReleaseFence();
+    if (!atomExchange(&queue->stop, true))
+    {
+        cfSemaSignal(&queue->semaphore, queue->num_workers);
+        cfThreadWaitAll(queue->workers, queue->num_workers, DURATION_INFINITE);
 
-    atomWrite(&queue->stop, true);
-    cfSemaSignal(&queue->semaphore, queue->num_workers);
-    cfThreadWaitAll(queue->workers, queue->num_workers, DURATION_INFINITE);
+        if (flush) taskClear(queue);
 
-    if (flush) taskClear(queue);
+        return true;
+    }
+
+    return false;
 }
 
 //===================================//
 // Enqueue/dequeue logic
 
-bool
+Usize
 taskEnqueue(TaskQueue *queue, TaskProc proc, void *data)
 {
     TaskQueueCell *cell = NULL;
@@ -195,7 +207,7 @@ taskEnqueue(TaskQueue *queue, TaskProc proc, void *data)
 
         Isize dif = (Isize)seq - (Isize)pos;
 
-        if (dif < 0) return false; // Full
+        if (dif < 0) return 0; // Full
 
         if (dif > 0)
         {
@@ -209,6 +221,7 @@ taskEnqueue(TaskQueue *queue, TaskProc proc, void *data)
 
     CF_ASSERT_NOT_NULL(cell);
 
+    cell->task.id = ~pos;
     cell->task.proc = proc;
     cell->task.data = data;
     atomReleaseFence();
@@ -216,7 +229,9 @@ taskEnqueue(TaskQueue *queue, TaskProc proc, void *data)
 
     cfSemaSignalOne(&queue->semaphore);
 
-    return true;
+    CF_ASSERT(cell->task.id, "This should be always > 0");
+
+    return cell->task.id;
 }
 
 static bool

@@ -146,7 +146,7 @@ struct AppState
 //   Async file loading   //
 //------------------------//
 
-WORK_QUEUE_PROC(loadFileTask)
+TASK_QUEUE_PROC(loadFileTask)
 {
     CF_ASSERT_NOT_NULL(data);
 

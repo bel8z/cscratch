@@ -2,10 +2,6 @@
 
 #include "foundation/core.h"
 
-#define WORK_QUEUE_PROC(name) void name(void *data)
-
-typedef WORK_QUEUE_PROC((*TaskProc));
-
 /// Task queue configuration struct
 typedef struct TaskQueueConfig
 {
@@ -16,6 +12,11 @@ typedef struct TaskQueueConfig
     /// [Out] Memory footprint of the configured queue
     Usize footprint;
 } TaskQueueConfig;
+
+#define TASK_QUEUE_PROC(name) void name(void *data)
+typedef TASK_QUEUE_PROC((*TaskProc));
+
+typedef Usize TaskID;
 
 /// Opaque type representing the task queue
 typedef struct TaskQueue TaskQueue;
@@ -32,12 +33,12 @@ TaskQueue *taskInit(TaskQueueConfig *config, void *memory);
 void taskShutdown(TaskQueue *queue);
 
 /// Start processing of queued tasks
-void taskStartProcessing(TaskQueue *queue);
+bool taskStartProcessing(TaskQueue *queue);
 /// Stop processing of queued tasks, optionally flushing them.
-void taskStopProcessing(TaskQueue *queue, bool flush);
+bool taskStopProcessing(TaskQueue *queue, bool flush);
 
 /// Enqueue a task for processing
-bool taskEnqueue(TaskQueue *queue, TaskProc proc, void *data);
+Usize taskEnqueue(TaskQueue *queue, TaskProc proc, void *data);
 
 /// Assist the task queue by performing a pending task on the current thread, if present
 bool taskTryWork(TaskQueue *queue);
