@@ -1,6 +1,6 @@
-#include "work_queue.h"
+#include "task_queue.h"
 
-// Work queue implementation, using the bounded MPMC queue described in
+// Task system implementation based on the bounded MPMC queue described in
 // https://www.1024cores.net/home/lock-free-algorithms/queues/bounded-mpmc-queue
 
 #include "foundation/atom.h"
@@ -28,23 +28,26 @@ nextPowerOf2(Usize x)
 //===================================//
 // Data
 
-typedef struct WorkQueueCell
+typedef struct Task
 {
-    // User data
-    WorkQueueProc proc;
+    TaskProc proc;
     void *data;
-    // Sequence counter
+} Task;
+
+typedef struct TaskQueueCell
+{
+    Task task;
     AtomUsize sequence;
-} WorkQueueCell;
+} TaskQueueCell;
 
 // TODO (Matteo): Better cache line alignment strategy to avoid wasting memory
 
-struct WorkQueue
+struct TaskQueue
 {
     // TODO (Matteo): Is this padding required?
     CF_CACHELINE_PAD;
 
-    WorkQueueCell *buffer;
+    TaskQueueCell *buffer;
     Usize buffer_mask;
     // TODO (Matteo): Should the semaphore be kept in a different cache line from the buffer?
     CfSemaphore semaphore;
@@ -66,30 +69,15 @@ struct WorkQueue
 //===================================//
 // Internals
 
-static bool worqDequeue(WorkQueue *queue, WorkQueueProc *out_proc, void **out_data);
+static bool taskDequeue(TaskQueue *queue, Task *out_task);
 
-static bool
-worqTryWork(WorkQueue *queue)
+static CF_THREAD_PROC(taskThreadProc)
 {
-    WorkQueueProc proc;
-    void *data;
-
-    if (worqDequeue(queue, &proc, &data))
-    {
-        proc(data);
-        return true;
-    }
-
-    return false;
-}
-
-static CF_THREAD_PROC(worqTheadProc)
-{
-    WorkQueue *queue = args;
+    TaskQueue *queue = args;
 
     while (!atomRead(&queue->stop))
     {
-        if (!worqTryWork(queue)) cfSemaWait(&queue->semaphore);
+        if (!taskTryWork(queue)) cfSemaWait(&queue->semaphore);
     }
 }
 
@@ -97,7 +85,7 @@ static CF_THREAD_PROC(worqTheadProc)
 // Config/init/shutdown
 
 bool
-worqConfig(WorkQueueConfig *config)
+taskConfig(TaskQueueConfig *config)
 {
     Usize buffer_size = config->buffer_size;
 
@@ -110,14 +98,14 @@ worqConfig(WorkQueueConfig *config)
         return false;
     }
 
-    config->footprint = sizeof(WorkQueue) + buffer_size * sizeof(WorkQueueCell) +
+    config->footprint = sizeof(TaskQueue) + buffer_size * sizeof(TaskQueueCell) +
                         config->num_workers * sizeof(CfThread);
 
     return true;
 }
 
 static void
-worqClear(WorkQueue *queue)
+taskClear(TaskQueue *queue)
 {
     CF_ASSERT_NOT_NULL(queue->buffer);
     CF_ASSERT(atomRead(&queue->stop), "Cannot flush while running");
@@ -133,18 +121,18 @@ worqClear(WorkQueue *queue)
     }
 }
 
-WorkQueue *
-worqInit(WorkQueueConfig *config, void *memory)
+TaskQueue *
+taskInit(TaskQueueConfig *config, void *memory)
 {
-    WorkQueue *queue = memory;
+    TaskQueue *queue = memory;
     Usize buffer_size = config->buffer_size;
 
     CF_ASSERT(buffer_size >= 2, "Buffer size is too small");
     CF_ASSERT((buffer_size & (buffer_size - 1)) == 0, "Buffer size is not a power of 2");
 
     queue->buffer_mask = buffer_size - 1;
-    queue->buffer = (WorkQueueCell *)(queue + 1);
-    worqClear(queue);
+    queue->buffer = (TaskQueueCell *)(queue + 1);
+    taskClear(queue);
 
     CF_ASSERT(config->num_workers > 0, "Invalid number of workers");
 
@@ -158,41 +146,41 @@ worqInit(WorkQueueConfig *config, void *memory)
 }
 
 void
-worqShutdown(WorkQueue *queue)
+taskShutdown(TaskQueue *queue)
 {
-    worqStopProcessing(queue, true);
+    taskStopProcessing(queue, true);
 }
 
 void
-worqStartProcessing(WorkQueue *queue)
+taskStartProcessing(TaskQueue *queue)
 {
     CF_ASSERT(atomRead(&queue->stop), "Queue already started");
 
     atomWrite(&queue->stop, false);
     for (Usize i = 0; i < queue->num_workers; ++i)
     {
-        queue->workers[i] = cfThreadStart(worqTheadProc, .args = queue);
+        queue->workers[i] = cfThreadStart(taskThreadProc, .args = queue);
     }
 }
 
 void
-worqStopProcessing(WorkQueue *queue, bool flush)
+taskStopProcessing(TaskQueue *queue, bool flush)
 {
     CF_ASSERT(!atomRead(&queue->stop), "Queue not running");
 
     atomWrite(&queue->stop, true);
     cfThreadWaitAll(queue->workers, queue->num_workers, DURATION_INFINITE);
 
-    if (flush) worqClear(queue);
+    if (flush) taskClear(queue);
 }
 
 //===================================//
 // Enqueue/dequeue logic
 
 bool
-worqEnqueue(WorkQueue *queue, WorkQueueProc proc, void *data)
+taskEnqueue(TaskQueue *queue, TaskProc proc, void *data)
 {
-    WorkQueueCell *cell = NULL;
+    TaskQueueCell *cell = NULL;
     Usize pos = atomRead(&queue->enqueue_pos);
 
     for (;;)
@@ -218,8 +206,8 @@ worqEnqueue(WorkQueue *queue, WorkQueueProc proc, void *data)
 
     CF_ASSERT_NOT_NULL(cell);
 
-    cell->proc = proc;
-    cell->data = data;
+    cell->task.proc = proc;
+    cell->task.data = data;
     atomReleaseFence();
     atomWrite(&cell->sequence, pos + 1);
 
@@ -229,9 +217,9 @@ worqEnqueue(WorkQueue *queue, WorkQueueProc proc, void *data)
 }
 
 bool
-worqDequeue(WorkQueue *queue, WorkQueueProc *out_proc, void **out_data)
+taskDequeue(TaskQueue *queue, Task *out_task)
 {
-    WorkQueueCell *cell = NULL;
+    TaskQueueCell *cell = NULL;
     Usize pos = atomRead(&queue->dequeue_pos);
 
     for (;;)
@@ -257,8 +245,7 @@ worqDequeue(WorkQueue *queue, WorkQueueProc *out_proc, void **out_data)
 
     CF_ASSERT_NOT_NULL(cell);
 
-    *out_proc = cell->proc;
-    *out_data = cell->data;
+    *out_task = cell->task;
     atomReleaseFence();
     atomWrite(&cell->sequence, pos + queue->buffer_mask + 1);
 
@@ -266,3 +253,25 @@ worqDequeue(WorkQueue *queue, WorkQueueProc *out_proc, void **out_data)
 }
 
 //===================================//
+
+bool
+taskTryWork(TaskQueue *queue)
+{
+    Task task;
+
+    if (taskDequeue(queue, &task))
+    {
+        task.proc(task.data);
+        return true;
+    }
+
+    return false;
+}
+
+// bool
+// taskIsCompleted(TaskQueue *queue, TaskID id)
+// {
+//     Usize pos = ~id;
+//     TaskQueueCell *cell = queue->buffer + (pos & queue->buffer_mask);
+//     return ((pos + 1) == atomRead(&cell->sequence));
+// }
