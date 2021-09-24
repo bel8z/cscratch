@@ -213,11 +213,35 @@ fileBeginWrite(Cstr filename, U8 const *buffer, Usize size, FileIoToken *token)
 #define ALLOC_SIZE CF_MB(1)
 #define BUFF_SIZE 1024
 
+typedef union F32Bits
+{
+    U32 u32;
+    F32 f32;
+} F32Bits;
+
+typedef union F64Bits
+{
+    U64 u64;
+    F64 f64;
+} F64Bits;
+
 I32
 platformMain(Platform *platform, Cstr argv[], I32 argc)
 {
     CF_UNUSED(argv);
     CF_UNUSED(argc);
+
+    F64Bits u64 = {.f64 = 2.0};
+    F32Bits u32 = {.f32 = 2.0};
+
+    printf("2.0f -> %d\n", u32.u32);
+    printf("2.0  -> %llu\n", u64.u64);
+
+    u64.u64 = 3203822394;
+    u32.u32 = 3203822394;
+
+    printf("3203822394 -> float  %f\n", (F64)u32.f32);
+    printf("3203822394 -> double %f\n", u64.f64);
 
     g_heap = platform->heap;
 
