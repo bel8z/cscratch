@@ -51,14 +51,20 @@ freeListAllocGetBlock(FreeListAlloc *alloc, Usize size)
     {
         // NOTE (Matteo): Free block found -> to avoid wasting memory, split it if too large
         F64 fill_ratio = (F64)size / (F64)free_block->size;
+
         if (fill_ratio <= 0.25)
         {
-            Usize total_size = free_block->size + sizeof(*free_block);
-            U8 *split_pos = (U8 *)free_block + total_size / 2;
-            MemoryHeader *next_block = (MemoryHeader *)split_pos;
+            // Compute the beginning and end addresses of the block, and its midpoint
+            Uptr beg = (Uptr)free_block;
+            Uptr end = beg + free_block->size + sizeof(*free_block);
+            Uptr mid = (beg + end) / 2;
 
-            free_block->size = (Usize)(next_block - free_block) - sizeof(*free_block);
-            next_block->size = total_size - free_block->size - sizeof(*next_block);
+            // Place the next block at the midpoint
+            MemoryHeader *next_block = (MemoryHeader *)mid;
+
+            // Recompute the block sizes accounting for the header sizes
+            free_block->size = mid - beg - sizeof(*free_block);
+            next_block->size = end - mid - sizeof(*next_block);
 
             cfListPushTail(&alloc->sentinel, &next_block->node);
         }
