@@ -231,25 +231,34 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     CF_UNUSED(argv);
     CF_UNUSED(argc);
 
+    g_heap = platform->heap;
+
+    //======================================================//
+
     F64Bits u64 = {.f64 = 2.0};
     F32Bits u32 = {.f32 = 2.0};
 
-    printf("2.0f -> %d\n", u32.u32);
-    printf("2.0  -> %llu\n", u64.u64);
+    printf("%u ->\t%f\n", u32.u32, (F64)u32.f32);
+    printf("%llu ->\t%f\n", u64.u64, u64.f64);
 
     u64.u64 = 3203822394;
     u32.u32 = 3203822394;
 
-    printf("3203822394 -> float  %f\n", (F64)u32.f32);
-    printf("3203822394 -> double %f\n", u64.f64);
+    printf("%u ->\t%f\n", u32.u32, (F64)u32.f32);
+    printf("%llu ->\t%f\n", u64.u64, u64.f64);
 
-    g_heap = platform->heap;
+    u64.f64 = 1;
+    u32.f32 = 1;
 
-    FreeListAlloc fl = {0};
-    freeListAllocInit(&fl, memAlloc(g_heap, ALLOC_SIZE), ALLOC_SIZE);
-    MemAllocator alloc = freeListAllocator(&fl);
+    printf("%u ->\t%f\n", u32.u32, (F64)u32.f32);
+    printf("%llu ->\t%f\n", u64.u64, u64.f64);
 
     //======================================================//
+
+    FreeListAlloc fl = {0};
+    U8 *fl_buffer = memAlloc(g_heap, ALLOC_SIZE);
+    freeListAllocInit(&fl, fl_buffer, ALLOC_SIZE);
+    MemAllocator alloc = freeListAllocator(&fl);
 
     printf("-------------------------\n");
     printf("Temporary buffer\n");
@@ -264,8 +273,6 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
 
     memFree(alloc, buff, BUFF_SIZE);
 
-    //======================================================//
-
     printf("-------------------------\n");
     printf("String builder\n");
     printf("-------------------------\n");
@@ -279,6 +286,8 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     printf("%s\n", strBuilderCstr(&sb));
 
     strBuilderShutdown(&sb);
+
+    memFree(g_heap, fl_buffer, ALLOC_SIZE);
 
     //======================================================//
 
@@ -295,6 +304,8 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
 
     memFree(g_heap, big_block, big_block_size);
     printf("%s\n", token.success ? "SUCCESS" : "FAILURE");
+
+    //======================================================//
 
     return 0;
 }
