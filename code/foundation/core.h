@@ -175,13 +175,16 @@
 //   Macro helpers   //
 //-------------------//
 
+#define CF_FILE __FILE__
+#define CF_LINE __LINE__
+
 #define CF__CONCAT(a, b) a##b
 #define CF_CONCAT(a, b) CF__CONCAT(a, b)
 
 #define CF__STRINGIFY(x) #x
 #define CF_STRINGIFY(x) CF__STRINGIFY(x)
 
-#define CF_MACRO_VAR(prefix) CF_CONCAT(prefix, CF_CONCAT(_, __LINE__))
+#define CF_MACRO_VAR(prefix) CF_CONCAT(prefix, CF_CONCAT(_, CF_LINE))
 
 #if CF_COMPILER_CLANG
 #    define CF_PRINTF_LIKE(fmt_argno, variadic_argno) \
@@ -226,13 +229,14 @@
 /// CF_ASSERT
 /// Assertion macro, by default enabled in release builds (use CF_RELEASE_ASSERTS to disable)
 
-#define CF__ASSERT_PRINT(msg) \
-    fprintf(stderr, "Assertion failed: %s\nFile: %s\nLine: %d\n", msg, __FILE__, __LINE__)
+#define CF__ASSERT_PRINT(expr, msg)                                                             \
+    fprintf(stderr, "Assertion failed - %s: %s\nFile: %s\nLine: %d\n", msg, CF_STRINGIFY(expr), \
+            CF_FILE, CF_LINE)
 
 #if CF_DEBUG
-#    define CF_ASSERT(expr, msg) (!(expr) ? (CF__ASSERT_PRINT(msg), CF_DEBUG_BREAK(), 0) : 1)
+#    define CF_ASSERT(expr, msg) (!(expr) ? (CF__ASSERT_PRINT(expr, msg), CF_DEBUG_BREAK(), 0) : 1)
 #elif CF_RELEASE_ASSERTS
-#    define CF_ASSERT(expr, msg) (!(expr) ? (CF__ASSERT_PRINT(msg), CF_CRASH(), 0) : 1)
+#    define CF_ASSERT(expr, msg) (!(expr) ? (CF__ASSERT_PRINT(expr, msg), CF_CRASH(), 0) : 1)
 #else
 #    define CF_ASSERT(expr, msg) CF_UNUSED(expr)
 #endif
