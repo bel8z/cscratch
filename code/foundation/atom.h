@@ -4,9 +4,13 @@
 
 // Atomic Types
 
-#if CF_COMPILER_CLANG && __has_builtin(__c11_atomic_init)
-#    define ATOM__CLANG_BUILTINS 1
-#else
+#if CF_COMPILER_CLANG
+#    if __has_builtin(__c11_atomic_init)
+#        define ATOM__CLANG_BUILTINS 1
+#    endif
+#endif
+
+#if !defined(ATOM__CLANG_BUILTINS)
 #    define ATOM__CLANG_BUILTINS 0
 #endif
 
@@ -40,17 +44,24 @@ ATOM__ALIGN(typedef struct AtomU16  { U16  volatile  inner; } AtomU16, 2);
 ATOM__ALIGN(typedef struct AtomU32  { U32  volatile  inner; } AtomU32, 4);
 ATOM__ALIGN(typedef struct AtomU64  { U64  volatile  inner; } AtomU64, 8);
 ATOM__ALIGN(typedef struct AtomPtr  { void volatile *inner; } AtomPtr, CF_PTR_SIZE);
-            typedef struct AtomBool { bool volatile  inner; } AtomBool;
 // clang-format on
 
+#    if CF_COMPILER_MSVC
+typedef AtomI32 AtomBool;
+#    else
+// clang-format off
+            typedef struct AtomBool { bool volatile  inner; } AtomBool;
+// clang-format on
+#    endif
+
 #    if CF_PTR_SIZE == 4
-CF_STATIC_ASSERT(sizeof(Isize) == 4 && sizeof(Usize) == 4, "Invalid size types");
+static_assert(sizeof(Isize) == 4 && sizeof(Usize) == 4, "Invalid size types");
 
 typedef AtomI32 AtomIsize;
 typedef AtomU32 AtomUsize;
 
 #    elif CF_PTR_SIZE == 8
-CF_STATIC_ASSERT(sizeof(Isize) == 8 && sizeof(Usize) == 8, "Invalid size types");
+static_assert(sizeof(Isize) == 8 && sizeof(Usize) == 8, "Invalid size types");
 
 typedef AtomI64 AtomIsize;
 typedef AtomU64 AtomUsize;

@@ -37,8 +37,8 @@ cfCurrentThreadId(void)
 //------------------------------------------------------------------------------
 // Thread implementation
 
-CF_STATIC_ASSERT(sizeof(CfThread) == sizeof(HANDLE), "Thread and HANDLE size must be equal");
-CF_STATIC_ASSERT(alignof(CfThread) == alignof(HANDLE), "Thread must be aligned as HANDLE");
+static_assert(sizeof(CfThread) == sizeof(HANDLE), "Thread and HANDLE size must be equal");
+static_assert(alignof(CfThread) == alignof(HANDLE), "Thread must be aligned as HANDLE");
 
 typedef struct Win32ThreadData
 {
@@ -199,7 +199,7 @@ win32UnlockExc(SRWLOCK *lock, U32 *owner_id)
 //------------------------------------------------------------------------------
 // Mutex implementation
 
-CF_STATIC_ASSERT(sizeof(((CfMutex *)0)->data) == sizeof(SRWLOCK), "Invalid Mutex internal size");
+static_assert(sizeof(((CfMutex *)0)->data) == sizeof(SRWLOCK), "Invalid Mutex internal size");
 
 void
 cfMutexInit(CfMutex *mutex)
@@ -256,7 +256,7 @@ cfMutexRelease(CfMutex *mutex)
 //------------------------------------------------------------------------------
 // RwLock implementation
 
-CF_STATIC_ASSERT(sizeof(((CfRwLock *)0)->data) == sizeof(SRWLOCK), "Invalid RwLock internal size");
+static_assert(sizeof(((CfRwLock *)0)->data) == sizeof(SRWLOCK), "Invalid RwLock internal size");
 
 void
 cfRwInit(CfRwLock *lock)
@@ -349,8 +349,8 @@ cfRwUnlockWriter(CfRwLock *lock)
 //------------------------------------------------------------------------------
 // ConditionVariable implementation
 
-CF_STATIC_ASSERT(sizeof(((CfConditionVariable *)0)->data) == sizeof(CONDITION_VARIABLE),
-                 "Invalid CfConditionVariable internal size");
+static_assert(sizeof(((CfConditionVariable *)0)->data) == sizeof(CONDITION_VARIABLE),
+              "Invalid CfConditionVariable internal size");
 
 static inline bool
 win32cvWait(CfConditionVariable *cv, SRWLOCK *lock, Duration duration)

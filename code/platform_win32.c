@@ -37,8 +37,8 @@ static MEM_ALLOCATOR_FUNC(win32Alloc);
 // the purpose
 
 // NOTE (Matteo): Ensure that there is room for a reasonably sized buffer
-CF_STATIC_ASSERT(sizeof(DirIterator) > 512 + sizeof(HANDLE) + sizeof(WIN32_FIND_DATAW),
-                 "DirIterator buffer size is too small");
+static_assert(sizeof(DirIterator) > 512 + sizeof(HANDLE) + sizeof(WIN32_FIND_DATAW),
+              "DirIterator buffer size is too small");
 
 typedef struct Win32DirIterator
 {

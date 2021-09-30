@@ -262,7 +262,7 @@ void *_InterlockedCompareExchangePointer(void *volatile *Destination, void *Exch
 static inline void *
 atomCompareExchangePtr(AtomPtr *object, void *expected, void *desired)
 {
-    return _InterlockedCompareExchangePointer((void volatile *)object, desired, expected);
+    return _InterlockedCompareExchangePointer((void *volatile *)object, desired, expected);
 }
 
 #    define ATOM__COMPARE_EXCHANGE(Type, SysType, suffix)                                          \
@@ -305,12 +305,16 @@ I64 _InterlockedExchange64(I64 volatile *Target, I64 Value);
 void *_InterlockedExchangePointer(void *volatile *Target, void *Value);
 
 #    pragma intrinsic(_InterlockedExchange8, _InterlockedExchange16, _InterlockedExchange, \
-                      _InterlockedExchange64, _InterlockedExchangePointer)
+                      _InterlockedExchangePointer)
+
+#    if CF_PTR_SIZE == 8
+#        pragma intrinsic(_InterlockedExchange64)
+#    endif
 
 static inline void *
 atomExchangePtr(AtomPtr *object, void *desired)
 {
-    return _InterlockedExchangePointer((void volatile *)object, desired);
+    return _InterlockedExchangePointer((void *volatile *)object, desired);
 }
 
 #    define ATOM__EXCHANGE(Type, SysType, suffix)                                 \
@@ -336,7 +340,11 @@ short _InterlockedAnd16(short volatile *value, short mask);
 long _InterlockedAnd(long volatile *value, long mask);
 I64 _InterlockedAnd64(I64 volatile *value, I64 mask);
 
-#    pragma intrinsic(_InterlockedAnd8, _InterlockedAnd16, _InterlockedAnd, _InterlockedAnd64)
+#    pragma intrinsic(_InterlockedAnd8, _InterlockedAnd16, _InterlockedAnd)
+
+#    if CF_PTR_SIZE == 8
+#        pragma intrinsic(_InterlockedAnd64)
+#    endif
 
 #    define ATOM__FETCH_AND(Type, SysType, suffix)                                             \
         static inline Type atomFetchAnd##Type(Atom##Type *value, Type operand)                 \
@@ -360,7 +368,11 @@ short _InterlockedOr16(short volatile *value, short mask);
 long _InterlockedOr(long volatile *value, long mask);
 I64 _InterlockedOr64(I64 volatile *value, I64 mask);
 
-#    pragma intrinsic(_InterlockedOr8, _InterlockedOr16, _InterlockedOr, _InterlockedOr64)
+#    pragma intrinsic(_InterlockedOr8, _InterlockedOr16, _InterlockedOr)
+
+#    if CF_PTR_SIZE == 8
+#        pragma intrinsic(_InterlockedOr64)
+#    endif
 
 #    define ATOM__FETCH_OR(Type, SysType, suffix)                                             \
         static inline Type atomFetchOr##Type(Atom##Type *value, Type operand)                 \
@@ -384,8 +396,11 @@ short _InterlockedExchangeAdd16(short volatile *Addend, short Value);
 long _InterlockedExchangeAdd(long volatile *Addend, long Value);
 I64 _InterlockedExchangeAdd64(I64 volatile *Addend, I64 Value);
 
-#    pragma intrinsic(_InterlockedExchangeAdd8, _InterlockedExchangeAdd16, \
-                      _InterlockedExchangeAdd, _InterlockedExchangeAdd64)
+#    pragma intrinsic(_InterlockedExchangeAdd8, _InterlockedExchangeAdd16, _InterlockedExchangeAdd)
+
+#    if CF_PTR_SIZE == 8
+#        pragma intrinsic(_InterlockedExchangeAdd64)
+#    endif
 
 #    define ATOM__FETCH_ADD(Type, SysType, suffix)                                  \
         static inline Type atomFetchAdd##Type(Atom##Type *value, Type operand)      \
@@ -427,7 +442,11 @@ short _InterlockedIncrement16(short volatile *lpAddend);
 long _InterlockedIncrement(long volatile *lpAddend);
 I64 _InterlockedIncrement64(I64 volatile *lpAddend);
 
-#    pragma intrinsic(_InterlockedIncrement16, _InterlockedIncrement, _InterlockedIncrement64)
+#    pragma intrinsic(_InterlockedIncrement16, _InterlockedIncrement)
+
+#    if CF_PTR_SIZE == 8
+#        pragma intrinsic(_InterlockedIncrement64)
+#    endif
 
 static inline I8
 atomFetchIncI8(AtomI8 *object)
@@ -476,7 +495,11 @@ short _InterlockedDecrement16(short volatile *lpAddend);
 long _InterlockedDecrement(long volatile *lpAddend);
 I64 _InterlockedDecrement64(I64 volatile *lpAddend);
 
-#    pragma intrinsic(_InterlockedDecrement16, _InterlockedDecrement, _InterlockedDecrement64)
+#    pragma intrinsic(_InterlockedDecrement16, _InterlockedDecrement)
+
+#    if CF_PTR_SIZE == 8
+#        pragma intrinsic(_InterlockedDecrement64)
+#    endif
 
 static inline I8
 atomFetchDecI8(AtomI8 *object)

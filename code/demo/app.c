@@ -126,7 +126,7 @@ GetRoot(F32 r0, F32 z0, F32 z1, F32 g)
     F32 s1 = (g < 0 ? 0 : RobustLength(n0, z1) - 1);
     F32 s = 0;
 
-    CF_STATIC_ASSERT(MAX_ITER(F32) > 0, "Wrong number of iterations");
+    static_assert(MAX_ITER(F32) > 0, "Wrong number of iterations");
 
     U32 iter = 0;
 

@@ -198,11 +198,6 @@
 //-------------------------------//
 
 /// Compile time assertion
-#if defined(__cplusplus)
-#    define CF_STATIC_ASSERT(expr, msg) static_assert(expr, msg)
-#else
-#    define CF_STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
-#endif
 
 #if CF_COMPILER_CLANG
 #    define CF_CRASH() __builtin_trap()
@@ -680,6 +675,6 @@ typedef union IRect
 
 //------------------------------------------------------------------------------
 
-CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(void *), "Invalid pointer size detected");
-CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(Uptr), "Invalid pointer size detected");
-CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(Iptr), "Invalid pointer size detected");
+static_assert(CF_PTR_SIZE == sizeof(void *), "Invalid pointer size detected");
+static_assert(CF_PTR_SIZE == sizeof(Uptr), "Invalid pointer size detected");
+static_assert(CF_PTR_SIZE == sizeof(Iptr), "Invalid pointer size detected");

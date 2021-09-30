@@ -38,8 +38,8 @@
 
 //=== Type conversions ===//
 
-CF_STATIC_ASSERT(sizeof(Vec2) == sizeof(ImVec2), "Vec2 not compatible with ImVec2");
-CF_STATIC_ASSERT(sizeof(Rgba) == sizeof(ImVec4), "Rgba not compatible with ImVec4");
+static_assert(sizeof(Vec2) == sizeof(ImVec2), "Vec2 not compatible with ImVec2");
+static_assert(sizeof(Rgba) == sizeof(ImVec4), "Rgba not compatible with ImVec4");
 
 //=== Memory management ===//
 
