@@ -20,6 +20,7 @@
 #pragma once
 
 #include "foundation/core.h"
+#include "foundation/error.h"
 
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM <gl/gload.h>
 #include IMGUI_IMPL_OPENGL_LOADER_CUSTOM

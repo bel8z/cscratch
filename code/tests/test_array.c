@@ -3,6 +3,7 @@
 
 #include "foundation/array.h"
 #include "foundation/core.h"
+#include "foundation/error.h"
 
 #include <stdio.h>
 

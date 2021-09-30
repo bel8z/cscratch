@@ -10,6 +10,7 @@
 //------------------------------------------------------------------------------
 
 #include "core.h"
+#include "error.h"
 
 #define strValid(str) (!!(str).buf)
 #define strEnd(str) ((str).buf + (str).len)

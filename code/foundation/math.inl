@@ -4,6 +4,7 @@
 /// Lots of macros and inline functions - definetely NOT an API header
 
 #include "core.h"
+#include "error.h"
 
 #include <immintrin.h>
 #include <math.h>

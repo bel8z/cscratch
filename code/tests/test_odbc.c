@@ -1,3 +1,4 @@
+#include "foundation/error.h"
 #include "foundation/win32.h"
 
 #include <sql.h>

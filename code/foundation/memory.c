@@ -1,5 +1,6 @@
 #include "memory.h"
 #include "core.h"
+#include "error.h"
 #include "util.h"
 
 #include <string.h>
@@ -42,6 +43,16 @@ bool
 memMatch(void const *left, void const *right, Usize count)
 {
     return !memcmp(left, right, count);
+}
+
+U8 const *
+memAlignForward(U8 const *address, Usize alignment)
+{
+    CF_ASSERT((alignment & (alignment - 1)) == 0, "Alignment is not a power of 2");
+    // Same as (address % alignment) but faster as alignment is a power of 2
+    Uptr modulo = (Uptr)address & (alignment - 1);
+    // Move pointer forward if needed
+    return modulo ? address + alignment - modulo : address;
 }
 
 //------------------//

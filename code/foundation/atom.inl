@@ -1,6 +1,7 @@
 #pragma once
 
 #include "atom.h"
+#include "error.h"
 
 //----------------------------------------------------------------------------//
 // Common read-write operations

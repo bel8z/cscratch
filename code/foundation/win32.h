@@ -23,6 +23,7 @@
 #pragma warning(pop)
 
 #include "core.h"
+#include "error.h"
 
 typedef struct Str16
 {
