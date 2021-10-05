@@ -3,6 +3,15 @@
 #include "atom.inl"
 
 //------------------------------------------------------------------------------
+// OS primitives implementation
+
+#ifdef CF_OS_WIN32
+#    include "threading_win32.c"
+#else
+#    error "Threading API not implemented for this platform"
+#endif
+
+//------------------------------------------------------------------------------
 // Semaphore implementation
 
 // NOTE (Matteo): Lightweight semaphore with partial spinning based on
@@ -90,12 +99,3 @@ cfSemaSignal(CfSemaphore *sema, Usize count)
     semaHandleSignal(sema->handle, count);
 #endif
 }
-
-//------------------------------------------------------------------------------
-// OS primitives implementation
-
-#ifdef CF_OS_WIN32
-#    include "threading_win32.c"
-#else
-#    error "Threading API not implemented for this platform"
-#endif
