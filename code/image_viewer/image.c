@@ -105,21 +105,21 @@ stbiFree(void *memory)
 static I32
 stbiRead(void *user, Char8 *data, I32 size)
 {
-    FileStream *file = user;
-    return (I32)fileStreamRead(file, (U8 *)data, (Usize)size);
+    File *file = user;
+    return (I32)fileRead(file, (U8 *)data, (Usize)size);
 }
 
 static void
 stbiSkip(void *user, I32 n)
 {
-    FileStream *file = user;
-    fileStreamSeek(file, FileSeekPos_Current, (Usize)n);
+    File *file = user;
+    fileSeek(file, FileSeekPos_Current, (Usize)n);
 }
 
 static I32
 stbiEof(void *user)
 {
-    FileStream *file = user;
+    File *file = user;
     return file->flags & FileStreamFlags_Eof;
 }
 
@@ -139,14 +139,14 @@ imageLoadFromFile(Image *image, Cstr filename)
     CF_ASSERT_NOT_NULL(filename);
     CF_ASSERT(!image->bytes, "overwriting valid image");
 
-    FileStream file = fileStreamOpen(strFromCstr(filename), FileOpenMode_Read);
+    File file = fileOpen(strFromCstr(filename), FileOpenMode_Read);
     stbi_io_callbacks cb = {.eof = stbiEof, .read = stbiRead, .skip = stbiSkip};
 
     image->width = 0;
     image->height = 0;
     image->bytes = stbi_load_from_callbacks(&cb, &file, &image->width, &image->height, NULL, 4);
 
-    fileStreamClose(&file);
+    fileClose(&file);
 
     return (image->bytes != NULL);
 }

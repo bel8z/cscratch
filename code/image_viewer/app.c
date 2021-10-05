@@ -416,11 +416,11 @@ appLoadFromFile(AppState *state, Str full_name)
 #    pragma warning(push)
 #    pragma warning(disable : 4221) // cannot be initialized using address of automatic variable
 #endif
-        DirIterator it = {0};
-        if (dirIterStart(&it, strFromCstr(root_name)))
+        FsIterator it = {0};
+        if (fsIteratorStart(&it, strFromCstr(root_name)))
         {
             Str filename = {0};
-            while (dirIterNext(&it, &filename, NULL))
+            while (fsIteratorNext(&it, &filename, NULL))
             {
                 if (appIsFileSupported(filename))
                 {
@@ -428,7 +428,7 @@ appLoadFromFile(AppState *state, Str full_name)
                 }
             }
 
-            dirIterEnd(&it);
+            fsIteratorEnd(&it);
         }
 #if CF_COMPILER_MSVC
 #    pragma warning(pop)

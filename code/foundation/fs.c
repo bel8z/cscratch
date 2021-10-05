@@ -10,16 +10,16 @@ fileReadContent(Str filename, MemAllocator alloc)
 {
     FileContent result = {0};
 
-    FileStream file = fileStreamOpen(filename, FileOpenMode_Read);
+    File file = fileOpen(filename, FileOpenMode_Read);
 
     if (!(file.flags & FileStreamFlags_Error))
     {
-        Usize file_size = fileStreamSize(&file);
+        Usize file_size = fileSize(&file);
         Usize read_size = file_size;
 
         result.data = memAlloc(alloc, read_size);
 
-        if (result.data && fileStreamRead(&file, result.data, read_size) == read_size)
+        if (result.data && fileRead(&file, result.data, read_size) == read_size)
         {
             result.size = read_size;
         }
@@ -29,7 +29,7 @@ fileReadContent(Str filename, MemAllocator alloc)
             result.data = NULL;
         }
 
-        fileStreamClose(&file);
+        fileClose(&file);
     }
 
     return result;
@@ -43,12 +43,19 @@ fileReadContent(Str filename, MemAllocator alloc)
 
 #    include "win32.h"
 
+// TODO (Matteo): Provide async file IO? Win32 offers IO Completion Ports which seem very good for
+// the purpose
+
 typedef struct Win32DirIterator
 {
     HANDLE finder;
     WIN32_FIND_DATAW data;
-    Char8 buffer[sizeof(DirIterator) - sizeof(HANDLE) - sizeof(WIN32_FIND_DATAW)];
+    Char8 buffer[sizeof(FsIterator) - sizeof(HANDLE) - sizeof(WIN32_FIND_DATAW)];
 } Win32DirIterator;
+
+// NOTE (Matteo): Ensure that there is room for a reasonably sized buffer
+static_assert(sizeof(((Win32DirIterator *)0)->buffer) >= 512,
+              "FsIterator buffer size is too small");
 
 static void
 win32ReadProperties(WIN32_FIND_DATAW *in, FileProperties *out)
@@ -78,7 +85,7 @@ win32FileOffset(Usize offset)
 }
 
 bool
-dirIterStart(DirIterator *self, Str dir_path)
+fsIteratorStart(FsIterator *self, Str dir_path)
 {
     CF_ASSERT_NOT_NULL(self);
 
@@ -114,7 +121,7 @@ dirIterStart(DirIterator *self, Str dir_path)
 }
 
 bool
-dirIterNext(DirIterator *self, Str *filename, FileProperties *props)
+fsIteratorNext(FsIterator *self, Str *filename, FileProperties *props)
 {
     CF_ASSERT_NOT_NULL(self);
 
@@ -140,7 +147,7 @@ dirIterNext(DirIterator *self, Str *filename, FileProperties *props)
 }
 
 void
-dirIterEnd(DirIterator *self)
+fsIteratorEnd(FsIterator *self)
 {
     CF_ASSERT_NOT_NULL(self);
 
@@ -182,10 +189,10 @@ fileProperties(Str filename)
     return props;
 }
 
-FileStream
-fileStreamOpen(Str filename, FileOpenMode mode)
+File
+fileOpen(Str filename, FileOpenMode mode)
 {
-    FileStream result = {0};
+    File result = {0};
 
     if (mode == 0)
     {
@@ -233,13 +240,13 @@ fileStreamOpen(Str filename, FileOpenMode mode)
 }
 
 void
-fileStreamClose(FileStream *file)
+fileClose(File *file)
 {
     CloseHandle(file->os_handle);
 }
 
 Usize
-fileStreamRead(FileStream *file, U8 *buffer, Usize buffer_size)
+fileRead(File *file, U8 *buffer, Usize buffer_size)
 {
     if (file->flags & FileStreamFlags_Error) return USIZE_MAX;
 
@@ -260,7 +267,7 @@ fileStreamRead(FileStream *file, U8 *buffer, Usize buffer_size)
 }
 
 Usize
-fileStreamReadAt(FileStream *file, U8 *buffer, Usize buffer_size, Usize offset)
+fileReadAt(File *file, U8 *buffer, Usize buffer_size, Usize offset)
 {
     if (file->flags & FileStreamFlags_Error) return USIZE_MAX;
 
@@ -278,7 +285,7 @@ fileStreamReadAt(FileStream *file, U8 *buffer, Usize buffer_size, Usize offset)
 }
 
 bool
-fileStreamWrite(FileStream *file, U8 *data, Usize data_size)
+fileWrite(File *file, U8 *data, Usize data_size)
 {
     if (file->flags & FileStreamFlags_Error) return false;
 
@@ -297,7 +304,7 @@ fileStreamWrite(FileStream *file, U8 *data, Usize data_size)
 }
 
 bool
-fileStreamWriteAt(FileStream *file, U8 *data, Usize data_size, Usize offset)
+fileWriteAt(File *file, U8 *data, Usize data_size, Usize offset)
 {
     if (file->flags & FileStreamFlags_Error) return false;
 
@@ -317,7 +324,7 @@ fileStreamWriteAt(FileStream *file, U8 *data, Usize data_size, Usize offset)
 }
 
 Usize
-fileStreamSeek(FileStream *file, FileSeekPos pos, Usize offset)
+fileSeek(File *file, FileSeekPos pos, Usize offset)
 {
     LARGE_INTEGER temp = {.QuadPart = (LONGLONG)offset};
     LARGE_INTEGER dest = {0};
@@ -332,13 +339,13 @@ fileStreamSeek(FileStream *file, FileSeekPos pos, Usize offset)
 }
 
 Usize
-fileStreamTell(FileStream *file)
+fileTell(File *file)
 {
-    return fileStreamSeek(file, FileSeekPos_Current, 0);
+    return fileSeek(file, FileSeekPos_Current, 0);
 }
 
 Usize
-fileStreamSize(FileStream *file)
+fileSize(File *file)
 {
     if (file->flags & FileStreamFlags_Error) return USIZE_MAX;
 

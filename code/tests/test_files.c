@@ -57,17 +57,17 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     printf("Browsing dir:\n");
 
     // Platform plat = cfPlatformCreate();
-    DirIterator iter = {0};
+    FsIterator iter = {0};
 
-    if (dirIterStart(&iter, dirname))
+    if (fsIteratorStart(&iter, dirname))
     {
         Str f = {0};
-        while (dirIterNext(&iter, &f, NULL))
+        while (fsIteratorNext(&iter, &f, NULL))
         {
             pathPrint(f);
         }
 
-        dirIterEnd(&iter);
+        fsIteratorEnd(&iter);
     }
 
     // U32 sz = 0;

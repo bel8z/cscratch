@@ -5,10 +5,10 @@
 // TODO (Matteo): Provide async file IO?
 
 /// Iterator over directory content
-typedef struct DirIterator
+typedef struct FsIterator
 {
     U8 opaque[1280];
-} DirIterator;
+} FsIterator;
 
 typedef U32 FileAttributes;
 enum FileAttributes_
@@ -34,18 +34,18 @@ enum FileSeekPos_
     FileSeekPos_End,
 };
 
-typedef U32 FileStreamFlags;
+typedef U32 FileStateFlags;
 enum FileStreamFlags_
 {
     FileStreamFlags_Error,
     FileStreamFlags_Eof,
 };
 
-typedef struct FileStream
+typedef struct File
 {
     void *os_handle;
-    FileStreamFlags flags;
-} FileStream;
+    FileStateFlags flags;
+} File;
 
 typedef struct FileContent
 {
@@ -64,34 +64,34 @@ typedef struct FileProperties
 
 /// Create an iterator on the given directory contents
 /// Returns false in case of an error
-bool dirIterStart(DirIterator *self, Str dir_path);
+bool fsIteratorStart(FsIterator *self, Str dir_path);
 /// Advance the iterator, assigning the entry name to the given string view.
 /// Returns false in case the iteration is terminated (in such a case, the string view is not
 /// valid).
 // NOTE that the string view is valid until the next call to this function (or the iterator is
 // destroyed) so copy its content explicitly if you need to store it.
 /// File properties are provided optionally (if the props pointer is not null).
-bool dirIterNext(DirIterator *self, Str *filename, FileProperties *props);
+bool fsIteratorNext(FsIterator *self, Str *filename, FileProperties *props);
 /// Shutdown the iteration
-void dirIterEnd(DirIterator *self);
+void fsIteratorEnd(FsIterator *self);
 
 // *** File operations ***
 
 bool fileCopy(Str source, Str dest, bool overwrite);
 FileProperties fileProperties(Str filename);
 
-FileStream fileStreamOpen(Str filename, FileOpenMode mode);
-void fileStreamClose(FileStream *file);
+File fileOpen(Str filename, FileOpenMode mode);
+void fileClose(File *file);
 
-Usize fileStreamSize(FileStream *file);
-Usize fileStreamSeek(FileStream *file, FileSeekPos pos, Usize offset);
-Usize fileStreamTell(FileStream *file);
+Usize fileSize(File *file);
+Usize fileSeek(File *file, FileSeekPos pos, Usize offset);
+Usize fileTell(File *file);
 
-Usize fileStreamRead(FileStream *file, U8 *buffer, Usize buffer_size);
-Usize fileStreamReadAt(FileStream *file, U8 *buffer, Usize buffer_size, Usize offset);
+Usize fileRead(File *file, U8 *buffer, Usize buffer_size);
+Usize fileReadAt(File *file, U8 *buffer, Usize buffer_size, Usize offset);
 
-bool fileStreamWrite(FileStream *file, U8 *data, Usize data_size);
-bool fileStreamWriteAt(FileStream *file, U8 *data, Usize data_size, Usize offset);
+bool fileWrite(File *file, U8 *data, Usize data_size);
+bool fileWriteAt(File *file, U8 *data, Usize data_size, Usize offset);
 
 FileContent fileReadContent(Str filename, MemAllocator alloc);
 
