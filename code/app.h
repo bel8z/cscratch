@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 
 typedef struct Platform Platform;
+typedef struct CommandLine CommandLine;
 typedef struct AppState AppState;
 typedef struct GuiFontOptions GuiFontOptions;
 
@@ -31,7 +32,7 @@ typedef struct AppIo
 // Application function signatures
 
 #define APP_PROC(name) void name(AppState *app)
-#define APP_CREATE_PROC(name) AppState *name(Platform *plat, Cstr argv[], I32 argc)
+#define APP_CREATE_PROC(name) AppState *name(Platform *plat, CommandLine *cmd_line)
 #define APP_UPDATE_PROC(name) void name(AppState *state, AppIo *io)
 
 typedef APP_PROC((*AppProc));

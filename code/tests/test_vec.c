@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 typedef struct Platform Platform;
+typedef struct CommandLine CommandLine;
 
 void
 print_vec(Vec2 v)
@@ -11,9 +12,10 @@ print_vec(Vec2 v)
 }
 
 I32
-platformMain(Platform *platform, Cstr argv[], I32 argc)
+platformMain(Platform *platform, CommandLine *cmd_line)
 {
     CF_UNUSED(platform);
+    CF_UNUSED(cmd_line);
 
     Vec2 a = {{1, 1}};
     Vec2 b = {{-3, -5}};

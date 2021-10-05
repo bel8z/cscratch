@@ -232,10 +232,9 @@ typedef union F64Bits
 } F64Bits;
 
 I32
-platformMain(Platform *platform, Cstr argv[], I32 argc)
+platformMain(Platform *platform, CommandLine *cmd_line)
 {
-    CF_UNUSED(argv);
-    CF_UNUSED(argc);
+    CF_UNUSED(cmd_line);
 
     g_heap = platform->heap;
 

@@ -7,11 +7,11 @@
 // Platform interface
 //------------------------------------------------------------------------------
 
-// Foundation interfaces
+//=== Foundation interfaces ===//
 
 typedef struct CfVirtualMemory CfVirtualMemory;
 
-// Dynamic loading interface
+//=== Dynamic library loading ===//
 
 typedef struct Library Library;
 
@@ -22,7 +22,7 @@ typedef struct LibraryApi
     void *(*loadSymbol)(Library *restrict lib, Cstr restrict name);
 } LibraryApi;
 
-// Common program paths
+//=== Common application paths ===//
 
 enum
 {
@@ -36,12 +36,21 @@ typedef struct Paths
     Str base, data, exe_name, lib_name;
 } Paths;
 
-// Optional platform interfaces for graphical applications
+//=== Command line arguments ===//
+
+typedef struct CommandLine
+{
+    Usize len;
+    Cstr *arg;
+} CommandLine;
+
+//=== Optional platform interfaces (gfx apps) ===//
 
 typedef struct GlApi GlApi;
 typedef struct Gui Gui;
 
-/// Main platform interface
+//=== Main platform interface ===//
+
 typedef struct Platform
 {
     /// Virtual memory services

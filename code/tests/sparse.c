@@ -46,7 +46,7 @@ sparse_remove(Sparse *sparse, U32 index)
 }
 
 I32
-platformMain(Platform *platform, Cstr argv[], I32 argc)
+platformMain(Platform *platform, CommandLine cmd_line)
 {
     Sparse sparse = {0};
 

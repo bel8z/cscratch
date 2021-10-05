@@ -6,6 +6,7 @@
 #pragma comment(lib, "odbc32.lib")
 
 typedef struct Platform Platform;
+typedef struct CommandLine CommandLine;
 
 static bool
 sqlHandleResult(SQLRETURN code, I16 handle_type, SQLHANDLE handle)
@@ -50,11 +51,10 @@ sqlEnvDestroy(SQLHENV env)
 }
 
 I32
-platformMain(Platform *platform, Cstr argv[], I32 argc)
+platformMain(Platform *platform, CommandLine *cmd_line)
 {
     CF_UNUSED(platform);
-    CF_UNUSED(argv);
-    CF_UNUSED(argc);
+    CF_UNUSED(cmd_line);
 
     SQLRETURN code = SQL_SUCCESS;
 

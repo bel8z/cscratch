@@ -50,7 +50,7 @@ arrayPrint(I32 const *array, Usize count)
 }
 
 I32
-platformMain(Platform *platform, Cstr argv[], I32 argc)
+platformMain(Platform *platform, CommandLine *cmd_line)
 {
     LARGE_INTEGER freq, start, end;
     Isize elapsed_us;

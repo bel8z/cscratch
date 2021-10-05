@@ -7,10 +7,9 @@
 #include <stdio.h>
 
 I32
-platformMain(Platform *platform, Cstr argv[], I32 argc)
+platformMain(Platform *platform, CommandLine *cmd_line)
 {
-    CF_UNUSED(argc);
-    CF_UNUSED(argv);
+    CF_UNUSED(cmd_line);
 
     MemArena arena;
     Usize const storage_size = 1024 * 1024 * 1024;

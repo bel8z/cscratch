@@ -224,7 +224,7 @@ platformUpdateMainDpi(ImFontAtlas *fonts, F32 *curr_dpi, Str data_path)
 #endif
 
 I32
-platformMain(Platform *platform, Cstr argv[], I32 argc)
+platformMain(Platform *platform, CommandLine *cmd_line)
 {
     Paths *paths = platform->paths;
 
@@ -273,7 +273,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     // Setup application
     AppApi app_api = {0};
     appApiLoad(&app_api, platform->paths, platform->library);
-    AppState *app_state = app_api.create(platform, argv, argc);
+    AppState *app_state = app_api.create(platform, cmd_line);
 
     // Setup DPI handling
     F32 win_x_scale, win_y_scale;
@@ -420,8 +420,7 @@ static APP_PROC(appProcStub)
 static APP_CREATE_PROC(appCreateStub)
 {
     CF_UNUSED(plat);
-    CF_UNUSED(argc);
-    CF_UNUSED(argv);
+    CF_UNUSED(cmd_line);
     return NULL;
 }
 

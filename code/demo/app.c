@@ -42,8 +42,7 @@ static Clock *g_clock = NULL;
 
 APP_API APP_CREATE_PROC(appCreate)
 {
-    CF_UNUSED(argv);
-    CF_UNUSED(argc);
+    CF_UNUSED(cmd_line);
 
     // NOTE (Matteo): Memory comes cleared to 0
     AppState *app = memAlloc(plat->heap, sizeof(*app));

@@ -97,7 +97,7 @@ static CF_THREAD_PROC(consumerProc)
 #pragma warning(disable : 4221)
 
 I32
-platformMain(Platform *platform, Cstr argv[], I32 argc)
+platformMain(Platform *platform, CommandLine *cmd_line)
 {
     Queue queue = {0};
     Data data = {.queue = &queue};

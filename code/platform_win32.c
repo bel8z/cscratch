@@ -16,7 +16,7 @@
 
 //---- Cross-platform entry point ----//
 
-I32 platformMain(Platform *platform, Cstr argv[], I32 argc);
+I32 platformMain(Platform *platform, CommandLine *cmd_line);
 
 //---- Virtual memory ----//
 
@@ -68,31 +68,39 @@ static Platform g_platform = {
 // Utilities
 //------------------------------------------------------------------------------
 
-static Char8 **
-win32GetCommandLineArgs(MemAllocator alloc, I32 *out_argc, Usize *out_size)
+static Usize
+win32GetCommandLineArgs(MemAllocator alloc, CommandLine *out)
 {
-    Char16 *cmd_line = GetCommandLineW();
-    Char16 **argv_utf16 = CommandLineToArgvW(cmd_line, out_argc);
+    Cstr16 cmd_line = GetCommandLineW();
 
-    Char8 **argv = NULL;
+    I32 num_args = 0;
+    Cstr16 *args16 = (Cstr16 *)CommandLineToArgvW(cmd_line, &num_args);
 
-    *out_size = (Usize)(*out_argc) * sizeof(*argv) + CF_MB(1);
-
-    argv = memAlloc(alloc, *out_size);
-    Char8 *buf = (Char8 *)(argv + *out_argc);
-
-    for (I32 i = 0; i < *out_argc; ++i)
+    if (num_args < 0)
     {
-        argv[i] = buf;
-        Str16 arg16 = str16FromCstr(argv_utf16[i]);
+        win32PrintLastError();
+        return 0;
+    }
+
+    out->len = (Usize)(num_args);
+
+    Usize out_size = (Usize)(out->len) * sizeof(*out->arg) + CF_MB(1);
+
+    out->arg = memAlloc(alloc, out_size);
+    Cstr buf = (Char8 *)(out->arg + out->len);
+
+    for (Usize i = 0; i < out->len; ++i)
+    {
+        out->arg[i] = buf;
+        Str16 arg16 = str16FromCstr(args16[i]);
         Usize size = win32Utf16To8(arg16, NULL, 0);
-        win32Utf16To8(arg16, argv[i], size);
+        win32Utf16To8(arg16, (Char8 *)out->arg[i], size);
         buf += size + 1; // Ensure space for the null-terminator
     }
 
-    LocalFree(argv_utf16);
+    LocalFree(args16);
 
-    return argv;
+    return out_size;
 }
 
 //------------------------------------------------------------------------------
@@ -171,13 +179,12 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     // TODO (Matteo): Improve command line handling
 
-    Usize cmd_line_size;
-    I32 argc;
-    Char8 **argv = win32GetCommandLineArgs(g_platform.heap, &argc, &cmd_line_size);
+    CommandLine cmd_line = {0};
+    Usize cmd_line_size = win32GetCommandLineArgs(g_platform.heap, &cmd_line);
 
-    I32 result = platformMain(&g_platform, (Cstr *)argv, argc);
+    I32 result = platformMain(&g_platform, &cmd_line);
 
-    memFree(g_platform.heap, argv, cmd_line_size);
+    memFree(g_platform.heap, cmd_line.arg, cmd_line_size);
 
     win32PlatformShutdown();
 
@@ -188,7 +195,7 @@ I32
 main(I32 argc, Cstr argv[])
 {
     win32PlatformInit();
-    I32 result = platformMain(&g_platform, argv, argc);
+    I32 result = platformMain(&g_platform, &(CommandLine){.arg = argv, .len = (Usize)argc});
     win32PlatformShutdown();
     return result;
 }

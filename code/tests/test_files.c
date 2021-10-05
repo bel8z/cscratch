@@ -1,11 +1,12 @@
-#include "platform.h"
-
 #include "foundation/core.h"
 #include "foundation/fs.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"
 
 #include <stdio.h>
+
+typedef struct Platform Platform;
+typedef struct CommandLine CommandLine;
 
 void
 pathPrint(Str p)
@@ -14,11 +15,10 @@ pathPrint(Str p)
 }
 
 I32
-platformMain(Platform *platform, Cstr argv[], I32 argc)
+platformMain(Platform *platform, CommandLine *cmd_line)
 {
     CF_UNUSED(platform);
-    CF_UNUSED(argv);
-    CF_UNUSED(argc);
+    CF_UNUSED(cmd_line);
 
     printf("Splitting paths:\n");
 

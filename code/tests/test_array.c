@@ -27,10 +27,9 @@ arrayPrint(MyArray *a)
 }
 
 I32
-platformMain(Platform *platform, Cstr argv[], I32 argc)
+platformMain(Platform *platform, CommandLine *cmd_line)
 {
-    (void)argc;
-    (void)argv;
+    CF_UNUSED(cmd_line);
 
     MemAllocator std_alloc = platform->heap;
 

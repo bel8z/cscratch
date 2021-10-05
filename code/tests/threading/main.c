@@ -1,25 +1,25 @@
+#include "platform.h"
+
 #include "foundation/core.h"
 
 #include <stdio.h>
-
-typedef struct Platform Platform;
 
 bool testBenaphore(Platform *platform);
 bool testAutoResetEvent(Platform *platform);
 bool testMpmcQueue(Platform *platform);
 
 I32
-platformMain(Platform *platform, Cstr argv[], I32 argc)
+platformMain(Platform *platform, CommandLine *cmd_line)
 {
 
-    if (argc != 2)
+    if (cmd_line->len != 2)
     {
         return -1;
     }
 
     I32 code = -1;
 
-    if (sscanf_s(argv[1], "%d", &code) != 1)
+    if (sscanf_s(cmd_line->arg[1], "%d", &code) != 1)
     {
         return -2;
     }

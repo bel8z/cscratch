@@ -25,6 +25,8 @@
 #include "core.h"
 #include "error.h"
 
+typedef Char16 const *Cstr16;
+
 typedef struct Str16
 {
     Char16 const *buf; // Pointer to string data (not a C string)
@@ -34,7 +36,7 @@ typedef struct Str16
 typedef CfArray(Char16) StrBuf16;
 
 static inline Str16
-str16FromCstr(Char16 *cstr)
+str16FromCstr(Cstr16 cstr)
 {
     return (Str16){.buf = (cstr), .len = wcslen(cstr)};
 }

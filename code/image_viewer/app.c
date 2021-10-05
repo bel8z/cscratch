@@ -743,8 +743,7 @@ appMainWindow(AppState *state)
 //     Application API implementation    //
 //---------------------------------------//
 
-APP_API AppState *
-appCreate(Platform *plat, Cstr argv[], I32 argc)
+APP_API APP_CREATE_PROC(appCreate)
 {
     // NOTE (Matteo): Memory comes cleared to 0
     Usize const storage_size = CF_GB(1);
@@ -784,13 +783,12 @@ appCreate(Platform *plat, Cstr argv[], I32 argc)
 
     imageViewInit(&app->iv);
 
-    if (argc > 1) appLoadFromFile(app, strFromCstr(argv[1]));
+    if (cmd_line->len > 1) appLoadFromFile(app, strFromCstr(cmd_line->arg[1]));
 
     return app;
 }
 
-APP_API void
-appDestroy(AppState *app)
+APP_API APP_PROC(appDestroy)
 {
     appUnload(app);
     taskShutdown(app->queue);
