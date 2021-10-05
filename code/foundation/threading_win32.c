@@ -420,86 +420,22 @@ cfCvSignalAll(CfConditionVariable *cv)
 //------------------------------------------------------------------------------
 // Semaphore implementation
 
-// NOTE (Matteo): Lightweight semaphore with partial spinning based on
-// https://preshing.com/20150316/semaphores-are-surprisingly-versatile/
-
-// TODO (Matteo): Tweak spin count
-#define SEMA_SPIN_COUNT 10000
-
-CF_API void
-cfSemaInit(CfSemaphore *sema, Usize init_count)
+static CfSemaphoreHandle
+semaHandleCreate(Usize init_count)
 {
-#if SEMA_SPIN_COUNT != 0
-    sema->handle = CreateSemaphore(NULL, 0, MAXLONG, NULL);
-    atomWrite(&sema->count, init_count);
-#else
-    sema->handle = CreateSemaphore(NULL, init_count, MAXLONG, NULL);
-#endif
+    return CreateSemaphore(NULL, init_count, MAXLONG, NULL);
 }
 
-CF_API bool
-cfSemaTryWait(CfSemaphore *sema)
+static void
+semaHandleWait(CfSemaphoreHandle handle)
 {
-#if SEMA_SPIN_COUNT != 0
-    Isize prev_count = atomRead(&sema->count);
-    if (prev_count > 0 &&
-        prev_count == atomCompareExchange(&sema->count, prev_count, prev_count - 1))
-    {
-        atomAcquireFence();
-        return true;
-    }
-#endif
-    return false;
+    WaitForSingleObject(handle, INFINITE);
 }
 
-CF_API void
-cfSemaWait(CfSemaphore *sema)
+static void
+semaHandleSignal(CfSemaphoreHandle handle, Usize count)
 {
-#if SEMA_SPIN_COUNT != 0
-    Isize prev_count;
-    Isize spin_count = SEMA_SPIN_COUNT;
-
-    while (spin_count--)
-    {
-        prev_count = atomRead(&sema->count);
-        if (prev_count > 0 &&
-            prev_count == atomCompareExchange(&sema->count, prev_count, prev_count - 1))
-        {
-            atomAcquireFence();
-            return;
-        }
-        // Prevent compiler from collapsing loop
-        atomAcquireCompFence();
-    }
-
-    prev_count = atomFetchDec(&sema->count);
-    atomAcquireFence();
-    if (prev_count <= 0) WaitForSingleObject(sema->handle, INFINITE);
-#else
-    WaitForSingleObject(sema->handle, INFINITE);
-#endif
-}
-
-CF_API void
-cfSemaSignalOne(CfSemaphore *sema)
-{
-    cfSemaSignal(sema, 1);
-}
-
-CF_API void
-cfSemaSignal(CfSemaphore *sema, Usize count)
-{
-#if SEMA_SPIN_COUNT != 0
-    atomReleaseFence();
-    Isize prev_count = atomFetchAdd(&sema->count, count);
-    Isize signal_count = -prev_count < count ? -prev_count : count;
-    if (signal_count > 0)
-    {
-        ReleaseSemaphore(sema->handle, count, NULL);
-    }
-#else
-    ReleaseSemaphore(sema->handle, count, NULL);
-#endif
+    ReleaseSemaphore(handle, count, NULL);
 }
 
 //------------------------------------------------------------------------------

@@ -138,9 +138,11 @@ CF_API void cfCvSignalAll(CfConditionVariable *cv);
 //   Semaphores   //
 //----------------//
 
+typedef void *CfSemaphoreHandle;
+
 typedef struct CfSemaphore
 {
-    void *handle;
+    CfSemaphoreHandle handle;
     AtomIsize count;
 } CfSemaphore;
 
