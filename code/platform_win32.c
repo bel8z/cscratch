@@ -32,19 +32,6 @@ static VM_MIRROR_FREE(win32MirrorFree);
 
 static MEM_ALLOCATOR_FUNC(win32Alloc);
 
-//---- Timing ----//
-
-static struct
-{
-    U64 start_ticks;
-    U64 freq;
-} g_clock;
-
-static Duration win32Clock(void);
-static SystemTime win32SystemTime(void);
-static CalendarTime win32UtcTime(SystemTime sys_time);
-static CalendarTime win32LocalTime(SystemTime sys_time);
-
 //---- Dynamic loading ----//
 
 static Library *win32libLoad(Str filename);
@@ -67,13 +54,6 @@ static Platform g_platform = {
     .heap =
         {
             .func = win32Alloc,
-        },
-    .time =
-        &(CfTimeApi){
-            .clock = win32Clock,
-            .systemTime = win32SystemTime,
-            .utcTime = win32UtcTime,
-            .localTime = win32LocalTime,
         },
     .library =
         &(LibraryApi){
@@ -164,16 +144,6 @@ win32PlatformInit(void)
     g_platform.vm->page_size = sysinfo.dwPageSize;
     g_platform.vm->address_granularity = sysinfo.dwAllocationGranularity;
     g_platform.heap.state = &g_platform;
-
-    // ** Init timing **
-
-    LARGE_INTEGER now, freq;
-    QueryPerformanceFrequency(&freq);
-    QueryPerformanceCounter(&now);
-    CF_ASSERT(freq.QuadPart > 0, "System monotonic clock is not available");
-    CF_ASSERT(now.QuadPart > 0, "System monotonic clock is not available");
-    g_clock.start_ticks = (U64)now.QuadPart;
-    g_clock.freq = (U64)freq.QuadPart;
 
     // ** Init paths **
 
@@ -457,85 +427,6 @@ MEM_ALLOCATOR_FUNC(win32Alloc)
 }
 
 #endif
-
-//------------//
-//   Timing   //
-//------------//
-
-Duration
-win32Clock(void)
-{
-    LARGE_INTEGER now;
-    QueryPerformanceCounter(&now);
-
-    CF_ASSERT(now.QuadPart >= 0, "QueryPerformanceCounter returned negative ticks");
-
-    U64 curr_ticks = (U64)(now.QuadPart);
-    CF_ASSERT(curr_ticks > g_clock.start_ticks, "QueryPerformanceCounter wrapped around");
-
-    U64 nanos = mMulDiv((curr_ticks - g_clock.start_ticks), CF_NS_PER_SEC, g_clock.freq);
-
-    return timeDurationNs(nanos);
-}
-
-SystemTime
-win32SystemTime(void)
-{
-    FILETIME time;
-    GetSystemTimePreciseAsFileTime(&time);
-
-    ULARGE_INTEGER temp = {.HighPart = time.dwHighDateTime, //
-                           .LowPart = time.dwLowDateTime};
-    return (U64)temp.QuadPart;
-}
-
-static CalendarTime
-win32CalendarTime(SYSTEMTIME const *out)
-{
-    return (CalendarTime){.year = out->wYear,
-                          .month = (U8)out->wMonth,
-                          .day = (U8)out->wDay,
-                          .week_day = (U8)out->wDayOfWeek,
-                          .hour = (U8)out->wHour,
-                          .minute = (U8)out->wMinute,
-                          .second = (U8)out->wSecond,
-                          .milliseconds = out->wMilliseconds};
-}
-
-CalendarTime
-win32UtcTime(SystemTime sys_time)
-{
-    ULARGE_INTEGER temp = {.QuadPart = sys_time};
-    FILETIME in = {.dwLowDateTime = temp.LowPart, //
-                   .dwHighDateTime = temp.HighPart};
-    SYSTEMTIME out;
-
-    if (!FileTimeToSystemTime(&in, &out))
-    {
-        win32PrintLastError();
-    }
-
-    return win32CalendarTime(&out);
-}
-
-CalendarTime
-win32LocalTime(SystemTime sys_time)
-{
-    // File time conversions according to MS docs:
-    // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-filetimetolocalfiletime
-
-    ULARGE_INTEGER temp = {.QuadPart = sys_time};
-    FILETIME in = {.dwLowDateTime = temp.LowPart, //
-                   .dwHighDateTime = temp.HighPart};
-    SYSTEMTIME utc, local;
-
-    if (!FileTimeToSystemTime(&in, &utc) || !SystemTimeToTzSpecificLocalTime(NULL, &utc, &local))
-    {
-        win32PrintLastError();
-    }
-
-    return win32CalendarTime(&local);
-}
 
 //-----------------------//
 //   Dynamic libraries   //

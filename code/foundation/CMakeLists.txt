@@ -9,6 +9,7 @@ set(LIB_SOURCES
     "paths.c"
     "strings.c"
     "task.c"
+    "time.c"
     "threading.c")
 
 set_source_files_properties(${LIB_SOURCES} PROPERTIES LANGUAGE C)

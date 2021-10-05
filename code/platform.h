@@ -1,6 +1,7 @@
 #pragma once
 
 #include "foundation/core.h"
+#include "foundation/time.h"
 
 //------------------------------------------------------------------------------
 // Platform interface
@@ -9,8 +10,6 @@
 // Foundation interfaces
 
 typedef struct CfVirtualMemory CfVirtualMemory;
-typedef struct CfFileSystem CfFileSystem;
-typedef struct CfTimeApi CfTimeApi;
 
 // Dynamic loading interface
 
@@ -63,8 +62,8 @@ typedef struct Platform
     // TODO (Matteo): Should be a pointer?
     Usize heap_size;
 
-    /// System time services
-    CfTimeApi *time;
+    /// Tracks elapsed time since the start of the application (useful for performance measurements)
+    Clock clock;
 
     /// Dynamic library loading
     LibraryApi *library;

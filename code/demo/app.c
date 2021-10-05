@@ -34,7 +34,7 @@ struct AppState
 };
 
 static CfLog *g_log = NULL;
-static CfTimeApi *g_time = NULL;
+static Clock *g_clock = NULL;
 
 #define appLog(...) (g_log ? (cfLogAppendF(g_log, __VA_ARGS__), 1) : 0)
 
@@ -81,7 +81,7 @@ APP_API APP_PROC(appLoad)
 
     // Init globals
     g_log = &app->log;
-    g_time = app->plat->time;
+    g_clock = &app->plat->clock;
 
     // Init Dear Imgui
     guiInit(app->plat->gui);
@@ -426,7 +426,7 @@ fxWindow(void)
     mouse_data.z = guiGetMouseDownDuration(GuiMouseButton_Left);
     mouse_data.w = guiGetMouseDownDuration(GuiMouseButton_Right);
 
-    Duration now = g_time->clock();
+    Duration now = clockElapsed(g_clock);
     fxDraw(&canvas, mouse_data, timeGetSeconds(now));
 
     guiCanvasEnd(&canvas);
@@ -608,9 +608,9 @@ APP_API APP_UPDATE_PROC(appUpdate)
     {
         static F32 f = 0;
 
-        CfTimeApi *time = plat->time;
-        Duration t = time->clock();
-        CalendarTime now = time->localTime(time->systemTime());
+        Clock *clock = &plat->clock;
+        Duration t = clockElapsed(clock);
+        CalendarTime now = localTime(systemTime());
 
         guiCheckbox("Demo Window", &state->windows.demo);
         guiSlider("float", &f, 0.0f, 1.0f);

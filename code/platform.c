@@ -248,6 +248,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
 
     // Setup platform layer
     CF_ASSERT_NOT_NULL(gl);
+    clockStart(&platform->clock);
     platform->gl = gl;
 
 // NOTE (Matteo): Custom IMGUI ini file
