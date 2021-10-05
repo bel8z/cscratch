@@ -2,8 +2,6 @@
 
 #include "foundation/core.h"
 
-typedef struct CfFileSystem CfFileSystem;
-
 // TODO (Matteo):
 // * Keep image bits around (for querying/manipulation)?
 // * Implement image view navigation (scale/offset)
@@ -21,7 +19,7 @@ typedef struct Image
     I32 height;
 } Image;
 
-void imageInit(MemAllocator alloc, CfFileSystem *fs);
+void imageInit(MemAllocator alloc);
 
 // TODO (Matteo): Migrate to Str?
 bool imageLoadFromFile(Image *image, Cstr filename);

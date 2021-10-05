@@ -400,8 +400,6 @@ appPushFile(AppState *app, Cstr root_name, Str filename)
 static void
 appLoadFromFile(AppState *state, Str full_name)
 {
-    CfFileSystem const *fs = state->plat->fs;
-
     appClearImages(state);
 
     if (strValid(full_name))
@@ -419,10 +417,10 @@ appLoadFromFile(AppState *state, Str full_name)
 #    pragma warning(disable : 4221) // cannot be initialized using address of automatic variable
 #endif
         DirIterator it = {0};
-        if (fs->dirIterStart(&it, strFromCstr(root_name)))
+        if (dirIterStart(&it, strFromCstr(root_name)))
         {
             Str filename = {0};
-            while (fs->dirIterNext(&it, &filename, NULL))
+            while (dirIterNext(&it, &filename, NULL))
             {
                 if (appIsFileSupported(filename))
                 {
@@ -430,7 +428,7 @@ appLoadFromFile(AppState *state, Str full_name)
                 }
             }
 
-            fs->dirIterEnd(&it);
+            dirIterEnd(&it);
         }
 #if CF_COMPILER_MSVC
 #    pragma warning(pop)
@@ -597,13 +595,13 @@ appImageView(AppState *state)
         F32 image_h = (F32)curr_file->image.height;
         ImageTex *tex = imageViewCurrTex(iv);
 
-        // NOTE (Matteo): Clamp the displayed portion of the texture to the actual image size, since
-        // the texture could be larger in order to be reused
+        // NOTE (Matteo): Clamp the displayed portion of the texture to the actual image size,
+        // since the texture could be larger in order to be reused
         Vec2 clamp_uv = {.x = image_w / (F32)tex->width, //
                          .y = image_h / (F32)tex->height};
 
-        // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the aspect
-        // ratio at zoom level == 1; then zoom is applied
+        // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the
+        // aspect ratio at zoom level == 1; then zoom is applied
         if (image_w > canvas.size.width)
         {
             image_h *= canvas.size.width / image_w;
@@ -813,7 +811,7 @@ APP_API APP_PROC(appLoad)
     guiInit(app->plat->gui);
     // Init image loading
     gloadInit(app->plat->gl);
-    imageInit(app->plat->heap, app->plat->fs);
+    imageInit(app->plat->heap);
 
     taskStartProcessing(app->queue);
 }

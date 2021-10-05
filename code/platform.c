@@ -161,7 +161,7 @@ static APP_PROC(appProcStub);
 static APP_CREATE_PROC(appCreateStub);
 static APP_UPDATE_PROC(appUpdateStub);
 
-static void appApiLoad(AppApi *api, Paths *paths, CfFileSystem *fs, LibraryApi *library);
+static void appApiLoad(AppApi *api, Paths *paths, LibraryApi *library);
 static void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
 
 //------------------------------------------------------------------------------
@@ -271,7 +271,7 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
 
     // Setup application
     AppApi app_api = {0};
-    appApiLoad(&app_api, platform->paths, platform->fs, platform->library);
+    appApiLoad(&app_api, platform->paths, platform->library);
     AppState *app_state = app_api.create(platform, argv, argc);
 
     // Setup DPI handling
@@ -431,7 +431,7 @@ static APP_UPDATE_PROC(appUpdateStub)
 }
 
 void
-appApiLoad(AppApi *api, Paths *paths, CfFileSystem *fs, LibraryApi *library)
+appApiLoad(AppApi *api, Paths *paths, LibraryApi *library)
 {
     if (api->lib)
     {
@@ -446,7 +446,7 @@ appApiLoad(AppApi *api, Paths *paths, CfFileSystem *fs, LibraryApi *library)
     strPrintf(api->dst_file, Paths_Size, "%s.tmp", api->src_file);
 
     Str dst_file = strFromCstr(api->dst_file);
-    if (fs->fileCopy(strFromCstr(api->src_file), dst_file, true))
+    if (fileCopy(strFromCstr(api->src_file), dst_file, true))
     {
         api->lib = library->load(dst_file);
     }
@@ -471,11 +471,11 @@ void
 appApiUpdate(AppApi *api, Platform *platform, AppState *app)
 {
     // TODO (Matteo): Are these operation too expensive to be performed every frame?
-    if (platform->fs->fileProperties(strFromCstr(api->src_file)).last_write >
-        platform->fs->fileProperties(strFromCstr(api->dst_file)).last_write)
+    if (fileProperties(strFromCstr(api->src_file)).last_write >
+        fileProperties(strFromCstr(api->dst_file)).last_write)
     {
         api->unload(app);
-        appApiLoad(api, platform->paths, platform->fs, platform->library);
+        appApiLoad(api, platform->paths, platform->library);
         api->load(app);
     }
 }

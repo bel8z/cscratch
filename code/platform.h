@@ -63,9 +63,6 @@ typedef struct Platform
     // TODO (Matteo): Should be a pointer?
     Usize heap_size;
 
-    /// File system services
-    CfFileSystem *fs;
-
     /// System time services
     CfTimeApi *time;
 

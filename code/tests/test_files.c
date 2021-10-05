@@ -16,6 +16,7 @@ pathPrint(Str p)
 I32
 platformMain(Platform *platform, Cstr argv[], I32 argc)
 {
+    CF_UNUSED(platform);
     CF_UNUSED(argv);
     CF_UNUSED(argc);
 
@@ -56,18 +57,17 @@ platformMain(Platform *platform, Cstr argv[], I32 argc)
     printf("Browsing dir:\n");
 
     // Platform plat = cfPlatformCreate();
-    CfFileSystem *fs = platform->fs;
     DirIterator iter = {0};
 
-    if (fs->dirIterStart(&iter, dirname))
+    if (dirIterStart(&iter, dirname))
     {
         Str f = {0};
-        while (fs->dirIterNext(&iter, &f, NULL))
+        while (dirIterNext(&iter, &f, NULL))
         {
             pathPrint(f);
         }
 
-        fs->dirIterEnd(&iter);
+        dirIterEnd(&iter);
     }
 
     // U32 sz = 0;

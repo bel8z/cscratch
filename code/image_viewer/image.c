@@ -26,9 +26,6 @@ static void stbiFree(void *memory);
 #define STBI_REALLOC stbiRealloc
 #define STBI_FREE stbiFree
 
-// Custom IO operations for stbi
-static CfFileSystem *g_fs = NULL;
-
 #define STBI_NO_STDIO
 
 // Include stbi implementation
@@ -109,14 +106,14 @@ static I32
 stbiRead(void *user, Char8 *data, I32 size)
 {
     FileStream *file = user;
-    return (I32)g_fs->fileStreamRead(file, (U8 *)data, (Usize)size);
+    return (I32)fileStreamRead(file, (U8 *)data, (Usize)size);
 }
 
 static void
 stbiSkip(void *user, I32 n)
 {
     FileStream *file = user;
-    g_fs->fileStreamSeek(file, FileSeekPos_Current, (Usize)n);
+    fileStreamSeek(file, FileSeekPos_Current, (Usize)n);
 }
 
 static I32
@@ -130,11 +127,9 @@ stbiEof(void *user)
 // Image API implementation
 
 void
-imageInit(MemAllocator alloc, CfFileSystem *fs)
+imageInit(MemAllocator alloc)
 {
-    CF_ASSERT_NOT_NULL(fs);
     g_alloc = alloc;
-    g_fs = fs;
 }
 
 bool
@@ -144,14 +139,14 @@ imageLoadFromFile(Image *image, Cstr filename)
     CF_ASSERT_NOT_NULL(filename);
     CF_ASSERT(!image->bytes, "overwriting valid image");
 
-    FileStream file = g_fs->fileStreamOpen(strFromCstr(filename), FileOpenMode_Read);
+    FileStream file = fileStreamOpen(strFromCstr(filename), FileOpenMode_Read);
     stbi_io_callbacks cb = {.eof = stbiEof, .read = stbiRead, .skip = stbiSkip};
 
     image->width = 0;
     image->height = 0;
     image->bytes = stbi_load_from_callbacks(&cb, &file, &image->width, &image->height, NULL, 4);
 
-    g_fs->fileStreamClose(&file);
+    fileStreamClose(&file);
 
     return (image->bytes != NULL);
 }
