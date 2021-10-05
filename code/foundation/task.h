@@ -7,7 +7,8 @@ typedef struct TaskQueueConfig
 {
     /// [In] Size of the internal FIFO buffer
     Usize buffer_size;
-    /// [In] Number of worker threads that service the queue
+    /// [In] Number of worker threads that service the queue (a default value of 0 means to use a
+    /// number of workers equal to the number of logical cores on the machine)
     Usize num_workers;
     /// [Out] Memory footprint of the configured queue
     Usize footprint;

@@ -157,8 +157,7 @@ taskConfig(TaskQueueConfig *config)
 
     if (config->num_workers == 0)
     {
-        // TODO (Matteo): Detect number of cores
-        return false;
+        config->num_workers = cfNumCores();
     }
 
     config->footprint = sizeof(TaskQueue) + buffer_size * sizeof(TaskQueueCell) +

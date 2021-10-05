@@ -34,6 +34,15 @@ cfCurrentThreadId(void)
     return GetCurrentThreadId();
 }
 
+Usize
+cfNumCores(void)
+{
+    // TODO (Matteo): Group calls to GetSystemInfo?
+    SYSTEM_INFO si;
+    GetSystemInfo(&si);
+    return si.dwNumberOfProcessors;
+}
+
 //------------------------------------------------------------------------------
 // Thread implementation
 

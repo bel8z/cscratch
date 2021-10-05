@@ -5,7 +5,9 @@
 /// Foundation threading support
 /// This is an API header and as such the only included header must be "core.h"
 
-// TODO (Matteo): Different "namespace" prefix for threading API?
+// TODO (Matteo):
+// * Different "namespace" prefix for threading API?
+// * API for querying/setting thread affinity?
 
 //------------------------------------------------------------------------------
 
@@ -20,8 +22,17 @@
 //   Basic utilities   //
 //---------------------//
 
+/// Number of logical processors available on the machine
+Usize cfNumCores(void);
+
+/// Suspends the execution of the current thread until the given duration elapses
 void cfSleep(Duration duration);
+
+/// Causes the calling thread to yield execution to another thread that is ready to run on the
+/// current processor. The operating system selects the next thread to be executed.
 void cfYield(void);
+
+/// Retrieves the thread identifier of the calling thread.
 U32 cfCurrentThreadId(void);
 
 //------------//
