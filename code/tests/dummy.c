@@ -139,7 +139,7 @@ freeListAllocator(FreeListAlloc *alloc)
 
 // Windows thread pool IO
 
-#include "foundation/win32.h"
+#include "foundation/win32.inl"
 
 #define IO_CALLBACK(name) void name(void *context, ULONG result, ULONG_PTR bytes)
 

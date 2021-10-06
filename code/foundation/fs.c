@@ -41,7 +41,7 @@ fileReadContent(Str filename, MemAllocator alloc)
 
 #ifdef CF_OS_WIN32
 
-#    include "win32.h"
+#    include "win32.inl"
 
 // TODO (Matteo): Provide async file IO? Win32 offers IO Completion Ports which seem very good for
 // the purpose

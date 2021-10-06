@@ -13,7 +13,7 @@
 #endif
 
 #if CF_OS_WIN32
-#    include "foundation/win32.h"
+#    include "foundation/win32.inl"
 
 typedef BOOL(APIENTRY *Win32FileDialog)(LPOPENFILENAMEW);
 

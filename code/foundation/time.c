@@ -128,7 +128,7 @@ timeSub(Duration lhs, Duration rhs)
 #ifdef CF_OS_WIN32
 
 #    include "math.inl"
-#    include "win32.h"
+#    include "win32.inl"
 
 typedef struct Win32Clock
 {

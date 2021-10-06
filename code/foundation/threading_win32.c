@@ -1,8 +1,9 @@
 #include "threading.h"
 
-#include "atom.inl"
 #include "time.h"
-#include "win32.h"
+
+#include "atom.inl"
+#include "win32.inl"
 
 //------------------------------------------------------------------------------
 // Misc implementation

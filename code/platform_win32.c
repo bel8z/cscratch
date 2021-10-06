@@ -1,14 +1,16 @@
 #include "platform.h"
 
 #include "foundation/core.h"
+
 #include "foundation/error.h"
 #include "foundation/fs.h"
-#include "foundation/math.inl"
 #include "foundation/memory.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"
 #include "foundation/time.h"
-#include "foundation/win32.h"
+
+#include "foundation/math.inl"
+#include "foundation/win32.inl"
 
 //------------------------------------------------------------------------------
 // API interface
