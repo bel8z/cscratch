@@ -13,14 +13,20 @@ io_fileRead(void *context, U8 *buffer, Usize buffer_size)
 static Usize
 io_fillBuffer(IoReader *reader)
 {
-    return reader->readfn(reader->context, reader->buffer, CF_ARRAY_SIZE(reader->buffer));
+    return reader->readStream(reader->stream, reader->buffer, CF_ARRAY_SIZE(reader->buffer));
 }
 
 void
 ioReaderInitFile(IoReader *reader, File *file)
 {
-    reader->context = file;
-    reader->readfn = io_fileRead;
+    reader->stream = file;
+    reader->readStream = io_fileRead;
+    ioReaderResync(reader);
+}
+
+void
+ioReaderResync(IoReader *reader)
+{
     reader->pos = reader->len = 0;
 }
 
@@ -60,11 +66,4 @@ ioRead(IoReader *reader, U8 *buffer, Usize buffer_size)
     }
 
     return total;
-}
-
-Usize
-ioReadUntil(IoReader *reader, U8 delimiter, U8 *buffer, Usize buffer_size)
-{
-    // NOT IMPLEMENTED
-    return USIZE_MAX;
 }
