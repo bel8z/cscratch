@@ -4,6 +4,7 @@ set(LIB_SOURCES
     "colors.c"
     "list.c"
     "log.c"
+    "io.c"
     "fs.c"
     "memory.c"
     "paths.c"

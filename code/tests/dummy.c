@@ -1,5 +1,7 @@
 #include "platform.h"
 
+#include "foundation/fs.h"
+#include "foundation/io.h"
 #include "foundation/list.h"
 #include "foundation/memory.h"
 #include "foundation/strings.h"
@@ -311,6 +313,43 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     printf("%s\n", token.success ? "SUCCESS" : "FAILURE");
 
     //======================================================//
+
+    Str filename = strLiteral("C:/Temp/Dummy.txt");
+    Clock clock;
+    File file;
+    {
+        file = fileOpen(filename, FileOpenMode_Write);
+        for (Usize i = 0; i < 1000; ++i)
+        {
+            fileWriteStr(&file, strLiteral("This is a dummy file!\n"));
+        }
+        fileClose(&file);
+    }
+
+    Duration traw, tbuf;
+    Usize bcount = 0;
+    {
+        clockStart(&clock);
+        file = fileOpen(filename, FileOpenMode_Read);
+        IoReader reader = {0};
+        ioReaderInitFile(&reader, &file);
+        U8 byte = {0};
+        while (ioRead(&reader, &byte, 1)) bcount++;
+        fileClose(&file);
+        tbuf = clockElapsed(&clock);
+    }
+    {
+        clockStart(&clock);
+        file = fileOpen(filename, FileOpenMode_Read);
+        U8 byte = {0};
+        while (fileRead(&file, &byte, 1)) bcount++;
+        fileClose(&file);
+        traw = clockElapsed(&clock);
+    }
+
+    printf("Read  %llu bytes\n", bcount);
+    printf("Raw read: %f\n", timeGetSeconds(traw));
+    printf("Buffered read: %f\n", timeGetSeconds(tbuf));
 
     return 0;
 }
