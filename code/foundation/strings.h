@@ -90,6 +90,7 @@ CF_API void strBuilderInitFrom(StrBuilder *sb, MemAllocator alloc, Str str);
 CF_API void strBuilderInitWith(StrBuilder *sb, MemAllocator alloc, Usize cap);
 CF_API void strBuilderShutdown(StrBuilder *sb);
 
+CF_API void strBuilderClear(StrBuilder *sb);
 CF_API void strBuilderAppend(StrBuilder *sb, Str what);
 CF_API bool strBuilderAppendf(StrBuilder *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
 CF_API bool strBuilderPrintf(StrBuilder *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);

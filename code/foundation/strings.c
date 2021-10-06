@@ -181,7 +181,7 @@ strBuilderResize(StrBuilder *sb, Usize new_size)
 {
     if (sb->capacity < new_size)
     {
-        Usize next_cap = cfMax(sb->size, memGrowArrayCapacity(sb->capacity));
+        Usize next_cap = cfMax(new_size, memGrowArrayCapacity(sb->capacity));
         sb->data = memRealloc(sb->alloc, sb->data, sb->capacity, next_cap);
         sb->capacity = next_cap;
     }
@@ -194,10 +194,9 @@ strBuilderInit(StrBuilder *sb, MemAllocator alloc)
 {
     CF_ASSERT_NOT_NULL(sb);
     sb->alloc = alloc;
-    sb->capacity = sb->size = 1;
+    sb->capacity = 1;
     sb->data = memAlloc(alloc, sb->capacity);
-
-    sb->data[0] = 0;
+    strBuilderClear(sb);
 }
 
 void
@@ -219,15 +218,21 @@ strBuilderInitWith(StrBuilder *sb, MemAllocator alloc, Usize cap)
     sb->alloc = alloc;
     sb->capacity = cfMin(1, cap);
     sb->data = memAlloc(alloc, sb->capacity);
-    sb->size = 1;
-
-    sb->data[0] = 0;
+    strBuilderClear(sb);
 }
 
 void
 strBuilderShutdown(StrBuilder *sb)
 {
     memFree(sb->alloc, sb->data, sb->capacity);
+}
+
+void
+strBuilderClear(StrBuilder *sb)
+{
+    CF_ASSERT(sb->capacity >= 1, "Invalid string builder capacity");
+    sb->size = 1;
+    sb->data[0] = 0;
 }
 
 void
