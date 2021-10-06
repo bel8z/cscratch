@@ -1,5 +1,6 @@
 #include "fs.h"
 #include "memory.h"
+#include "strings.h"
 
 //-----------------------//
 //   Common operations   //
@@ -12,7 +13,7 @@ fileReadContent(Str filename, MemAllocator alloc)
 
     File file = fileOpen(filename, FileOpenMode_Read);
 
-    if (!(file.flags & FileStreamFlags_Error))
+    if (!file.error)
     {
         Usize file_size = fileSize(&file);
         Usize read_size = file_size;
@@ -33,6 +34,32 @@ fileReadContent(Str filename, MemAllocator alloc)
     }
 
     return result;
+}
+
+#if 0
+static Usize
+findLineBreak(U8 const *buffer, Usize size)
+{
+    bool cr_found = false;
+
+    for (Usize pos = 0; pos < size; ++pos)
+    {
+        switch (buffer[pos])
+        {
+            case '\r': cr_found = true; break;
+            case '\n': return cr_found ? pos - 1 : pos;
+            default: cr_found = false; break;
+        }
+    }
+
+    return USIZE_MAX;
+}
+#endif
+
+bool
+fileWriteStr(File *file, Str str)
+{
+    return fileWrite(file, (U8 const *)str.buf, str.len);
 }
 
 //--------------------------------//
@@ -196,23 +223,20 @@ fileOpen(Str filename, FileOpenMode mode)
 
     if (mode == 0)
     {
-        result.flags |= FileStreamFlags_Error;
+        result.error = true;
     }
     else
     {
-        DWORD creation = 0;
         DWORD access = 0;
+        DWORD creation = OPEN_EXISTING;
+
+        if (mode & FileOpenMode_Read) access |= GENERIC_READ;
 
         if (mode & FileOpenMode_Write)
         {
-            creation = (mode & FileOpenMode_Append) ? OPEN_ALWAYS : CREATE_NEW;
             access |= GENERIC_WRITE;
-        }
-        else
-        {
-            CF_ASSERT(mode & FileOpenMode_Read, "Invalid file open mode");
-            creation = OPEN_EXISTING;
-            access |= GENERIC_READ;
+            // Overwrite creation mode
+            creation = CREATE_ALWAYS;
         }
 
         Char16 buffer[1024] = {0};
@@ -221,16 +245,18 @@ fileOpen(Str filename, FileOpenMode mode)
         result.os_handle = CreateFileW(buffer, access, FILE_SHARE_READ, NULL, creation,
                                        FILE_ATTRIBUTE_NORMAL, NULL);
 
-        if (!result.os_handle)
+        if (result.os_handle == INVALID_HANDLE_VALUE)
         {
-            result.flags |= FileStreamFlags_Error;
+            result.error = true;
             win32PrintLastError();
         }
-        else if (mode & FileOpenMode_Append)
+        else if (mode == FileOpenMode_Append)
         {
             if (!SetFilePointer(result.os_handle, 0, NULL, FILE_END))
             {
-                result.flags |= FileStreamFlags_Error;
+                CloseHandle(result.os_handle);
+                result.os_handle = INVALID_HANDLE_VALUE;
+                result.error = true;
                 win32PrintLastError();
             }
         }
@@ -248,19 +274,20 @@ fileClose(File *file)
 Usize
 fileRead(File *file, U8 *buffer, Usize buffer_size)
 {
-    if (file->flags & FileStreamFlags_Error) return USIZE_MAX;
+    if (file->error) return USIZE_MAX;
+    if (file->eof) return 0;
 
     DWORD read_bytes;
 
     if (!ReadFile(file->os_handle, buffer, (DWORD)buffer_size, &read_bytes, NULL))
     {
-        file->flags |= FileStreamFlags_Error;
+        file->error = true;
         win32PrintLastError();
         return USIZE_MAX;
     }
     else if (read_bytes < buffer_size)
     {
-        file->flags |= FileStreamFlags_Eof;
+        file->eof = true;
     }
 
     return read_bytes;
@@ -269,14 +296,14 @@ fileRead(File *file, U8 *buffer, Usize buffer_size)
 Usize
 fileReadAt(File *file, U8 *buffer, Usize buffer_size, Usize offset)
 {
-    if (file->flags & FileStreamFlags_Error) return USIZE_MAX;
+    if (file->error) return USIZE_MAX;
 
     OVERLAPPED overlapped = win32FileOffset(offset);
     DWORD read_bytes;
 
     if (!ReadFile(file->os_handle, buffer, (DWORD)buffer_size, &read_bytes, &overlapped))
     {
-        file->flags |= FileStreamFlags_Error;
+        file->error = true;
         win32PrintLastError();
         return USIZE_MAX;
     }
@@ -285,15 +312,15 @@ fileReadAt(File *file, U8 *buffer, Usize buffer_size, Usize offset)
 }
 
 bool
-fileWrite(File *file, U8 *data, Usize data_size)
+fileWrite(File *file, U8 const *data, Usize data_size)
 {
-    if (file->flags & FileStreamFlags_Error) return false;
+    if (file->error) return false;
 
     DWORD written_bytes;
 
     if (!WriteFile(file->os_handle, data, (DWORD)data_size, &written_bytes, NULL))
     {
-        file->flags |= FileStreamFlags_Error;
+        file->error = true;
         win32PrintLastError();
         return false;
     }
@@ -304,16 +331,16 @@ fileWrite(File *file, U8 *data, Usize data_size)
 }
 
 bool
-fileWriteAt(File *file, U8 *data, Usize data_size, Usize offset)
+fileWriteAt(File *file, U8 const *data, Usize data_size, Usize offset)
 {
-    if (file->flags & FileStreamFlags_Error) return false;
+    if (file->error) return false;
 
     OVERLAPPED overlapped = win32FileOffset(offset);
     DWORD written_bytes;
 
     if (!WriteFile(file->os_handle, data, (DWORD)data_size, &written_bytes, &overlapped))
     {
-        file->flags |= FileStreamFlags_Error;
+        file->error = true;
         win32PrintLastError();
         return false;
     }
@@ -331,7 +358,7 @@ fileSeek(File *file, FileSeekPos pos, Usize offset)
 
     if (!SetFilePointerEx(file->os_handle, temp, &dest, pos))
     {
-        file->flags |= FileStreamFlags_Error;
+        file->error = true;
         win32PrintLastError();
     };
 
@@ -347,7 +374,7 @@ fileTell(File *file)
 Usize
 fileSize(File *file)
 {
-    if (file->flags & FileStreamFlags_Error) return USIZE_MAX;
+    if (file->error) return USIZE_MAX;
 
     ULARGE_INTEGER size;
 

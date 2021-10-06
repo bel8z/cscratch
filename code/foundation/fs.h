@@ -34,17 +34,11 @@ enum FileSeekPos_
     FileSeekPos_End,
 };
 
-typedef U32 FileStateFlags;
-enum FileStreamFlags_
-{
-    FileStreamFlags_Error,
-    FileStreamFlags_Eof,
-};
-
 typedef struct File
 {
     void *os_handle;
-    FileStateFlags flags;
+    bool error; // TODO (Matteo): Error detail
+    bool eof;
 } File;
 
 typedef struct FileContent
@@ -90,8 +84,11 @@ Usize fileTell(File *file);
 Usize fileRead(File *file, U8 *buffer, Usize buffer_size);
 Usize fileReadAt(File *file, U8 *buffer, Usize buffer_size, Usize offset);
 
-bool fileWrite(File *file, U8 *data, Usize data_size);
-bool fileWriteAt(File *file, U8 *data, Usize data_size, Usize offset);
+bool fileWrite(File *file, U8 const *data, Usize data_size);
+bool fileWriteAt(File *file, U8 const *data, Usize data_size, Usize offset);
+bool fileWriteStr(File *file, Str str);
+
+// NOTE (Matteo): Experimental API
 
 FileContent fileReadContent(Str filename, MemAllocator alloc);
 

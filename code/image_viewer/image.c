@@ -120,7 +120,7 @@ static I32
 stbiEof(void *user)
 {
     File *file = user;
-    return file->flags & FileStreamFlags_Eof;
+    return file->eof;
 }
 
 //------------------------------------------------------------------------------
