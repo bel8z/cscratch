@@ -42,16 +42,19 @@ str16FromCstr(Cstr16 cstr)
 }
 
 static inline void
-win32PrintLastError(void)
+win32HandleLastError(void)
 {
     DWORD error = GetLastError();
-    LPSTR msg = NULL;
-    FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-                       FORMAT_MESSAGE_IGNORE_INSERTS,
-                   NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&msg, 0, NULL);
-    CF_DEBUG_BREAK();
-    fprintf(stderr, "%s\n", msg);
-    LocalFree(msg);
+    if (error)
+    {
+        LPSTR msg = NULL;
+        FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                           FORMAT_MESSAGE_IGNORE_INSERTS,
+                       NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&msg, 0,
+                       NULL);
+        CF_FAIL(msg);
+        LocalFree(msg);
+    }
 }
 
 // UTF8<->UTF16 helpers
@@ -70,7 +73,7 @@ win32Utf8To16(Str str, Char16 *out, Usize out_size)
 
     if (len == 0)
     {
-        win32PrintLastError();
+        win32HandleLastError();
         return USIZE_MAX;
     }
 
@@ -91,7 +94,7 @@ win32Utf16To8(Str16 str, Char8 *out, Usize out_size)
 
     if (len == 0)
     {
-        win32PrintLastError();
+        win32HandleLastError();
         return USIZE_MAX;
     }
 

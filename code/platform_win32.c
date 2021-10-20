@@ -12,6 +12,12 @@
 #include "foundation/math.inl"
 #include "foundation/win32.inl"
 
+//  NOTE (Matteo): Link to relevant win32 libs
+#pragma comment(lib, "kernel32")
+#pragma comment(lib, "user32")
+#pragma comment(lib, "gdi32")
+#pragma comment(lib, "mincore")
+
 //------------------------------------------------------------------------------
 // API interface
 //------------------------------------------------------------------------------
@@ -80,7 +86,7 @@ win32GetCommandLineArgs(MemAllocator alloc, CommandLine *out)
 
     if (num_args < 0)
     {
-        win32PrintLastError();
+        win32HandleLastError();
         return 0;
     }
 
@@ -206,6 +212,8 @@ main(I32 argc, Cstr argv[])
 // API implementation
 //------------------------------------------------------------------------------
 
+#define WIN32_PLACEHOLDER_API NTDDI_VERSION >= NTDDI_WIN10_RS4
+
 //------------//
 //   Memory   //
 //------------//
@@ -245,7 +253,7 @@ VM_REVERT_FUNC(win32VmDecommit)
     }
     else
     {
-        win32PrintLastError();
+        win32HandleLastError();
         CF_ASSERT(false, "VM decommit failed");
     }
 }
@@ -263,7 +271,7 @@ VM_RELEASE_FUNC(win32VmRelease)
     }
     else
     {
-        win32PrintLastError();
+        win32HandleLastError();
         CF_ASSERT(false, "VM release failed");
     }
 }
@@ -282,39 +290,75 @@ VM_MIRROR_ALLOCATE(win32MirrorAllocate)
         CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, (DWORD)(buffer_size >> 32),
                            (DWORD)(buffer_size & 0xffffffff), NULL);
 #else
+    static_assert(sizeof(DWORD) == sizeof(buffer_size), "Unexpected pointer size");
     HANDLE mapping = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0,
-                                        (DWORD)(buffer_size & 0xffffffff), NULL);
+                                        (DWORD)(buffer_size), NULL);
 #endif
 
     if (mapping)
     {
-        buffer.size = buffer_size;
-        buffer.os_handle = mapping;
+#if WIN32_PLACEHOLDER_API
+        // NOTE (Matteo): On Windows 10 use the placeholder API to double map the memory region
 
-        while (!buffer.data)
+        HANDLE process = GetCurrentProcess();
+        U8 *address = VirtualAlloc2(process, NULL, buffer_size * 2,
+                                    MEM_RESERVE | MEM_RESERVE_PLACEHOLDER, PAGE_NOACCESS, NULL, 0);
+        VirtualFree(address, buffer_size, MEM_RELEASE | MEM_PRESERVE_PLACEHOLDER);
+
+        U8 *view1 = MapViewOfFile3(mapping, process, address, 0, buffer_size,
+                                   MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, NULL, 0);
+
+        U8 *view2 = MapViewOfFile3(mapping, process, address + buffer_size, 0, buffer_size,
+                                   MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, NULL, 0);
+
+        if (view1 && view2)
+        {
+            CF_ASSERT(view1 == address, "Logic error");
+            buffer.data = view1;
+        }
+        else
+        {
+            win32HandleLastError();
+        }
+#else
+        // NOTE (Matteo): When the placeholder API is not available, use a brute force strategy to
+        // double map the region:
+        // 1) try to reserve a VM region of the appropriate size, keep its address and release it
+        // 2) try to map 2 views on this region; this can fail due to concurrency (since we released
+        // it, the address could have been mapped by some other thread).
+        // 3) repeat on failure (50 times seems reasonable)
+
+        for (Usize try = 0; try < 50; ++try)
         {
             U8 *address = VirtualAlloc(NULL, buffer_size * 2, MEM_RESERVE, PAGE_READWRITE);
-            if (address)
+            // NOTE (Matteo): If allocation fails there's no way to map the region
+            if (!address) break;
+
+            VirtualFree(address, 0, MEM_RELEASE);
+
+            U8 *view1 = MapViewOfFileEx(mapping, FILE_MAP_ALL_ACCESS, 0, 0, buffer_size, address);
+            U8 *view2 = MapViewOfFileEx(mapping, FILE_MAP_ALL_ACCESS, 0, 0, buffer_size,
+                                        view1 + buffer_size);
+
+            if (view1 && view2)
             {
-                VirtualFree(address, 0, MEM_RELEASE);
-
-                U8 *view1 =
-                    MapViewOfFileEx(mapping, FILE_MAP_ALL_ACCESS, 0, 0, buffer_size, address);
-                U8 *view2 = MapViewOfFileEx(mapping, FILE_MAP_ALL_ACCESS, 0, 0, buffer_size,
-                                            view1 + buffer_size);
-
-                if (view1 && view2)
-                {
-                    buffer.data = view1;
-                }
-                else
-                {
-                    win32PrintLastError();
-                }
+                CF_ASSERT(view1 == address, "Logic error");
+                buffer.data = view1;
+                break;
             }
         }
+#endif
 
-        memClear(buffer.data, buffer.size);
+        if (buffer.data)
+        {
+            buffer.size = buffer_size;
+            buffer.os_handle = mapping;
+            memClear(buffer.data, buffer.size);
+        }
+        else
+        {
+            CloseHandle(mapping);
+        }
     }
 
     return buffer;
@@ -324,8 +368,21 @@ VM_MIRROR_FREE(win32MirrorFree)
 {
     if (buffer->data)
     {
-        UnmapViewOfFile((U8 *)buffer->data + buffer->size);
-        UnmapViewOfFile((U8 *)buffer->data);
+        U8 *view1 = buffer->data;
+        U8 *view2 = view1 + buffer->size;
+
+#if WIN32_PLACEHOLDER_API
+        HANDLE process = GetCurrentProcess();
+        if (!UnmapViewOfFile2(process, view2, 0) || !UnmapViewOfFile2(process, view1, 0))
+        {
+            win32HandleLastError();
+        }
+#else
+        if (!UnmapViewOfFile(view2) || UnmapViewOfFile(view1))
+        {
+            win32HandleLastError();
+        }
+#endif
     }
 
     if (buffer->os_handle) CloseHandle(buffer->os_handle);
@@ -450,7 +507,7 @@ win32libLoad(Str filename)
 
     if (!lib)
     {
-        win32PrintLastError();
+        win32HandleLastError();
         CF_ASSERT(FALSE, "LoadLibraryW FAILED");
     }
 
@@ -462,7 +519,7 @@ win32libUnload(Library *lib)
 {
     if (!FreeLibrary((HMODULE)lib))
     {
-        win32PrintLastError();
+        win32HandleLastError();
         CF_ASSERT(FALSE, "FreeLibrary FAILED");
     }
 }

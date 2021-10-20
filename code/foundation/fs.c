@@ -192,7 +192,7 @@ fileCopy(Str source, Str dest, bool overwrite)
 
     if (CopyFileW(ws, wd, !overwrite)) return true;
 
-    win32PrintLastError();
+    win32HandleLastError();
     return false;
 }
 
@@ -248,7 +248,7 @@ fileOpen(Str filename, FileOpenMode mode)
         if (result.os_handle == INVALID_HANDLE_VALUE)
         {
             result.error = true;
-            win32PrintLastError();
+            win32HandleLastError();
         }
         else if (mode == FileOpenMode_Append)
         {
@@ -257,7 +257,7 @@ fileOpen(Str filename, FileOpenMode mode)
                 CloseHandle(result.os_handle);
                 result.os_handle = INVALID_HANDLE_VALUE;
                 result.error = true;
-                win32PrintLastError();
+                win32HandleLastError();
             }
         }
     }
@@ -282,7 +282,7 @@ fileRead(File *file, U8 *buffer, Usize buffer_size)
     if (!ReadFile(file->os_handle, buffer, (DWORD)buffer_size, &read_bytes, NULL))
     {
         file->error = true;
-        win32PrintLastError();
+        win32HandleLastError();
         return USIZE_MAX;
     }
     else if (read_bytes < buffer_size)
@@ -304,7 +304,7 @@ fileReadAt(File *file, U8 *buffer, Usize buffer_size, Usize offset)
     if (!ReadFile(file->os_handle, buffer, (DWORD)buffer_size, &read_bytes, &overlapped))
     {
         file->error = true;
-        win32PrintLastError();
+        win32HandleLastError();
         return USIZE_MAX;
     }
 
@@ -321,7 +321,7 @@ fileWrite(File *file, U8 const *data, Usize data_size)
     if (!WriteFile(file->os_handle, data, (DWORD)data_size, &written_bytes, NULL))
     {
         file->error = true;
-        win32PrintLastError();
+        win32HandleLastError();
         return false;
     }
 
@@ -341,7 +341,7 @@ fileWriteAt(File *file, U8 const *data, Usize data_size, Usize offset)
     if (!WriteFile(file->os_handle, data, (DWORD)data_size, &written_bytes, &overlapped))
     {
         file->error = true;
-        win32PrintLastError();
+        win32HandleLastError();
         return false;
     }
 
@@ -359,7 +359,7 @@ fileSeek(File *file, FileSeekPos pos, Usize offset)
     if (!SetFilePointerEx(file->os_handle, temp, &dest, pos))
     {
         file->error = true;
-        win32PrintLastError();
+        win32HandleLastError();
     };
 
     return (Usize)dest.QuadPart;

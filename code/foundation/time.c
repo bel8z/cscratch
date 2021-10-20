@@ -210,7 +210,7 @@ utcTime(SystemTime sys_time)
 
     if (!FileTimeToSystemTime(&in, &out))
     {
-        win32PrintLastError();
+        win32HandleLastError();
     }
 
     return win32CalendarTime(&out);
@@ -229,7 +229,7 @@ localTime(SystemTime sys_time)
 
     if (!FileTimeToSystemTime(&in, &utc) || !SystemTimeToTzSpecificLocalTime(NULL, &utc, &local))
     {
-        win32PrintLastError();
+        win32HandleLastError();
     }
 
     return win32CalendarTime(&local);
