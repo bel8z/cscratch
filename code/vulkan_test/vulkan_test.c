@@ -4,10 +4,16 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
+// Foundation libraries
 #include "foundation/error.h"
 #include "foundation/memory.h"
 
+// Standard libraries - TODO (Matteo): Get rid of them?
 #include <stdio.h>
+
+//-------------------//
+//   App interface   //
+//-------------------//
 
 typedef struct App
 {
