@@ -26,12 +26,12 @@ typedef struct App
 
     VkAllocationCallbacks *vkalloc;
     VkInstance inst;
+    VkDebugUtilsMessengerEXT debug;
     VkSurfaceKHR surface;
     VkPhysicalDevice gpu;
 
     U32 graphics_queue;
     U32 present_queue;
-
 } App;
 
 static void appInit(App *app, Platform *platform);
@@ -70,6 +70,18 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
 CF_PRINTF_LIKE(1, 2)
 static void
+appDiagnostic(App *app, Cstr format, ...)
+{
+    CF_UNUSED(app);
+
+    va_list args;
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+}
+
+CF_PRINTF_LIKE(1, 2)
+static void
 appTerminate(App *app, Cstr format, ...)
 {
     va_list args;
@@ -85,6 +97,68 @@ static void
 appCheckResult(App *app, VkResult result)
 {
     if (result) appTerminate(app, "Vulkan error %d\n", result);
+}
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL
+appDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+                 VkDebugUtilsMessageTypeFlagsEXT type,
+                 const VkDebugUtilsMessengerCallbackDataEXT *callback_data, void *user_data)
+{
+    App *app = user_data;
+
+    static const Cstr type_text[] = {
+        [VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT] = "general",
+        [VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT] = "validation",
+        [VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT] = "performance",
+    };
+
+    static const Cstr severity_text[] = {
+        [VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT] = "verbose",
+        [VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT] = "info",
+        [VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT] = "warning",
+        [VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT] = "error",
+    };
+
+    appDiagnostic(app, "Vulkan %s %s: %s\n", type_text[type], severity_text[severity],
+                  callback_data->pMessage);
+    return VK_FALSE;
+}
+
+VkResult
+vkCreateDebugUtilsMessengerEXT(VkInstance instance,
+                               VkDebugUtilsMessengerCreateInfoEXT const *pCreateInfo,
+                               VkAllocationCallbacks const *pAllocator,
+                               VkDebugUtilsMessengerEXT *pDebugMessenger)
+{
+#if CF_DEBUG
+    PFN_vkCreateDebugUtilsMessengerEXT func =
+        (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance,
+                                                                  "vkCreateDebugUtilsMessengerEXT");
+    if (func) return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
+#else
+    CF_UNUSED(instance);
+    CF_UNUSED(pCreateInfo);
+    CF_UNUSED(pAllocator);
+    CF_UNUSED(pDebugMessenger);
+#endif
+    return VK_SUCCESS;
+}
+
+void
+vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+                                VkAllocationCallbacks const *pAllocator)
+{
+#if CF_DEBUG
+    PFN_vkDestroyDebugUtilsMessengerEXT func =
+        (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+            instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func) func(instance, debugMessenger, pAllocator);
+#else
+    CF_UNUSED(instance);
+    CF_UNUSED(pDebugMessenger);
+    CF_UNUSED(pAllocator);
+#endif
 }
 
 static void
@@ -193,6 +267,22 @@ appInit(App *app, Platform *platform)
     VkResult res = vkCreateInstance(&inst_info, app->vkalloc, &app->inst);
     appCheckResult(app, res);
 
+    // Setup debugging
+    // NOTE (Matteo): VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT ignored for now
+    VkDebugUtilsMessengerCreateInfoEXT debug_info = {
+        .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+        .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+        .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                       VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                       VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+        .pfnUserCallback = appDebugCallback,
+        .pUserData = app,
+    };
+    res = vkCreateDebugUtilsMessengerEXT(app->inst, &debug_info, app->vkalloc, &app->debug);
+    appCheckResult(app, res);
+
     // Retrieve a Vulkan surface from GLFW window
     res = glfwCreateWindowSurface(app->inst, app->window, app->vkalloc, &app->surface);
     appCheckResult(app, res);
@@ -214,6 +304,7 @@ void
 appShutdown(App *app)
 {
     vkDestroySurfaceKHR(app->inst, app->surface, app->vkalloc);
+    vkDestroyDebugUtilsMessengerEXT(app->inst, app->debug, app->vkalloc);
     vkDestroyInstance(app->inst, app->vkalloc);
 
     glfwDestroyWindow(app->window);
