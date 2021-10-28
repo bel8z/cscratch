@@ -170,9 +170,25 @@ appInit(App *app, Platform *platform)
             },
     };
 
+    Cstr extensions[16] = {0};
+    U32 num_extensions = 0;
+
     // Get the required extensions from GLFW
-    inst_info.ppEnabledExtensionNames =
-        glfwGetRequiredInstanceExtensions(&inst_info.enabledExtensionCount);
+    Cstr const *glfw_extensions = glfwGetRequiredInstanceExtensions(&num_extensions);
+    CF_ASSERT(num_extensions < CF_ARRAY_SIZE(extensions), "Too many required extensions");
+    memCopy(glfw_extensions, extensions, num_extensions * sizeof(*extensions));
+
+#if CF_DEBUG
+    // Add debug layer
+    Cstr layers[] = {"VK_LAYER_KHRONOS_validation"};
+    inst_info.ppEnabledLayerNames = layers;
+    inst_info.enabledLayerCount = CF_ARRAY_SIZE(layers);
+    // Add debug extension
+    extensions[num_extensions++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+#endif
+
+    inst_info.enabledExtensionCount = num_extensions;
+    inst_info.ppEnabledExtensionNames = extensions;
 
     VkResult res = vkCreateInstance(&inst_info, app->vkalloc, &app->inst);
     appCheckResult(app, res);
