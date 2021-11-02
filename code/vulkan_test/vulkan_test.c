@@ -35,14 +35,18 @@ typedef struct App
     VkDebugUtilsMessengerEXT debug;
     VkSurfaceKHR surface;
     VkPhysicalDevice gpu;
+
     VkDevice device;
-    VkSwapchainKHR swapchain;
-
-    U32 queue_index[2];
     VkQueue queue[2];
+    U32 queue_index[2];
 
+    VkSwapchainKHR swapchain;
+    VkExtent2D swapchain_extent;
     VkImageView image[4];
     U32 image_count;
+
+    VkPipelineLayout pipe_layout;
+
 } App;
 
 static Cstr const layers[] = {"VK_LAYER_KHRONOS_validation"};
@@ -376,7 +380,7 @@ appCreateSwapchain(App *app)
     }
 
     // Retrieve swapchain extent
-    info.imageExtent = caps.currentExtent;
+    app->swapchain_extent = caps.currentExtent;
     if (info.imageExtent.width == U32_MAX)
     {
         // NOTE (Matteo): This means the current extent is unknown, so we must set it to the
@@ -386,11 +390,12 @@ appCreateSwapchain(App *app)
         I32 width, height;
         glfwGetFramebufferSize(app->window, &width, &height);
 
-        info.imageExtent.width =
+        app->swapchain_extent.width =
             cfClamp((U32)width, caps.minImageExtent.width, caps.maxImageExtent.width);
-        info.imageExtent.height =
+        app->swapchain_extent.height =
             cfClamp((U32)height, caps.minImageExtent.height, caps.maxImageExtent.height);
     }
+    info.imageExtent = app->swapchain_extent;
 
     // NOTE (Matteo): Request one image more than the minimum to avoid excessive waiting on the
     // driver
@@ -477,10 +482,117 @@ appCreatePipeline(App *app)
         },
     };
 
+    VkPipelineVertexInputStateCreateInfo input_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+    };
+
+    VkPipelineInputAssemblyStateCreateInfo input_assembly = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+        .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+        .primitiveRestartEnable = false,
+    };
+
+    VkPipelineViewportStateCreateInfo viewport_state = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        .pViewports = &(VkViewport){.x = 0,
+                                    .y = 0,
+                                    .width = (F32)app->swapchain_extent.width,
+                                    .height = (F32)app->swapchain_extent.height,
+                                    .minDepth = 0,
+                                    .maxDepth = 1},
+        .viewportCount = 1,
+        .pScissors = &(VkRect2D){.offset = {0, 0}, .extent = app->swapchain_extent},
+        .scissorCount = 1,
+    };
+
+    VkPipelineRasterizationStateCreateInfo rasterizer = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+        .depthClampEnable = false,
+        .rasterizerDiscardEnable = false, // Required if depthClampEnable = true
+        .polygonMode = VK_POLYGON_MODE_FILL,
+        .lineWidth = 1.0f, // Required if polygon mode is not FILL
+        .cullMode = VK_CULL_MODE_BACK_BIT,
+        .frontFace = VK_FRONT_FACE_CLOCKWISE,
+    };
+
+    // NOTE (Matteo): For now multisampling is left disabled
+    VkPipelineMultisampleStateCreateInfo multisampling = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+        .sampleShadingEnable = VK_FALSE,
+        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+    };
+
+    VkPipelineColorBlendAttachmentState blend_attachment = {
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+#if 1
+        // Blending disabled
+        .blendEnable = VK_FALSE,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,  // Optional
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO, // Optional
+        .colorBlendOp = VK_BLEND_OP_ADD,             // Optional
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,  // Optional
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO, // Optional
+        .alphaBlendOp = VK_BLEND_OP_ADD,             // Optional
+#else
+        // Alpha blending
+        .blendEnable = VK_TRUE,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .colorBlendOp = VK_BLEND_OP_ADD,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .alphaBlendOp = VK_BLEND_OP_ADD,
+#endif
+    };
+
+    VkPipelineColorBlendStateCreateInfo blend = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        .logicOpEnable = VK_FALSE,   // VK_TRUE for bitwise blending
+        .logicOp = VK_LOGIC_OP_COPY, // Optional
+        .attachmentCount = 1,
+        .pAttachments = &blend_attachment,
+        .blendConstants[0] = 0.0f, // Optional
+        .blendConstants[1] = 0.0f, // Optional
+        .blendConstants[2] = 0.0f, // Optional
+        .blendConstants[3] = 0.0f, // Optional
+    };
+
+    // Configure the pipeline state that can change dynamically
+    VkDynamicState dynamic_states[] = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_LINE_WIDTH,
+    };
+
+    VkPipelineDynamicStateCreateInfo dynamic_state = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        .dynamicStateCount = CF_ARRAY_SIZE(dynamic_states),
+        .pDynamicStates = dynamic_states,
+    };
+
+    // TODO (Matteo): Revisit - Creating an empty layout for now
+    VkPipelineLayoutCreateInfo layout_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        .setLayoutCount = 0,
+    };
+
+    VkResult res =
+        vkCreatePipelineLayout(app->device, &layout_info, app->vkalloc, &app->pipe_layout);
+    appCheckResult(app, res);
+
     VkGraphicsPipelineCreateInfo pipe_info = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .pStages = stage_info,
         .stageCount = 2,
+        .pVertexInputState = &input_info,
+        .pInputAssemblyState = &input_assembly,
+        .pViewportState = &viewport_state,
+        .pRasterizationState = &rasterizer,
+        .pMultisampleState = &multisampling,
+        .pDepthStencilState = NULL, // TODO (Matteo): Revisit
+        .pColorBlendState = &blend,
+        .pDynamicState = &dynamic_state,
+        .layout = app->pipe_layout,
     };
 
     CF_UNUSED(pipe_info);
@@ -574,6 +686,8 @@ appInit(App *app, Platform *platform)
 void
 appShutdown(App *app)
 {
+    vkDestroyPipelineLayout(app->device, app->pipe_layout, app->vkalloc);
+
     for (U32 index = 0; index < app->image_count; ++index)
     {
         vkDestroyImageView(app->device, app->image[index], app->vkalloc);
