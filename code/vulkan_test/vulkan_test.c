@@ -121,6 +121,7 @@ appDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
 
     appDiagnostic(app, "Vulkan %s %s: %s\n", type_text[type], severity_text[severity],
                   callback_data->pMessage);
+
     return VK_FALSE;
 }
 
@@ -141,8 +142,8 @@ vkCreateDebugUtilsMessengerEXT(VkInstance instance,
     CF_UNUSED(pCreateInfo);
     CF_UNUSED(pAllocator);
     CF_UNUSED(pDebugMessenger);
-#endif
     return VK_SUCCESS;
+#endif
 }
 
 void
