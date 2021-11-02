@@ -40,6 +40,9 @@ typedef struct App
 
     U32 queue_index[2];
     VkQueue queue[2];
+
+    VkImageView image[4];
+    U32 image_count;
 } App;
 
 static Cstr const layers[] = {"VK_LAYER_KHRONOS_validation"};
@@ -280,7 +283,6 @@ appCreateLogicalDevice(App *app)
 static void
 appCreateSwapchain(App *app)
 {
-
     VkSurfaceCapabilitiesKHR caps;
     VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(app->gpu, app->surface, &caps);
     appCheckResult(app, res);
@@ -316,7 +318,7 @@ appCreateSwapchain(App *app)
         appCheckResult(app, res);
 
         // TODO (Matteo): Use this check for GPU picking
-        if (num_formats == 0) appTerminate(app, "GPU does not support swapchain");
+        if (num_formats == 0) appTerminate(app, "GPU does not support swapchain\n");
 
         VkSurfaceFormatKHR *formats =
             memAllocArray(app->allocator, VkSurfaceFormatKHR, num_formats);
@@ -349,7 +351,7 @@ appCreateSwapchain(App *app)
         appCheckResult(app, res);
 
         // TODO (Matteo): Use this check for GPU picking
-        if (num_modes == 0) appTerminate(app, "GPU does not support swapchain");
+        if (num_modes == 0) appTerminate(app, "GPU does not support swapchain\n");
 
         VkPresentModeKHR *modes = memAllocArray(app->allocator, VkPresentModeKHR, num_modes);
         vkGetPhysicalDeviceSurfacePresentModesKHR(app->gpu, app->surface, &num_modes, modes);
@@ -392,6 +394,43 @@ appCreateSwapchain(App *app)
 
     res = vkCreateSwapchainKHR(app->device, &info, app->vkalloc, &app->swapchain);
     appCheckResult(app, res);
+
+    // Create image views
+    {
+        res = vkGetSwapchainImagesKHR(app->device, app->swapchain, &app->image_count, NULL);
+        appCheckResult(app, res);
+
+        if (app->image_count > CF_ARRAY_SIZE(app->image))
+        {
+            appTerminate(app, "%u swap chain images requested but %llu available\n",
+                         app->image_count, CF_ARRAY_SIZE(app->image));
+        }
+
+        VkImage images[CF_ARRAY_SIZE(app->image)];
+        vkGetSwapchainImagesKHR(app->device, app->swapchain, &app->image_count, images);
+
+        VkImageViewCreateInfo image_info = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = info.imageFormat,
+            .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .subresourceRange.baseMipLevel = 0,
+            .subresourceRange.levelCount = 1,
+            .subresourceRange.baseArrayLayer = 0,
+            .subresourceRange.layerCount = 1,
+        };
+
+        for (U32 index = 0; index < app->image_count; ++index)
+        {
+            image_info.image = images[index];
+            res = vkCreateImageView(app->device, &image_info, app->vkalloc, app->image + index);
+            appCheckResult(app, res);
+        }
+    }
 }
 
 void
@@ -477,6 +516,11 @@ appInit(App *app, Platform *platform)
 void
 appShutdown(App *app)
 {
+    for (U32 index = 0; index < app->image_count; ++index)
+    {
+        vkDestroyImageView(app->device, app->image[index], app->vkalloc);
+    }
+
     vkDestroySwapchainKHR(app->device, app->swapchain, app->vkalloc);
     vkDestroyDevice(app->device, app->vkalloc);
     vkDestroySurfaceKHR(app->inst, app->surface, app->vkalloc);
