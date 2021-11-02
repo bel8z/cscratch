@@ -156,8 +156,8 @@ set_c_compile_flags(${EXE_NAME})
 set_target_properties(${EXE_NAME} PROPERTIES UNITY_BUILD TRUE)
 
 execute_process(
-    COMMAND ${Vulkan_GLSLC_EXECUTABLE} -fshader-stage=vert "${CODE_DIR}/${APP}/vert.glsl" -o "${CODE_DIR}/${APP}/vert.spv"
-    COMMAND ${Vulkan_GLSLC_EXECUTABLE} -fshader-stage=frag "${CODE_DIR}/${APP}/frag.glsl" -o "${CODE_DIR}/${APP}/frag.spv"
+    COMMAND ${Vulkan_GLSLC_EXECUTABLE} -fshader-stage=vert -mfmt=num "${CODE_DIR}/${APP}/vert.glsl" -o "${CODE_DIR}/${APP}/vert.spv"
+    COMMAND ${Vulkan_GLSLC_EXECUTABLE} -fshader-stage=frag -mfmt=num "${CODE_DIR}/${APP}/frag.glsl" -o "${CODE_DIR}/${APP}/frag.spv"
     COMMAND_ERROR_IS_FATAL ANY)
 
 #---------#

@@ -47,6 +47,14 @@ typedef struct App
 
 static Cstr const layers[] = {"VK_LAYER_KHRONOS_validation"};
 
+static U32 const frag_blob[] = {
+#include "frag.spv"
+};
+
+static U32 const vert_blob[] = {
+#include "vert.spv"
+};
+
 static void appInit(App *app, Platform *platform);
 static void appShutdown(App *app);
 static void appMainLoop(App *app);
@@ -433,6 +441,56 @@ appCreateSwapchain(App *app)
     }
 }
 
+static VkShaderModule
+appCreateShaderModule(App *app, U32 const *code, Usize code_size)
+{
+    VkShaderModule module;
+
+    VkShaderModuleCreateInfo shader_info = {
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+    };
+
+    shader_info.pCode = code;
+    shader_info.codeSize = sizeof(code_size);
+    VkResult res = vkCreateShaderModule(app->device, &shader_info, app->vkalloc, &module);
+    appCheckResult(app, res);
+
+    return module;
+}
+
+static void
+appCreatePipeline(App *app)
+{
+    VkShaderModule frag = appCreateShaderModule(app, frag_blob, sizeof(frag_blob));
+    VkShaderModule vert = appCreateShaderModule(app, vert_blob, sizeof(vert_blob));
+
+    VkPipelineShaderStageCreateInfo stage_info[2] = {
+        {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .module = vert,
+            .pName = "main",
+            .stage = VK_SHADER_STAGE_VERTEX_BIT,
+        },
+        {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .module = frag,
+            .pName = "main",
+            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+        },
+    };
+
+    VkGraphicsPipelineCreateInfo pipe_info = {
+        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        .pStages = stage_info,
+        .stageCount = 2,
+    };
+
+    CF_UNUSED(pipe_info);
+
+    vkDestroyShaderModule(app->device, frag, app->vkalloc);
+    vkDestroyShaderModule(app->device, vert, app->vkalloc);
+}
+
 void
 appInit(App *app, Platform *platform)
 {
@@ -511,6 +569,8 @@ appInit(App *app, Platform *platform)
     appCreateLogicalDevice(app);
 
     appCreateSwapchain(app);
+
+    appCreatePipeline(app);
 }
 
 void
