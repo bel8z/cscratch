@@ -18,6 +18,12 @@
 //   App interface   //
 //-------------------//
 
+enum
+{
+    GRAPHICS = 0,
+    PRESENT,
+};
+
 typedef struct App
 {
     MemAllocator allocator;
@@ -29,10 +35,13 @@ typedef struct App
     VkDebugUtilsMessengerEXT debug;
     VkSurfaceKHR surface;
     VkPhysicalDevice gpu;
+    VkDevice device;
 
-    U32 graphics_queue;
-    U32 present_queue;
+    U32 queue_index[2];
+    VkQueue queue[2];
 } App;
+
+static Cstr const layers[] = {"VK_LAYER_KHRONOS_validation"};
 
 static void appInit(App *app, Platform *platform);
 static void appShutdown(App *app);
@@ -176,8 +185,8 @@ appPickGpu(App *app)
     U32 queues_cap = 0;
 
     app->gpu = VK_NULL_HANDLE;
-    app->graphics_queue = U32_MAX;
-    app->present_queue = U32_MAX;
+    app->queue_index[GRAPHICS] = U32_MAX;
+    app->queue_index[PRESENT] = U32_MAX;
 
     for (U32 gpu_index = 0; gpu_index < num_gpus; ++gpu_index)
     {
@@ -199,12 +208,19 @@ appPickGpu(App *app)
                                                        &supported);
             appCheckResult(app, res);
 
-            app->present_queue = (app->present_queue == U32_MAX && supported);
-            app->graphics_queue = (app->graphics_queue == U32_MAX &&
-                                   (queues[queue_index].queueFlags & VK_QUEUE_GRAPHICS_BIT));
+            if (app->queue_index[PRESENT] == U32_MAX && supported)
+            {
+                app->queue_index[PRESENT] = queue_index;
+            }
+
+            if (app->queue_index[GRAPHICS] == U32_MAX &&
+                (queues[queue_index].queueFlags & VK_QUEUE_GRAPHICS_BIT))
+            {
+                app->queue_index[GRAPHICS] = queue_index;
+            }
         }
 
-        if (app->graphics_queue != U32_MAX && app->present_queue != U32_MAX)
+        if (app->queue_index[GRAPHICS] != U32_MAX && app->queue_index[PRESENT] != U32_MAX)
         {
             app->gpu = gpus[gpu_index];
         }
@@ -214,6 +230,50 @@ appPickGpu(App *app)
     memFreeArray(app->allocator, gpus, num_gpus);
 
     if (!app->gpu) appTerminate(app, "Cannot find a suitable GPU\n");
+}
+
+static void
+appCreateLogicalDevice(App *app)
+{
+    F32 const queue_priority = 1.0f;
+    U32 const queue_count = (app->queue_index[GRAPHICS] != app->queue_index[PRESENT] ? 2 : 1);
+
+    VkDeviceQueueCreateInfo queue_info[2] = {
+        [GRAPHICS] =
+            {
+                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                .queueFamilyIndex = app->queue_index[GRAPHICS],
+                .queueCount = 1,
+                .pQueuePriorities = &queue_priority,
+            },
+        [PRESENT] =
+            {
+                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                .queueFamilyIndex = app->queue_index[PRESENT],
+                .queueCount = 1,
+                .pQueuePriorities = &queue_priority,
+            },
+    };
+
+    Cstr const device_extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+    VkDeviceCreateInfo device_info = {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .ppEnabledExtensionNames = device_extensions,
+        .enabledExtensionCount = CF_ARRAY_SIZE(device_extensions),
+        .pQueueCreateInfos = queue_info,
+        .queueCreateInfoCount = queue_count,
+#if CF_DEBUG
+        .ppEnabledLayerNames = layers,
+        .enabledLayerCount = CF_ARRAY_SIZE(layers),
+#endif
+    };
+
+    VkResult res = vkCreateDevice(app->gpu, &device_info, app->vkalloc, &app->device);
+    appCheckResult(app, res);
+
+    vkGetDeviceQueue(app->device, app->queue_index[GRAPHICS], 0, &app->queue[GRAPHICS]);
+    vkGetDeviceQueue(app->device, app->queue_index[PRESENT], 0, &app->queue[PRESENT]);
 }
 
 void
@@ -255,7 +315,6 @@ appInit(App *app, Platform *platform)
 
 #if CF_DEBUG
     // Add debug layer
-    Cstr layers[] = {"VK_LAYER_KHRONOS_validation"};
     inst_info.ppEnabledLayerNames = layers;
     inst_info.enabledLayerCount = CF_ARRAY_SIZE(layers);
     // Add debug extension
@@ -290,6 +349,21 @@ appInit(App *app, Platform *platform)
 
     // Choose a suitable GPU for rendering
     appPickGpu(app);
+
+    // Create a logical device with associated graphics and presentation queues
+    appCreateLogicalDevice(app);
+}
+
+void
+appShutdown(App *app)
+{
+    vkDestroyDevice(app->device, app->vkalloc);
+    vkDestroySurfaceKHR(app->inst, app->surface, app->vkalloc);
+    vkDestroyDebugUtilsMessengerEXT(app->inst, app->debug, app->vkalloc);
+    vkDestroyInstance(app->inst, app->vkalloc);
+
+    glfwDestroyWindow(app->window);
+    glfwTerminate();
 }
 
 void
@@ -299,15 +373,4 @@ appMainLoop(App *app)
     {
         glfwPollEvents();
     }
-}
-
-void
-appShutdown(App *app)
-{
-    vkDestroySurfaceKHR(app->inst, app->surface, app->vkalloc);
-    vkDestroyDebugUtilsMessengerEXT(app->inst, app->debug, app->vkalloc);
-    vkDestroyInstance(app->inst, app->vkalloc);
-
-    glfwDestroyWindow(app->window);
-    glfwTerminate();
 }
