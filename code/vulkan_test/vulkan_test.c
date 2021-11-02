@@ -445,16 +445,14 @@ static VkShaderModule
 appCreateShaderModule(App *app, U32 const *code, Usize code_size)
 {
     VkShaderModule module;
-
-    VkShaderModuleCreateInfo shader_info = {
-        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-    };
-
-    shader_info.pCode = code;
-    shader_info.codeSize = sizeof(code_size);
-    VkResult res = vkCreateShaderModule(app->device, &shader_info, app->vkalloc, &module);
+    VkResult res = vkCreateShaderModule(app->device,
+                                        &(VkShaderModuleCreateInfo){
+                                            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+                                            .pCode = code,
+                                            .codeSize = sizeof(code_size),
+                                        },
+                                        app->vkalloc, &module);
     appCheckResult(app, res);
-
     return module;
 }
 
