@@ -36,6 +36,7 @@ typedef struct App
     VkSurfaceKHR surface;
     VkPhysicalDevice gpu;
     VkDevice device;
+    VkSwapchainKHR swapchain;
 
     U32 queue_index[2];
     VkQueue queue[2];
@@ -276,6 +277,123 @@ appCreateLogicalDevice(App *app)
     vkGetDeviceQueue(app->device, app->queue_index[PRESENT], 0, &app->queue[PRESENT]);
 }
 
+static void
+appCreateSwapchain(App *app)
+{
+
+    VkSurfaceCapabilitiesKHR caps;
+    VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(app->gpu, app->surface, &caps);
+    appCheckResult(app, res);
+
+    VkSwapchainCreateInfoKHR info = {
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .surface = app->surface,
+        .oldSwapchain = VK_NULL_HANDLE, // TODO (Matteo): Handle swapchain update
+        .imageArrayLayers = 1,
+        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .preTransform = caps.currentTransform,
+        .clipped = VK_TRUE,
+        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+    };
+
+    // NOTE (Matteo): In case the present and graphics queues differ, we allow them to share the
+    // swapchain images concurrently
+    if (app->queue_index[GRAPHICS] != app->queue_index[PRESENT])
+    {
+        info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        info.pQueueFamilyIndices = app->queue_index;
+        info.queueFamilyIndexCount = 2;
+    }
+    else
+    {
+        info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    }
+
+    // Retrieve best surface format
+    {
+        U32 num_formats;
+        res = vkGetPhysicalDeviceSurfaceFormatsKHR(app->gpu, app->surface, &num_formats, NULL);
+        appCheckResult(app, res);
+
+        // TODO (Matteo): Use this check for GPU picking
+        if (num_formats == 0) appTerminate(app, "GPU does not support swapchain");
+
+        VkSurfaceFormatKHR *formats =
+            memAllocArray(app->allocator, VkSurfaceFormatKHR, num_formats);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(app->gpu, app->surface, &num_formats, formats);
+
+        U32 format_index = 0;
+
+        for (U32 index = 0; index < num_formats; ++index)
+        {
+            if (formats[index].format == VK_FORMAT_B8G8R8A8_SRGB &&
+                formats[index].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            {
+                format_index = index;
+                break;
+            }
+        }
+
+        info.imageFormat = formats[format_index].format;
+        info.imageColorSpace = formats[format_index].colorSpace;
+
+        memFreeArray(app->allocator, formats, num_formats);
+    }
+
+    // Retrieve best presentation mode
+    info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+    {
+        U32 num_modes;
+
+        res = vkGetPhysicalDeviceSurfacePresentModesKHR(app->gpu, app->surface, &num_modes, NULL);
+        appCheckResult(app, res);
+
+        // TODO (Matteo): Use this check for GPU picking
+        if (num_modes == 0) appTerminate(app, "GPU does not support swapchain");
+
+        VkPresentModeKHR *modes = memAllocArray(app->allocator, VkPresentModeKHR, num_modes);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(app->gpu, app->surface, &num_modes, modes);
+
+        for (U32 index = 0; index < num_modes; ++index)
+        {
+            if (modes[index] == VK_PRESENT_MODE_MAILBOX_KHR)
+            {
+                info.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+                break;
+            }
+        }
+        memFreeArray(app->allocator, modes, num_modes);
+    }
+
+    // Retrieve swapchain extent
+    info.imageExtent = caps.currentExtent;
+    if (info.imageExtent.width == U32_MAX)
+    {
+        // NOTE (Matteo): This means the current extent is unknown, so we must set it to the
+        // framebuffer size
+        CF_ASSERT(info.imageExtent.height == U32_MAX, "Inconsistent current extent");
+
+        I32 width, height;
+        glfwGetFramebufferSize(app->window, &width, &height);
+
+        info.imageExtent.width =
+            cfClamp((U32)width, caps.minImageExtent.width, caps.maxImageExtent.width);
+        info.imageExtent.height =
+            cfClamp((U32)height, caps.minImageExtent.height, caps.maxImageExtent.height);
+    }
+
+    // NOTE (Matteo): Request one image more than the minimum to avoid excessive waiting on the
+    // driver
+    info.minImageCount = caps.minImageCount + 1;
+    if (caps.maxImageCount > 0 && info.minImageCount > caps.maxImageCount)
+    {
+        info.minImageCount = caps.maxImageCount;
+    }
+
+    res = vkCreateSwapchainKHR(app->device, &info, app->vkalloc, &app->swapchain);
+    appCheckResult(app, res);
+}
+
 void
 appInit(App *app, Platform *platform)
 {
@@ -352,11 +470,14 @@ appInit(App *app, Platform *platform)
 
     // Create a logical device with associated graphics and presentation queues
     appCreateLogicalDevice(app);
+
+    appCreateSwapchain(app);
 }
 
 void
 appShutdown(App *app)
 {
+    vkDestroySwapchainKHR(app->device, app->swapchain, app->vkalloc);
     vkDestroyDevice(app->device, app->vkalloc);
     vkDestroySurfaceKHR(app->inst, app->surface, app->vkalloc);
     vkDestroyDebugUtilsMessengerEXT(app->inst, app->debug, app->vkalloc);
