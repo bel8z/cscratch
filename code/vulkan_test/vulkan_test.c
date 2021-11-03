@@ -98,9 +98,50 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     return 0;
 }
 
-//---------------//
-//   App logic   //
-//---------------//
+//------------------------//
+//   Vulkan debug layer   //
+//------------------------//
+
+VkResult
+vkCreateDebugUtilsMessengerEXT(VkInstance instance,
+                               VkDebugUtilsMessengerCreateInfoEXT const *pCreateInfo,
+                               VkAllocationCallbacks const *pAllocator,
+                               VkDebugUtilsMessengerEXT *pDebugMessenger)
+{
+#if CF_DEBUG
+    PFN_vkCreateDebugUtilsMessengerEXT func =
+        (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance,
+                                                                  "vkCreateDebugUtilsMessengerEXT");
+    if (func) return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
+#else
+    CF_UNUSED(instance);
+    CF_UNUSED(pCreateInfo);
+    CF_UNUSED(pAllocator);
+    CF_UNUSED(pDebugMessenger);
+    return VK_SUCCESS;
+#endif
+}
+
+void
+vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+                                VkAllocationCallbacks const *pAllocator)
+{
+#if CF_DEBUG
+    PFN_vkDestroyDebugUtilsMessengerEXT func =
+        (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+            instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func) func(instance, debugMessenger, pAllocator);
+#else
+    CF_UNUSED(instance);
+    CF_UNUSED(pDebugMessenger);
+    CF_UNUSED(pAllocator);
+#endif
+}
+
+//---------------------//
+//   App diagnostics   //
+//---------------------//
 
 CF_PRINTF_LIKE(1, 2)
 static void
@@ -159,41 +200,24 @@ appDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
     return VK_FALSE;
 }
 
-VkResult
-vkCreateDebugUtilsMessengerEXT(VkInstance instance,
-                               VkDebugUtilsMessengerCreateInfoEXT const *pCreateInfo,
-                               VkAllocationCallbacks const *pAllocator,
-                               VkDebugUtilsMessengerEXT *pDebugMessenger)
+//--------------------------------//
+//   Initialization / Shutdown    //
+//--------------------------------//
+
+static inline VkExtent2D
+extentClamp(VkExtent2D value, VkExtent2D min, VkExtent2D max)
 {
-#if CF_DEBUG
-    PFN_vkCreateDebugUtilsMessengerEXT func =
-        (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance,
-                                                                  "vkCreateDebugUtilsMessengerEXT");
-    if (func) return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
-#else
-    CF_UNUSED(instance);
-    CF_UNUSED(pCreateInfo);
-    CF_UNUSED(pAllocator);
-    CF_UNUSED(pDebugMessenger);
-    return VK_SUCCESS;
-#endif
+    value.width = cfClamp(value.width, min.width, max.width);
+    value.height = cfClamp(value.height, min.height, max.height);
+    return value;
 }
 
-void
-vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
-                                VkAllocationCallbacks const *pAllocator)
+static VkExtent2D
+appGetFrameSize(App *app)
 {
-#if CF_DEBUG
-    PFN_vkDestroyDebugUtilsMessengerEXT func =
-        (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-            instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (func) func(instance, debugMessenger, pAllocator);
-#else
-    CF_UNUSED(instance);
-    CF_UNUSED(pDebugMessenger);
-    CF_UNUSED(pAllocator);
-#endif
+    I32 width, height;
+    glfwGetFramebufferSize(app->window, &width, &height);
+    return (VkExtent2D){.height = (U32)height, .width = (U32)width};
 }
 
 static void
@@ -310,12 +334,26 @@ appCreateSwapchain(App *app)
     VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(app->gpu, app->surface, &caps);
     appCheckResult(app, res);
 
+    // Retrieve swapchain extent
+    swapchain->extent = caps.currentExtent;
+    if (swapchain->extent.width == U32_MAX)
+    {
+        // NOTE (Matteo): This means the current extent is unknown, so we must set it to the
+        // framebuffer size
+        CF_ASSERT(swapchain->extent.height == U32_MAX, "Inconsistent current extent");
+
+        swapchain->extent =
+            extentClamp(appGetFrameSize(app), caps.minImageExtent, caps.maxImageExtent);
+    }
+
+    // Prepare swapchain parameters
     VkSwapchainCreateInfoKHR info = {
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .surface = app->surface,
         .oldSwapchain = VK_NULL_HANDLE, // TODO (Matteo): Handle swapchain update
         .imageArrayLayers = 1,
         .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .imageExtent = swapchain->extent,
         .preTransform = caps.currentTransform,
         .clipped = VK_TRUE,
         .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
@@ -391,24 +429,6 @@ appCreateSwapchain(App *app)
         }
         memFreeArray(app->allocator, modes, num_modes);
     }
-
-    // Retrieve swapchain extent
-    swapchain->extent = caps.currentExtent;
-    if (info.imageExtent.width == U32_MAX)
-    {
-        // NOTE (Matteo): This means the current extent is unknown, so we must set it to the
-        // framebuffer size
-        CF_ASSERT(info.imageExtent.height == U32_MAX, "Inconsistent current extent");
-
-        I32 width, height;
-        glfwGetFramebufferSize(app->window, &width, &height);
-
-        swapchain->extent.width =
-            cfClamp((U32)width, caps.minImageExtent.width, caps.maxImageExtent.width);
-        swapchain->extent.height =
-            cfClamp((U32)height, caps.minImageExtent.height, caps.maxImageExtent.height);
-    }
-    info.imageExtent = swapchain->extent;
 
     // NOTE (Matteo): Request one image more than the minimum to avoid excessive waiting on the
     // driver
@@ -789,6 +809,10 @@ appShutdown(App *app)
     glfwDestroyWindow(app->window);
     glfwTerminate();
 }
+
+//---------------//
+//   App logic   //
+//---------------//
 
 void
 appMainLoop(App *app)
