@@ -24,6 +24,15 @@ enum
     PRESENT,
 };
 
+typedef struct Swapchain
+{
+    VkSwapchainKHR handle;
+    VkExtent2D extent;
+    VkImageView image[4];
+    U32 image_count;
+    VkFormat format;
+} Swapchain;
+
 typedef struct App
 {
     MemAllocator allocator;
@@ -40,12 +49,11 @@ typedef struct App
     VkQueue queue[2];
     U32 queue_index[2];
 
-    VkSwapchainKHR swapchain;
-    VkExtent2D swapchain_extent;
-    VkImageView image[4];
-    U32 image_count;
+    Swapchain swapchain;
 
+    VkRenderPass render_pass;
     VkPipelineLayout pipe_layout;
+    VkPipeline pipe;
 
 } App;
 
@@ -295,6 +303,8 @@ appCreateLogicalDevice(App *app)
 static void
 appCreateSwapchain(App *app)
 {
+    Swapchain *swapchain = &app->swapchain;
+
     VkSurfaceCapabilitiesKHR caps;
     VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(app->gpu, app->surface, &caps);
     appCheckResult(app, res);
@@ -352,6 +362,8 @@ appCreateSwapchain(App *app)
         info.imageColorSpace = formats[format_index].colorSpace;
 
         memFreeArray(app->allocator, formats, num_formats);
+
+        swapchain->format = info.imageFormat;
     }
 
     // Retrieve best presentation mode
@@ -380,7 +392,7 @@ appCreateSwapchain(App *app)
     }
 
     // Retrieve swapchain extent
-    app->swapchain_extent = caps.currentExtent;
+    swapchain->extent = caps.currentExtent;
     if (info.imageExtent.width == U32_MAX)
     {
         // NOTE (Matteo): This means the current extent is unknown, so we must set it to the
@@ -390,12 +402,12 @@ appCreateSwapchain(App *app)
         I32 width, height;
         glfwGetFramebufferSize(app->window, &width, &height);
 
-        app->swapchain_extent.width =
+        swapchain->extent.width =
             cfClamp((U32)width, caps.minImageExtent.width, caps.maxImageExtent.width);
-        app->swapchain_extent.height =
+        swapchain->extent.height =
             cfClamp((U32)height, caps.minImageExtent.height, caps.maxImageExtent.height);
     }
-    info.imageExtent = app->swapchain_extent;
+    info.imageExtent = swapchain->extent;
 
     // NOTE (Matteo): Request one image more than the minimum to avoid excessive waiting on the
     // driver
@@ -405,27 +417,28 @@ appCreateSwapchain(App *app)
         info.minImageCount = caps.maxImageCount;
     }
 
-    res = vkCreateSwapchainKHR(app->device, &info, app->vkalloc, &app->swapchain);
+    res = vkCreateSwapchainKHR(app->device, &info, app->vkalloc, &swapchain->handle);
     appCheckResult(app, res);
 
     // Create image views
     {
-        res = vkGetSwapchainImagesKHR(app->device, app->swapchain, &app->image_count, NULL);
+        res =
+            vkGetSwapchainImagesKHR(app->device, swapchain->handle, &swapchain->image_count, NULL);
         appCheckResult(app, res);
 
-        if (app->image_count > CF_ARRAY_SIZE(app->image))
+        if (swapchain->image_count > CF_ARRAY_SIZE(swapchain->image))
         {
             appTerminate(app, "%u swap chain images requested but %llu available\n",
-                         app->image_count, CF_ARRAY_SIZE(app->image));
+                         swapchain->image_count, CF_ARRAY_SIZE(swapchain->image));
         }
 
-        VkImage images[CF_ARRAY_SIZE(app->image)];
-        vkGetSwapchainImagesKHR(app->device, app->swapchain, &app->image_count, images);
+        VkImage images[CF_ARRAY_SIZE(swapchain->image)];
+        vkGetSwapchainImagesKHR(app->device, swapchain->handle, &swapchain->image_count, images);
 
         VkImageViewCreateInfo image_info = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = info.imageFormat,
+            .format = swapchain->format,
             .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
             .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
             .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -437,13 +450,60 @@ appCreateSwapchain(App *app)
             .subresourceRange.layerCount = 1,
         };
 
-        for (U32 index = 0; index < app->image_count; ++index)
+        for (U32 index = 0; index < swapchain->image_count; ++index)
         {
             image_info.image = images[index];
-            res = vkCreateImageView(app->device, &image_info, app->vkalloc, app->image + index);
+            res =
+                vkCreateImageView(app->device, &image_info, app->vkalloc, swapchain->image + index);
             appCheckResult(app, res);
         }
     }
+}
+
+static void
+appCreateRenderPass(App *app)
+{
+    VkAttachmentDescription color = {
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .format = app->swapchain.format,
+        // Clear before rendering
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        // Preserve color for presentation
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        // TODO (Matteo): Revisit - Stencil is unused for now
+        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        // Don't care about the initial layout of the image
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        // The final layout is meant for presentation
+        .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+
+    };
+
+    // Every subpass references one or more of the attachments that we've described using the
+    // previous structure. In this case the color attachment is meant to be drawn upon during the
+    // render pass, so its layout must transition to COLOR_ATTACHMENT_OPTIMAL.
+    VkAttachmentReference color_ref = {
+        .attachment = 0, // layout(location = 0) in the shader
+        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    };
+
+    VkSubpassDescription subpass = {
+        .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+        .pColorAttachments = &color_ref,
+        .colorAttachmentCount = 1,
+    };
+
+    VkRenderPassCreateInfo info = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+        .pAttachments = &color,
+        .attachmentCount = 1,
+        .pSubpasses = &subpass,
+        .subpassCount = 1,
+    };
+
+    VkResult res = vkCreateRenderPass(app->device, &info, app->vkalloc, &app->render_pass);
+    appCheckResult(app, res);
 }
 
 static VkShaderModule
@@ -454,7 +514,7 @@ appCreateShaderModule(App *app, U32 const *code, Usize code_size)
                                         &(VkShaderModuleCreateInfo){
                                             .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
                                             .pCode = code,
-                                            .codeSize = sizeof(code_size),
+                                            .codeSize = code_size,
                                         },
                                         app->vkalloc, &module);
     appCheckResult(app, res);
@@ -464,6 +524,8 @@ appCreateShaderModule(App *app, U32 const *code, Usize code_size)
 static void
 appCreatePipeline(App *app)
 {
+    VkResult res;
+
     VkShaderModule frag = appCreateShaderModule(app, frag_blob, sizeof(frag_blob));
     VkShaderModule vert = appCreateShaderModule(app, vert_blob, sizeof(vert_blob));
 
@@ -496,12 +558,12 @@ appCreatePipeline(App *app)
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         .pViewports = &(VkViewport){.x = 0,
                                     .y = 0,
-                                    .width = (F32)app->swapchain_extent.width,
-                                    .height = (F32)app->swapchain_extent.height,
+                                    .width = (F32)app->swapchain.extent.width,
+                                    .height = (F32)app->swapchain.extent.height,
                                     .minDepth = 0,
                                     .maxDepth = 1},
         .viewportCount = 1,
-        .pScissors = &(VkRect2D){.offset = {0, 0}, .extent = app->swapchain_extent},
+        .pScissors = &(VkRect2D){.offset = {0, 0}, .extent = app->swapchain.extent},
         .scissorCount = 1,
     };
 
@@ -576,8 +638,7 @@ appCreatePipeline(App *app)
         .setLayoutCount = 0,
     };
 
-    VkResult res =
-        vkCreatePipelineLayout(app->device, &layout_info, app->vkalloc, &app->pipe_layout);
+    res = vkCreatePipelineLayout(app->device, &layout_info, app->vkalloc, &app->pipe_layout);
     appCheckResult(app, res);
 
     VkGraphicsPipelineCreateInfo pipe_info = {
@@ -593,9 +654,13 @@ appCreatePipeline(App *app)
         .pColorBlendState = &blend,
         .pDynamicState = &dynamic_state,
         .layout = app->pipe_layout,
+        .renderPass = app->render_pass,
+        .subpass = 0,
     };
 
-    CF_UNUSED(pipe_info);
+    res = vkCreateGraphicsPipelines(app->device, VK_NULL_HANDLE, 1, &pipe_info, app->vkalloc,
+                                    &app->pipe);
+    appCheckResult(app, res);
 
     vkDestroyShaderModule(app->device, frag, app->vkalloc);
     vkDestroyShaderModule(app->device, vert, app->vkalloc);
@@ -679,21 +744,23 @@ appInit(App *app, Platform *platform)
     appCreateLogicalDevice(app);
 
     appCreateSwapchain(app);
-
+    appCreateRenderPass(app);
     appCreatePipeline(app);
 }
 
 void
 appShutdown(App *app)
 {
+    vkDestroyPipeline(app->device, app->pipe, app->vkalloc);
     vkDestroyPipelineLayout(app->device, app->pipe_layout, app->vkalloc);
+    vkDestroyRenderPass(app->device, app->render_pass, app->vkalloc);
 
-    for (U32 index = 0; index < app->image_count; ++index)
+    for (U32 index = 0; index < app->swapchain.image_count; ++index)
     {
-        vkDestroyImageView(app->device, app->image[index], app->vkalloc);
+        vkDestroyImageView(app->device, app->swapchain.image[index], app->vkalloc);
     }
 
-    vkDestroySwapchainKHR(app->device, app->swapchain, app->vkalloc);
+    vkDestroySwapchainKHR(app->device, app->swapchain.handle, app->vkalloc);
     vkDestroyDevice(app->device, app->vkalloc);
     vkDestroySurfaceKHR(app->inst, app->surface, app->vkalloc);
     vkDestroyDebugUtilsMessengerEXT(app->inst, app->debug, app->vkalloc);
