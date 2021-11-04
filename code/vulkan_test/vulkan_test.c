@@ -1,6 +1,7 @@
 #include "platform.h"
 
 // Backend libraries
+#define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
@@ -105,7 +106,6 @@ static VkDynamicState const g_dynamic_states[] = {
 I32
 platformMain(Platform *platform, CommandLine *cmd_line)
 {
-    CF_UNUSED(platform);
     CF_UNUSED(cmd_line);
 
     App app = {0};
@@ -828,6 +828,7 @@ appInit(App *app, Platform *platform)
     // Create a logical device with associated graphics and presentation queues
     appCreateLogicalDevice(app);
 
+    // Setup rendering swapchain and pipeline
     appCreateSwapchain(app);
     appCreateRenderPass(app);
     appCreatePipeline(app);
