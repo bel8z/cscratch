@@ -28,8 +28,9 @@ typedef struct Swapchain
 {
     VkSwapchainKHR handle;
     VkExtent2D extent;
-    VkImageView image[4];
-    VkFramebuffer frame[4];
+    VkImageView image[3];
+    VkFramebuffer frame[3];
+    VkCommandBuffer cmd[3];
     U32 image_count;
     VkFormat format;
 } Swapchain;
@@ -56,21 +57,33 @@ typedef struct App
     VkPipelineLayout pipe_layout;
     VkPipeline pipe;
 
+    VkCommandPool cmd_pool;
+
 } App;
-
-static Cstr const layers[] = {"VK_LAYER_KHRONOS_validation"};
-
-static U32 const frag_blob[] = {
-#include "frag.spv"
-};
-
-static U32 const vert_blob[] = {
-#include "vert.spv"
-};
 
 static void appInit(App *app, Platform *platform);
 static void appShutdown(App *app);
 static void appMainLoop(App *app);
+
+//-------------//
+//   Globals   //
+//-------------//
+
+static Cstr const g_layers[] = {"VK_LAYER_KHRONOS_validation"};
+
+static U32 const g_frag_blob[] = {
+#include "frag.spv"
+};
+
+static U32 const g_vert_blob[] = {
+#include "vert.spv"
+};
+
+// Configure the pipeline state that can change dynamically
+VkDynamicState g_dynamic_states[] = {
+    // VK_DYNAMIC_STATE_VIEWPORT,
+    VK_DYNAMIC_STATE_LINE_WIDTH,
+};
 
 //-----------------//
 //   Entry point   //
@@ -313,8 +326,8 @@ appCreateLogicalDevice(App *app)
         .pQueueCreateInfos = queue_info,
         .queueCreateInfoCount = queue_count,
 #if CF_DEBUG
-        .ppEnabledLayerNames = layers,
-        .enabledLayerCount = CF_ARRAY_SIZE(layers),
+        .ppEnabledLayerNames = g_layers,
+        .enabledLayerCount = CF_ARRAY_SIZE(g_layers),
 #endif
     };
 
@@ -506,21 +519,16 @@ appCreateShaderModule(App *app, U32 const *code, Usize code_size)
 static void
 appCreatePipeline(App *app)
 {
-    VkResult res;
-
-    VkShaderModule frag = appCreateShaderModule(app, frag_blob, sizeof(frag_blob));
-    VkShaderModule vert = appCreateShaderModule(app, vert_blob, sizeof(vert_blob));
-
     VkPipelineShaderStageCreateInfo stage_info[2] = {
         {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .module = vert,
+            .module = appCreateShaderModule(app, g_vert_blob, sizeof(g_vert_blob)),
             .pName = "main",
             .stage = VK_SHADER_STAGE_VERTEX_BIT,
         },
         {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .module = frag,
+            .module = appCreateShaderModule(app, g_frag_blob, sizeof(g_frag_blob)),
             .pName = "main",
             .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
         },
@@ -602,16 +610,10 @@ appCreatePipeline(App *app)
         .blendConstants[3] = 0.0f, // Optional
     };
 
-    // Configure the pipeline state that can change dynamically
-    VkDynamicState dynamic_states[] = {
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_LINE_WIDTH,
-    };
-
     VkPipelineDynamicStateCreateInfo dynamic_state = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-        .dynamicStateCount = CF_ARRAY_SIZE(dynamic_states),
-        .pDynamicStates = dynamic_states,
+        .dynamicStateCount = CF_ARRAY_SIZE(g_dynamic_states),
+        .pDynamicStates = g_dynamic_states,
     };
 
     // TODO (Matteo): Revisit - Creating an empty layout for now
@@ -620,7 +622,8 @@ appCreatePipeline(App *app)
         .setLayoutCount = 0,
     };
 
-    res = vkCreatePipelineLayout(app->device, &layout_info, app->vkalloc, &app->pipe_layout);
+    VkResult res =
+        vkCreatePipelineLayout(app->device, &layout_info, app->vkalloc, &app->pipe_layout);
     appCheckResult(app, res);
 
     VkGraphicsPipelineCreateInfo pipe_info = {
@@ -644,8 +647,8 @@ appCreatePipeline(App *app)
                                     &app->pipe);
     appCheckResult(app, res);
 
-    vkDestroyShaderModule(app->device, frag, app->vkalloc);
-    vkDestroyShaderModule(app->device, vert, app->vkalloc);
+    vkDestroyShaderModule(app->device, stage_info[0].module, app->vkalloc);
+    vkDestroyShaderModule(app->device, stage_info[1].module, app->vkalloc);
 }
 
 static void
@@ -702,6 +705,47 @@ appCreateFrameBuffers(App *app)
     }
 }
 
+static void
+appRecordCommandBuffers(App *app)
+{
+    Swapchain *swapchain = &app->swapchain;
+
+    for (U32 index = 0; index < swapchain->image_count; ++index)
+    {
+        VkCommandBufferBeginInfo begin_info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        };
+
+        VkClearValue clear_color = {.color = {{0.0f, 0.0f, 0.0f, 1.0f}}};
+
+        VkRenderPassBeginInfo pass_info = {
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+            .renderPass = app->render_pass,
+            .framebuffer = swapchain->frame[index],
+            .clearValueCount = 1,
+            .pClearValues = &clear_color,
+            .renderArea = {.offset = {0, 0}, .extent = swapchain->extent},
+        };
+
+        VkResult res = vkBeginCommandBuffer(swapchain->cmd[index], &begin_info);
+        appCheckResult(app, res);
+
+        vkCmdBeginRenderPass(swapchain->cmd[index], &pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(swapchain->cmd[index], VK_PIPELINE_BIND_POINT_GRAPHICS, app->pipe);
+
+        vkCmdDraw(swapchain->cmd[index],
+                  3, // Vertex number
+                  1, // Instance number - Use 1 if not using instanced rendering
+                  0, // First vertex - lowest value for 'gl_VertexIndex'
+                  0  // First instance - lowest value for 'gl_InstanceIndex'
+        );
+
+        vkCmdEndRenderPass(swapchain->cmd[index]);
+        vkEndCommandBuffer(swapchain->cmd[index]);
+    }
+}
+
 void
 appInit(App *app, Platform *platform)
 {
@@ -741,8 +785,8 @@ appInit(App *app, Platform *platform)
 
 #if CF_DEBUG
     // Add debug layer
-    inst_info.ppEnabledLayerNames = layers;
-    inst_info.enabledLayerCount = CF_ARRAY_SIZE(layers);
+    inst_info.ppEnabledLayerNames = g_layers;
+    inst_info.enabledLayerCount = CF_ARRAY_SIZE(g_layers);
     // Add debug extension
     extensions[num_extensions++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 #endif
@@ -783,11 +827,32 @@ appInit(App *app, Platform *platform)
     appCreateRenderPass(app);
     appCreatePipeline(app);
     appCreateFrameBuffers(app);
+
+    // Create command buffers
+    {
+        VkCommandPoolCreateInfo pool_info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .queueFamilyIndex = app->queue_index[GRAPHICS],
+        };
+        res = vkCreateCommandPool(app->device, &pool_info, app->vkalloc, &app->cmd_pool);
+        appCheckResult(app, res);
+
+        VkCommandBufferAllocateInfo cmd_info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool = app->cmd_pool,
+            .commandBufferCount = app->swapchain.image_count,
+        };
+        res = vkAllocateCommandBuffers(app->device, &cmd_info, app->swapchain.cmd);
+    }
+
+    // Record command buffers
+    appRecordCommandBuffers(app);
 }
 
 void
 appShutdown(App *app)
 {
+    vkDestroyCommandPool(app->device, app->cmd_pool, app->vkalloc);
 
     vkDestroyPipeline(app->device, app->pipe, app->vkalloc);
     vkDestroyPipelineLayout(app->device, app->pipe_layout, app->vkalloc);
