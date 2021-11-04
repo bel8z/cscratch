@@ -960,6 +960,11 @@ appDrawFrame(App *app)
 
         res = vkQueuePresentKHR(app->queue[PRESENT], &present_info);
         appCheckResult(app, res);
+
+        // TODO (Matteo): Improve - This is not optimal because the pipeline is used one frame at a
+        // time and doesn't run in parallel
+        res = vkQueueWaitIdle(app->queue[PRESENT]);
+        appCheckResult(app, res);
     }
 }
 
