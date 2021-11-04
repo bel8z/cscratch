@@ -60,6 +60,9 @@ typedef struct App
 
     VkCommandPool cmd_pool;
 
+    VkSemaphore image_available;
+    VkSemaphore render_finished;
+
 } App;
 
 static void appInit(App *app, Platform *platform);
@@ -494,12 +497,26 @@ appCreateRenderPass(App *app)
         .colorAttachmentCount = 1,
     };
 
+    VkSubpassDependency dependency = {
+        // Synchronize the implicit subpass before our subpass
+        .srcSubpass = VK_SUBPASS_EXTERNAL,
+        .dstSubpass = 0,
+        // Wait the swapchain to finish reading from the image before to start writing onto it.
+        // The operations are in the color attachment stage.
+        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .srcAccessMask = 0,
+        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+    };
+
     VkRenderPassCreateInfo info = {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         .pAttachments = &color,
         .attachmentCount = 1,
         .pSubpasses = &subpass,
         .subpassCount = 1,
+        .pDependencies = &dependency,
+        .dependencyCount = 1,
     };
 
     VkResult res = vkCreateRenderPass(app->device, &info, app->vkalloc, &app->render_pass);
@@ -572,7 +589,7 @@ appCreatePipeline(App *app)
         .frontFace = VK_FRONT_FACE_CLOCKWISE,
     };
 
-    // NOTE (Matteo): For now multisampling is left disabled
+    // TODO (Matteo): Revisit - For now multisampling is left disabled
     VkPipelineMultisampleStateCreateInfo multisampling = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .sampleShadingEnable = VK_FALSE,
@@ -852,11 +869,25 @@ appInit(App *app, Platform *platform)
 
     // Record command buffers
     appRecordCommandBuffers(app);
+
+    // Create semaphores
+    {
+        VkSemaphoreCreateInfo sema_info = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+        };
+        res = vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &app->image_available);
+        appCheckResult(app, res);
+        res = vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &app->render_finished);
+        appCheckResult(app, res);
+    }
 }
 
 void
 appShutdown(App *app)
 {
+    vkDestroySemaphore(app->device, app->image_available, app->vkalloc);
+    vkDestroySemaphore(app->device, app->render_finished, app->vkalloc);
+
     vkDestroyCommandPool(app->device, app->cmd_pool, app->vkalloc);
 
     vkDestroyPipeline(app->device, app->pipe, app->vkalloc);
@@ -884,11 +915,62 @@ appShutdown(App *app)
 //   App logic   //
 //---------------//
 
+static void
+appDrawFrame(App *app)
+{
+    Swapchain *swapchain = &app->swapchain;
+    VkResult res;
+
+    // Acquire the backbuffer from the swapchain
+    U32 image_index = 0;
+    res = vkAcquireNextImageKHR(app->device, swapchain->handle, U64_MAX, app->image_available,
+                                VK_NULL_HANDLE, &image_index);
+    appCheckResult(app, res);
+
+    // Submit the commands to the queue
+    {
+        VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+        VkSubmitInfo submit_info = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = 1,
+            .pCommandBuffers = swapchain->cmd + image_index,
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &app->image_available,
+            .pWaitDstStageMask = &wait_stage,
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores = &app->render_finished,
+        };
+
+        res = vkQueueSubmit(app->queue[GRAPHICS], 1, &submit_info, VK_NULL_HANDLE);
+        appCheckResult(app, res);
+    }
+
+    // Present the rendered image
+    {
+        VkPresentInfoKHR present_info = {
+            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &app->render_finished,
+            .swapchainCount = 1,
+            .pSwapchains = &swapchain->handle,
+            .pImageIndices = &image_index,
+
+        };
+
+        res = vkQueuePresentKHR(app->queue[PRESENT], &present_info);
+        appCheckResult(app, res);
+    }
+}
+
 void
 appMainLoop(App *app)
 {
     while (!glfwWindowShouldClose(app->window))
     {
         glfwPollEvents();
+        appDrawFrame(app);
     }
+
+    vkDeviceWaitIdle(app->device);
 }
