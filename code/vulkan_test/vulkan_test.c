@@ -715,28 +715,27 @@ appRecordCommandBuffers(App *app)
 {
     Swapchain *swapchain = &app->swapchain;
 
+    VkClearValue clear_color = {.color = {{0.0f, 0.0f, 0.0f, 1.0f}}};
+
+    VkCommandBufferBeginInfo cmd_begin_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+    };
+
+    VkRenderPassBeginInfo pass_begin_info = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .renderPass = app->render_pass,
+        .renderArea = {.offset = {0, 0}, .extent = swapchain->extent},
+        .pClearValues = &clear_color,
+        .clearValueCount = 1,
+    };
+
     for (U32 index = 0; index < swapchain->image_count; ++index)
     {
-        VkCommandBufferBeginInfo begin_info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        };
-
-        VkClearValue clear_color = {.color = {{0.0f, 0.0f, 0.0f, 1.0f}}};
-
-        VkRenderPassBeginInfo pass_info = {
-            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            .renderPass = app->render_pass,
-            .framebuffer = swapchain->frame[index],
-            .clearValueCount = 1,
-            .pClearValues = &clear_color,
-            .renderArea = {.offset = {0, 0}, .extent = swapchain->extent},
-        };
-
-        VkResult res = vkBeginCommandBuffer(swapchain->cmd[index], &begin_info);
+        VkResult res = vkBeginCommandBuffer(swapchain->cmd[index], &cmd_begin_info);
         appCheckResult(app, res);
 
-        vkCmdBeginRenderPass(swapchain->cmd[index], &pass_info, VK_SUBPASS_CONTENTS_INLINE);
-
+        pass_begin_info.framebuffer = swapchain->frame[index];
+        vkCmdBeginRenderPass(swapchain->cmd[index], &pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(swapchain->cmd[index], VK_PIPELINE_BIND_POINT_GRAPHICS, app->pipe);
 
         vkCmdDraw(swapchain->cmd[index],
