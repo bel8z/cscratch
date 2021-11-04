@@ -69,18 +69,23 @@ static void appMainLoop(App *app);
 //   Globals   //
 //-------------//
 
-static Cstr const g_layers[] = {"VK_LAYER_KHRONOS_validation"};
-
-static U32 const g_frag_blob[] = {
+// Fragment sharder bytecode
+static U32 const g_frag_code[] = {
 #include "frag.spv"
 };
 
-static U32 const g_vert_blob[] = {
+// Vertex sharder bytecode
+static U32 const g_vert_code[] = {
 #include "vert.spv"
 };
 
+// Vulkan debug layers
+static Cstr const g_layers[] = {
+    "VK_LAYER_KHRONOS_validation",
+};
+
 // Configure the pipeline state that can change dynamically
-VkDynamicState g_dynamic_states[] = {
+static VkDynamicState const g_dynamic_states[] = {
     // VK_DYNAMIC_STATE_VIEWPORT,
     VK_DYNAMIC_STATE_LINE_WIDTH,
 };
@@ -522,13 +527,13 @@ appCreatePipeline(App *app)
     VkPipelineShaderStageCreateInfo stage_info[2] = {
         {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .module = appCreateShaderModule(app, g_vert_blob, sizeof(g_vert_blob)),
+            .module = appCreateShaderModule(app, g_vert_code, sizeof(g_vert_code)),
             .pName = "main",
             .stage = VK_SHADER_STAGE_VERTEX_BIT,
         },
         {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .module = appCreateShaderModule(app, g_frag_blob, sizeof(g_frag_blob)),
+            .module = appCreateShaderModule(app, g_frag_code, sizeof(g_frag_code)),
             .pName = "main",
             .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
         },
