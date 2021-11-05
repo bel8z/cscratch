@@ -271,6 +271,13 @@ appDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
     return VK_FALSE;
 }
 
+static void
+guiCheckResult(VkResult result)
+{
+    App *app = guiUserData();
+    appCheckResult(app, result);
+}
+
 //--------------------------------//
 //   Initialization / Shutdown    //
 //--------------------------------//
@@ -831,7 +838,11 @@ appInitGui(App *app, Platform *platform)
     pathChangeExt(strFromCstr(gui_ini), strLiteral(".gui"), gui_ini);
 
     // Setup Dear ImGui context
-    platform->gui = &(Gui){.alloc = &platform->heap, .ini_filename = gui_ini};
+    platform->gui = &(Gui){
+        .alloc = &platform->heap,
+        .ini_filename = gui_ini,
+        .user_data = app,
+    };
     guiInit(platform->gui);
 #if CF_COMPILER_MSVC
 #    pragma warning(pop)
@@ -1048,6 +1059,7 @@ appSetupGuiRendering(App *app)
             .ImageCount = app->swapchain.image_count,
             .DescriptorPool = app->imgui_pool,
             .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
+            .CheckVkResultFn = guiCheckResult,
         };
 
         ImGui_ImplVulkan_Init(&imgui_info, app->render_pass);
