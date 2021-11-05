@@ -31,12 +31,21 @@ typedef struct Swapchain
     VkExtent2D extent;
     VkImageView image[3];
     VkFramebuffer frame[3];
-    VkCommandBuffer cmd[3];
     VkFence fence[3];
     U32 image_count;
     VkFormat format;
-
 } Swapchain;
+
+typedef struct Frame
+{
+    VkCommandPool cmd_pool;
+    VkCommandBuffer cmd;
+
+    VkFence fence;
+
+    VkSemaphore image_available;
+    VkSemaphore render_finished;
+} Frame;
 
 typedef struct App
 {
@@ -60,12 +69,8 @@ typedef struct App
     VkPipelineLayout pipe_layout;
     VkPipeline pipe;
 
-    VkCommandPool cmd_pool;
-
-    VkSemaphore image_available[2];
-    VkSemaphore render_finished[2];
-    VkFence frame_fence[2];
-    U32 curr_frame;
+    Frame frames[2];
+    Usize frame_index;
 } App;
 
 static void appInit(App *app, Platform *platform);
@@ -730,46 +735,6 @@ appCreateFrameBuffers(App *app)
     }
 }
 
-static void
-appRecordCommandBuffers(App *app)
-{
-    Swapchain *swapchain = &app->swapchain;
-
-    VkClearValue clear_color = {.color = {{0.0f, 0.0f, 0.0f, 1.0f}}};
-
-    VkCommandBufferBeginInfo cmd_begin_info = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-    };
-
-    VkRenderPassBeginInfo pass_begin_info = {
-        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        .renderPass = app->render_pass,
-        .renderArea = {.offset = {0, 0}, .extent = swapchain->extent},
-        .pClearValues = &clear_color,
-        .clearValueCount = 1,
-    };
-
-    for (U32 index = 0; index < swapchain->image_count; ++index)
-    {
-        VkResult res = vkBeginCommandBuffer(swapchain->cmd[index], &cmd_begin_info);
-        appCheckResult(app, res);
-
-        pass_begin_info.framebuffer = swapchain->frame[index];
-        vkCmdBeginRenderPass(swapchain->cmd[index], &pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(swapchain->cmd[index], VK_PIPELINE_BIND_POINT_GRAPHICS, app->pipe);
-
-        vkCmdDraw(swapchain->cmd[index],
-                  3, // Vertex number
-                  1, // Instance number - Use 1 if not using instanced rendering
-                  0, // First vertex - lowest value for 'gl_VertexIndex'
-                  0  // First instance - lowest value for 'gl_InstanceIndex'
-        );
-
-        vkCmdEndRenderPass(swapchain->cmd[index]);
-        vkEndCommandBuffer(swapchain->cmd[index]);
-    }
-}
-
 void
 appInit(App *app, Platform *platform)
 {
@@ -853,61 +818,53 @@ appInit(App *app, Platform *platform)
     appCreatePipeline(app);
     appCreateFrameBuffers(app);
 
-    // Create command buffers
+    // Create frames
+    for (Usize index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
     {
+        Frame *frame = app->frames + index;
+
         VkCommandPoolCreateInfo pool_info = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .queueFamilyIndex = app->queue_index[GRAPHICS],
         };
-        res = vkCreateCommandPool(app->device, &pool_info, app->vkalloc, &app->cmd_pool);
+        res = vkCreateCommandPool(app->device, &pool_info, app->vkalloc, &frame->cmd_pool);
         appCheckResult(app, res);
 
         VkCommandBufferAllocateInfo cmd_info = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .commandPool = app->cmd_pool,
-            .commandBufferCount = app->swapchain.image_count,
+            .commandPool = frame->cmd_pool,
+            .commandBufferCount = 1,
         };
-        res = vkAllocateCommandBuffers(app->device, &cmd_info, app->swapchain.cmd);
-    }
+        res = vkAllocateCommandBuffers(app->device, &cmd_info, &frame->cmd);
 
-    // Record command buffers
-    appRecordCommandBuffers(app);
-
-    // Create semaphores
-    {
         VkSemaphoreCreateInfo sema_info = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
         VkFenceCreateInfo fence_info = {
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
             .flags = VK_FENCE_CREATE_SIGNALED_BIT,
         };
 
-        for (U32 index = 0; index < CF_ARRAY_SIZE(app->image_available); ++index)
-        {
-            res = vkCreateSemaphore(app->device, &sema_info, app->vkalloc,
-                                    app->image_available + index);
-            appCheckResult(app, res);
+        res = vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &frame->image_available);
+        appCheckResult(app, res);
 
-            res = vkCreateSemaphore(app->device, &sema_info, app->vkalloc,
-                                    app->render_finished + index);
-            appCheckResult(app, res);
+        res = vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &frame->render_finished);
+        appCheckResult(app, res);
 
-            res = vkCreateFence(app->device, &fence_info, app->vkalloc, app->frame_fence + index);
-            appCheckResult(app, res);
-        }
+        res = vkCreateFence(app->device, &fence_info, app->vkalloc, &frame->fence);
+        appCheckResult(app, res);
     }
 }
 
 void
 appShutdown(App *app)
 {
-    for (U32 index = 0; index < CF_ARRAY_SIZE(app->image_available); ++index)
+    for (U32 index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
     {
-        vkDestroySemaphore(app->device, app->image_available[index], app->vkalloc);
-        vkDestroySemaphore(app->device, app->render_finished[index], app->vkalloc);
-        vkDestroyFence(app->device, app->frame_fence[index], app->vkalloc);
+        Frame *frame = app->frames + index;
+        vkDestroySemaphore(app->device, frame->image_available, app->vkalloc);
+        vkDestroySemaphore(app->device, frame->render_finished, app->vkalloc);
+        vkDestroyFence(app->device, frame->fence, app->vkalloc);
+        vkDestroyCommandPool(app->device, frame->cmd_pool, app->vkalloc);
     }
-
-    vkDestroyCommandPool(app->device, app->cmd_pool, app->vkalloc);
 
     vkDestroyPipeline(app->device, app->pipe, app->vkalloc);
     vkDestroyPipelineLayout(app->device, app->pipe_layout, app->vkalloc);
@@ -935,29 +892,59 @@ appShutdown(App *app)
 //---------------//
 
 static void
-appDrawFrame(App *app)
+appDrawFrame(App *app, Frame *frame)
 {
-    Swapchain *swapchain = &app->swapchain;
     VkResult res;
+    Swapchain *swapchain = &app->swapchain;
 
-    // Synchronize with the graphics queue
-    vkWaitForFences(app->device, 1, app->frame_fence + app->curr_frame, VK_TRUE, UINT64_MAX);
+    // Synchronize current frame with the graphics queue
+    vkWaitForFences(app->device, 1, &frame->fence, VK_TRUE, U64_MAX);
 
-    // Acquire the backbuffer from the swapchain
+    // Request a backbuffer from the swapchain
     U32 image_index = 0;
-    res =
-        vkAcquireNextImageKHR(app->device, swapchain->handle, U64_MAX,
-                              app->image_available[app->curr_frame], VK_NULL_HANDLE, &image_index);
+    res = vkAcquireNextImageKHR(app->device, swapchain->handle, U64_MAX, frame->image_available,
+                                VK_NULL_HANDLE, &image_index);
     appCheckResult(app, res);
 
-    // Check if a previous frame is using this image (i.e. there is its fence to wait on)
-    if (swapchain->fence[image_index])
+    // Record the commands
+    // NOTE (Matteo): The commands here are static and so could be pre-recorded, but the idea is to
+    // build a more realistic setup
     {
-        vkWaitForFences(app->device, 1, swapchain->fence + image_index, VK_TRUE, U64_MAX);
-    }
+        VkClearValue clear_color = {.color = {{0.0f, 0.0f, 0.0f, 1.0f}}};
 
-    // Mark the image as now being in use by this frame
-    swapchain->fence[image_index] = app->frame_fence[app->curr_frame];
+        VkCommandBufferBeginInfo cmd_begin_info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        };
+
+        VkRenderPassBeginInfo pass_begin_info = {
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+            .renderPass = app->render_pass,
+            .renderArea = {.offset = {0, 0}, .extent = swapchain->extent},
+            .pClearValues = &clear_color,
+            .clearValueCount = 1,
+        };
+
+        res = vkResetCommandPool(app->device, frame->cmd_pool, 0);
+        appCheckResult(app, res);
+
+        res = vkBeginCommandBuffer(frame->cmd, &cmd_begin_info);
+        appCheckResult(app, res);
+
+        pass_begin_info.framebuffer = swapchain->frame[image_index];
+        vkCmdBeginRenderPass(frame->cmd, &pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(frame->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, app->pipe);
+
+        vkCmdDraw(frame->cmd,
+                  3, // Vertex number
+                  1, // Instance number - Use 1 if not using instanced rendering
+                  0, // First vertex - lowest value for 'gl_VertexIndex'
+                  0  // First instance - lowest value for 'gl_InstanceIndex'
+        );
+
+        vkCmdEndRenderPass(frame->cmd);
+        res = vkEndCommandBuffer(frame->cmd);
+        appCheckResult(app, res);
+    }
 
     // Submit the commands to the queue
     {
@@ -966,19 +953,18 @@ appDrawFrame(App *app)
         VkSubmitInfo submit_info = {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .commandBufferCount = 1,
-            .pCommandBuffers = swapchain->cmd + image_index,
+            .pCommandBuffers = &frame->cmd,
             .waitSemaphoreCount = 1,
-            .pWaitSemaphores = app->image_available + app->curr_frame,
+            .pWaitSemaphores = &frame->image_available,
             .pWaitDstStageMask = &wait_stage,
             .signalSemaphoreCount = 1,
-            .pSignalSemaphores = app->render_finished + app->curr_frame,
+            .pSignalSemaphores = &frame->render_finished,
         };
 
-        res = vkResetFences(app->device, 1, app->frame_fence + app->curr_frame);
+        res = vkResetFences(app->device, 1, &frame->fence);
         appCheckResult(app, res);
 
-        res =
-            vkQueueSubmit(app->queue[GRAPHICS], 1, &submit_info, app->frame_fence[app->curr_frame]);
+        res = vkQueueSubmit(app->queue[GRAPHICS], 1, &submit_info, frame->fence);
         appCheckResult(app, res);
     }
 
@@ -987,18 +973,15 @@ appDrawFrame(App *app)
         VkPresentInfoKHR present_info = {
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .waitSemaphoreCount = 1,
-            .pWaitSemaphores = app->render_finished + app->curr_frame,
+            .pWaitSemaphores = &frame->render_finished,
             .swapchainCount = 1,
             .pSwapchains = &swapchain->handle,
             .pImageIndices = &image_index,
-
         };
 
         res = vkQueuePresentKHR(app->queue[PRESENT], &present_info);
         appCheckResult(app, res);
     }
-
-    app->curr_frame = cfWrapInc(app->curr_frame, CF_ARRAY_SIZE(app->image_available));
 }
 
 void
@@ -1007,7 +990,10 @@ appMainLoop(App *app)
     while (!glfwWindowShouldClose(app->window))
     {
         glfwPollEvents();
-        appDrawFrame(app);
+
+        Frame *frame = app->frames + (app->frame_index & 1);
+        appDrawFrame(app, frame);
+        app->frame_index++;
     }
 
     vkDeviceWaitIdle(app->device);
