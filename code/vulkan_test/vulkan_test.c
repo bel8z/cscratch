@@ -9,6 +9,7 @@
 // Foundation libraries
 #include "foundation/error.h"
 #include "foundation/memory.h"
+#include "foundation/time.h"
 
 // Standard libraries - TODO (Matteo): Get rid of them?
 #include <stdarg.h>
@@ -76,7 +77,7 @@ typedef struct App
 
 static void appInit(App *app, Platform *platform);
 static void appShutdown(App *app);
-static void appMainLoop(App *app);
+static void appMainLoop(App *app, Platform *platform);
 
 //-------------//
 //   Globals   //
@@ -103,6 +104,8 @@ static VkDynamicState const g_dynamic_states[] = {
     VK_DYNAMIC_STATE_LINE_WIDTH,
 };
 
+static VkPresentModeKHR g_preferred_mode = VK_PRESENT_MODE_MAILBOX_KHR;
+
 //-----------------//
 //   Entry point   //
 //-----------------//
@@ -122,7 +125,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     App app = {0};
     appInit(&app, platform);
-    appMainLoop(&app);
+    appMainLoop(&app, platform);
     appShutdown(&app);
 
     return 0;
@@ -448,9 +451,9 @@ appCreateSwapchain(App *app)
 
         for (U32 index = 0; index < num_modes; ++index)
         {
-            if (modes[index] == VK_PRESENT_MODE_MAILBOX_KHR)
+            if (modes[index] == g_preferred_mode)
             {
-                info.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+                info.presentMode = g_preferred_mode;
                 break;
             }
         }
@@ -1001,10 +1004,13 @@ appDrawFrame(App *app, Frame *frame)
 }
 
 void
-appMainLoop(App *app)
+appMainLoop(App *app, Platform *platform)
 {
     // NOTE (Matteo): Ensure swapchain setup on first loop
     app->rebuild_swapchain = (app->swapchain.handle == VK_NULL_HANDLE);
+
+    Clock clock = platform->clock;
+    Duration frame_start = clockElapsed(&clock);
 
     while (!glfwWindowShouldClose(app->window))
     {
@@ -1025,6 +1031,12 @@ appMainLoop(App *app)
         Frame *frame = app->frames + (app->frame_index & 1);
         appDrawFrame(app, frame);
         app->frame_index++;
+
+        Duration frame_end = clockElapsed(&clock);
+        F64 frame_delay = timeGetSeconds(timeSub(frame_end, frame_start));
+        F64 frame_rate = 1.0 / frame_delay;
+        frame_start = frame_end;
+        printf("%.02f\n", frame_rate);
     }
 
     VK_CHECK(vkDeviceWaitIdle(app->device));
