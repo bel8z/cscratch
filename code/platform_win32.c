@@ -164,6 +164,10 @@ win32PlatformInit(void)
     // ** Init paths **
 
     pathsInit(g_platform.paths);
+
+    // ** Start time tracking **
+
+    clockStart(&g_platform.clock);
 }
 
 static void
