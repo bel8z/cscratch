@@ -12,6 +12,7 @@
 // Foundation libraries
 #include "foundation/error.h"
 #include "foundation/memory.h"
+#include "foundation/strings.h"
 #include "foundation/time.h"
 
 // Standard libraries - TODO (Matteo): Get rid of them?
@@ -20,10 +21,24 @@
 #include <stdlib.h>
 
 //-------------------//
-//   App interface   //
+//   Configuration   //
 //-------------------//
 
-enum
+#define RENDER_GUI false
+
+#define PREFERRED_PRESENT_MODE ((VkPresentModeKHR)VK_PRESENT_MODE_MAILBOX_KHR)
+
+// Configure the pipeline state that can change dynamically
+static VkDynamicState const DYNAMIC_PIPELINE_STATES[] = {
+    // VK_DYNAMIC_STATE_VIEWPORT,
+    VK_DYNAMIC_STATE_LINE_WIDTH,
+};
+
+//----------//
+//   Data   //
+//----------//
+
+enum QueueType
 {
     GRAPHICS = 0,
     PRESENT,
@@ -33,11 +48,12 @@ typedef struct Swapchain
 {
     VkSwapchainKHR handle;
     VkExtent2D extent;
+    VkFormat format;
+
+    U32 image_count;
     VkImageView image[3];
     VkFramebuffer frame[3];
     VkFence fence[3];
-    U32 image_count;
-    VkFormat format;
 } Swapchain;
 
 typedef struct Frame
@@ -57,7 +73,6 @@ typedef struct App
 
     MemAllocator allocator;
     GLFWwindow *window;
-    IVec2 window_size;
 
     VkAllocationCallbacks *vkalloc;
     VkInstance inst;
@@ -82,15 +97,38 @@ typedef struct App
     VkDescriptorPool imgui_pool;
 } App;
 
+//-----------------//
+//   Entry point   //
+//-----------------//
+
 static void appInit(App *app, Platform *platform);
 static void appShutdown(App *app);
 static void appMainLoop(App *app);
 
+// TODO (Matteo): Review of the platform layer for graphic apps
+
+#if CF_OS_WIN32
+#    include "platform_win32.c"
+#else
+#    error "OS specific layer not implemented"
+#endif
+
+I32
+platformMain(Platform *platform, CommandLine *cmd_line)
+{
+    CF_UNUSED(cmd_line);
+
+    App app = {0};
+    appInit(&app, platform);
+    appMainLoop(&app);
+    appShutdown(&app);
+
+    return 0;
+}
+
 //-----------------//
 //   Gui backend   //
 //-----------------//
-
-#define DRAW_GUI false
 
 typedef struct ImGui_ImplVulkan_InitInfo
 {
@@ -124,61 +162,14 @@ extern bool ImGui_ImplGlfw_InitForVulkan(GLFWwindow *window, bool install_callba
 extern void ImGui_ImplGlfw_Shutdown();
 extern void ImGui_ImplGlfw_NewFrame();
 
-//-------------//
-//   Globals   //
-//-------------//
-
-// Fragment sharder bytecode
-static U32 const g_frag_code[] = {
-#include "frag.spv"
-};
-
-// Vertex sharder bytecode
-static U32 const g_vert_code[] = {
-#include "vert.spv"
-};
+//------------------------//
+//   Vulkan debug layer   //
+//------------------------//
 
 // Vulkan debug layers
 static Cstr const g_layers[] = {
     "VK_LAYER_KHRONOS_validation",
 };
-
-// Configure the pipeline state that can change dynamically
-static VkDynamicState const g_dynamic_states[] = {
-    // VK_DYNAMIC_STATE_VIEWPORT,
-    VK_DYNAMIC_STATE_LINE_WIDTH,
-};
-
-static VkPresentModeKHR g_preferred_mode = VK_PRESENT_MODE_MAILBOX_KHR;
-
-//-----------------//
-//   Entry point   //
-//-----------------//
-
-// TODO (Matteo): Review of the platform layer for graphic apps
-
-#if CF_OS_WIN32
-#    include "platform_win32.c"
-#else
-#    error "OS specific layer not implemented"
-#endif
-
-I32
-platformMain(Platform *platform, CommandLine *cmd_line)
-{
-    CF_UNUSED(cmd_line);
-
-    App app = {0};
-    appInit(&app, platform);
-    appMainLoop(&app);
-    appShutdown(&app);
-
-    return 0;
-}
-
-//------------------------//
-//   Vulkan debug layer   //
-//------------------------//
 
 VkResult
 vkCreateDebugUtilsMessengerEXT(VkInstance instance,
@@ -496,9 +487,9 @@ appCreateSwapchain(App *app)
 
         for (U32 index = 0; index < num_modes; ++index)
         {
-            if (modes[index] == g_preferred_mode)
+            if (modes[index] == PREFERRED_PRESENT_MODE)
             {
-                info.presentMode = g_preferred_mode;
+                info.presentMode = PREFERRED_PRESENT_MODE;
                 break;
             }
         }
@@ -592,16 +583,24 @@ appCreateShaderModule(App *app, U32 const *code, Usize code_size)
 static void
 appCreatePipeline(App *app)
 {
+    static U32 const frag_code[] = {
+#include "frag.spv"
+    };
+
+    static U32 const vert_code[] = {
+#include "vert.spv"
+    };
+
     VkPipelineShaderStageCreateInfo stage_info[2] = {
         {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .module = appCreateShaderModule(app, g_vert_code, sizeof(g_vert_code)),
+            .module = appCreateShaderModule(app, vert_code, sizeof(vert_code)),
             .pName = "main",
             .stage = VK_SHADER_STAGE_VERTEX_BIT,
         },
         {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .module = appCreateShaderModule(app, g_frag_code, sizeof(g_frag_code)),
+            .module = appCreateShaderModule(app, frag_code, sizeof(frag_code)),
             .pName = "main",
             .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
         },
@@ -685,8 +684,8 @@ appCreatePipeline(App *app)
 
     VkPipelineDynamicStateCreateInfo dynamic_state = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-        .dynamicStateCount = CF_ARRAY_SIZE(g_dynamic_states),
-        .pDynamicStates = g_dynamic_states,
+        .dynamicStateCount = CF_ARRAY_SIZE(DYNAMIC_PIPELINE_STATES),
+        .pDynamicStates = DYNAMIC_PIPELINE_STATES,
     };
 
     // TODO (Matteo): Revisit - Creating an empty layout for now
@@ -815,18 +814,6 @@ framebufferResizeCallback(GLFWwindow *window, int width, int height)
     app->rebuild_swapchain = true;
 }
 
-// Constants for DPI handling
-#define PLATFORM_DPI 96.0f
-#define TRUETYPE_DPI 72.0f
-
-static ImFont *
-appLoadFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
-{
-    Char8 buffer[1024] = {0};
-    strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
-    return guiLoadFont(fonts, buffer, font_size);
-}
-
 static void
 appInitGui(App *app, Platform *platform)
 {
@@ -859,44 +846,21 @@ appInitGui(App *app, Platform *platform)
     // Setup Dear ImGui style
     guiSetupStyle(GuiTheme_Dark, dpi_scale);
 
-    {
-        // TODO (Matteo): Make font list available to the application?
-
-        // Load Fonts
-        // - If no fonts are loaded, dear imgui will use the default font. You can
-        // also load multiple fonts and use igPushFont()/PopFont() to select them.
-        // - AddFontFromFileTTF() will return the ImFont* so you can store it if you
-        // need to select the font among multiple.
-        // - If the file cannot be loaded, the function will return NULL. Please
-        // handle those errors in your application (e.g. use an assertion, or
-        // display an error and quit).
-        // - The fonts will be rasterized at a given size (w/ oversampling) and
-        // stored into a texture when calling
-        // ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame
-        // below will call.
-        // - Read 'docs/FONTS.md' for more instructions and details.
-        // - Remember that in C/C++ if you want to include a backslash \ in a string
-        // literal you need to write a double backslash \\ !
-
-        ImFontAtlas *atlas = guiFonts();
-        F32 const scale = dpi_scale * PLATFORM_DPI / TRUETYPE_DPI;
-
-        // NOTE (Matteo): This ensure the proper loading order even in optimized release builds
-        ImFont const *fonts[4] = {
-            appLoadFont(atlas, paths->data, "NotoSans", mRound(13.0f * scale)),
-            appLoadFont(atlas, paths->data, "OpenSans", mRound(13.5f * scale)),
-            appLoadFont(atlas, paths->data, "SourceSansPro", mRound(13.5f * scale)),
-            appLoadFont(atlas, paths->data, "DroidSans", mRound(12.0f * scale)),
-        };
-
-        // NOTE (Matteo): Load default IMGUI font only if no custom font has been loaded
-        bool load_default = true;
-        for (Usize i = 0; i < CF_ARRAY_SIZE(fonts) && load_default; ++i)
-        {
-            load_default = !fonts[i];
-        }
-        if (load_default) guiLoadDefaultFont(atlas);
-    }
+    // Load Fonts
+    // - If no fonts are loaded, dear imgui will use the default font. You can
+    // also load multiple fonts and use igPushFont()/PopFont() to select them.
+    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you
+    // need to select the font among multiple.
+    // - If the file cannot be loaded, the function will return NULL. Please
+    // handle those errors in your application (e.g. use an assertion, or
+    // display an error and quit).
+    // - The fonts will be rasterized at a given size (w/ oversampling) and
+    // stored into a texture when calling
+    // ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame
+    // below will call.
+    // - Read 'docs/FONTS.md' for more instructions and details.
+    // - Remember that in C/C++ if you want to include a backslash \ in a string
+    // literal you need to write a double backslash \\ !
 
     ImGui_ImplGlfw_InitForVulkan(app->window, true);
 }
@@ -914,9 +878,7 @@ appInit(App *app, Platform *platform)
     // NOTE (Matteo): Don't require OpenGL
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    app->window_size = (IVec2){.width = 800, .height = 600};
-    app->window = glfwCreateWindow(app->window_size.width, app->window_size.height, "Vulkan window",
-                                   NULL, NULL);
+    app->window = glfwCreateWindow(800, 600, "Vulkan window", NULL, NULL);
 
     glfwSetWindowUserPointer(app->window, app);
     glfwSetFramebufferSizeCallback(app->window, framebufferResizeCallback);
@@ -1085,6 +1047,7 @@ appSetupGuiRendering(App *app)
             .MinImageCount = app->swapchain.image_count,
             .ImageCount = app->swapchain.image_count,
             .DescriptorPool = app->imgui_pool,
+            .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
         };
 
         ImGui_ImplVulkan_Init(&imgui_info, app->render_pass);
@@ -1174,7 +1137,7 @@ appDrawFrame(App *app, Frame *frame)
                   0  // First instance - lowest value for 'gl_InstanceIndex'
         );
 
-#if DRAW_GUI
+#if RENDER_GUI
         ImDrawData *draw_data = guiRender();
         ImGui_ImplVulkan_RenderDrawData(draw_data, frame->cmd, VK_NULL_HANDLE);
 #endif
@@ -1253,10 +1216,11 @@ appMainLoop(App *app)
         }
 
         appSetupGuiRendering(app);
-#if DRAW_GUI
+#if RENDER_GUI
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         guiNewFrame();
+        guiDemoWindow(NULL);
 #endif
 
         Frame *frame = app->frames + (app->frame_index & 1);
@@ -1269,7 +1233,7 @@ appMainLoop(App *app)
         frame_start = frame_end;
         printf("%.02f\n", frame_rate);
 
-#if DRAW_GUI
+#if RENDER_GUI
         // Update and Render additional Platform Windows
         if (guiViewportsEnabled()) guiUpdateAndRenderViewports();
 #endif
