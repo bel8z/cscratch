@@ -182,7 +182,7 @@ clockElapsed(Clock *clock)
     CF_ASSERT(now.QuadPart >= 0, "QueryPerformanceCounter returned negative ticks");
 
     U64 curr_ticks = (U64)(now.QuadPart);
-    CF_ASSERT(curr_ticks > self->start_ticks, "QueryPerformanceCounter wrapped around");
+    CF_ASSERT(curr_ticks >= self->start_ticks, "QueryPerformanceCounter wrapped around");
 
     U64 nanos = mMulDiv((curr_ticks - self->start_ticks), CF_NS_PER_SEC, self->freq);
 
