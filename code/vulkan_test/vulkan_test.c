@@ -64,6 +64,7 @@ typedef struct App
     U32 queue_index[2];
 
     Swapchain swapchain;
+    bool rebuild_swapchain;
 
     VkRenderPass render_pass;
     VkPipelineLayout pipe_layout;
@@ -725,6 +726,47 @@ appCreateFrameBuffers(App *app)
     }
 }
 
+static void
+appCleanupSwapchain(App *app)
+{
+    vkDestroyPipeline(app->device, app->pipe, app->vkalloc);
+    vkDestroyPipelineLayout(app->device, app->pipe_layout, app->vkalloc);
+
+    for (U32 index = 0; index < app->swapchain.image_count; ++index)
+    {
+        vkDestroyFramebuffer(app->device, app->swapchain.frame[index], app->vkalloc);
+        vkDestroyImageView(app->device, app->swapchain.image[index], app->vkalloc);
+    }
+
+    vkDestroyRenderPass(app->device, app->render_pass, app->vkalloc);
+
+    vkDestroySwapchainKHR(app->device, app->swapchain.handle, app->vkalloc);
+}
+
+static void
+appSetupSwapchain(App *app)
+{
+    if (app->swapchain.handle)
+    {
+        VK_CHECK(vkDeviceWaitIdle(app->device));
+        appCleanupSwapchain(app);
+    }
+
+    appCreateSwapchain(app);
+    appCreateRenderPass(app);
+    appCreatePipeline(app);
+    appCreateFrameBuffers(app);
+}
+
+static void
+framebufferResizeCallback(GLFWwindow *window, int width, int height)
+{
+    CF_UNUSED(width);
+    CF_UNUSED(height);
+    App *app = glfwGetWindowUserPointer(window);
+    app->rebuild_swapchain = true;
+}
+
 void
 appInit(App *app, Platform *platform)
 {
@@ -736,12 +778,13 @@ appInit(App *app, Platform *platform)
     glfwInit();
     // NOTE (Matteo): Don't require OpenGL
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    // TODO (Matteo): Handle resizing
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     app->window_size = (IVec2){.width = 800, .height = 600};
     app->window = glfwCreateWindow(app->window_size.width, app->window_size.height, "Vulkan window",
                                    NULL, NULL);
+
+    glfwSetWindowUserPointer(app->window, app);
+    glfwSetFramebufferSizeCallback(app->window, framebufferResizeCallback);
 
     //=== Initialize Vukan  ===//
 
@@ -799,12 +842,6 @@ appInit(App *app, Platform *platform)
     // Create a logical device with associated graphics and presentation queues
     appCreateLogicalDevice(app);
 
-    // Setup rendering swapchain and pipeline
-    appCreateSwapchain(app);
-    appCreateRenderPass(app);
-    appCreatePipeline(app);
-    appCreateFrameBuffers(app);
-
     // Create frames
     for (Usize index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
     {
@@ -847,18 +884,8 @@ appShutdown(App *app)
         vkDestroyCommandPool(app->device, frame->cmd_pool, app->vkalloc);
     }
 
-    vkDestroyPipeline(app->device, app->pipe, app->vkalloc);
-    vkDestroyPipelineLayout(app->device, app->pipe_layout, app->vkalloc);
+    appCleanupSwapchain(app);
 
-    for (U32 index = 0; index < app->swapchain.image_count; ++index)
-    {
-        vkDestroyFramebuffer(app->device, app->swapchain.frame[index], app->vkalloc);
-        vkDestroyImageView(app->device, app->swapchain.image[index], app->vkalloc);
-    }
-
-    vkDestroyRenderPass(app->device, app->render_pass, app->vkalloc);
-
-    vkDestroySwapchainKHR(app->device, app->swapchain.handle, app->vkalloc);
     vkDestroyDevice(app->device, app->vkalloc);
     vkDestroySurfaceKHR(app->inst, app->surface, app->vkalloc);
     vkDestroyDebugUtilsMessengerEXT(app->inst, app->debug, app->vkalloc);
@@ -882,8 +909,18 @@ appDrawFrame(App *app, Frame *frame)
 
     // Request a backbuffer from the swapchain
     U32 image_index = 0;
-    VK_CHECK(vkAcquireNextImageKHR(app->device, swapchain->handle, U64_MAX, frame->image_available,
-                                   VK_NULL_HANDLE, &image_index));
+    VkResult res = vkAcquireNextImageKHR(app->device, swapchain->handle, U64_MAX,
+                                         frame->image_available, VK_NULL_HANDLE, &image_index);
+
+    if (res == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        app->rebuild_swapchain = true;
+        return;
+    }
+    else if (res != VK_SUBOPTIMAL_KHR)
+    {
+        VK_CHECK(res);
+    }
 
     // Record the commands
     // NOTE (Matteo): The commands here are static and so could be pre-recorded, but the idea is to
@@ -951,16 +988,39 @@ appDrawFrame(App *app, Frame *frame)
             .pImageIndices = &image_index,
         };
 
-        VK_CHECK(vkQueuePresentKHR(app->queue[PRESENT], &present_info));
+        res = vkQueuePresentKHR(app->queue[PRESENT], &present_info);
+        if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR)
+        {
+            app->rebuild_swapchain = true;
+        }
+        else
+        {
+            VK_CHECK(res);
+        }
     }
 }
 
 void
 appMainLoop(App *app)
 {
+    // NOTE (Matteo): Ensure swapchain setup on first loop
+    app->rebuild_swapchain = (app->swapchain.handle == VK_NULL_HANDLE);
+
     while (!glfwWindowShouldClose(app->window))
     {
         glfwPollEvents();
+
+        if (app->rebuild_swapchain)
+        {
+            // NOTE (Matteo): Minimization can render the swapchain out of date, but
+            // it is useless to setup one, so we just sit here waiting.
+            while (glfwGetWindowAttrib(app->window, GLFW_ICONIFIED))
+            {
+                glfwWaitEvents();
+            }
+            appSetupSwapchain(app);
+            app->rebuild_swapchain = false;
+        }
 
         Frame *frame = app->frames + (app->frame_index & 1);
         appDrawFrame(app, frame);
