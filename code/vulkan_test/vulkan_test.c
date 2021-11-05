@@ -172,6 +172,8 @@ vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT de
 //   App diagnostics   //
 //---------------------//
 
+#define VK_CHECK(res) appCheckResult(app, res)
+
 CF_PRINTF_LIKE(1, 2)
 static void
 appDiagnostic(App *app, Cstr format, ...)
@@ -208,7 +210,6 @@ appDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
                  VkDebugUtilsMessageTypeFlagsEXT type,
                  const VkDebugUtilsMessengerCallbackDataEXT *callback_data, void *user_data)
 {
-    App *app = user_data;
 
     static const Cstr type_text[] = {
         [VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT] = "general",
@@ -223,6 +224,7 @@ appDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
         [VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT] = "error",
     };
 
+    App *app = user_data;
     appDiagnostic(app, "Vulkan %s %s: %s\n", type_text[type], severity_text[severity],
                   callback_data->pMessage);
 
@@ -253,8 +255,7 @@ static void
 appPickGpu(App *app)
 {
     U32 num_gpus;
-    VkResult res = vkEnumeratePhysicalDevices(app->inst, &num_gpus, NULL);
-    appCheckResult(app, res);
+    VK_CHECK(vkEnumeratePhysicalDevices(app->inst, &num_gpus, NULL));
 
     VkPhysicalDevice *gpus = memAllocArray(app->allocator, VkPhysicalDevice, num_gpus);
     vkEnumeratePhysicalDevices(app->inst, &num_gpus, gpus);
@@ -282,9 +283,8 @@ appPickGpu(App *app)
         for (U32 queue_index = 0; queue_index < num_queues; ++queue_index)
         {
             VkBool32 supported = VK_FALSE;
-            res = vkGetPhysicalDeviceSurfaceSupportKHR(gpus[gpu_index], queue_index, app->surface,
-                                                       &supported);
-            appCheckResult(app, res);
+            VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(gpus[gpu_index], queue_index,
+                                                          app->surface, &supported));
 
             if (app->queue_index[PRESENT] == U32_MAX && supported)
             {
@@ -347,8 +347,7 @@ appCreateLogicalDevice(App *app)
 #endif
     };
 
-    VkResult res = vkCreateDevice(app->gpu, &device_info, app->vkalloc, &app->device);
-    appCheckResult(app, res);
+    VK_CHECK(vkCreateDevice(app->gpu, &device_info, app->vkalloc, &app->device));
 
     vkGetDeviceQueue(app->device, app->queue_index[GRAPHICS], 0, &app->queue[GRAPHICS]);
     vkGetDeviceQueue(app->device, app->queue_index[PRESENT], 0, &app->queue[PRESENT]);
@@ -360,8 +359,7 @@ appCreateSwapchain(App *app)
     Swapchain *swapchain = &app->swapchain;
 
     VkSurfaceCapabilitiesKHR caps;
-    VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(app->gpu, app->surface, &caps);
-    appCheckResult(app, res);
+    VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(app->gpu, app->surface, &caps));
 
     // Retrieve swapchain extent
     swapchain->extent = caps.currentExtent;
@@ -404,8 +402,7 @@ appCreateSwapchain(App *app)
     // Retrieve best surface format
     {
         U32 num_formats;
-        res = vkGetPhysicalDeviceSurfaceFormatsKHR(app->gpu, app->surface, &num_formats, NULL);
-        appCheckResult(app, res);
+        VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(app->gpu, app->surface, &num_formats, NULL));
 
         // TODO (Matteo): Use this check for GPU picking
         if (num_formats == 0) appTerminate(app, "GPU does not support swapchain\n");
@@ -439,8 +436,8 @@ appCreateSwapchain(App *app)
     {
         U32 num_modes;
 
-        res = vkGetPhysicalDeviceSurfacePresentModesKHR(app->gpu, app->surface, &num_modes, NULL);
-        appCheckResult(app, res);
+        VK_CHECK(
+            vkGetPhysicalDeviceSurfacePresentModesKHR(app->gpu, app->surface, &num_modes, NULL));
 
         // TODO (Matteo): Use this check for GPU picking
         if (num_modes == 0) appTerminate(app, "GPU does not support swapchain\n");
@@ -467,8 +464,7 @@ appCreateSwapchain(App *app)
         info.minImageCount = caps.maxImageCount;
     }
 
-    res = vkCreateSwapchainKHR(app->device, &info, app->vkalloc, &swapchain->handle);
-    appCheckResult(app, res);
+    VK_CHECK(vkCreateSwapchainKHR(app->device, &info, app->vkalloc, &swapchain->handle));
 }
 
 static void
@@ -527,22 +523,20 @@ appCreateRenderPass(App *app)
         .dependencyCount = 1,
     };
 
-    VkResult res = vkCreateRenderPass(app->device, &info, app->vkalloc, &app->render_pass);
-    appCheckResult(app, res);
+    VK_CHECK(vkCreateRenderPass(app->device, &info, app->vkalloc, &app->render_pass));
 }
 
 static VkShaderModule
 appCreateShaderModule(App *app, U32 const *code, Usize code_size)
 {
     VkShaderModule module;
-    VkResult res = vkCreateShaderModule(app->device,
-                                        &(VkShaderModuleCreateInfo){
-                                            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-                                            .pCode = code,
-                                            .codeSize = code_size,
-                                        },
-                                        app->vkalloc, &module);
-    appCheckResult(app, res);
+    VK_CHECK(vkCreateShaderModule(app->device,
+                                  &(VkShaderModuleCreateInfo){
+                                      .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+                                      .pCode = code,
+                                      .codeSize = code_size,
+                                  },
+                                  app->vkalloc, &module));
     return module;
 }
 
@@ -652,9 +646,7 @@ appCreatePipeline(App *app)
         .setLayoutCount = 0,
     };
 
-    VkResult res =
-        vkCreatePipelineLayout(app->device, &layout_info, app->vkalloc, &app->pipe_layout);
-    appCheckResult(app, res);
+    VK_CHECK(vkCreatePipelineLayout(app->device, &layout_info, app->vkalloc, &app->pipe_layout));
 
     VkGraphicsPipelineCreateInfo pipe_info = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -673,9 +665,8 @@ appCreatePipeline(App *app)
         .subpass = 0,
     };
 
-    res = vkCreateGraphicsPipelines(app->device, VK_NULL_HANDLE, 1, &pipe_info, app->vkalloc,
-                                    &app->pipe);
-    appCheckResult(app, res);
+    VK_CHECK(vkCreateGraphicsPipelines(app->device, VK_NULL_HANDLE, 1, &pipe_info, app->vkalloc,
+                                       &app->pipe));
 
     vkDestroyShaderModule(app->device, stage_info[0].module, app->vkalloc);
     vkDestroyShaderModule(app->device, stage_info[1].module, app->vkalloc);
@@ -686,9 +677,8 @@ appCreateFrameBuffers(App *app)
 {
     Swapchain *swapchain = &app->swapchain;
 
-    VkResult res =
-        vkGetSwapchainImagesKHR(app->device, swapchain->handle, &swapchain->image_count, NULL);
-    appCheckResult(app, res);
+    VK_CHECK(
+        vkGetSwapchainImagesKHR(app->device, swapchain->handle, &swapchain->image_count, NULL));
 
     if (swapchain->image_count > CF_ARRAY_SIZE(swapchain->image))
     {
@@ -726,12 +716,12 @@ appCreateFrameBuffers(App *app)
     for (U32 index = 0; index < swapchain->image_count; ++index)
     {
         image_info.image = images[index];
-        res = vkCreateImageView(app->device, &image_info, app->vkalloc, swapchain->image + index);
-        appCheckResult(app, res);
+        VK_CHECK(
+            vkCreateImageView(app->device, &image_info, app->vkalloc, swapchain->image + index));
 
         frame_info.pAttachments = swapchain->image + index;
-        res = vkCreateFramebuffer(app->device, &frame_info, app->vkalloc, swapchain->frame + index);
-        appCheckResult(app, res);
+        VK_CHECK(
+            vkCreateFramebuffer(app->device, &frame_info, app->vkalloc, swapchain->frame + index));
     }
 }
 
@@ -783,8 +773,7 @@ appInit(App *app, Platform *platform)
     inst_info.enabledExtensionCount = num_extensions;
     inst_info.ppEnabledExtensionNames = extensions;
 
-    VkResult res = vkCreateInstance(&inst_info, app->vkalloc, &app->inst);
-    appCheckResult(app, res);
+    VK_CHECK(vkCreateInstance(&inst_info, app->vkalloc, &app->inst));
 
     // Setup debugging
     // NOTE (Matteo): VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT ignored for now
@@ -799,12 +788,10 @@ appInit(App *app, Platform *platform)
         .pfnUserCallback = appDebugCallback,
         .pUserData = app,
     };
-    res = vkCreateDebugUtilsMessengerEXT(app->inst, &debug_info, app->vkalloc, &app->debug);
-    appCheckResult(app, res);
+    VK_CHECK(vkCreateDebugUtilsMessengerEXT(app->inst, &debug_info, app->vkalloc, &app->debug));
 
     // Retrieve a Vulkan surface from GLFW window
-    res = glfwCreateWindowSurface(app->inst, app->window, app->vkalloc, &app->surface);
-    appCheckResult(app, res);
+    VK_CHECK(glfwCreateWindowSurface(app->inst, app->window, app->vkalloc, &app->surface));
 
     // Choose a suitable GPU for rendering
     appPickGpu(app);
@@ -827,15 +814,14 @@ appInit(App *app, Platform *platform)
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .queueFamilyIndex = app->queue_index[GRAPHICS],
         };
-        res = vkCreateCommandPool(app->device, &pool_info, app->vkalloc, &frame->cmd_pool);
-        appCheckResult(app, res);
+        VK_CHECK(vkCreateCommandPool(app->device, &pool_info, app->vkalloc, &frame->cmd_pool));
 
         VkCommandBufferAllocateInfo cmd_info = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .commandPool = frame->cmd_pool,
             .commandBufferCount = 1,
         };
-        res = vkAllocateCommandBuffers(app->device, &cmd_info, &frame->cmd);
+        VK_CHECK(vkAllocateCommandBuffers(app->device, &cmd_info, &frame->cmd));
 
         VkSemaphoreCreateInfo sema_info = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
         VkFenceCreateInfo fence_info = {
@@ -843,14 +829,9 @@ appInit(App *app, Platform *platform)
             .flags = VK_FENCE_CREATE_SIGNALED_BIT,
         };
 
-        res = vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &frame->image_available);
-        appCheckResult(app, res);
-
-        res = vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &frame->render_finished);
-        appCheckResult(app, res);
-
-        res = vkCreateFence(app->device, &fence_info, app->vkalloc, &frame->fence);
-        appCheckResult(app, res);
+        VK_CHECK(vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &frame->image_available));
+        VK_CHECK(vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &frame->render_finished));
+        VK_CHECK(vkCreateFence(app->device, &fence_info, app->vkalloc, &frame->fence));
     }
 }
 
@@ -894,7 +875,6 @@ appShutdown(App *app)
 static void
 appDrawFrame(App *app, Frame *frame)
 {
-    VkResult res;
     Swapchain *swapchain = &app->swapchain;
 
     // Synchronize current frame with the graphics queue
@@ -902,9 +882,8 @@ appDrawFrame(App *app, Frame *frame)
 
     // Request a backbuffer from the swapchain
     U32 image_index = 0;
-    res = vkAcquireNextImageKHR(app->device, swapchain->handle, U64_MAX, frame->image_available,
-                                VK_NULL_HANDLE, &image_index);
-    appCheckResult(app, res);
+    VK_CHECK(vkAcquireNextImageKHR(app->device, swapchain->handle, U64_MAX, frame->image_available,
+                                   VK_NULL_HANDLE, &image_index));
 
     // Record the commands
     // NOTE (Matteo): The commands here are static and so could be pre-recorded, but the idea is to
@@ -924,11 +903,8 @@ appDrawFrame(App *app, Frame *frame)
             .clearValueCount = 1,
         };
 
-        res = vkResetCommandPool(app->device, frame->cmd_pool, 0);
-        appCheckResult(app, res);
-
-        res = vkBeginCommandBuffer(frame->cmd, &cmd_begin_info);
-        appCheckResult(app, res);
+        VK_CHECK(vkResetCommandPool(app->device, frame->cmd_pool, 0));
+        VK_CHECK(vkBeginCommandBuffer(frame->cmd, &cmd_begin_info));
 
         pass_begin_info.framebuffer = swapchain->frame[image_index];
         vkCmdBeginRenderPass(frame->cmd, &pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
@@ -942,8 +918,7 @@ appDrawFrame(App *app, Frame *frame)
         );
 
         vkCmdEndRenderPass(frame->cmd);
-        res = vkEndCommandBuffer(frame->cmd);
-        appCheckResult(app, res);
+        VK_CHECK(vkEndCommandBuffer(frame->cmd));
     }
 
     // Submit the commands to the queue
@@ -961,11 +936,8 @@ appDrawFrame(App *app, Frame *frame)
             .pSignalSemaphores = &frame->render_finished,
         };
 
-        res = vkResetFences(app->device, 1, &frame->fence);
-        appCheckResult(app, res);
-
-        res = vkQueueSubmit(app->queue[GRAPHICS], 1, &submit_info, frame->fence);
-        appCheckResult(app, res);
+        VK_CHECK(vkResetFences(app->device, 1, &frame->fence));
+        VK_CHECK(vkQueueSubmit(app->queue[GRAPHICS], 1, &submit_info, frame->fence));
     }
 
     // Present the rendered image
@@ -979,8 +951,7 @@ appDrawFrame(App *app, Frame *frame)
             .pImageIndices = &image_index,
         };
 
-        res = vkQueuePresentKHR(app->queue[PRESENT], &present_info);
-        appCheckResult(app, res);
+        VK_CHECK(vkQueuePresentKHR(app->queue[PRESENT], &present_info));
     }
 }
 
@@ -996,5 +967,5 @@ appMainLoop(App *app)
         app->frame_index++;
     }
 
-    vkDeviceWaitIdle(app->device);
+    VK_CHECK(vkDeviceWaitIdle(app->device));
 }
