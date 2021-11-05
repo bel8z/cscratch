@@ -1,5 +1,8 @@
 #include "platform.h"
 
+// Gui library
+#include "gui/gui.h"
+
 // Backend libraries
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
@@ -50,6 +53,8 @@ typedef struct Frame
 
 typedef struct App
 {
+    Platform *platform;
+
     MemAllocator allocator;
     GLFWwindow *window;
     IVec2 window_size;
@@ -73,11 +78,51 @@ typedef struct App
 
     Frame frames[2];
     Usize frame_index;
+
+    VkDescriptorPool imgui_pool;
 } App;
 
 static void appInit(App *app, Platform *platform);
 static void appShutdown(App *app);
-static void appMainLoop(App *app, Platform *platform);
+static void appMainLoop(App *app);
+
+//-----------------//
+//   Gui backend   //
+//-----------------//
+
+#define DRAW_GUI false
+
+typedef struct ImGui_ImplVulkan_InitInfo
+{
+    VkInstance Instance;
+    VkPhysicalDevice PhysicalDevice;
+    VkDevice Device;
+    uint32_t QueueFamily;
+    VkQueue Queue;
+    VkPipelineCache PipelineCache;
+    VkDescriptorPool DescriptorPool;
+    uint32_t Subpass;
+    uint32_t MinImageCount;            // >= 2
+    uint32_t ImageCount;               // >= MinImageCount
+    VkSampleCountFlagBits MSAASamples; // >= VK_SAMPLE_COUNT_1_BIT
+    const VkAllocationCallbacks *Allocator;
+    void (*CheckVkResultFn)(VkResult err);
+} ImGui_ImplVulkan_InitInfo;
+
+extern bool ImGui_ImplVulkan_Init(ImGui_ImplVulkan_InitInfo *info, VkRenderPass render_pass);
+extern void ImGui_ImplVulkan_Shutdown();
+extern void ImGui_ImplVulkan_NewFrame();
+extern void ImGui_ImplVulkan_RenderDrawData(ImDrawData *draw_data, VkCommandBuffer command_buffer,
+                                            VkPipeline pipeline);
+extern bool ImGui_ImplVulkan_CreateFontsTexture(VkCommandBuffer command_buffer);
+extern void ImGui_ImplVulkan_DestroyFontUploadObjects();
+extern void ImGui_ImplVulkan_SetMinImageCount(
+    uint32_t min_image_count); // To override MinImageCount after initialization (e.g. if swap chain
+                               // is recreated)
+
+extern bool ImGui_ImplGlfw_InitForVulkan(GLFWwindow *window, bool install_callbacks);
+extern void ImGui_ImplGlfw_Shutdown();
+extern void ImGui_ImplGlfw_NewFrame();
 
 //-------------//
 //   Globals   //
@@ -125,7 +170,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     App app = {0};
     appInit(&app, platform);
-    appMainLoop(&app, platform);
+    appMainLoop(&app);
     appShutdown(&app);
 
     return 0;
@@ -770,9 +815,96 @@ framebufferResizeCallback(GLFWwindow *window, int width, int height)
     app->rebuild_swapchain = true;
 }
 
+// Constants for DPI handling
+#define PLATFORM_DPI 96.0f
+#define TRUETYPE_DPI 72.0f
+
+static ImFont *
+appLoadFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
+{
+    Char8 buffer[1024] = {0};
+    strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
+    return guiLoadFont(fonts, buffer, font_size);
+}
+
+static void
+appInitGui(App *app, Platform *platform)
+{
+    // NOTE (Matteo): Custom IMGUI ini file
+// TODO (Matteo): Clean up!
+#if CF_COMPILER_MSVC
+#    pragma warning(push)
+#    pragma warning(disable : 4221)
+#endif
+    Paths *paths = platform->paths;
+    Char8 gui_ini[Paths_Size] = {0};
+    CF_ASSERT(paths->base.len + paths->exe_name.len < Paths_Size, "IMGUI ini file name too long");
+    memCopy(paths->base.buf, gui_ini, paths->base.len);
+    memCopy(paths->exe_name.buf, gui_ini + paths->base.len, paths->exe_name.len);
+    pathChangeExt(strFromCstr(gui_ini), strLiteral(".gui"), gui_ini);
+
+    // Setup Dear ImGui context
+    platform->gui = &(Gui){.alloc = &platform->heap, .ini_filename = gui_ini};
+    guiInit(platform->gui);
+#if CF_COMPILER_MSVC
+#    pragma warning(pop)
+#endif
+
+    // Setup DPI handling
+    F32 win_x_scale, win_y_scale;
+    glfwGetWindowContentScale(app->window, &win_x_scale, &win_y_scale);
+    // HACK How do I get the platform base DPI?
+    F32 dpi_scale = win_x_scale > win_y_scale ? win_y_scale : win_x_scale;
+
+    // Setup Dear ImGui style
+    guiSetupStyle(GuiTheme_Dark, dpi_scale);
+
+    {
+        // TODO (Matteo): Make font list available to the application?
+
+        // Load Fonts
+        // - If no fonts are loaded, dear imgui will use the default font. You can
+        // also load multiple fonts and use igPushFont()/PopFont() to select them.
+        // - AddFontFromFileTTF() will return the ImFont* so you can store it if you
+        // need to select the font among multiple.
+        // - If the file cannot be loaded, the function will return NULL. Please
+        // handle those errors in your application (e.g. use an assertion, or
+        // display an error and quit).
+        // - The fonts will be rasterized at a given size (w/ oversampling) and
+        // stored into a texture when calling
+        // ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame
+        // below will call.
+        // - Read 'docs/FONTS.md' for more instructions and details.
+        // - Remember that in C/C++ if you want to include a backslash \ in a string
+        // literal you need to write a double backslash \\ !
+
+        ImFontAtlas *atlas = guiFonts();
+        F32 const scale = dpi_scale * PLATFORM_DPI / TRUETYPE_DPI;
+
+        // NOTE (Matteo): This ensure the proper loading order even in optimized release builds
+        ImFont const *fonts[4] = {
+            appLoadFont(atlas, paths->data, "NotoSans", mRound(13.0f * scale)),
+            appLoadFont(atlas, paths->data, "OpenSans", mRound(13.5f * scale)),
+            appLoadFont(atlas, paths->data, "SourceSansPro", mRound(13.5f * scale)),
+            appLoadFont(atlas, paths->data, "DroidSans", mRound(12.0f * scale)),
+        };
+
+        // NOTE (Matteo): Load default IMGUI font only if no custom font has been loaded
+        bool load_default = true;
+        for (Usize i = 0; i < CF_ARRAY_SIZE(fonts) && load_default; ++i)
+        {
+            load_default = !fonts[i];
+        }
+        if (load_default) guiLoadDefaultFont(atlas);
+    }
+
+    ImGui_ImplGlfw_InitForVulkan(app->window, true);
+}
+
 void
 appInit(App *app, Platform *platform)
 {
+    app->platform = platform;
     app->allocator = platform->heap;
     app->vkalloc = NULL; // TODO (Matteo): Implement
 
@@ -788,6 +920,8 @@ appInit(App *app, Platform *platform)
 
     glfwSetWindowUserPointer(app->window, app);
     glfwSetFramebufferSizeCallback(app->window, framebufferResizeCallback);
+
+    appInitGui(app, platform);
 
     //=== Initialize Vukan  ===//
 
@@ -878,6 +1012,10 @@ appInit(App *app, Platform *platform)
 void
 appShutdown(App *app)
 {
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    guiShutdown(app->platform->gui);
+
     for (U32 index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
     {
         Frame *frame = app->frames + index;
@@ -901,6 +1039,85 @@ appShutdown(App *app)
 //---------------//
 //   App logic   //
 //---------------//
+
+static void
+appSetupGuiRendering(App *app)
+{
+    if (app->imgui_pool) return;
+
+    // Create a dedicated descriptor pool
+    {
+#define DESC_POOL_SIZE 1024
+        VkDescriptorPoolSize pool_sizes[] = {
+            {VK_DESCRIPTOR_TYPE_SAMPLER, DESC_POOL_SIZE},
+            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, DESC_POOL_SIZE},
+            {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DESC_POOL_SIZE},
+            {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, DESC_POOL_SIZE},
+            {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, DESC_POOL_SIZE},
+            {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, DESC_POOL_SIZE},
+            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, DESC_POOL_SIZE},
+            {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, DESC_POOL_SIZE},
+            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, DESC_POOL_SIZE},
+            {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, DESC_POOL_SIZE},
+            {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, DESC_POOL_SIZE},
+        };
+
+        VkDescriptorPoolCreateInfo pool_info = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+            .maxSets = DESC_POOL_SIZE * CF_ARRAY_SIZE(pool_sizes),
+            .poolSizeCount = (U32)CF_ARRAY_SIZE(pool_sizes),
+            .pPoolSizes = pool_sizes,
+        };
+        VK_CHECK(vkCreateDescriptorPool(app->device, &pool_info, app->vkalloc, &app->imgui_pool));
+    }
+
+    // Initialize the backend
+    {
+        ImGui_ImplVulkan_InitInfo imgui_info = {
+            .Allocator = app->vkalloc,
+            .Instance = app->inst,
+            .Device = app->device,
+            .PhysicalDevice = app->gpu,
+            .Queue = app->queue[GRAPHICS],
+            .QueueFamily = app->queue_index[GRAPHICS],
+            .Subpass = 0,
+            .MinImageCount = app->swapchain.image_count,
+            .ImageCount = app->swapchain.image_count,
+            .DescriptorPool = app->imgui_pool,
+        };
+
+        ImGui_ImplVulkan_Init(&imgui_info, app->render_pass);
+    }
+
+    // Upload Fonts
+    {
+        // Use any command queue
+        VkCommandPool command_pool = app->frames[0].cmd_pool;
+        VkCommandBuffer command_buffer = app->frames[0].cmd;
+
+        VK_CHECK(vkResetCommandPool(app->device, command_pool, 0));
+
+        VkCommandBufferBeginInfo begin_info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        };
+        VK_CHECK(vkBeginCommandBuffer(command_buffer, &begin_info));
+
+        ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+
+        VkSubmitInfo end_info = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &command_buffer,
+        };
+        VK_CHECK(vkEndCommandBuffer(command_buffer));
+        VK_CHECK(vkQueueSubmit(app->queue[GRAPHICS], 1, &end_info, VK_NULL_HANDLE));
+
+        VK_CHECK(vkDeviceWaitIdle(app->device));
+        ImGui_ImplVulkan_DestroyFontUploadObjects();
+    }
+}
 
 static void
 appDrawFrame(App *app, Frame *frame)
@@ -957,6 +1174,11 @@ appDrawFrame(App *app, Frame *frame)
                   0  // First instance - lowest value for 'gl_InstanceIndex'
         );
 
+#if DRAW_GUI
+        ImDrawData *draw_data = guiRender();
+        ImGui_ImplVulkan_RenderDrawData(draw_data, frame->cmd, VK_NULL_HANDLE);
+#endif
+
         vkCmdEndRenderPass(frame->cmd);
         VK_CHECK(vkEndCommandBuffer(frame->cmd));
     }
@@ -1004,12 +1226,13 @@ appDrawFrame(App *app, Frame *frame)
 }
 
 void
-appMainLoop(App *app, Platform *platform)
+appMainLoop(App *app)
 {
     // NOTE (Matteo): Ensure swapchain setup on first loop
     app->rebuild_swapchain = (app->swapchain.handle == VK_NULL_HANDLE);
 
-    Clock clock = platform->clock;
+    Clock clock = {0};
+    clockStart(&clock);
     Duration frame_start = clockElapsed(&clock);
 
     while (!glfwWindowShouldClose(app->window))
@@ -1024,9 +1247,17 @@ appMainLoop(App *app, Platform *platform)
             {
                 glfwWaitEvents();
             }
+
             appSetupSwapchain(app);
             app->rebuild_swapchain = false;
         }
+
+        appSetupGuiRendering(app);
+#if DRAW_GUI
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        guiNewFrame();
+#endif
 
         Frame *frame = app->frames + (app->frame_index & 1);
         appDrawFrame(app, frame);
@@ -1037,6 +1268,11 @@ appMainLoop(App *app, Platform *platform)
         F64 frame_rate = 1.0 / frame_delay;
         frame_start = frame_end;
         printf("%.02f\n", frame_rate);
+
+#if DRAW_GUI
+        // Update and Render additional Platform Windows
+        if (guiViewportsEnabled()) guiUpdateAndRenderViewports();
+#endif
     }
 
     VK_CHECK(vkDeviceWaitIdle(app->device));

@@ -135,6 +135,8 @@ set(APP vulkan_test)
 message(STATUS "Configuring ${APP}")
 
 set(EXE_NAME ${APP})
+set(IMGUI_DIR ${EXT_DIR}/imgui)
+set(BACKEND_DIR ${IMGUI_DIR}/backends)
 
 find_package(Vulkan REQUIRED)
 
@@ -142,14 +144,16 @@ set(APP_SOURCES)
 file(GLOB_RECURSE APP_SOURCES ${CODE_DIR}/${APP}/*.c)
 set_source_files_properties(${APP_SOURCES} PROPERTIES LANGUAGE C)
 
+set(BACKEND_SOURCES ${BACKEND_DIR}/imgui_impl_vulkan.cpp)
+
 set(APP_RESOURCES)
 file(GLOB_RECURSE APP_RESOURCES ${CODE_DIR}/${APP}/*.rc)
 set_source_files_properties(${APP_RESOURCES} PROPERTIES LANGUAGE RC)
 
-add_executable(${EXE_NAME} WIN32 ${APP_SOURCES} ${APP_RESOURCES})
+add_executable(${EXE_NAME} WIN32 ${APP_SOURCES} ${BACKEND_SOURCES} ${APP_RESOURCES})
 
 target_compile_features(${EXE_NAME} PUBLIC c_std_11)
-target_include_directories(${EXE_NAME} PUBLIC ${CODE_DIR} ${Vulkan_INCLUDE_DIRS})
+target_include_directories(${EXE_NAME} PUBLIC ${CODE_DIR} ${Vulkan_INCLUDE_DIRS} ${IMGUI_DIR})
 target_link_libraries(${EXE_NAME} PRIVATE foundation gui_backend ${Vulkan_LIBRARIES})
 
 set_c_compile_flags(${EXE_NAME})
