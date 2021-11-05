@@ -70,6 +70,7 @@ typedef struct Gui
     MemAllocator *alloc;
     ImFontAtlas *shared_atlas;
     Cstr ini_filename;
+    void *user_data;
 } Gui;
 
 /// Initialize IMGUI global state
@@ -77,6 +78,8 @@ CF_API void guiInit(Gui *gui);
 CF_API void guiShutdown(Gui *gui);
 
 CF_API bool guiViewportsEnabled(void);
+
+CF_API void *guiUserData(void);
 
 CF_API void guiNewFrame(void);
 CF_API ImDrawData *guiRender(void);

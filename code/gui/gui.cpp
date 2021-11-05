@@ -36,6 +36,12 @@
 
 #include <stdarg.h>
 
+struct GuiData
+{
+    void *user_data;
+    GuiTheme theme;
+};
+
 //=== Type conversions ===//
 
 static_assert(sizeof(Vec2) == sizeof(ImVec2), "Vec2 not compatible with ImVec2");
@@ -68,6 +74,12 @@ guiFree(void *mem, void *state)
 
 //=== Initialization ===//
 
+static GuiData &
+guiData()
+{
+    return *(GuiData *)ImGui::GetIO().UserData;
+}
+
 void
 guiInit(Gui *gui)
 {
@@ -99,6 +111,11 @@ guiInit(Gui *gui)
         // Reduce visual noise while docking, also has a benefit for out-of-sync viewport rendering
         io.ConfigDockingTransparentPayload = true;
 
+        // Configure custom user data
+        GuiData *gui_data = (IM_NEW(GuiData));
+        gui_data->user_data = gui->user_data;
+        io.UserData = gui_data;
+
         guiSetTheme(GuiTheme_Dark);
     }
 }
@@ -106,6 +123,8 @@ guiInit(Gui *gui)
 void
 guiShutdown(Gui *gui)
 {
+    GuiData *gui_data = (GuiData *)ImGui::GetIO().UserData;
+    IM_DELETE(gui_data);
     ImGui::DestroyContext(gui->ctx);
 }
 
@@ -113,6 +132,12 @@ bool
 guiViewportsEnabled(void)
 {
     return ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable;
+}
+
+void *
+guiUserData(void)
+{
+    return guiData().user_data;
 }
 
 void
@@ -144,7 +169,7 @@ guiThemeSelector(Cstr label)
 
     static Cstr name[GuiTheme_Count] = {GUI_THEMES(GUI_THEME_NAME)};
 
-    GuiTheme curr = (GuiTheme)ImGui::GetIO().UserData;
+    GuiTheme curr = guiData().theme;
     GuiTheme next = curr;
 
     if (ImGui::BeginCombo(label, name[curr], 0))
@@ -180,7 +205,7 @@ guiGetBackColor(void)
 void
 guiSetTheme(GuiTheme theme)
 {
-    ImGui::GetIO().UserData = (void *)theme;
+    guiData().theme = theme;
 
     switch (theme)
     {
