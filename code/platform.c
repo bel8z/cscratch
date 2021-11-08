@@ -41,8 +41,6 @@
 // Local function declarations
 //------------------------------------------------------------------------------
 
-static void guiSetupFonts(ImFontAtlas *fonts, F32 dpi, Str data_path);
-
 // TODO (Matteo): Better logging
 #define logError(...) fprintf(stderr, __VA_ARGS__)
 
@@ -208,7 +206,11 @@ platformUpdateMainDpi(ImFontAtlas *fonts, F32 *curr_dpi, Str data_path)
         *curr_dpi = mon->DpiScale;
 #    if 1
         ImFontAtlas_Clear(fonts);
-        guiSetupFonts(fonts, *curr_dpi, data_path);
+        F32 const font_scale = *curr_dpi * PLATFORM_DPI / TRUETYPE_DPI;
+        if (!guiLoadCustomFonts(fonts, font_scale, data_path))
+        {
+            guiLoadDefaultFont(fonts);
+        }
         // TODO (Matteo): Should rescale size?
         CF_UNUSED(ratio); // ImGuiStyle_ScaleAllSizes(igGetStyle(), ratio);
         return true;
@@ -283,7 +285,10 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     // Setup Dear ImGui style
     guiSetupStyle(GuiTheme_Dark, dpi_scale);
-    guiSetupFonts(guiFonts(), dpi_scale, paths->data);
+    if (guiLoadCustomFonts(guiFonts(), dpi_scale * PLATFORM_DPI / TRUETYPE_DPI, paths->data))
+    {
+        guiLoadDefaultFont(guiFonts());
+    }
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -478,54 +483,6 @@ appApiUpdate(AppApi *api, Platform *platform, AppState *app)
         appApiLoad(api, platform->paths, platform->library);
         api->load(app);
     }
-}
-
-static ImFont *
-platformLoadFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
-{
-    Char8 buffer[1024] = {0};
-    strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
-    return guiLoadFont(fonts, buffer, font_size);
-}
-
-void
-guiSetupFonts(ImFontAtlas *atlas, F32 dpi_scale, Str data_path)
-{
-    // TODO (Matteo): Make font list available to the application?
-
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can
-    // also load multiple fonts and use igPushFont()/PopFont() to select them.
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you
-    // need to select the font among multiple.
-    // - If the file cannot be loaded, the function will return NULL. Please
-    // handle those errors in your application (e.g. use an assertion, or
-    // display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and
-    // stored into a texture when calling
-    // ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame
-    // below will call.
-    // - Read 'docs/FONTS.md' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string
-    // literal you need to write a double backslash \\ !
-
-    F32 const scale = dpi_scale * PLATFORM_DPI / TRUETYPE_DPI;
-
-    // NOTE (Matteo): This ensure the proper loading order even in optimized release builds
-    ImFont const *fonts[4] = {
-        platformLoadFont(atlas, data_path, "NotoSans", mRound(13.0f * scale)),
-        platformLoadFont(atlas, data_path, "OpenSans", mRound(13.5f * scale)),
-        platformLoadFont(atlas, data_path, "SourceSansPro", mRound(13.5f * scale)),
-        platformLoadFont(atlas, data_path, "DroidSans", mRound(12.0f * scale)),
-    };
-
-    // NOTE (Matteo): Load default IMGUI font only if no custom font has been loaded
-    bool load_default = true;
-    for (Usize i = 0; i < CF_ARRAY_SIZE(fonts) && load_default; ++i)
-    {
-        load_default = !fonts[i];
-    }
-    if (load_default) guiLoadDefaultFont(atlas);
 }
 
 //------------------------------------------------------------------------------

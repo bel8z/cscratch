@@ -214,6 +214,7 @@ CF_API void guiUpdateAtlas(ImFontAtlas *fonts, GuiFontOptions *font_opts);
 CF_API ImFontAtlas *guiFonts(void);
 CF_API ImFont *guiLoadFont(ImFontAtlas *fonts, Cstr file_name, F32 font_size);
 CF_API ImFont *guiLoadDefaultFont(ImFontAtlas *fonts);
+CF_API bool guiLoadCustomFonts(ImFontAtlas *fonts, F32 scale, Str data_path);
 
 //=== File dialogs ===//
 

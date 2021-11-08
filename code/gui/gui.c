@@ -1,6 +1,7 @@
 #include "gui.h"
 
 #include "foundation/array.h"
+#include "foundation/math.inl"
 #include "foundation/strings.h"
 
 // Restore warnings disabled for DearImgui compilation
@@ -11,6 +12,52 @@
 #    pragma clang diagnostic warning "-Wfloat-conversion"
 #elif CF_COMPILER_MSVC
 #endif
+
+static ImFont *
+gui_LoadCustomFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
+{
+    Char8 buffer[1024] = {0};
+    strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
+    return guiLoadFont(fonts, buffer, font_size);
+}
+
+bool
+guiLoadCustomFonts(ImFontAtlas *atlas, F32 scale, Str data_path)
+{
+    // TODO (Matteo): Make font list available to the application?
+
+    // Load Fonts
+    // - If no fonts are loaded, dear imgui will use the default font. You can
+    // also load multiple fonts and use igPushFont()/PopFont() to select them.
+    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you
+    // need to select the font among multiple.
+    // - If the file cannot be loaded, the function will return NULL. Please
+    // handle those errors in your application (e.g. use an assertion, or
+    // display an error and quit).
+    // - The fonts will be rasterized at a given size (w/ oversampling) and
+    // stored into a texture when calling
+    // ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame
+    // below will call.
+    // - Read 'docs/FONTS.md' for more instructions and details.
+    // - Remember that in C/C++ if you want to include a backslash \ in a string
+    // literal you need to write a double backslash \\ !
+
+    // NOTE (Matteo): This ensure the proper loading order even in optimized release builds
+    ImFont const *fonts[4] = {
+        gui_LoadCustomFont(atlas, data_path, "NotoSans", mRound(13.0f * scale)),
+        gui_LoadCustomFont(atlas, data_path, "OpenSans", mRound(13.5f * scale)),
+        gui_LoadCustomFont(atlas, data_path, "SourceSansPro", mRound(13.5f * scale)),
+        gui_LoadCustomFont(atlas, data_path, "DroidSans", mRound(12.0f * scale)),
+    };
+
+    // NOTE (Matteo): Load default IMGUI font only if no custom font has been loaded
+    for (Usize i = 0; i < CF_ARRAY_SIZE(fonts); ++i)
+    {
+        if (fonts[i]) return true;
+    }
+
+    return false;
+}
 
 #if CF_OS_WIN32
 #    include "foundation/win32.inl"
