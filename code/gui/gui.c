@@ -22,7 +22,7 @@ gui_LoadCustomFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
 }
 
 bool
-guiLoadCustomFonts(ImFontAtlas *atlas, F32 scale, Str data_path)
+guiLoadCustomFonts(ImFontAtlas *atlas, F32 dpi_scale, Str data_path)
 {
     // TODO (Matteo): Make font list available to the application?
 
@@ -41,6 +41,8 @@ guiLoadCustomFonts(ImFontAtlas *atlas, F32 scale, Str data_path)
     // - Read 'docs/FONTS.md' for more instructions and details.
     // - Remember that in C/C++ if you want to include a backslash \ in a string
     // literal you need to write a double backslash \\ !
+
+    F32 const scale = dpi_scale * GUI_PLATFORM_DPI / GUI_TRUETYPE_DPI;
 
     // NOTE (Matteo): This ensure the proper loading order even in optimized release builds
     ImFont const *fonts[4] = {

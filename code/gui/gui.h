@@ -61,6 +61,10 @@ enum GuiMouseButton_
     GuiMouseButton_COUNT = 5
 };
 
+// Constants for DPI handling
+#define GUI_PLATFORM_DPI 96.0f
+#define GUI_TRUETYPE_DPI 72.0f
+
 //=== Initialization ===//
 
 /// IMGUI state, used to initialize internal global variables

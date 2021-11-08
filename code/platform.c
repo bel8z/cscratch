@@ -21,10 +21,6 @@
 // TODO (Matteo): Get rid of it (currently here only for stderr)
 #include <stdio.h>
 
-// Constants for DPI handling
-#define PLATFORM_DPI 96.0f
-#define TRUETYPE_DPI 72.0f
-
 //------------------------------------------------------------------------------
 // OS specific platform layer
 //------------------------------------------------------------------------------
@@ -206,8 +202,7 @@ platformUpdateMainDpi(ImFontAtlas *fonts, F32 *curr_dpi, Str data_path)
         *curr_dpi = mon->DpiScale;
 #    if 1
         ImFontAtlas_Clear(fonts);
-        F32 const font_scale = *curr_dpi * PLATFORM_DPI / TRUETYPE_DPI;
-        if (!guiLoadCustomFonts(fonts, font_scale, data_path))
+        if (!guiLoadCustomFonts(fonts, *curr_dpi, data_path))
         {
             guiLoadDefaultFont(fonts);
         }
@@ -285,7 +280,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     // Setup Dear ImGui style
     guiSetupStyle(GuiTheme_Dark, dpi_scale);
-    if (guiLoadCustomFonts(guiFonts(), dpi_scale * PLATFORM_DPI / TRUETYPE_DPI, paths->data))
+    if (!guiLoadCustomFonts(guiFonts(), dpi_scale, paths->data))
     {
         guiLoadDefaultFont(guiFonts());
     }
