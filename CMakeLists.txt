@@ -1,5 +1,18 @@
 cmake_minimum_required(VERSION 3.20.0)
 
+#---------------#
+# Local scripts #
+#---------------#
+
+include(cmake/CompileFlags.cmake)
+include(cmake/AsanProfile.cmake)
+
+#-----------------------------#
+# Configure sanitizer profile #
+#-----------------------------#
+
+configure_asan_profile()
+
 #----------------#
 # Global options #
 #----------------#
@@ -7,7 +20,6 @@ cmake_minimum_required(VERSION 3.20.0)
 # Force linking against MSVC runtime static library for all targets
 cmake_policy(SET CMP0091 NEW)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
 
 #---------------------#
 # Project declaration #
@@ -23,11 +35,6 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-#---------------#
-# Local scripts #
-#---------------#
-
-include(cmake/CompileFlags.cmake)
 
 #------------------#
 # Dependency paths #
@@ -187,6 +194,12 @@ add_executable(dummy ${TESTS_DIR}/dummy.c ${CONSOLE_ENTRY})
 target_link_libraries(dummy PRIVATE foundation)
 target_include_directories(dummy PRIVATE ${CODE_DIR})
 set_c_compile_flags(dummy)
+
+# set (ASANFLAGS 
+#     -fsanitize=address
+#     -fno-common
+#     -fno-omit-frame-pointer)
+# target_link_libraries(dummy PRIVATE ${ASANFLAGS})
 
 add_executable(test_odbc ${TESTS_DIR}/test_odbc.c ${CONSOLE_ENTRY})
 target_link_libraries(test_odbc PRIVATE foundation)

@@ -1,0 +1,23 @@
+buildType:
+  default: debug
+  choices:
+    debug:
+      short: Debug
+      long: Emit debug information without performing optimizations
+      buildType: Debug
+    debug_asan:
+      short: Asan
+      long: Emit debug information and instrument with Address Sanitizer
+      buildType: Asan
+    release:
+      short: Release
+      long: Enable optimizations, omit debug info
+      buildType: Release
+    min_size_rel:
+      short: MinSizeRel
+      long: Optimize for smallest binary size
+      buildType: MinSizeRel
+    rel_debug_info:
+      short: RelWithDebInfo
+      long: Perform optimizations AND emit debug information
+      buildType: RelWithDebInfo
