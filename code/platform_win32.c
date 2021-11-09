@@ -409,9 +409,8 @@ MEM_ALLOCATOR_FUNC(win32Alloc)
 {
     CF_UNUSED(state);
 
-    // TODO (Matteo): Handle alignment? Since this is a replacement of the heap
-    // functions I don't think it's necessary to do so.
-    CF_UNUSED(align);
+    // TODO (Matteo): Handle alignment?
+    CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
 
     void *new_mem = NULL;
 
@@ -458,11 +457,13 @@ MEM_ALLOCATOR_FUNC(win32Alloc)
 MEM_ALLOCATOR_FUNC(win32Alloc)
 {
     CF_UNUSED(state);
-    CF_UNUSED(align);
 
     HANDLE heap = GetProcessHeap();
     void *old_mem = memory;
     void *new_mem = NULL;
+
+    CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
+    CF_ASSERT(align < MEMORY_ALLOCATION_ALIGNMENT, "Unsupported alignment");
 
     if (new_size)
     {

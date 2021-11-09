@@ -106,12 +106,6 @@
 #    define CF_ARCH_X86 0
 #endif
 
-#if CF_COMPILER_MSVC
-#    define CF_MAX_ALIGN (sizeof(void *) * 2)
-#else
-#    define CF_MAX_ALIGN (alignof(max_align_t))
-#endif
-
 #if CF_ARCH_X86
 #    define CF_PTR_SIZE 4
 #    define CF_CACHELINE_SIZE 64
@@ -120,6 +114,16 @@
 #    define CF_CACHELINE_SIZE 64
 #else
 #    error "Architecture not detected"
+#endif
+
+#if CF_COMPILER_MSVC
+#    if CF_ARCH_X64
+#        define CF_MAX_ALIGN 16
+#    else
+#        define CF_MAX_ALIGN 8
+#    endif
+#else
+#    define CF_MAX_ALIGN (alignof(max_align_t))
 #endif
 
 //-------------------------//
