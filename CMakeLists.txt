@@ -5,13 +5,13 @@ cmake_minimum_required(VERSION 3.20.0)
 #---------------#
 
 include(cmake/CompileFlags.cmake)
-include(cmake/AsanProfile.cmake)
+include(cmake/SanitizeProfile.cmake)
 
 #-----------------------------#
 # Configure sanitizer profile #
 #-----------------------------#
 
-configure_asan_profile()
+configure_sanitize_profile()
 
 #----------------#
 # Global options #

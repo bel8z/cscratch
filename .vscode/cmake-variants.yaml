@@ -5,10 +5,10 @@ buildType:
       short: Debug
       long: Emit debug information without performing optimizations
       buildType: Debug
-    debug_asan:
-      short: Asan
-      long: Emit debug information and instrument with Address Sanitizer
-      buildType: Asan
+    debug_sanitize:
+      short: Sanitize
+      long: Emit debug information and instrument with Address and UB sanitizers
+      buildType: Sanitize
     release:
       short: Release
       long: Enable optimizations, omit debug info

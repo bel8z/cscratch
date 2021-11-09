@@ -52,6 +52,8 @@ static_assert(sizeof(Rgba) == sizeof(ImVec4), "Rgba not compatible with ImVec4")
 static void *
 guiAlloc(Usize size, void *state)
 {
+    // TODO (Matteo: Check for misaligned access
+
     MemAllocator alloc = *(MemAllocator *)state;
     Usize *buf = (Usize *)memAlloc(alloc, size + sizeof(*buf));
 
