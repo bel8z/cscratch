@@ -119,6 +119,15 @@ typedef struct CfVirtualMemory
 #define vmMirrorAllocate(vm, size) (vm)->mirrorAllocate(size)
 #define vmMirrorFree(vm, buff) (vm)->mirrorFree(buff)
 
+//---------------------------//
+//   End-of-page allocator   //
+//---------------------------//
+
+// NOTE (Matteo): This allocator is useful for out-of-bounds access since it allocates
+// blocks at the end of virtual memory pages.
+
+MemAllocator memEndOfPageAllocator(CfVirtualMemory *vm);
+
 //------------------//
 //   Memory arena   //
 //------------------//

@@ -158,6 +158,10 @@
 #    define CF_RELEASE_ASSERTS 1
 #endif
 
+#if !defined(CF_SANITIZE)
+#    define CF_SANITIZE 0
+#endif
+
 #if defined(__cplusplus)
 #    define CF_EXTERN_C extern "C"
 #else

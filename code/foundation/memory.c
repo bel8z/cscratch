@@ -55,6 +55,68 @@ memAlignForward(U8 const *address, Usize alignment)
     return modulo ? address + alignment - modulo : address;
 }
 
+//---------------------------//
+//   End-of-page allocator   //
+//---------------------------//
+
+static Usize
+memRoundSize(Usize req_size, Usize page_size)
+{
+    Usize page_count = (req_size + page_size - 1) / page_size;
+    return page_count * page_size;
+}
+
+static MEM_ALLOCATOR_FUNC(memEndOfPageAlloc)
+{
+    CfVirtualMemory *vm = state;
+
+    // NOTE (Matteo): This function cannot guarantee the required alignment
+    // because of the stricter requirement to align the block at the end of
+    // a page; as such, UBSan can complain about misaligned accessess and
+    // SIMD data structures can pose a problem if not allocated in power-of-2 sizes.
+
+    CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
+
+    void *new_mem = NULL;
+
+    if (new_size)
+    {
+        Usize block_size = memRoundSize(new_size, vm->page_size);
+        U8 *base = vmReserve(vm, block_size);
+        if (!base) return NULL;
+
+        vmCommit(vm, base, block_size);
+
+        new_mem = base + block_size - new_size;
+    }
+
+    if (memory)
+    {
+        CF_ASSERT(old_size > 0, "Freeing valid pointer but given size is 0");
+
+        if (new_mem)
+        {
+            memCopy(memory, new_mem, cfMin(old_size, new_size));
+        }
+
+        Usize block_size = memRoundSize(old_size, vm->page_size);
+        U8 *base = (U8 *)memory + old_size - block_size;
+
+        vmRevert(vm, base, block_size);
+        vmRelease(vm, base, block_size);
+
+        memory = NULL;
+    }
+
+    return new_mem;
+}
+
+MemAllocator
+memEndOfPageAllocator(CfVirtualMemory *vm)
+{
+    return (MemAllocator){.func = memEndOfPageAlloc, .state = vm};
+}
+
 //------------------//
 //   Memory arena   //
 //------------------//

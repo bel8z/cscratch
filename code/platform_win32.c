@@ -59,10 +59,6 @@ static Platform g_platform = {
             .mirrorAllocate = win32MirrorAllocate,
             .mirrorFree = win32MirrorFree,
         },
-    .heap =
-        {
-            .func = win32Alloc,
-        },
     .library =
         &(LibraryApi){
             .load = win32libLoad,
@@ -159,7 +155,14 @@ win32PlatformInit(void)
 
     g_platform.vm->page_size = sysinfo.dwPageSize;
     g_platform.vm->address_granularity = sysinfo.dwAllocationGranularity;
+
+#if CF_MEMORY_PROTECTION
+    CF_UNUSED(win32Alloc);
+    g_platform.heap = memEndOfPageAllocator(g_platform.vm);
+#else
     g_platform.heap.state = &g_platform;
+    g_platform.heap.func = win32Alloc;
+#endif
 
     // ** Init paths **
 
@@ -396,64 +399,6 @@ VM_MIRROR_FREE(win32MirrorFree)
     buffer->os_handle = 0;
 }
 
-#if CF_MEMORY_PROTECTION
-
-static Usize
-win32RoundSize(Usize req_size, Usize page_size)
-{
-    Usize page_count = (req_size + page_size - 1) / page_size;
-    return page_count * page_size;
-}
-
-MEM_ALLOCATOR_FUNC(win32Alloc)
-{
-    CF_UNUSED(state);
-
-    // TODO (Matteo): Handle alignment?
-    CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
-
-    void *new_mem = NULL;
-
-    if (new_size)
-    {
-        Usize block_size = win32RoundSize(new_size, g_platform.vm->page_size);
-        U8 *base = win32VmReserve(block_size);
-        if (!base) return NULL;
-
-        win32VmCommit(base, block_size);
-
-        g_platform.heap_blocks++;
-        g_platform.heap_size += block_size;
-
-        new_mem = base + block_size - new_size;
-    }
-
-    if (memory)
-    {
-        CF_ASSERT(old_size > 0, "Freeing valid pointer but given size is 0");
-
-        if (new_mem)
-        {
-            memCopy(memory, new_mem, cfMin(old_size, new_size));
-        }
-
-        Usize block_size = win32RoundSize(old_size, g_platform.vm->page_size);
-        U8 *base = (U8 *)memory + old_size - block_size;
-
-        win32VmDecommit(base, block_size);
-        win32VmRelease(base, block_size);
-
-        g_platform.heap_blocks--;
-        g_platform.heap_size -= block_size;
-
-        memory = NULL;
-    }
-
-    return new_mem;
-}
-
-#else
-
 MEM_ALLOCATOR_FUNC(win32Alloc)
 {
     CF_UNUSED(state);
@@ -496,8 +441,6 @@ MEM_ALLOCATOR_FUNC(win32Alloc)
 
     return new_mem;
 }
-
-#endif
 
 //-----------------------//
 //   Dynamic libraries   //
