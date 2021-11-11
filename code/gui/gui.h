@@ -65,14 +65,23 @@ enum GuiMouseButton_
 #define GUI_PLATFORM_DPI 96.0f
 #define GUI_TRUETYPE_DPI 72.0f
 
+// Memory information
+typedef struct GuiMemory
+{
+    Usize size;
+    Usize blocks;
+} GuiMemory;
+
 //=== Initialization ===//
 
 /// IMGUI state, used to initialize internal global variables
 typedef struct Gui
 {
+    MemAllocator alloc;
+
     ImGuiContext *ctx;
-    MemAllocator *alloc;
     ImFontAtlas *shared_atlas;
+
     Cstr ini_filename;
     void *user_data;
 } Gui;
@@ -83,6 +92,7 @@ CF_API void guiShutdown(Gui *gui);
 
 CF_API bool guiViewportsEnabled(void);
 
+CF_API GuiMemory guiMemoryInfo(void);
 CF_API void *guiUserData(void);
 
 CF_API void guiNewFrame(void);

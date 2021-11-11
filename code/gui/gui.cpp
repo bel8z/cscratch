@@ -38,8 +38,12 @@
 
 struct GuiData
 {
-    void *user_data;
+    MemAllocator allocator;
+    GuiMemory memory;
+
     GuiTheme theme;
+
+    void *user_data;
 };
 
 //=== Type conversions ===//
@@ -54,10 +58,18 @@ guiAlloc(Usize size, void *state)
 {
     // TODO (Matteo: Check for misaligned access
 
-    MemAllocator alloc = *(MemAllocator *)state;
-    Usize *buf = (Usize *)memAlloc(alloc, size + sizeof(*buf));
+    CF_ASSERT_NOT_NULL(state);
 
-    if (buf) *(buf++) = size;
+    GuiData *data = (GuiData *)state;
+    Usize total_size = size + sizeof(Usize);
+    Usize *buf = (Usize *)memAlloc(data->allocator, total_size);
+
+    if (buf)
+    {
+        data->memory.size += total_size;
+        data->memory.blocks++;
+        *(buf++) = total_size;
+    }
 
     return buf;
 }
@@ -65,12 +77,19 @@ guiAlloc(Usize size, void *state)
 static void
 guiFree(void *mem, void *state)
 {
+    CF_ASSERT_NOT_NULL(state);
+
     if (mem)
     {
-        MemAllocator alloc = *(MemAllocator *)state;
+        GuiData *data = (GuiData *)state;
         Usize *buf = (Usize *)mem;
-        buf--;
-        memFree(alloc, buf, *buf + sizeof(*buf));
+        Usize total_size = *(--buf);
+
+        CF_ASSERT_NOT_NULL(total_size);
+
+        data->memory.size -= total_size;
+        data->memory.blocks--;
+        memFree(data->allocator, buf, total_size);
     }
 }
 
@@ -86,21 +105,29 @@ void
 guiInit(Gui *gui)
 {
     CF_ASSERT_NOT_NULL(gui);
-    CF_ASSERT_NOT_NULL(gui->alloc);
 
     IMGUI_CHECKVERSION();
-
-    ImGui::SetAllocatorFunctions(guiAlloc, guiFree, gui->alloc);
 
     if (gui->ctx)
     {
         ImGui::SetCurrentContext(gui->ctx);
+        ImGui::SetAllocatorFunctions(guiAlloc, guiFree, &guiData());
     }
     else
     {
+        // Configure custom user data
+        GuiData *gui_data = (GuiData *)memAlloc(gui->alloc, sizeof(*gui_data));
+        gui_data->allocator = gui->alloc;
+        gui_data->memory = {0};
+        gui_data->user_data = gui->user_data;
+
+        ImGui::SetAllocatorFunctions(guiAlloc, guiFree, gui_data);
+
         gui->ctx = ImGui::CreateContext(gui->shared_atlas);
 
         ImGuiIO &io = ImGui::GetIO();
+
+        io.UserData = gui_data;
 
         io.IniFilename = gui->ini_filename;
 
@@ -113,11 +140,6 @@ guiInit(Gui *gui)
         // Reduce visual noise while docking, also has a benefit for out-of-sync viewport rendering
         io.ConfigDockingTransparentPayload = true;
 
-        // Configure custom user data
-        GuiData *gui_data = (IM_NEW(GuiData));
-        gui_data->user_data = gui->user_data;
-        io.UserData = gui_data;
-
         guiSetTheme(GuiTheme_Dark);
     }
 }
@@ -126,14 +148,25 @@ void
 guiShutdown(Gui *gui)
 {
     GuiData *gui_data = (GuiData *)ImGui::GetIO().UserData;
-    IM_DELETE(gui_data);
+
     ImGui::DestroyContext(gui->ctx);
+
+    CF_ASSERT(gui_data->memory.size == 0, "Possible GUI memory leak");
+    CF_ASSERT(gui_data->memory.blocks == 0, "Possible GUI memory leak");
+
+    memFree(gui_data->allocator, gui_data, sizeof(*gui_data));
 }
 
 bool
 guiViewportsEnabled(void)
 {
     return ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable;
+}
+
+CF_API GuiMemory
+guiMemoryInfo(void)
+{
+    return guiData().memory;
 }
 
 void *
@@ -171,7 +204,8 @@ guiThemeSelector(Cstr label)
 
     static Cstr name[GuiTheme_Count] = {GUI_THEMES(GUI_THEME_NAME)};
 
-    GuiTheme curr = guiData().theme;
+    GuiData &gui_data = guiData();
+    GuiTheme curr = gui_data.theme;
     GuiTheme next = curr;
 
     if (ImGui::BeginCombo(label, name[curr], 0))

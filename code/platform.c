@@ -261,7 +261,10 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     pathChangeExt(strFromCstr(gui_ini), strLiteral(".gui"), gui_ini);
 
     // Setup Dear ImGui context
-    platform->gui = &(Gui){.alloc = &platform->heap, .ini_filename = gui_ini};
+    platform->gui = &(Gui){
+        .alloc = platform->heap,
+        .ini_filename = gui_ini,
+    };
     guiInit(platform->gui);
 #if CF_COMPILER_MSVC
 #    pragma warning(pop)

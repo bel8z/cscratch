@@ -577,13 +577,19 @@ APP_API APP_UPDATE_PROC(appUpdate)
     if (state->windows.stats)
     {
         F64 framerate = (F64)guiGetFramerate();
+        GuiMemory gui_mem = guiMemoryInfo();
 
-        guiBegin("Application stats stats", &state->windows.stats);
+        guiBegin("Application stats", &state->windows.stats);
         guiText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
+
         guiSeparator();
-        guiText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
-        guiText("Virtual memory reserved %.3fkb - committed %.3fkb",
+        guiText("Virtual memory: Reserved %.3fkb - Committed %.3fkb",
                 (F64)plat->reserved_size / 1024, (F64)plat->committed_size / 1024);
+        guiText("Heap memory   : Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024,
+                plat->heap_blocks);
+        guiText("GUI memory    : Allocated %.3fkb in %zu blocks", (F64)gui_mem.size / 1024,
+                gui_mem.blocks);
+
         guiSeparator();
         guiText("OpenGL version:\t%s", glGetString(GL_VERSION));
         guiText("OpenGL renderer:\t%s", glGetString(GL_RENDERER));

@@ -839,7 +839,7 @@ appInitGui(App *app, Platform *platform)
 
     // Setup Dear ImGui context
     platform->gui = &(Gui){
-        .alloc = &platform->heap,
+        .alloc = platform->heap,
         .ini_filename = gui_ini,
         .user_data = app,
     };
