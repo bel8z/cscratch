@@ -177,6 +177,7 @@ CF_API MemArena *memArenaBootstrapFromVm(CfVirtualMemory *vm, void *reserved_blo
                                          Usize reserved_size);
 
 // TODO (Matteo): Bootstrap from buffer
+CF_API MemArena *memArenaBootstrapFromBuffer(U8 *buffer, Usize buffer_size);
 
 /// Free all the memory allocated by the arena. In case of a virtual memory backing
 /// store, the memory is decommitted (returned to the OS)

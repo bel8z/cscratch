@@ -193,7 +193,6 @@ memArenaInitOnBuffer(MemArena *arena, U8 *buffer, Usize buffer_size)
 MemArena *
 memArenaBootstrapFromVm(CfVirtualMemory *vm, void *reserved_block, Usize reserved_size)
 {
-
     MemArena *arena = NULL;
 
     if (reserved_block)
@@ -206,9 +205,30 @@ memArenaBootstrapFromVm(CfVirtualMemory *vm, void *reserved_block, Usize reserve
         arena = reserved_block;
         arena->vm = vm;
         arena->memory = (U8 *)arena;
-        arena->reserved = reserved_size - sizeof(*arena);
+        arena->reserved = reserved_size;
         arena->allocated = sizeof(*arena);
         arena->committed = commit_size;
+        arena->save_stack = 0;
+    }
+
+    return arena;
+}
+
+MemArena *
+memArenaBootstrapFromBuffer(U8 *buffer, Usize buffer_size)
+{
+    MemArena *arena = NULL;
+
+    if (buffer)
+    {
+        CF_ASSERT(buffer_size > sizeof(*arena), "Cannot bootstrap arena from smaller allocation");
+
+        arena = (MemArena *)buffer;
+        arena->vm = NULL;
+        arena->memory = buffer;
+        arena->reserved = buffer_size;
+        arena->allocated = sizeof(*arena);
+        arena->committed = 0;
         arena->save_stack = 0;
     }
 
@@ -220,10 +240,10 @@ memArenaClear(MemArena *arena)
 {
     CF_ASSERT_NOT_NULL(arena);
 
-    if (arena->vm && arena->memory == (U8 *)arena)
+    if (arena->memory == (U8 *)arena)
     {
         // Arena is bootstrapped, so I need to preserve its allocation
-        arena->allocated = sizeof(MemArena);
+        arena->allocated = sizeof(*arena);
     }
     else
     {
