@@ -44,6 +44,12 @@ enum QueueType
     PRESENT,
 };
 
+typedef struct Vertex
+{
+    Vec2 pos;
+    Vec3 color; // TODO (Matteo): Use Rgba colors
+} Vertex;
+
 typedef struct Swapchain
 {
     VkSwapchainKHR handle;
@@ -94,8 +100,16 @@ typedef struct App
     Frame frames[2];
     Usize frame_index;
 
+    VkBuffer vertex_buffer;
+
     VkDescriptorPool imgui_pool;
 } App;
+
+const Vertex vertices[] = {
+    {.pos = {{0.0f, -0.5f}}, .color = {{1.0f, 0.0f, 0.0f}}},
+    {.pos = {{0.5f, 0.5f}}, .color = {{0.0f, 1.0f, 0.0f}}},
+    {.pos = {{-0.5f, 0.5f}}, .color = {{0.0f, 0.0f, 1.0f}}},
+};
 
 //-----------------//
 //   Entry point   //
@@ -613,8 +627,22 @@ appCreatePipeline(App *app)
         },
     };
 
+    VkVertexInputBindingDescription vertex_binding = {
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+        .stride = sizeof(Vertex),
+    };
+
+    VkVertexInputAttributeDescription vertex_attributes[] = {
+        {.location = 0, .format = VK_FORMAT_R32G32_SFLOAT},
+        {.location = 1, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color)},
+    };
+
     VkPipelineVertexInputStateCreateInfo input_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .pVertexBindingDescriptions = &vertex_binding,
+        .vertexBindingDescriptionCount = 1,
+        .pVertexAttributeDescriptions = vertex_attributes,
+        .vertexAttributeDescriptionCount = CF_ARRAY_SIZE(vertex_attributes),
     };
 
     VkPipelineInputAssemblyStateCreateInfo input_assembly = {
@@ -813,6 +841,19 @@ appSetupSwapchain(App *app)
 }
 
 static void
+appCreateVertexBuffer(App *app)
+{
+    VkBufferCreateInfo buffer_info = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .size = sizeof(vertices), // NOTE (Matteo): Size in bytes!
+        .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    };
+
+    VK_CHECK(vkCreateBuffer(app->device, &buffer_info, app->vkalloc, &app->vertex_buffer));
+}
+
+static void
 framebufferResizeCallback(GLFWwindow *window, int width, int height)
 {
     CF_UNUSED(width);
@@ -968,6 +1009,8 @@ appInit(App *app, Platform *platform)
         VK_CHECK(vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &frame->render_finished));
         VK_CHECK(vkCreateFence(app->device, &fence_info, app->vkalloc, &frame->fence));
     }
+
+    appCreateVertexBuffer(app);
 }
 
 void
@@ -976,6 +1019,8 @@ appShutdown(App *app)
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     guiShutdown(app->platform->gui);
+
+    vkDestroyBuffer(app->device, app->vertex_buffer, app->vkalloc);
 
     for (U32 index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
     {
