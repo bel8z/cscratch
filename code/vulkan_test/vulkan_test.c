@@ -73,6 +73,13 @@ typedef struct Frame
     VkSemaphore render_finished;
 } Frame;
 
+typedef struct ResourceBuffer
+{
+    // TODO (Matteo): Better memory management for resources
+    VkBuffer buffer;
+    VkDeviceMemory memory;
+} ResourceBuffer;
+
 typedef struct App
 {
     Platform *platform;
@@ -100,8 +107,7 @@ typedef struct App
     Frame frames[2];
     Usize frame_index;
 
-    VkBuffer vertex_buffer;
-    VkDeviceMemory vertex_buffer_memory;
+    ResourceBuffer vertex_buffer;
 
     VkDescriptorPool imgui_pool;
 } App;
@@ -861,56 +867,112 @@ appFindMemoryType(App *app, VkMemoryPropertyFlags type_flags, U32 type_filter)
 }
 
 static void
+appCreateBuffer(App *app, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags,
+                ResourceBuffer *buffer)
+{
+    // Create buffer
+    VkBufferCreateInfo buffer_info = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .size = size, // NOTE (Matteo): Size in bytes!
+        .usage = usage,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    };
+    VK_CHECK(vkCreateBuffer(app->device, &buffer_info, app->vkalloc, &buffer->buffer));
+
+    // Allocate memory for the buffer
+    VkMemoryRequirements requirements;
+    vkGetBufferMemoryRequirements(app->device, buffer->buffer, &requirements);
+
+    VkMemoryAllocateInfo alloc_info = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize = requirements.size,
+        .memoryTypeIndex = appFindMemoryType(app, flags, requirements.memoryTypeBits),
+    };
+
+    if (alloc_info.memoryTypeIndex == U32_MAX)
+    {
+        appTerminate(app, "Cannot find a suitable memory type for the buffer");
+    }
+
+    VK_CHECK(vkAllocateMemory(app->device, &alloc_info, app->vkalloc, &buffer->memory));
+
+    // Bind memory to the buffer
+    VK_CHECK(vkBindBufferMemory(app->device, buffer->buffer, buffer->memory, 0));
+}
+
+static void
+appDestroyBuffer(App *app, ResourceBuffer *buffer)
+{
+    vkDestroyBuffer(app->device, buffer->buffer, app->vkalloc);
+    vkFreeMemory(app->device, buffer->memory, app->vkalloc);
+}
+
+static void
+appCopyBuffer(App *app, VkBuffer src, VkBuffer dst, VkDeviceSize size)
+{
+    VkCommandPool cmd_pool = app->frames[0].cmd_pool; // TODO (Matteo): Dedicated pool?
+
+    VkCommandBufferAllocateInfo alloc_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandPool = cmd_pool,
+        .commandBufferCount = 1,
+    };
+
+    VkCommandBuffer cmd;
+    VK_CHECK(vkAllocateCommandBuffers(app->device, &alloc_info, &cmd));
+
+    VkCommandBufferBeginInfo begin_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+    };
+
+    VK_CHECK(vkBeginCommandBuffer(cmd, &begin_info));
+    vkCmdCopyBuffer(cmd, src, dst, 1, &(VkBufferCopy){.size = size});
+    VK_CHECK(vkEndCommandBuffer(cmd));
+
+    VkSubmitInfo submitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &cmd,
+    };
+
+    VK_CHECK(vkQueueSubmit(app->queue[GRAPHICS], 1, &submitInfo, VK_NULL_HANDLE));
+    VK_CHECK(vkQueueWaitIdle(app->queue[GRAPHICS]));
+
+    vkFreeCommandBuffers(app->device, cmd_pool, 1, &cmd);
+}
+
+static void
 appCreateVertexBuffer(App *app)
 {
     Usize buffer_size = sizeof(g_vertices);
 
-    // Create buffer
-    {
-        VkBufferCreateInfo buffer_info = {
-            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .size = buffer_size, // NOTE (Matteo): Size in bytes!
-            .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        };
-        VK_CHECK(vkCreateBuffer(app->device, &buffer_info, app->vkalloc, &app->vertex_buffer));
-    }
+    // VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ensures that the mapped memory always matches the
+    // contents of the allocated memory. Do keep in mind that this may lead to slightly worse
+    // performance than explicit flushing, but we'll see why that doesn't matter in the next
+    // chapter.
 
-    // Allocate memory for the buffer
-    {
-        VkMemoryRequirements requirements;
-        vkGetBufferMemoryRequirements(app->device, app->vertex_buffer, &requirements);
+    // Create an host visible staging buffer
+    ResourceBuffer staging = {0};
+    appCreateBuffer(app, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    &staging);
 
-        // VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ensures that the mapped memory always matches the
-        // contents of the allocated memory. Do keep in mind that this may lead to slightly worse
-        // performance than explicit flushing, but we'll see why that doesn't matter in the next
-        // chapter.
-        VkMemoryPropertyFlags flags =
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-        VkMemoryAllocateInfo alloc_info = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .allocationSize = requirements.size,
-            .memoryTypeIndex = appFindMemoryType(app, flags, requirements.memoryTypeBits),
-        };
-
-        if (alloc_info.memoryTypeIndex == U32_MAX)
-        {
-            appTerminate(app, "Cannot find a suitable memory type for vertex buffer");
-        }
-
-        VK_CHECK(
-            vkAllocateMemory(app->device, &alloc_info, app->vkalloc, &app->vertex_buffer_memory));
-    }
-
-    // Bind memory to the buffer
-    VK_CHECK(vkBindBufferMemory(app->device, app->vertex_buffer, app->vertex_buffer_memory, 0));
-
-    // Copy data into the buffer
+    // Copy data into the staging buffer
     void *buffer_data;
-    VK_CHECK(vkMapMemory(app->device, app->vertex_buffer_memory, 0, buffer_size, 0, &buffer_data));
+    VK_CHECK(vkMapMemory(app->device, staging.memory, 0, buffer_size, 0, &buffer_data));
     memCopy(g_vertices, buffer_data, buffer_size);
-    vkUnmapMemory(app->device, app->vertex_buffer_memory);
+    vkUnmapMemory(app->device, staging.memory);
+
+    // Create a device local vertex buffer
+    appCreateBuffer(app, buffer_size,
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &app->vertex_buffer);
+
+    appCopyBuffer(app, staging.buffer, app->vertex_buffer.buffer, buffer_size);
+
+    appDestroyBuffer(app, &staging);
 }
 
 static void
@@ -1080,8 +1142,7 @@ appShutdown(App *app)
     ImGui_ImplGlfw_Shutdown();
     guiShutdown(app->platform->gui);
 
-    vkDestroyBuffer(app->device, app->vertex_buffer, app->vkalloc);
-    vkFreeMemory(app->device, app->vertex_buffer_memory, app->vkalloc);
+    appDestroyBuffer(app, &app->vertex_buffer);
 
     for (U32 index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
     {
@@ -1237,7 +1298,7 @@ appDrawFrame(App *app, Frame *frame)
         vkCmdBindPipeline(frame->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, app->pipe);
 
         VkDeviceSize offset = 0;
-        vkCmdBindVertexBuffers(frame->cmd, 0, 1, &app->vertex_buffer, &offset);
+        vkCmdBindVertexBuffers(frame->cmd, 0, 1, &app->vertex_buffer.buffer, &offset);
 
         vkCmdDraw(frame->cmd,
                   CF_ARRAY_SIZE(g_vertices), // Vertex number
