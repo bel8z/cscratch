@@ -101,11 +101,12 @@ typedef struct App
     Usize frame_index;
 
     VkBuffer vertex_buffer;
+    VkDeviceMemory vertex_buffer_memory;
 
     VkDescriptorPool imgui_pool;
 } App;
 
-const Vertex vertices[] = {
+const Vertex g_vertices[] = {
     {.pos = {{0.0f, -0.5f}}, .color = {{1.0f, 0.0f, 0.0f}}},
     {.pos = {{0.5f, 0.5f}}, .color = {{0.0f, 1.0f, 0.0f}}},
     {.pos = {{-0.5f, 0.5f}}, .color = {{0.0f, 0.0f, 1.0f}}},
@@ -840,17 +841,76 @@ appSetupSwapchain(App *app)
     appCreateFrameBuffers(app);
 }
 
+static U32
+appFindMemoryType(App *app, VkMemoryPropertyFlags type_flags, U32 type_filter)
+{
+    VkPhysicalDeviceMemoryProperties mem_properties;
+    vkGetPhysicalDeviceMemoryProperties(app->gpu, &mem_properties);
+
+    for (U32 index = 0; index < mem_properties.memoryTypeCount; ++index)
+    {
+        VkMemoryType *type = mem_properties.memoryTypes + index;
+
+        if ((type_filter & (1 << index)) && (type->propertyFlags & type_flags) == type_flags)
+        {
+            return index;
+        }
+    }
+
+    return U32_MAX;
+}
+
 static void
 appCreateVertexBuffer(App *app)
 {
-    VkBufferCreateInfo buffer_info = {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .size = sizeof(vertices), // NOTE (Matteo): Size in bytes!
-        .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-    };
+    Usize buffer_size = sizeof(g_vertices);
 
-    VK_CHECK(vkCreateBuffer(app->device, &buffer_info, app->vkalloc, &app->vertex_buffer));
+    // Create buffer
+    {
+        VkBufferCreateInfo buffer_info = {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .size = buffer_size, // NOTE (Matteo): Size in bytes!
+            .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        };
+        VK_CHECK(vkCreateBuffer(app->device, &buffer_info, app->vkalloc, &app->vertex_buffer));
+    }
+
+    // Allocate memory for the buffer
+    {
+        VkMemoryRequirements requirements;
+        vkGetBufferMemoryRequirements(app->device, app->vertex_buffer, &requirements);
+
+        // VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ensures that the mapped memory always matches the
+        // contents of the allocated memory. Do keep in mind that this may lead to slightly worse
+        // performance than explicit flushing, but we'll see why that doesn't matter in the next
+        // chapter.
+        VkMemoryPropertyFlags flags =
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+        VkMemoryAllocateInfo alloc_info = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .allocationSize = requirements.size,
+            .memoryTypeIndex = appFindMemoryType(app, flags, requirements.memoryTypeBits),
+        };
+
+        if (alloc_info.memoryTypeIndex == U32_MAX)
+        {
+            appTerminate(app, "Cannot find a suitable memory type for vertex buffer");
+        }
+
+        VK_CHECK(
+            vkAllocateMemory(app->device, &alloc_info, app->vkalloc, &app->vertex_buffer_memory));
+    }
+
+    // Bind memory to the buffer
+    VK_CHECK(vkBindBufferMemory(app->device, app->vertex_buffer, app->vertex_buffer_memory, 0));
+
+    // Copy data into the buffer
+    void *buffer_data;
+    VK_CHECK(vkMapMemory(app->device, app->vertex_buffer_memory, 0, buffer_size, 0, &buffer_data));
+    memCopy(g_vertices, buffer_data, buffer_size);
+    vkUnmapMemory(app->device, app->vertex_buffer_memory);
 }
 
 static void
@@ -1021,6 +1081,7 @@ appShutdown(App *app)
     guiShutdown(app->platform->gui);
 
     vkDestroyBuffer(app->device, app->vertex_buffer, app->vkalloc);
+    vkFreeMemory(app->device, app->vertex_buffer_memory, app->vkalloc);
 
     for (U32 index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
     {
@@ -1175,8 +1236,11 @@ appDrawFrame(App *app, Frame *frame)
         vkCmdBeginRenderPass(frame->cmd, &pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(frame->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, app->pipe);
 
+        VkDeviceSize offset = 0;
+        vkCmdBindVertexBuffers(frame->cmd, 0, 1, &app->vertex_buffer, &offset);
+
         vkCmdDraw(frame->cmd,
-                  3, // Vertex number
+                  CF_ARRAY_SIZE(g_vertices), // Vertex number
                   1, // Instance number - Use 1 if not using instanced rendering
                   0, // First vertex - lowest value for 'gl_VertexIndex'
                   0  // First instance - lowest value for 'gl_InstanceIndex'
