@@ -78,6 +78,7 @@ typedef struct ResourceBuffer
     // TODO (Matteo): Better memory management for resources
     VkBuffer buffer;
     VkDeviceMemory memory;
+    VkDeviceSize size;
 } ResourceBuffer;
 
 typedef struct App
@@ -107,16 +108,20 @@ typedef struct App
     Frame frames[2];
     Usize frame_index;
 
-    ResourceBuffer vertex_buffer;
+    ResourceBuffer vertex;
+    ResourceBuffer index;
 
     VkDescriptorPool imgui_pool;
 } App;
 
 const Vertex g_vertices[] = {
-    {.pos = {{0.0f, -0.5f}}, .color = {{1.0f, 0.0f, 0.0f}}},
-    {.pos = {{0.5f, 0.5f}}, .color = {{0.0f, 1.0f, 0.0f}}},
-    {.pos = {{-0.5f, 0.5f}}, .color = {{0.0f, 0.0f, 1.0f}}},
+    {.pos = {{-0.5f, -0.5f}}, .color = {{1.0f, 0.0f, 0.0f}}},
+    {.pos = {{0.5f, -0.5f}}, .color = {{0.0f, 1.0f, 0.0f}}},
+    {.pos = {{0.5f, 0.5f}}, .color = {{0.0f, 0.0f, 1.0f}}},
+    {.pos = {{-0.5f, 0.5f}}, .color = {{1.0f, 1.0f, 1.0f}}},
 };
+
+const U16 g_indices[] = {0, 1, 2, 2, 3, 0};
 
 //-----------------//
 //   Entry point   //
@@ -898,6 +903,8 @@ appCreateBuffer(App *app, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
 
     // Bind memory to the buffer
     VK_CHECK(vkBindBufferMemory(app->device, buffer->buffer, buffer->memory, 0));
+
+    buffer->size = size;
 }
 
 static void
@@ -944,10 +951,9 @@ appCopyBuffer(App *app, VkBuffer src, VkBuffer dst, VkDeviceSize size)
 }
 
 static void
-appCreateVertexBuffer(App *app)
+appCreateAndFillBuffer(App *app, void const *data, Usize data_size, VkBufferUsageFlags usage,
+                       ResourceBuffer *buffer)
 {
-    Usize buffer_size = sizeof(g_vertices);
-
     // VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ensures that the mapped memory always matches the
     // contents of the allocated memory. Do keep in mind that this may lead to slightly worse
     // performance than explicit flushing, but we'll see why that doesn't matter in the next
@@ -955,22 +961,21 @@ appCreateVertexBuffer(App *app)
 
     // Create an host visible staging buffer
     ResourceBuffer staging = {0};
-    appCreateBuffer(app, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    appCreateBuffer(app, data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                     &staging);
 
     // Copy data into the staging buffer
     void *buffer_data;
-    VK_CHECK(vkMapMemory(app->device, staging.memory, 0, buffer_size, 0, &buffer_data));
-    memCopy(g_vertices, buffer_data, buffer_size);
+    VK_CHECK(vkMapMemory(app->device, staging.memory, 0, staging.size, 0, &buffer_data));
+    memCopy(data, buffer_data, staging.size);
     vkUnmapMemory(app->device, staging.memory);
 
     // Create a device local vertex buffer
-    appCreateBuffer(app, buffer_size,
-                    VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &app->vertex_buffer);
+    appCreateBuffer(app, staging.size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer);
 
-    appCopyBuffer(app, staging.buffer, app->vertex_buffer.buffer, buffer_size);
+    appCopyBuffer(app, staging.buffer, buffer->buffer, buffer->size);
 
     appDestroyBuffer(app, &staging);
 }
@@ -1132,7 +1137,11 @@ appInit(App *app, Platform *platform)
         VK_CHECK(vkCreateFence(app->device, &fence_info, app->vkalloc, &frame->fence));
     }
 
-    appCreateVertexBuffer(app);
+    appCreateAndFillBuffer(app, g_vertices, sizeof(g_vertices), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                           &app->vertex);
+
+    appCreateAndFillBuffer(app, g_indices, sizeof(g_indices), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                           &app->index);
 }
 
 void
@@ -1142,7 +1151,8 @@ appShutdown(App *app)
     ImGui_ImplGlfw_Shutdown();
     guiShutdown(app->platform->gui);
 
-    appDestroyBuffer(app, &app->vertex_buffer);
+    appDestroyBuffer(app, &app->index);
+    appDestroyBuffer(app, &app->vertex);
 
     for (U32 index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
     {
@@ -1298,13 +1308,22 @@ appDrawFrame(App *app, Frame *frame)
         vkCmdBindPipeline(frame->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, app->pipe);
 
         VkDeviceSize offset = 0;
-        vkCmdBindVertexBuffers(frame->cmd, 0, 1, &app->vertex_buffer.buffer, &offset);
+        vkCmdBindVertexBuffers(frame->cmd, 0, 1, &app->vertex.buffer, &offset);
+        vkCmdBindIndexBuffer(frame->cmd, app->index.buffer, 0, VK_INDEX_TYPE_UINT16);
 
-        vkCmdDraw(frame->cmd,
-                  CF_ARRAY_SIZE(g_vertices), // Vertex number
-                  1, // Instance number - Use 1 if not using instanced rendering
-                  0, // First vertex - lowest value for 'gl_VertexIndex'
-                  0  // First instance - lowest value for 'gl_InstanceIndex'
+        // vkCmdDraw(frame->cmd,
+        //           CF_ARRAY_SIZE(g_vertices), // Number of vertices
+        //           1, // Number of instances - Use 1 if not using instanced rendering
+        //           0, // First vertex - lowest value for 'gl_VertexIndex'
+        //           0  // First instance - lowest value for 'gl_InstanceIndex'
+        // );
+
+        vkCmdDrawIndexed(frame->cmd,
+                         CF_ARRAY_SIZE(g_indices), // Number of indices
+                         1, // Number of instances - Use 1 if not using instanced rendering
+                         0, // First index - lowest value for 'gl_VertexIndex'
+                         0, // Offset to be added to the indices
+                         0  // First instance - lowest value for 'gl_InstanceIndex'
         );
 
 #if RENDER_GUI
