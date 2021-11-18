@@ -384,6 +384,80 @@ appPickGpu(App *app)
 }
 
 static void
+appPrintGpuMemoryProperties(App *app)
+{
+    VkPhysicalDeviceMemoryProperties props;
+    vkGetPhysicalDeviceMemoryProperties(app->gpu, &props);
+
+    appDiagnostic(app, "%u memory heaps:\n", props.memoryHeapCount);
+    for (U32 index = 0; index < props.memoryHeapCount; ++index)
+    {
+        VkMemoryHeap *heap = props.memoryHeaps + index;
+        appDiagnostic(app, "Heap #%u\n", index);
+        appDiagnostic(app, "\tSize: %llu\n", heap->size);
+        appDiagnostic(app, "\tFlags: ");
+
+        if (heap->flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+        {
+            appDiagnostic(app, "VK_MEMORY_HEAP_DEVICE_LOCAL_BIT, ");
+        }
+
+        if (heap->flags & VK_MEMORY_HEAP_MULTI_INSTANCE_BIT)
+        {
+            appDiagnostic(app, "VK_MEMORY_HEAP_MULTI_INSTANCE_BIT, ");
+        }
+        appDiagnostic(app, "\n");
+    }
+
+    appDiagnostic(app, "%u memory types:\n", props.memoryTypeCount);
+    for (U32 index = 0; index < props.memoryTypeCount; ++index)
+    {
+        VkMemoryType *type = props.memoryTypes + index;
+        appDiagnostic(app, "Type #%u\n", index);
+        appDiagnostic(app, "\tHeap: %u\n", type->heapIndex);
+        appDiagnostic(app, "\tFlags: ");
+
+        if (type->propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+        {
+            appDiagnostic(app, "VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, ");
+        }
+        if (type->propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+        {
+            appDiagnostic(app, "VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, ");
+        }
+        if (type->propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+        {
+            appDiagnostic(app, "VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, ");
+        }
+        if (type->propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
+        {
+            appDiagnostic(app, "VK_MEMORY_PROPERTY_HOST_CACHED_BIT, ");
+        }
+        if (type->propertyFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)
+        {
+            appDiagnostic(app, "VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, ");
+        }
+        if (type->propertyFlags & VK_MEMORY_PROPERTY_PROTECTED_BIT)
+        {
+            appDiagnostic(app, "VK_MEMORY_PROPERTY_PROTECTED_BIT, ");
+        }
+        if (type->propertyFlags & VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD)
+        {
+            appDiagnostic(app, "VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD, ");
+        }
+        if (type->propertyFlags & VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD)
+        {
+            appDiagnostic(app, "VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD, ");
+        }
+        if (type->propertyFlags & VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV)
+        {
+            appDiagnostic(app, "VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV, ");
+        }
+        appDiagnostic(app, "\n");
+    }
+}
+
+static void
 appCreateLogicalDevice(App *app)
 {
     F32 const queue_priority = 1.0f;
@@ -1104,6 +1178,7 @@ appInit(App *app, Platform *platform)
 
     // Choose a suitable GPU for rendering
     appPickGpu(app);
+    appPrintGpuMemoryProperties(app);
 
     // Create a logical device with associated graphics and presentation queues
     appCreateLogicalDevice(app);
@@ -1420,7 +1495,7 @@ appMainLoop(App *app)
         F64 frame_delay = timeGetSeconds(timeSub(frame_end, frame_start));
         F64 frame_rate = 1.0 / frame_delay;
         frame_start = frame_end;
-        printf("%.02f\n", frame_rate);
+        appDiagnostic(app, "%.02f\n", frame_rate);
 
 #if RENDER_GUI
         // Update and Render additional Platform Windows
