@@ -496,11 +496,6 @@ typedef struct StrBuffer
 
 // TODO (Matteo): Review naming convention?
 
-/// Affinity matrix (floating point)
-typedef F32 Mat4[4][4];
-typedef F64 DMat4[4][4];
-typedef I32 IMat4[4][4];
-
 #define VEC_TYPES(Scalar, tag)    \
     /* 2D vector */               \
     typedef union tag##Vec2       \
@@ -557,9 +552,33 @@ typedef I32 IMat4[4][4];
 
 VEC_TYPES(F32, )  // Vectors with single-precision float components
 VEC_TYPES(F64, D) // Vectors with double-precision float components
-VEC_TYPES(I32, I) // Vectors with integer components
+VEC_TYPES(I32, I) // Vectors with (32 bit) integer components
 
 #undef VEC_TYPES
+
+// NOTE (Matteo): Matrix types use a column-major representation since it's the one
+// used by GPU shaders, and so easy interop with OpenGL, Vulkan and D3D is ensured.
+
+/// Transformation matrix with single-precision float components
+typedef union Mat4
+{
+    Vec4 cols[4];
+    F32 elem[4][4];
+} Mat4;
+
+/// Transformation matrix with double-precision float components
+typedef union DMat4
+{
+    DVec4 cols[4];
+    F64 elem[4][4];
+} DMat4;
+
+/// Transformation matrix with (32 bit) integer components
+typedef union IMat4
+{
+    IVec4 cols[4];
+    I32 elem[4][4];
+} IMat4;
 
 //------------------//
 //   Color spaces   //

@@ -604,3 +604,48 @@ VEC__OPS(I32, 4, I)
 
 // Mat 4
 // TODO
+
+static inline Mat4
+matDiagonal(F32 value)
+{
+    Mat4 mat = {0};
+    mat.elem[0][0] = value;
+    mat.elem[1][1] = value;
+    mat.elem[2][2] = value;
+    mat.elem[3][3] = value;
+    return mat;
+}
+
+static inline Mat4
+matIdentity(void)
+{
+    return matDiagonal(1);
+}
+
+static inline Mat4
+matTranspose(Mat4 in)
+{
+    Mat4 out;
+
+    out.elem[0][0] = in.elem[0][0];
+    out.elem[1][0] = in.elem[0][1];
+    out.elem[2][0] = in.elem[0][2];
+    out.elem[3][0] = in.elem[0][3];
+
+    out.elem[0][1] = in.elem[1][0];
+    out.elem[1][1] = in.elem[1][1];
+    out.elem[2][1] = in.elem[1][2];
+    out.elem[3][1] = in.elem[1][3];
+
+    out.elem[0][2] = in.elem[2][0];
+    out.elem[1][2] = in.elem[2][1];
+    out.elem[2][2] = in.elem[2][2];
+    out.elem[3][2] = in.elem[2][3];
+
+    out.elem[0][3] = in.elem[3][0];
+    out.elem[1][3] = in.elem[3][1];
+    out.elem[2][3] = in.elem[3][2];
+    out.elem[3][3] = in.elem[3][3];
+
+    return out;
+}
