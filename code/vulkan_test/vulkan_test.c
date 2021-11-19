@@ -50,6 +50,13 @@ typedef struct Vertex
     Vec3 color; // TODO (Matteo): Use Rgba colors
 } Vertex;
 
+typedef struct UniformBufferObject
+{
+    Mat4 model;
+    Mat4 view;
+    Mat4 proj;
+} UniformBufferObject;
+
 typedef struct Swapchain
 {
     VkSwapchainKHR handle;
@@ -143,7 +150,6 @@ I32
 platformMain(Platform *platform, CommandLine *cmd_line)
 {
     CF_UNUSED(cmd_line);
-
     App app = {0};
     appInit(&app, platform);
     appMainLoop(&app);

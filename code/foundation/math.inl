@@ -649,3 +649,32 @@ matTranspose(Mat4 in)
 
     return out;
 }
+
+static inline Mat4
+matScale(F32 value)
+{
+    Mat4 mat = {0};
+    mat.elem[0][0] = value;
+    mat.elem[1][1] = value;
+    mat.elem[2][2] = value;
+    mat.elem[3][3] = 1;
+    return mat;
+}
+
+static inline Mat4
+matTranslation(F32 x, F32 y, F32 z)
+{
+    Mat4 mat = {0};
+    mat.elem[3][0] = x;
+    mat.elem[3][1] = y;
+    mat.elem[3][2] = z;
+    return mat;
+}
+
+static inline Mat4
+matTranslationV(Vec3 t)
+{
+    Mat4 mat = {0};
+    mat.cols[3] = (Vec4){.xyz = t};
+    return mat;
+}
