@@ -43,6 +43,29 @@
 #define mSinH(X) _Generic((X), default : sinh, F32 : sinhf)(X)
 #define mTanH(X) _Generic((X), default : tanh, F32 : tanhf)(X)
 
+#define mDegrees(X) _Generic((X), default : mDegrees64, F32 : mDegrees32)(X)
+#define mRadians(X) _Generic((X), default : mRadians64, F32 : mRadians32)(X)
+
+static inline mDegrees32(F32 radians)
+{
+    return (radians * 180.0f) / M_PI32;
+}
+
+static inline mDegrees64(F64 radians)
+{
+    return (radians * 180.0) / M_PI64;
+}
+
+static inline mRadians32(F32 degrees)
+{
+    return (degrees * M_PI32) / 180.0f;
+}
+
+static inline mRadians64(F64 degrees)
+{
+    return (degrees * M_PI64) / 180.0;
+}
+
 //-------------------//
 //  Powers & roots   //
 //-------------------//
@@ -602,8 +625,13 @@ VEC__OPS(I32, 4, I)
 
 #undef VEC__OPS
 
-// Mat 4
-// TODO
+//-----------------------//
+//   Matrix operations   //
+//-----------------------//
+
+// NOTE (Matteo): Angles are always in radians!
+
+//--- Common forms ---//
 
 static inline Mat4
 matDiagonal(F32 value)
@@ -650,6 +678,8 @@ matTranspose(Mat4 in)
     return out;
 }
 
+//--- Transformations ---//
+
 static inline Mat4
 matScale(F32 value)
 {
@@ -672,9 +702,154 @@ matTranslation(F32 x, F32 y, F32 z)
 }
 
 static inline Mat4
-matTranslationV(Vec3 t)
+matTranslationVec(Vec3 t)
+{
+    return (Mat4){.cols[3] = {.xyz = t}};
+}
+
+static inline Mat4
+matRotation(Vec3 axis, F32 radians)
 {
     Mat4 mat = {0};
-    mat.cols[3] = (Vec4){.xyz = t};
+
+    axis = vecNormalize(axis);
+
+    F32 sintheta = mSin(radians);
+    F32 costheta = mCos(radians);
+    F32 cosvalue = 1.0f - costheta;
+
+    mat.elem[0][0] = (axis.x * axis.x * cosvalue) + costheta;
+    mat.elem[0][1] = (axis.x * axis.y * cosvalue) + (axis.z * sintheta);
+    mat.elem[0][2] = (axis.x * axis.z * cosvalue) - (axis.y * sintheta);
+
+    mat.elem[1][0] = (axis.y * axis.x * cosvalue) - (axis.z * sintheta);
+    mat.elem[1][1] = (axis.y * axis.y * cosvalue) + costheta;
+    mat.elem[1][2] = (axis.y * axis.z * cosvalue) + (axis.x * sintheta);
+
+    mat.elem[2][0] = (axis.z * axis.x * cosvalue) + (axis.y * sintheta);
+    mat.elem[2][1] = (axis.z * axis.y * cosvalue) - (axis.x * sintheta);
+    mat.elem[2][2] = (axis.z * axis.z * cosvalue) + costheta;
+
+    mat.elem[3][3] = 1.0f;
+
     return mat;
+}
+
+static inline Mat4
+matLookAt(Vec3 eye, Vec3 center, Vec3 up)
+{
+    Mat4 mat = {0};
+
+    // See https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluLookAt.xml
+
+    Vec3 zaxis = vecNormalize(vecSub(center, eye));
+    Vec3 xaxis = vecNormalize(vecCross(zaxis, up));
+    Vec3 yaxis = vecCross(xaxis, zaxis);
+
+    mat.elem[0][0] = xaxis.x;
+    mat.elem[0][1] = yaxis.x;
+    mat.elem[0][2] = -zaxis.x;
+
+    mat.elem[1][0] = xaxis.y;
+    mat.elem[1][1] = yaxis.y;
+    mat.elem[1][2] = -zaxis.y;
+
+    mat.elem[2][0] = xaxis.z;
+    mat.elem[2][1] = yaxis.z;
+    mat.elem[2][2] = -zaxis.z;
+
+    mat.elem[3][0] = -vecDot(xaxis, eye);
+    mat.elem[3][1] = -vecDot(yaxis, eye);
+    mat.elem[3][2] = vecDot(zaxis, eye);
+    mat.elem[3][3] = 1.0f;
+
+    return mat;
+}
+
+static inline Mat4
+matPerspective(F32 fovy, F32 aspect, F32 zNear, F32 zFar)
+{
+    Mat4 mat = {0};
+
+    // See:
+    // https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluPerspective.xml
+    // http://www.songho.ca/opengl/gl_projectionmatrix.html
+
+    F32 f = 1 / mTan(fovy / 2);
+
+    mat.elem[0][0] = f * aspect;
+
+    mat.elem[1][1] = f;
+
+    mat.elem[2][2] = (zNear + zFar) / (zNear - zFar);
+    mat.elem[2][3] = -1.0f;
+
+    mat.elem[3][2] = (2.0f * zNear * zFar) / (zNear - zFar);
+
+    return mat;
+}
+
+//--- Algebra ---//
+
+// clang-format off
+
+#define matMul(left, right) \
+    _Generic(((right)),     \
+        Mat4 : matMulMat4,  \
+        Vec2 : matMulVec2,  \
+        Vec3 : matMulVec3,  \
+        Vec4 : matMulVec4)(left, right)
+
+// clang-format on
+
+static inline Mat4
+matMulMat4(Mat4 left, Mat4 right)
+{
+    Mat4 mat = {0};
+
+    for (U32 col = 0; col < 4; ++col)
+    {
+        for (U32 row = 0; row < 4; ++row)
+        {
+            F32 sum = 0;
+
+            for (U32 cur = 0; cur < 4; ++cur)
+            {
+                sum += left.elem[cur][row] * right.elem[col][cur];
+            }
+
+            mat.elem[col][row] = sum;
+        }
+    }
+
+    return mat;
+}
+
+static inline Vec4
+matMulVec4(Mat4 mat, Vec4 vec)
+{
+    Vec4 res = {0};
+
+    // TODO (Matteo): Go wide with SIMD
+    for (Usize col = 0; col < 4; ++col)
+    {
+        res = vecAdd(res, vecMul(mat.cols[col], vec.elem[col]));
+    }
+
+    return res;
+}
+
+static inline Vec3
+matMulVec3(Mat4 mat, Vec3 vec)
+{
+    return matMulVec4(mat, (Vec4){.xyz = vec}).xyz;
+}
+
+static inline Vec2
+matMulVec2(Mat4 mat, Vec2 vec)
+{
+    return (Vec2){
+        .x = mat.elem[0][0] * vec.x + mat.elem[1][0] * vec.y + mat.elem[3][0],
+        .y = mat.elem[0][1] * vec.x + mat.elem[1][1] * vec.y + mat.elem[3][1],
+    };
 }
