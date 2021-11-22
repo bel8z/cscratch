@@ -230,6 +230,9 @@
 #define CF_PAD(size) U8 CF_MACRO_VAR(_pad)[size]
 #define CF_CACHELINE_PAD CF_PAD(CF_CACHELINE_SIZE)
 
+/// Check if the given integer is a power of 2
+#define cfIsPowerOf2(value) (!((value) & ((value)-1)))
+
 //------------------------------------------------------------------------------
 //   TYPES
 //------------------------------------------------------------------------------

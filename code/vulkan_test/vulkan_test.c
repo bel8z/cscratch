@@ -133,7 +133,9 @@ typedef struct App
     ResourceBuffer vertex;
     ResourceBuffer index;
 
-    VkDescriptorPool imgui_pool;
+    VkDescriptorPool desc_pool;
+
+    bool gui_setup;
 } App;
 
 const Vertex g_vertices[] = {
@@ -1290,6 +1292,26 @@ appInit(App *app, Platform *platform)
     // Create a logical device with associated graphics and presentation queues
     appCreateLogicalDevice(app);
 
+    // Create the descriptor pool
+    VkDescriptorPoolSize pool_sizes[] = {
+        {.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1},
+        {.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = CF_ARRAY_SIZE(app->frames)},
+    };
+
+    VkDescriptorPoolCreateInfo pool_info = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+        .poolSizeCount = CF_ARRAY_SIZE(pool_sizes),
+        .pPoolSizes = pool_sizes,
+    };
+
+    for (Usize index = 0; index < CF_ARRAY_SIZE(pool_sizes); ++index)
+    {
+        pool_info.maxSets += pool_sizes[index].descriptorCount;
+    }
+
+    VK_CHECK(vkCreateDescriptorPool(app->device, &pool_info, app->vkalloc, &app->desc_pool));
+
     // Create frames
     appCreateFrames(app);
 
@@ -1311,10 +1333,9 @@ appShutdown(App *app)
     appDestroyBuffer(app, &app->vertex);
 
     appDestroyFrames(app);
-
     appCleanupSwapchain(app);
 
-    vkDestroyDescriptorPool(app->device, app->imgui_pool, app->vkalloc);
+    vkDestroyDescriptorPool(app->device, app->desc_pool, app->vkalloc);
 
     vkDestroyDevice(app->device, app->vkalloc);
     vkDestroySurfaceKHR(app->inst, app->surface, app->vkalloc);
@@ -1332,24 +1353,7 @@ appShutdown(App *app)
 static void
 appSetupGuiRendering(App *app)
 {
-    if (app->imgui_pool) return;
-
-    // Create a dedicated descriptor pool
-    {
-        VkDescriptorPoolSize pool_size = {
-            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = 1,
-        };
-
-        VkDescriptorPoolCreateInfo pool_info = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-            .maxSets = 1,
-            .poolSizeCount = 1,
-            .pPoolSizes = &pool_size,
-        };
-        VK_CHECK(vkCreateDescriptorPool(app->device, &pool_info, app->vkalloc, &app->imgui_pool));
-    }
+    if (app->gui_setup) return;
 
     // Initialize the backend
     {
@@ -1363,7 +1367,7 @@ appSetupGuiRendering(App *app)
             .Subpass = 0,
             .MinImageCount = app->swapchain.image_count,
             .ImageCount = app->swapchain.image_count,
-            .DescriptorPool = app->imgui_pool,
+            .DescriptorPool = app->desc_pool,
             .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
             .CheckVkResultFn = guiCheckResult,
         };
@@ -1398,6 +1402,8 @@ appSetupGuiRendering(App *app)
         VK_CHECK(vkDeviceWaitIdle(app->device));
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
+
+    app->gui_setup = true;
 }
 
 static void
@@ -1576,7 +1582,10 @@ appMainLoop(App *app)
         guiDemoWindow(NULL);
 #endif
 
-        Frame *frame = app->frames + (app->frame_index & 1);
+        static_assert(cfIsPowerOf2(CF_ARRAY_SIZE(app->frames)), "Frame count is not a power of 2!");
+
+        Usize frame_mask = CF_ARRAY_SIZE(app->frames) - 1;
+        Frame *frame = app->frames + (app->frame_index & frame_mask);
         appDrawFrame(app, frame);
         app->frame_index++;
 

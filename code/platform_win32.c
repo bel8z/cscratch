@@ -407,7 +407,7 @@ MEM_ALLOCATOR_FUNC(win32Alloc)
     void *old_mem = memory;
     void *new_mem = NULL;
 
-    CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
+    CF_ASSERT(cfIsPowerOf2(align), "Alignment is not a power of 2");
     CF_ASSERT(align < MEMORY_ALLOCATION_ALIGNMENT, "Unsupported alignment");
 
     if (new_size)
