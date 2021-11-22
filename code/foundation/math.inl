@@ -755,21 +755,24 @@ matLookAt(Vec3 eye, Vec3 center, Vec3 up)
     Vec3 xaxis = vecNormalize(vecCross(zaxis, up));
     Vec3 yaxis = vecCross(xaxis, zaxis);
 
+    // Set the rows to the new axes (since this is an inverse transform)
     mat.elem[0][0] = xaxis.x;
-    mat.elem[0][1] = yaxis.x;
-    mat.elem[0][2] = -zaxis.x;
-
     mat.elem[1][0] = xaxis.y;
-    mat.elem[1][1] = yaxis.y;
-    mat.elem[1][2] = -zaxis.y;
-
     mat.elem[2][0] = xaxis.z;
+
+    mat.elem[0][1] = yaxis.x;
+    mat.elem[1][1] = yaxis.y;
     mat.elem[2][1] = yaxis.z;
+
+    mat.elem[0][2] = -zaxis.x;
+    mat.elem[1][2] = -zaxis.y;
     mat.elem[2][2] = -zaxis.z;
 
+    // Set translation
     mat.elem[3][0] = -vecDot(xaxis, eye);
     mat.elem[3][1] = -vecDot(yaxis, eye);
     mat.elem[3][2] = vecDot(zaxis, eye);
+
     mat.elem[3][3] = 1.0f;
 
     return mat;
