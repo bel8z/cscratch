@@ -767,7 +767,7 @@ matLookAt(Vec3 eye, Vec3 center, Vec3 up)
 }
 
 static inline Mat4
-matPerspective(F32 fovy, F32 aspect, F32 zNear, F32 zFar)
+matPerspective(F32 fovy, F32 aspect, F32 z_near, F32 z_far, I32 y_dir)
 {
     Mat4 mat = {0};
 
@@ -779,12 +779,14 @@ matPerspective(F32 fovy, F32 aspect, F32 zNear, F32 zFar)
 
     mat.elem[0][0] = f * aspect;
 
-    mat.elem[1][1] = f;
+    // NOTE (Matteo): Handle coordinate systems with y-up and y-down
+    CF_ASSERT(y_dir == -1 || y_dir == 1, "Invalid Y axis direction");
+    mat.elem[1][1] = f * y_dir;
 
-    mat.elem[2][2] = (zNear + zFar) / (zNear - zFar);
+    mat.elem[2][2] = (z_near + z_far) / (z_near - z_far);
     mat.elem[2][3] = -1.0f;
 
-    mat.elem[3][2] = (2.0f * zNear * zFar) / (zNear - zFar);
+    mat.elem[3][2] = (2.0f * z_near * z_far) / (z_near - z_far);
 
     return mat;
 }
@@ -805,6 +807,8 @@ matPerspective(F32 fovy, F32 aspect, F32 zNear, F32 zFar)
 static inline Mat4
 matMulMat4(Mat4 left, Mat4 right)
 {
+    // TODO (Matteo): Go wide with SIMD
+
     Mat4 mat = {0};
 
     for (U32 col = 0; col < 4; ++col)
