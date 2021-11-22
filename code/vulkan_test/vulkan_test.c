@@ -69,6 +69,15 @@ typedef struct Swapchain
     VkFence fence[3];
 } Swapchain;
 
+typedef struct ResourceBuffer
+{
+    // TODO (Matteo): Better memory management for resources
+    VkBuffer buffer;
+    VkDeviceMemory memory;
+    VkDeviceSize size;
+    void *map;
+} ResourceBuffer;
+
 typedef struct Frame
 {
     VkCommandPool cmd_pool;
@@ -78,19 +87,15 @@ typedef struct Frame
 
     VkSemaphore image_available;
     VkSemaphore render_finished;
-} Frame;
 
-typedef struct ResourceBuffer
-{
-    // TODO (Matteo): Better memory management for resources
-    VkBuffer buffer;
-    VkDeviceMemory memory;
-    VkDeviceSize size;
-} ResourceBuffer;
+    ResourceBuffer uniform;
+} Frame;
 
 typedef struct App
 {
     Platform *platform;
+
+    Clock clock;
 
     MemAllocator allocator;
     GLFWwindow *window;
@@ -109,6 +114,7 @@ typedef struct App
     bool rebuild_swapchain;
 
     VkRenderPass render_pass;
+    VkDescriptorSetLayout desc_layout;
     VkPipelineLayout pipe_layout;
     VkPipeline pipe;
 
@@ -679,6 +685,31 @@ appCreateRenderPass(App *app)
     VK_CHECK(vkCreateRenderPass(app->device, &info, app->vkalloc, &app->render_pass));
 }
 
+static void
+appCreateDescriptorSetLayout(App *app)
+{
+    // NOTE (Matteo): It is possible for the shader variable to represent an array of uniform
+    // buffer objects, and 'descriptorCount' specifies the number of values in the array. This could
+    // be used to specify a transformation for each of the bones in a skeleton for skeletal
+    // animation, for example.
+    VkDescriptorSetLayoutBinding ubo_binding = {
+        .binding = 0,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = 1,
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        .pImmutableSamplers = NULL, // TODO (Matteo): Revisit
+    };
+
+    VkDescriptorSetLayoutCreateInfo layout_info = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .bindingCount = 1,
+        .pBindings = &ubo_binding,
+    };
+
+    VK_CHECK(
+        vkCreateDescriptorSetLayout(app->device, &layout_info, app->vkalloc, &app->desc_layout));
+}
+
 static VkShaderModule
 appCreateShaderModule(App *app, U32 const *code, Usize code_size)
 {
@@ -818,7 +849,8 @@ appCreatePipeline(App *app)
     // TODO (Matteo): Revisit - Creating an empty layout for now
     VkPipelineLayoutCreateInfo layout_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .setLayoutCount = 0,
+        .setLayoutCount = 1,
+        .pSetLayouts = &app->desc_layout,
     };
 
     VK_CHECK(vkCreatePipelineLayout(app->device, &layout_info, app->vkalloc, &app->pipe_layout));
@@ -905,6 +937,7 @@ appCleanupSwapchain(App *app)
 {
     vkDestroyPipeline(app->device, app->pipe, app->vkalloc);
     vkDestroyPipelineLayout(app->device, app->pipe_layout, app->vkalloc);
+    vkDestroyDescriptorSetLayout(app->device, app->desc_layout, app->vkalloc);
 
     for (U32 index = 0; index < app->swapchain.image_count; ++index)
     {
@@ -928,6 +961,7 @@ appSetupSwapchain(App *app)
 
     appCreateSwapchain(app);
     appCreateRenderPass(app);
+    appCreateDescriptorSetLayout(app);
     appCreatePipeline(app);
     appCreateFrameBuffers(app);
 }
@@ -953,7 +987,7 @@ appFindMemoryType(App *app, VkMemoryPropertyFlags type_flags, U32 type_filter)
 
 static void
 appCreateBuffer(App *app, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags,
-                ResourceBuffer *buffer)
+                bool mapped, ResourceBuffer *buffer)
 {
     // Create buffer
     VkBufferCreateInfo buffer_info = {
@@ -985,11 +1019,22 @@ appCreateBuffer(App *app, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
     VK_CHECK(vkBindBufferMemory(app->device, buffer->buffer, buffer->memory, 0));
 
     buffer->size = size;
+    buffer->map = NULL;
+
+    if (mapped)
+    {
+        VK_CHECK(vkMapMemory(app->device, buffer->memory, 0, buffer->size, 0, &buffer->map));
+    }
 }
 
 static void
 appDestroyBuffer(App *app, ResourceBuffer *buffer)
 {
+    if (buffer->map)
+    {
+        vkUnmapMemory(app->device, buffer->memory);
+    }
+
     vkDestroyBuffer(app->device, buffer->buffer, app->vkalloc);
     vkFreeMemory(app->device, buffer->memory, app->vkalloc);
 }
@@ -1043,17 +1088,14 @@ appCreateAndFillBuffer(App *app, void const *data, Usize data_size, VkBufferUsag
     ResourceBuffer staging = {0};
     appCreateBuffer(app, data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    &staging);
+                    true, &staging);
 
     // Copy data into the staging buffer
-    void *buffer_data;
-    VK_CHECK(vkMapMemory(app->device, staging.memory, 0, staging.size, 0, &buffer_data));
-    memCopy(data, buffer_data, staging.size);
-    vkUnmapMemory(app->device, staging.memory);
+    memCopy(data, staging.map, staging.size);
 
     // Create a device local vertex buffer
     appCreateBuffer(app, staging.size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer);
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, false, buffer);
 
     appCopyBuffer(app, staging.buffer, buffer->buffer, buffer->size);
 
@@ -1110,6 +1152,56 @@ appInitGui(App *app, Platform *platform)
     if (!guiLoadCustomFonts(fonts, dpi_scale, paths->data)) guiLoadDefaultFont(fonts);
 
     ImGui_ImplGlfw_InitForVulkan(app->window, true);
+}
+
+static void
+appCreateFrames(App *app)
+{
+    for (Usize index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
+    {
+        Frame *frame = app->frames + index;
+
+        VkCommandPoolCreateInfo pool_info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .queueFamilyIndex = app->queue_index[GRAPHICS],
+        };
+        VK_CHECK(vkCreateCommandPool(app->device, &pool_info, app->vkalloc, &frame->cmd_pool));
+
+        VkCommandBufferAllocateInfo cmd_info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool = frame->cmd_pool,
+            .commandBufferCount = 1,
+        };
+        VK_CHECK(vkAllocateCommandBuffers(app->device, &cmd_info, &frame->cmd));
+
+        VkSemaphoreCreateInfo sema_info = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        VkFenceCreateInfo fence_info = {
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+        };
+
+        VK_CHECK(vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &frame->image_available));
+        VK_CHECK(vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &frame->render_finished));
+        VK_CHECK(vkCreateFence(app->device, &fence_info, app->vkalloc, &frame->fence));
+
+        appCreateBuffer(app, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                        true, &frame->uniform);
+    }
+}
+
+static void
+appDestroyFrames(App *app)
+{
+    for (U32 index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
+    {
+        Frame *frame = app->frames + index;
+        appDestroyBuffer(app, &frame->uniform);
+        vkDestroySemaphore(app->device, frame->image_available, app->vkalloc);
+        vkDestroySemaphore(app->device, frame->render_finished, app->vkalloc);
+        vkDestroyFence(app->device, frame->fence, app->vkalloc);
+        vkDestroyCommandPool(app->device, frame->cmd_pool, app->vkalloc);
+    }
 }
 
 void
@@ -1190,33 +1282,7 @@ appInit(App *app, Platform *platform)
     appCreateLogicalDevice(app);
 
     // Create frames
-    for (Usize index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
-    {
-        Frame *frame = app->frames + index;
-
-        VkCommandPoolCreateInfo pool_info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            .queueFamilyIndex = app->queue_index[GRAPHICS],
-        };
-        VK_CHECK(vkCreateCommandPool(app->device, &pool_info, app->vkalloc, &frame->cmd_pool));
-
-        VkCommandBufferAllocateInfo cmd_info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .commandPool = frame->cmd_pool,
-            .commandBufferCount = 1,
-        };
-        VK_CHECK(vkAllocateCommandBuffers(app->device, &cmd_info, &frame->cmd));
-
-        VkSemaphoreCreateInfo sema_info = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-        VkFenceCreateInfo fence_info = {
-            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            .flags = VK_FENCE_CREATE_SIGNALED_BIT,
-        };
-
-        VK_CHECK(vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &frame->image_available));
-        VK_CHECK(vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &frame->render_finished));
-        VK_CHECK(vkCreateFence(app->device, &fence_info, app->vkalloc, &frame->fence));
-    }
+    appCreateFrames(app);
 
     appCreateAndFillBuffer(app, g_vertices, sizeof(g_vertices), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                            &app->vertex);
@@ -1235,14 +1301,7 @@ appShutdown(App *app)
     appDestroyBuffer(app, &app->index);
     appDestroyBuffer(app, &app->vertex);
 
-    for (U32 index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
-    {
-        Frame *frame = app->frames + index;
-        vkDestroySemaphore(app->device, frame->image_available, app->vkalloc);
-        vkDestroySemaphore(app->device, frame->render_finished, app->vkalloc);
-        vkDestroyFence(app->device, frame->fence, app->vkalloc);
-        vkDestroyCommandPool(app->device, frame->cmd_pool, app->vkalloc);
-    }
+    appDestroyFrames(app);
 
     appCleanupSwapchain(app);
 
@@ -1341,12 +1400,36 @@ appSetupGuiRendering(App *app)
 }
 
 static void
+appUpdateUbo(App *app, Frame *frame)
+{
+    Duration elapsed = clockElapsed(&app->clock);
+
+    UniformBufferObject *ubo = frame->uniform.map;
+
+    // Rotate at 90 degrees per second around Z axis.
+    ubo->model = matRotation(VEC3_Z, (F32)timeGetSeconds(elapsed) * mRadians(90.0f));
+
+    // Look at the geometry from above at a 45 degree angle.
+    ubo->view = matLookAt((Vec3){{2.0f, 2.0f, 2.0f}}, // Eye
+                          VEC3_0,                     // Center
+                          VEC3_Y                      // Up Axis
+    );
+
+    // Perspective projection with a 45 degree vertical field-of-view.
+    F32 aspect = (F32)app->swapchain.extent.width / (F32)app->swapchain.extent.height;
+    ubo->proj = matPerspective(mRadians(45.0f), aspect, 0.1f, 10.0f, -1);
+}
+
+static void
 appDrawFrame(App *app, Frame *frame)
 {
     Swapchain *swapchain = &app->swapchain;
 
     // Synchronize current frame with the graphics queue
     vkWaitForFences(app->device, 1, &frame->fence, VK_TRUE, U64_MAX);
+
+    // Update the UBO on then current frame
+    appUpdateUbo(app, frame);
 
     // Request a backbuffer from the swapchain
     U32 image_index = 0;
@@ -1464,9 +1547,8 @@ appMainLoop(App *app)
     // NOTE (Matteo): Ensure swapchain setup on first loop
     app->rebuild_swapchain = (app->swapchain.handle == VK_NULL_HANDLE);
 
-    Clock clock = {0};
-    clockStart(&clock);
-    Duration frame_start = clockElapsed(&clock);
+    // Start time tracking
+    clockStart(&app->clock);
 
     while (!glfwWindowShouldClose(app->window))
     {
@@ -1496,12 +1578,6 @@ appMainLoop(App *app)
         Frame *frame = app->frames + (app->frame_index & 1);
         appDrawFrame(app, frame);
         app->frame_index++;
-
-        Duration frame_end = clockElapsed(&clock);
-        F64 frame_delay = timeGetSeconds(timeSub(frame_end, frame_start));
-        F64 frame_rate = 1.0 / frame_delay;
-        frame_start = frame_end;
-        appDiagnostic(app, "%.02f\n", frame_rate);
 
 #if RENDER_GUI
         // Update and Render additional Platform Windows
