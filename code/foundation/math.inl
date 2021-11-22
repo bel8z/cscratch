@@ -46,22 +46,26 @@
 #define mDegrees(X) _Generic((X), default : mDegrees64, F32 : mDegrees32)(X)
 #define mRadians(X) _Generic((X), default : mRadians64, F32 : mRadians32)(X)
 
-static inline mDegrees32(F32 radians)
+static inline F32
+mDegrees32(F32 radians)
 {
     return (radians * 180.0f) / M_PI32;
 }
 
-static inline mDegrees64(F64 radians)
+static inline F64
+mDegrees64(F64 radians)
 {
     return (radians * 180.0) / M_PI64;
 }
 
-static inline mRadians32(F32 degrees)
+static inline F32
+mRadians32(F32 degrees)
 {
     return (degrees * M_PI32) / 180.0f;
 }
 
-static inline mRadians64(F64 degrees)
+static inline F64
+mRadians64(F64 degrees)
 {
     return (degrees * M_PI64) / 180.0;
 }
@@ -464,6 +468,11 @@ VEC__N_OPS(I64)
 //   Type-generic vector operations   //
 //------------------------------------//
 
+#define VEC3_0 ((Vec3){0})
+#define VEC3_X ((Vec3){.x = 1.0f, .y = 0.0f, .z = 0.0f})
+#define VEC3_Y ((Vec3){.x = 0.0f, .y = 1.0f, .z = 0.0f})
+#define VEC3_Z ((Vec3){.x = 0.0f, .y = 0.0f, .z = 1.0f})
+
 // clang-format off
 
 /// Add two vectors
@@ -781,7 +790,7 @@ matPerspective(F32 fovy, F32 aspect, F32 z_near, F32 z_far, I32 y_dir)
 
     // NOTE (Matteo): Handle coordinate systems with y-up and y-down
     CF_ASSERT(y_dir == -1 || y_dir == 1, "Invalid Y axis direction");
-    mat.elem[1][1] = f * y_dir;
+    mat.elem[1][1] = f * (F32)y_dir;
 
     mat.elem[2][2] = (z_near + z_far) / (z_near - z_far);
     mat.elem[2][3] = -1.0f;
