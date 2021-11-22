@@ -24,9 +24,18 @@
 //   Configuration   //
 //-------------------//
 
-#define RENDER_GUI false
+#define RENDER_GUI true
 
 #define PREFERRED_PRESENT_MODE ((VkPresentModeKHR)VK_PRESENT_MODE_MAILBOX_KHR)
+
+// TODO (Matteo): Can this be fixed? Separate render passes for GUI and app?
+// In order to render IMGUI inside the main render pass, the format must be
+// VK_FORMAT_B8G8R8A8_UNORM.
+#if RENDER_GUI
+#    define PREFERRED_FORMAT VK_FORMAT_B8G8R8A8_UNORM
+#else
+#    define PREFERRED_FORMAT VK_FORMAT_B8G8R8A8_SRGB
+#endif
 
 // Configure the pipeline state that can change dynamically
 static VkDynamicState const DYNAMIC_PIPELINE_STATES[] = {
@@ -574,7 +583,7 @@ appCreateSwapchain(App *app)
 
         for (U32 index = 0; index < num_formats; ++index)
         {
-            if (formats[index].format == VK_FORMAT_B8G8R8A8_SRGB &&
+            if (formats[index].format == PREFERRED_FORMAT &&
                 formats[index].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
             {
                 format_index = index;
@@ -1305,6 +1314,8 @@ appShutdown(App *app)
 
     appCleanupSwapchain(app);
 
+    vkDestroyDescriptorPool(app->device, app->imgui_pool, app->vkalloc);
+
     vkDestroyDevice(app->device, app->vkalloc);
     vkDestroySurfaceKHR(app->inst, app->surface, app->vkalloc);
     vkDestroyDebugUtilsMessengerEXT(app->inst, app->debug, app->vkalloc);
@@ -1325,27 +1336,17 @@ appSetupGuiRendering(App *app)
 
     // Create a dedicated descriptor pool
     {
-#define DESC_POOL_SIZE 1024
-        VkDescriptorPoolSize pool_sizes[] = {
-            {VK_DESCRIPTOR_TYPE_SAMPLER, DESC_POOL_SIZE},
-            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, DESC_POOL_SIZE},
-            {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DESC_POOL_SIZE},
-            {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, DESC_POOL_SIZE},
-            {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, DESC_POOL_SIZE},
-            {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, DESC_POOL_SIZE},
-            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, DESC_POOL_SIZE},
-            {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, DESC_POOL_SIZE},
-            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, DESC_POOL_SIZE},
-            {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, DESC_POOL_SIZE},
-            {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, DESC_POOL_SIZE},
+        VkDescriptorPoolSize pool_size = {
+            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount = 1,
         };
 
         VkDescriptorPoolCreateInfo pool_info = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-            .maxSets = DESC_POOL_SIZE * CF_ARRAY_SIZE(pool_sizes),
-            .poolSizeCount = (U32)CF_ARRAY_SIZE(pool_sizes),
-            .pPoolSizes = pool_sizes,
+            .maxSets = 1,
+            .poolSizeCount = 1,
+            .pPoolSizes = &pool_size,
         };
         VK_CHECK(vkCreateDescriptorPool(app->device, &pool_info, app->vkalloc, &app->imgui_pool));
     }
