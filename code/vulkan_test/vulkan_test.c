@@ -97,6 +97,7 @@ typedef struct Frame
     VkSemaphore image_available;
     VkSemaphore render_finished;
 
+    VkDescriptorSet desc;
     ResourceBuffer uniform;
 } Frame;
 
@@ -948,7 +949,6 @@ appCleanupSwapchain(App *app)
 {
     vkDestroyPipeline(app->device, app->pipe, app->vkalloc);
     vkDestroyPipelineLayout(app->device, app->pipe_layout, app->vkalloc);
-    vkDestroyDescriptorSetLayout(app->device, app->desc_layout, app->vkalloc);
 
     for (U32 index = 0; index < app->swapchain.image_count; ++index)
     {
@@ -972,7 +972,6 @@ appSetupSwapchain(App *app)
 
     appCreateSwapchain(app);
     appCreateRenderPass(app);
-    appCreateDescriptorSetLayout(app);
     appCreatePipeline(app);
     appCreateFrameBuffers(app);
 }
@@ -1172,6 +1171,8 @@ appCreateFrames(App *app)
     {
         Frame *frame = app->frames + index;
 
+        // Create command pool and buffers
+
         VkCommandPoolCreateInfo pool_info = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .queueFamilyIndex = app->queue_index[GRAPHICS],
@@ -1185,6 +1186,8 @@ appCreateFrames(App *app)
         };
         VK_CHECK(vkAllocateCommandBuffers(app->device, &cmd_info, &frame->cmd));
 
+        // Create synchronization primitives
+
         VkSemaphoreCreateInfo sema_info = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
         VkFenceCreateInfo fence_info = {
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
@@ -1195,9 +1198,39 @@ appCreateFrames(App *app)
         VK_CHECK(vkCreateSemaphore(app->device, &sema_info, app->vkalloc, &frame->render_finished));
         VK_CHECK(vkCreateFence(app->device, &fence_info, app->vkalloc, &frame->fence));
 
+        // Create uniform buffer
+
         appCreateBuffer(app, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                         true, &frame->uniform);
+
+        // Create a descriptor for the uniform buffer
+
+        VkDescriptorSetAllocateInfo desc_info = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .descriptorPool = app->desc_pool,
+            .descriptorSetCount = 1,
+            .pSetLayouts = &app->desc_layout,
+        };
+
+        VK_CHECK(vkAllocateDescriptorSets(app->device, &desc_info, &frame->desc));
+
+        VkWriteDescriptorSet desc_write = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = frame->desc,
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+            .pBufferInfo =
+                &(VkDescriptorBufferInfo){
+                    .buffer = frame->uniform.buffer,
+                    .offset = 0,
+                    .range = VK_WHOLE_SIZE, // Equivalent to sizeof(UniformBufferObject)
+                },
+        };
+
+        vkUpdateDescriptorSets(app->device, 1, &desc_write, 0, NULL);
     }
 }
 
@@ -1312,6 +1345,8 @@ appInit(App *app, Platform *platform)
 
     VK_CHECK(vkCreateDescriptorPool(app->device, &pool_info, app->vkalloc, &app->desc_pool));
 
+    appCreateDescriptorSetLayout(app);
+
     // Create frames
     appCreateFrames(app);
 
@@ -1335,6 +1370,7 @@ appShutdown(App *app)
     appDestroyFrames(app);
     appCleanupSwapchain(app);
 
+    vkDestroyDescriptorSetLayout(app->device, app->desc_layout, app->vkalloc);
     vkDestroyDescriptorPool(app->device, app->desc_pool, app->vkalloc);
 
     vkDestroyDevice(app->device, app->vkalloc);
@@ -1481,6 +1517,9 @@ appDrawFrame(App *app, Frame *frame)
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(frame->cmd, 0, 1, &app->vertex.buffer, &offset);
         vkCmdBindIndexBuffer(frame->cmd, app->index.buffer, 0, VK_INDEX_TYPE_UINT16);
+
+        vkCmdBindDescriptorSets(frame->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, app->pipe_layout, 0, 1,
+                                &frame->desc, 0, NULL);
 
         // vkCmdDraw(frame->cmd,
         //           CF_ARRAY_SIZE(g_vertices), // Number of vertices
