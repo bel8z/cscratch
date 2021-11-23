@@ -64,7 +64,6 @@ typedef struct UniformBufferObject
     Mat4 model;
     Mat4 view;
     Mat4 proj;
-    Mat4 clip;
 } UniformBufferObject;
 
 typedef struct Swapchain
@@ -1588,13 +1587,14 @@ appMainLoop(App *app)
                             (Vec3){{0.0f, 1.0f, 0.0f}}  // Up Axis
     );
     // OpenGl->Vulkan clip space transform
-    ubo->clip = (Mat4){.elem = {
-                           [0][0] = 1.0f,
-                           [1][1] = -1.0f,
-                           [2][2] = 0.5f,
-                           [2][3] = 0.5f,
-                           [3][3] = 1.0f,
-                       }};
+    // TODO (Matteo): Handle this directly in projection matrices
+    Mat4 clip = {.elem = {
+                     [0][0] = 1.0f,
+                     [1][1] = -1.0f,
+                     [2][2] = 0.5f,
+                     [2][3] = 0.5f,
+                     [3][3] = 1.0f,
+                 }};
 
     // Start time tracking
     clockStart(&app->clock);
@@ -1617,7 +1617,7 @@ appMainLoop(App *app)
 
             // Perspective projection with a 45 degree vertical field-of-view.
             F32 aspect = (F32)app->swapchain.extent.width / (F32)app->swapchain.extent.height;
-            ubo->proj = matPerspective(mRadians(45.0f), aspect, 0.1f, 10.0f);
+            ubo->proj = matMul(clip, matPerspective(mRadians(45.0f), aspect, 0.1f, 10.0f));
         }
 
         appSetupGuiRendering(app);
