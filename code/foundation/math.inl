@@ -564,7 +564,7 @@ vecPerpDot2D(DVec2 a, DVec2 b)
 static inline Vec3
 vecCross3(Vec3 a, Vec3 b)
 {
-    return (Vec3){.x = a.y * b.z - a.z + b.y, //
+    return (Vec3){.x = a.y * b.z - a.z * b.y, //
                   .y = a.z * b.x - a.x * b.z,
                   .z = a.x * b.y - a.y * b.x};
 }
@@ -572,7 +572,7 @@ vecCross3(Vec3 a, Vec3 b)
 static inline DVec3
 vecCross3D(DVec3 a, DVec3 b)
 {
-    return (DVec3){.x = a.y * b.z - a.z + b.y, //
+    return (DVec3){.x = a.y * b.z - a.z * b.y, //
                    .y = a.z * b.x - a.x * b.z,
                    .z = a.x * b.y - a.y * b.x};
 }
@@ -745,14 +745,18 @@ matRotation(Vec3 axis, F32 radians)
 }
 
 static inline Mat4
-matLookAt(Vec3 eye, Vec3 center, Vec3 up)
+matLookAtRh(Vec3 eye, Vec3 center, Vec3 up)
 {
     Mat4 mat = {0};
 
     // See https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluLookAt.xml
 
-    Vec3 zaxis = vecNormalize(vecSub(center, eye));
-    Vec3 xaxis = vecNormalize(vecCross(zaxis, up));
+    Vec3 s = vecSub(center, eye);
+    Vec3 zaxis = vecNormalize(s);
+
+    Vec3 c = vecCross(zaxis, up);
+    Vec3 xaxis = vecNormalize(c);
+
     Vec3 yaxis = vecCross(xaxis, zaxis);
 
     // Set the rows to the new axes (since this is an inverse transform)
@@ -772,6 +776,42 @@ matLookAt(Vec3 eye, Vec3 center, Vec3 up)
     mat.elem[3][0] = -vecDot(xaxis, eye);
     mat.elem[3][1] = -vecDot(yaxis, eye);
     mat.elem[3][2] = vecDot(zaxis, eye);
+
+    mat.elem[3][3] = 1.0f;
+
+    return mat;
+}
+
+static inline Mat4
+matLookAtLh(Vec3 eye, Vec3 center, Vec3 up)
+{
+    Mat4 mat = {0};
+
+    Vec3 s = vecSub(center, eye);
+    Vec3 zaxis = vecNormalize(s);
+
+    Vec3 c = vecCross(up, zaxis);
+    Vec3 xaxis = vecNormalize(c);
+
+    Vec3 yaxis = vecCross(zaxis, xaxis);
+
+    // Set the rows to the new axes (since this is an inverse transform)
+    mat.elem[0][0] = xaxis.x;
+    mat.elem[1][0] = xaxis.y;
+    mat.elem[2][0] = xaxis.z;
+
+    mat.elem[0][1] = yaxis.x;
+    mat.elem[1][1] = yaxis.y;
+    mat.elem[2][1] = yaxis.z;
+
+    mat.elem[0][2] = zaxis.x;
+    mat.elem[1][2] = zaxis.y;
+    mat.elem[2][2] = zaxis.z;
+
+    // Set translation
+    mat.elem[3][0] = -vecDot(xaxis, eye);
+    mat.elem[3][1] = -vecDot(yaxis, eye);
+    mat.elem[3][2] = -vecDot(zaxis, eye);
 
     mat.elem[3][3] = 1.0f;
 
