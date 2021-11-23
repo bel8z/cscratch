@@ -819,7 +819,7 @@ matLookAtLh(Vec3 eye, Vec3 center, Vec3 up)
 }
 
 static inline Mat4
-matPerspective(F32 fovy, F32 aspect, F32 z_near, F32 z_far, I32 y_dir)
+matPerspective(F32 fovy, F32 aspect, F32 z_near, F32 z_far)
 {
     Mat4 mat = {0};
 
@@ -831,9 +831,7 @@ matPerspective(F32 fovy, F32 aspect, F32 z_near, F32 z_far, I32 y_dir)
 
     mat.elem[0][0] = f * aspect;
 
-    // NOTE (Matteo): Handle coordinate systems with y-up and y-down
-    CF_ASSERT(y_dir == -1 || y_dir == 1, "Invalid Y axis direction");
-    mat.elem[1][1] = f * (F32)y_dir;
+    mat.elem[1][1] = f;
 
     mat.elem[2][2] = (z_near + z_far) / (z_near - z_far);
     mat.elem[2][3] = -1.0f;

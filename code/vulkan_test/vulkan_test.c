@@ -55,7 +55,7 @@ enum QueueType
 
 typedef struct Vertex
 {
-    Vec2 pos;
+    Vec3 pos;
     Vec3 color; // TODO (Matteo): Use Rgba colors
 } Vertex;
 
@@ -64,6 +64,7 @@ typedef struct UniformBufferObject
     Mat4 model;
     Mat4 view;
     Mat4 proj;
+    Mat4 clip;
 } UniformBufferObject;
 
 typedef struct Swapchain
@@ -137,16 +138,19 @@ typedef struct App
     VkDescriptorPool desc_pool;
 
     bool gui_setup;
+
+    UniformBufferObject ubo;
 } App;
 
 const Vertex g_vertices[] = {
-    {.pos = {{-0.5f, -0.5f}}, .color = {{1.0f, 0.0f, 0.0f}}},
-    {.pos = {{0.5f, -0.5f}}, .color = {{0.0f, 1.0f, 0.0f}}},
-    {.pos = {{0.5f, 0.5f}}, .color = {{0.0f, 0.0f, 1.0f}}},
-    {.pos = {{-0.5f, 0.5f}}, .color = {{1.0f, 1.0f, 1.0f}}},
+    {.pos = {{-0.5f, -0.5f, 0.0f}}, .color = {{1.0f, 0.0f, 0.0f}}},
+    {.pos = {{0.5f, -0.5f, 0.0f}}, .color = {{0.0f, 1.0f, 0.0f}}},
+    {.pos = {{0.5f, 0.5f, 0.0f}}, .color = {{0.0f, 0.0f, 1.0f}}},
+    {.pos = {{-0.5f, 0.5f, 0.0f}}, .color = {{1.0f, 1.0f, 1.0f}}},
+    {.pos = {{0.0f, 0.0f, 1.0f}}, .color = {{1.0f, 1.0f, 1.0f}}},
 };
 
-const U16 g_indices[] = {0, 1, 2, 2, 3, 0};
+const U16 g_indices[] = {0, 1, 2, 2, 3, 0, 0, 4, 1, 3, 4, 2};
 
 //-----------------//
 //   Entry point   //
@@ -768,7 +772,7 @@ appCreatePipeline(App *app)
     };
 
     VkVertexInputAttributeDescription vertex_attributes[] = {
-        {.location = 0, .format = VK_FORMAT_R32G32_SFLOAT},
+        {.location = 0, .format = VK_FORMAT_R32G32B32_SFLOAT},
         {.location = 1, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color)},
     };
 
@@ -803,10 +807,11 @@ appCreatePipeline(App *app)
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
         .depthClampEnable = false,
         .rasterizerDiscardEnable = false, // Required if depthClampEnable = true
-        .polygonMode = VK_POLYGON_MODE_FILL,
+        .polygonMode = VK_POLYGON_MODE_LINE,
         .lineWidth = 1.0f, // Required if polygon mode is not FILL
-        .cullMode = VK_CULL_MODE_BACK_BIT,
-        .frontFace = VK_FRONT_FACE_CLOCKWISE,
+        .cullMode = VK_CULL_MODE_NONE,
+        // .cullMode = VK_CULL_MODE_BACK_BIT,
+        // .frontFace = VK_FRONT_FACE_CLOCKWISE,
     };
 
     // TODO (Matteo): Revisit - For now multisampling is left disabled
@@ -1443,27 +1448,6 @@ appSetupGuiRendering(App *app)
 }
 
 static void
-appUpdateUbo(App *app, Frame *frame)
-{
-    Duration elapsed = clockElapsed(&app->clock);
-
-    UniformBufferObject *ubo = frame->uniform.map;
-
-    // Rotate at 90 degrees per second around Z axis.
-    ubo->model = matRotation(VEC3_Z, (F32)timeGetSeconds(elapsed) * mRadians(90.0f));
-
-    // Look at the geometry from above at a 45 degree angle.
-    ubo->view = matLookAt((Vec3){{2.0f, 2.0f, 2.0f}}, // Eye
-                          VEC3_0,                     // Center
-                          VEC3_Y                      // Up Axis
-    );
-
-    // Perspective projection with a 45 degree vertical field-of-view.
-    F32 aspect = (F32)app->swapchain.extent.width / (F32)app->swapchain.extent.height;
-    ubo->proj = matPerspective(mRadians(45.0f), aspect, 0.1f, 10.0f, -1);
-}
-
-static void
 appDrawFrame(App *app, Frame *frame)
 {
     Swapchain *swapchain = &app->swapchain;
@@ -1472,7 +1456,8 @@ appDrawFrame(App *app, Frame *frame)
     vkWaitForFences(app->device, 1, &frame->fence, VK_TRUE, U64_MAX);
 
     // Update the UBO on then current frame
-    appUpdateUbo(app, frame);
+    CF_ASSERT(frame->uniform.size >= sizeof(app->ubo), "Data error");
+    memCopy(&app->ubo, frame->uniform.map, sizeof(app->ubo));
 
     // Request a backbuffer from the swapchain
     U32 image_index = 0;
@@ -1490,8 +1475,8 @@ appDrawFrame(App *app, Frame *frame)
     }
 
     // Record the commands
-    // NOTE (Matteo): The commands here are static and so could be pre-recorded, but the idea is to
-    // build a more realistic setup
+    // NOTE (Matteo): The commands here are static and so could be pre-recorded, but the idea is
+    // to build a more realistic setup
     {
         VkClearValue clear_color = {.color = {{0.0f, 0.0f, 0.0f, 1.0f}}};
 
@@ -1593,6 +1578,24 @@ appMainLoop(App *app)
     // NOTE (Matteo): Ensure swapchain setup on first loop
     app->rebuild_swapchain = (app->swapchain.handle == VK_NULL_HANDLE);
 
+    // Setup static transforms
+    UniformBufferObject *ubo = &app->ubo;
+    ubo->model = matIdentity();
+    ubo->proj = matIdentity();
+    // Look at the geometry from above at a 45 degree angle.
+    ubo->view = matLookAtRh((Vec3){{0, -3, 2}},         // Eye
+                            (Vec3){{0.0f, 0.0f, 0.0f}}, // Center
+                            (Vec3){{0.0f, 1.0f, 0.0f}}  // Up Axis
+    );
+    // OpenGl->Vulkan clip space transform
+    ubo->clip = (Mat4){.elem = {
+                           [0][0] = 1.0f,
+                           [1][1] = -1.0f,
+                           [2][2] = 0.5f,
+                           [2][3] = 0.5f,
+                           [3][3] = 1.0f,
+                       }};
+
     // Start time tracking
     clockStart(&app->clock);
 
@@ -1611,6 +1614,10 @@ appMainLoop(App *app)
 
             appSetupSwapchain(app);
             app->rebuild_swapchain = false;
+
+            // Perspective projection with a 45 degree vertical field-of-view.
+            F32 aspect = (F32)app->swapchain.extent.width / (F32)app->swapchain.extent.height;
+            ubo->proj = matPerspective(mRadians(45.0f), aspect, 0.1f, 10.0f);
         }
 
         appSetupGuiRendering(app);
@@ -1620,6 +1627,10 @@ appMainLoop(App *app)
         guiNewFrame();
         guiDemoWindow(NULL);
 #endif
+
+        // Animate
+        Duration elapsed = clockElapsed(&app->clock);
+        ubo->model = matRotation(VEC3_Z, (F32)timeGetSeconds(elapsed) * mRadians(90.0f));
 
         static_assert(cfIsPowerOf2(CF_ARRAY_SIZE(app->frames)), "Frame count is not a power of 2!");
 
