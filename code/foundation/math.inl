@@ -656,7 +656,7 @@ matDiagonal(F32 value)
 static inline Mat4
 matIdentity(void)
 {
-    return matDiagonal(1);
+    return matDiagonal(1.0f);
 }
 
 static inline Mat4
@@ -696,14 +696,14 @@ matScale(F32 value)
     mat.elem[0][0] = value;
     mat.elem[1][1] = value;
     mat.elem[2][2] = value;
-    mat.elem[3][3] = 1;
+    mat.elem[3][3] = 1.0f;
     return mat;
 }
 
 static inline Mat4
 matTranslation(F32 x, F32 y, F32 z)
 {
-    Mat4 mat = {0};
+    Mat4 mat = matIdentity();
     mat.elem[3][0] = x;
     mat.elem[3][1] = y;
     mat.elem[3][2] = z;
@@ -713,7 +713,9 @@ matTranslation(F32 x, F32 y, F32 z)
 static inline Mat4
 matTranslationVec(Vec3 t)
 {
-    return (Mat4){.cols[3] = {.xyz = t}};
+    Mat4 mat = matIdentity();
+    mat.cols[3].xyz = t;
+    return mat;
 }
 
 static inline Mat4
