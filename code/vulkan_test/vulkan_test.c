@@ -1572,6 +1572,30 @@ appDrawFrame(App *app, Frame *frame)
 }
 
 void
+appAnimate(App *app)
+{
+    UniformBufferObject *ubo = &app->ubo;
+
+    Duration elapsed = clockElapsed(&app->clock);
+    F32 seconds = (F32)timeGetSeconds(elapsed);
+
+    Mat4 rot = matRotation(VEC3_Z, seconds * mRadians(90.0f));
+
+    Vec3 eye = {{0, -3, 2}};
+
+    CF_UNUSED(rot);
+
+    // ubo->model = rot;
+    // eye = matMul(rot, eye);
+    eye.z += (1 + mSin(seconds));
+
+    ubo->view = matLookAtRh(eye,                        // Eye
+                            (Vec3){{0.0f, 0.0f, 0.0f}}, // Center
+                            (Vec3){{0.0f, 1.0f, 0.0f}}  // Up Axis
+    );
+}
+
+void
 appMainLoop(App *app)
 {
     // NOTE (Matteo): Ensure swapchain setup on first loop
@@ -1628,9 +1652,7 @@ appMainLoop(App *app)
         guiDemoWindow(NULL);
 #endif
 
-        // Animate
-        Duration elapsed = clockElapsed(&app->clock);
-        ubo->model = matRotation(VEC3_Z, (F32)timeGetSeconds(elapsed) * mRadians(90.0f));
+        appAnimate(app);
 
         static_assert(cfIsPowerOf2(CF_ARRAY_SIZE(app->frames)), "Frame count is not a power of 2!");
 
