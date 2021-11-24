@@ -1589,9 +1589,9 @@ appAnimate(App *app)
     // eye = matMul(rot, eye);
     eye.z += (1 + mSin(seconds));
 
-    ubo->view = matLookAtRh(eye,                        // Eye
-                            (Vec3){{0.0f, 0.0f, 0.0f}}, // Center
-                            (Vec3){{0.0f, 1.0f, 0.0f}}  // Up Axis
+    ubo->view = matLookAt(eye,                        // Eye
+                          (Vec3){{0.0f, 0.0f, 0.0f}}, // Center
+                          (Vec3){{0.0f, 1.0f, 0.0f}}  // Up Axis
     );
 }
 
@@ -1606,19 +1606,12 @@ appMainLoop(App *app)
     ubo->model = matIdentity();
     ubo->proj = matIdentity();
     // Look at the geometry from above at a 45 degree angle.
-    ubo->view = matLookAtRh((Vec3){{0, -3, 2}},         // Eye
-                            (Vec3){{0.0f, 0.0f, 0.0f}}, // Center
-                            (Vec3){{0.0f, 1.0f, 0.0f}}  // Up Axis
+    ubo->view = matLookAt((Vec3){{0, -3, 2}},         // Eye
+                          (Vec3){{0.0f, 0.0f, 0.0f}}, // Center
+                          (Vec3){{0.0f, 1.0f, 0.0f}}  // Up Axis
     );
-    // OpenGl->Vulkan clip space transform
-    // TODO (Matteo): Handle this directly in projection matrices
-    Mat4 clip = {.elem = {
-                     [0][0] = 1.0f,
-                     [1][1] = -1.0f,
-                     [2][2] = 0.5f,
-                     [3][2] = 0.5f,
-                     [3][3] = 1.0f,
-                 }};
+    // Vulkan clip space with reverse-depth
+    ClipSpace clip = mClipSpaceVk(true);
 
     // Start time tracking
     clockStart(&app->clock);
@@ -1641,7 +1634,7 @@ appMainLoop(App *app)
 
             // Perspective projection with a 45 degree vertical field-of-view.
             F32 aspect = (F32)app->swapchain.extent.width / (F32)app->swapchain.extent.height;
-            ubo->proj = matMul(clip, matPerspective(mRadians(45.0f), aspect, 0.1f, 10.0f));
+            ubo->proj = matPerspective(mRadians(45.0f), aspect, 0.1f, 10.0f, clip);
         }
 
         appSetupGuiRendering(app);

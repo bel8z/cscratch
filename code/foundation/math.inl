@@ -689,6 +689,9 @@ matTranspose(Mat4 in)
 
 //--- Transformations ---//
 
+// NOTE (Matteo): all trasformations use right hand convention, except for projections
+// which convert from a RH system to a LH clip space commonly used by graphics API.
+
 static inline Mat4
 matScale(F32 value)
 {
@@ -747,13 +750,13 @@ matRotation(Vec3 axis, F32 radians)
 }
 
 static inline Mat4
-matLookAtRh(Vec3 eye, Vec3 center, Vec3 up)
+matLookAt(Vec3 eye, Vec3 target, Vec3 up)
 {
     Mat4 mat = {0};
 
     // See https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluLookAt.xml
 
-    Vec3 s = vecSub(center, eye);
+    Vec3 s = vecSub(target, eye);
     Vec3 zaxis = vecNormalize(s);
 
     Vec3 c = vecCross(zaxis, up);
@@ -785,60 +788,24 @@ matLookAtRh(Vec3 eye, Vec3 center, Vec3 up)
 }
 
 static inline Mat4
-matLookAtLh(Vec3 eye, Vec3 center, Vec3 up)
+matPerspective(F32 fovy, F32 aspect, F32 near_plane, F32 far_plane, ClipSpace clip)
 {
-    Mat4 mat = {0};
-
-    Vec3 s = vecSub(center, eye);
-    Vec3 zaxis = vecNormalize(s);
-
-    Vec3 c = vecCross(up, zaxis);
-    Vec3 xaxis = vecNormalize(c);
-
-    Vec3 yaxis = vecCross(zaxis, xaxis);
-
-    // Set the rows to the new axes (since this is an inverse transform)
-    mat.elem[0][0] = xaxis.x;
-    mat.elem[1][0] = xaxis.y;
-    mat.elem[2][0] = xaxis.z;
-
-    mat.elem[0][1] = yaxis.x;
-    mat.elem[1][1] = yaxis.y;
-    mat.elem[2][1] = yaxis.z;
-
-    mat.elem[0][2] = zaxis.x;
-    mat.elem[1][2] = zaxis.y;
-    mat.elem[2][2] = zaxis.z;
-
-    // Set translation
-    mat.elem[3][0] = -vecDot(xaxis, eye);
-    mat.elem[3][1] = -vecDot(yaxis, eye);
-    mat.elem[3][2] = -vecDot(zaxis, eye);
-
-    mat.elem[3][3] = 1.0f;
-
-    return mat;
-}
-
-static inline Mat4
-matPerspective(F32 fovy, F32 aspect, F32 z_near, F32 z_far)
-{
-    Mat4 mat = {0};
-
     // See:
     // https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluPerspective.xml
     // http://www.songho.ca/opengl/gl_projectionmatrix.html
+    // https://vincent-p.github.io/posts/vulkan_perspective_matrix
 
     F32 f = 1 / mTan(fovy / 2);
+    F32 a = (far_plane * clip.z_far - near_plane * clip.z_near) / (near_plane - far_plane);
+    F32 b = near_plane * (clip.z_near + a);
+
+    Mat4 mat = {0};
 
     mat.elem[0][0] = f * aspect;
-
-    mat.elem[1][1] = f;
-
-    mat.elem[2][2] = (z_near + z_far) / (z_near - z_far);
+    mat.elem[1][1] = f * clip.y_dir;
+    mat.elem[2][2] = a;
     mat.elem[2][3] = -1.0f;
-
-    mat.elem[3][2] = (2.0f * z_near * z_far) / (z_near - z_far);
+    mat.elem[3][2] = b;
 
     return mat;
 }
@@ -908,4 +875,54 @@ matMulVec2(Mat4 mat, Vec2 vec)
         .x = mat.elem[0][0] * vec.x + mat.elem[1][0] * vec.y + mat.elem[3][0],
         .y = mat.elem[0][1] * vec.x + mat.elem[1][1] * vec.y + mat.elem[3][1],
     };
+}
+
+//---------------------------------//
+//   Common graphics clip spaces   //
+//---------------------------------//
+
+static inline ClipSpace
+mClipSpaceGl(void)
+{
+    // NOTE (Matteo): OpenGL has a left-handed clip space, with all coordinates
+    // normalized in the [-1, 1] interval, Z-included.
+    return (ClipSpace){
+        .y_dir = 1,
+        .z_near = -1,
+        .z_far = 1,
+    };
+}
+
+static inline ClipSpace
+mClipSpaceD3D(void)
+{
+    // NOTE (Matteo): Direct3D uses a left-handed clip space, with the Z coordinate
+    // normalized in the [0, 1] interval
+    return (ClipSpace){
+        .y_dir = 1,
+        .z_near = 0,
+        .z_far = 1,
+    };
+}
+
+static inline ClipSpace
+mClipSpaceVk(bool reverse_depth)
+{
+    // NOTE (Matteo): Vulkan uses a left-handed clip space, with the Z coordinate
+    // normalized by default in the [0, 1] interval.
+    // According to https://vincent-p.github.io/posts/vulkan_perspective_matrix, using "reverse
+    // depth" gives better numerical distribution so I allow it as a parameter.
+
+    ClipSpace clip = {.y_dir = -1};
+
+    if (reverse_depth)
+    {
+        clip.z_far = 1;
+    }
+    else
+    {
+        clip.z_near = 1;
+    }
+
+    return clip;
 }

@@ -562,26 +562,19 @@ VEC_TYPES(I32, I) // Vectors with (32 bit) integer components
 // NOTE (Matteo): Matrix types use a column-major representation since it's the one
 // used by GPU shaders, and so easy interop with OpenGL, Vulkan and D3D is ensured.
 
-/// Transformation matrix with single-precision float components
-typedef union Mat4
-{
-    Vec4 cols[4];
-    F32 elem[4][4];
-} Mat4;
+#define MAT_TYPE(Scalar, tag) \
+    typedef union tag##Mat4   \
+    {                         \
+        tag##Vec4 cols[4];    \
+        Scalar elem[4][4];    \
+        Scalar array[16];     \
+    } tag##Mat4;
 
-/// Transformation matrix with double-precision float components
-typedef union DMat4
-{
-    DVec4 cols[4];
-    F64 elem[4][4];
-} DMat4;
+MAT_TYPE(F32, )  // Transformation matrix with single-precision float components
+MAT_TYPE(F64, D) // Transformation matrix with double-precision float components
+MAT_TYPE(I32, I) // Transformation matrix with (32 bit) integer components
 
-/// Transformation matrix with (32 bit) integer components
-typedef union IMat4
-{
-    IVec4 cols[4];
-    I32 elem[4][4];
-} IMat4;
+#undef MAT_TYPE
 
 //------------------//
 //   Color spaces   //
@@ -637,6 +630,19 @@ typedef union IRect
         I32 x0, y0, x1, y1;
     };
 } IRect;
+
+//-------------------//
+//   Graphic types   //
+//-------------------//
+
+typedef struct ClipSpace
+{
+    F32 y_dir;
+    F32 z_near;
+    F32 z_far;
+} ClipSpace;
+
+//------------------------------------------------------------------------------
 
 #if defined(__cplusplus)
 #    if CF_COMPILER_CLANG
