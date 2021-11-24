@@ -1633,8 +1633,9 @@ appMainLoop(App *app)
             app->rebuild_swapchain = false;
 
             // Perspective projection with a 45 degree vertical field-of-view.
-            F32 aspect = (F32)app->swapchain.extent.width / (F32)app->swapchain.extent.height;
-            ubo->proj = matPerspective(mRadians(45.0f), aspect, 0.1f, 10.0f, clip);
+            F32 width = (F32)app->swapchain.extent.width;
+            F32 height = (F32)app->swapchain.extent.height;
+            ubo->proj = matPerspective(mRadians(45.0f), (width / height), 0.1f, 10.0f, clip);
         }
 
         appSetupGuiRendering(app);

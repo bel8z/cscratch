@@ -801,11 +801,57 @@ matPerspective(F32 fovy, F32 aspect, F32 near_plane, F32 far_plane, ClipSpace cl
 
     Mat4 mat = {0};
 
+    // X transform
     mat.elem[0][0] = f * aspect;
+    // Y transform
     mat.elem[1][1] = f * clip.y_dir;
+    // Z transform
     mat.elem[2][2] = a;
-    mat.elem[2][3] = -1.0f;
     mat.elem[3][2] = b;
+    // Last row = {0,0,-1,0}
+    mat.elem[2][3] = -1.0f;
+
+    return mat;
+}
+
+static inline Mat4
+matOrtho(F32 width, F32 height, F32 near_plane, F32 far_plane, ClipSpace clip)
+{
+    Mat4 mat = {0};
+
+    // X transform
+    mat.elem[0][0] = 2 / width;
+    // Y transform
+    mat.elem[1][1] = clip.y_dir * 2 / height;
+    // Z transform
+    F32 a = (clip.z_far - clip.z_near) / (near_plane - far_plane);
+    mat.elem[2][2] = a;
+    mat.elem[3][2] = far_plane * a + clip.z_far;
+    // Last row = {0,0,0,1}
+    mat.elem[3][3] = 1;
+
+    return mat;
+}
+
+static inline Mat4
+matOrthoBounds(F32 left, F32 right, //
+               F32 bottom, F32 top, //
+               F32 near_plane, F32 far_plane, ClipSpace clip)
+{
+    Mat4 mat = {0};
+
+    // X transform
+    mat.elem[0][0] = 2 / (right - left);
+    mat.elem[3][0] = (right + left) / (left - right);
+    // Y transform
+    mat.elem[1][1] = clip.y_dir * 2 / (top - bottom);
+    mat.elem[3][1] = (top + bottom) / (bottom - top);
+    // Z transform
+    F32 a = (clip.z_far - clip.z_near) / (near_plane - far_plane);
+    mat.elem[2][2] = a;
+    mat.elem[3][2] = far_plane * a + clip.z_far;
+    // Last row = {0,0,0,1}
+    mat.elem[3][3] = 1;
 
     return mat;
 }
