@@ -189,10 +189,10 @@ guiRender(void)
 }
 
 void
-guiUpdateAndRenderViewports(void)
+guiUpdateViewports(bool render)
 {
     ImGui::UpdatePlatformWindows();
-    ImGui::RenderPlatformWindowsDefault(NULL, NULL);
+    if (render) ImGui::RenderPlatformWindowsDefault(NULL, NULL);
 }
 
 //=== Themes & styling ===//

@@ -24,7 +24,9 @@
 //   Configuration   //
 //-------------------//
 
-#define RENDER_GUI true
+#define RENDER_GUI false
+
+#define BLEND_ENABLED false
 
 #define PREFERRED_PRESENT_MODE ((VkPresentModeKHR)VK_PRESENT_MODE_MAILBOX_KHR)
 
@@ -146,10 +148,13 @@ const Vertex g_vertices[] = {
     {.pos = {{0.5f, -0.5f, 0.0f}}, .color = {{0.0f, 1.0f, 0.0f}}},
     {.pos = {{0.5f, 0.5f, 0.0f}}, .color = {{0.0f, 0.0f, 1.0f}}},
     {.pos = {{-0.5f, 0.5f, 0.0f}}, .color = {{1.0f, 1.0f, 1.0f}}},
-    {.pos = {{0.0f, 0.0f, 1.0f}}, .color = {{1.0f, 1.0f, 1.0f}}},
+    // {.pos = {{0.0f, 0.0f, 1.0f}}, .color = {{1.0f, 1.0f, 1.0f}}},
 };
 
-const U16 g_indices[] = {0, 1, 2, 2, 3, 0, 0, 4, 1, 3, 4, 2};
+const U16 g_indices[] = {
+    0, 1, 2, 2, 3, 0, //
+    // 0, 4, 1, 3, 4, 2, //
+};
 
 //-----------------//
 //   Entry point   //
@@ -806,7 +811,7 @@ appCreatePipeline(App *app)
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
         .depthClampEnable = false,
         .rasterizerDiscardEnable = false, // Required if depthClampEnable = true
-        .polygonMode = VK_POLYGON_MODE_LINE,
+        .polygonMode = VK_POLYGON_MODE_FILL,
         .lineWidth = 1.0f, // Required if polygon mode is not FILL
         .cullMode = VK_CULL_MODE_NONE,
         // .cullMode = VK_CULL_MODE_BACK_BIT,
@@ -823,7 +828,7 @@ appCreatePipeline(App *app)
     VkPipelineColorBlendAttachmentState blend_attachment = {
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                           VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
-#if 1
+#if !BLEND_ENABLED
         // Blending disabled
         .blendEnable = VK_FALSE,
         .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,  // Optional
@@ -1520,9 +1525,11 @@ appDrawFrame(App *app, Frame *frame)
                          0  // First instance - lowest value for 'gl_InstanceIndex'
         );
 
-#if RENDER_GUI
         ImDrawData *draw_data = guiRender();
+#if RENDER_GUI
         ImGui_ImplVulkan_RenderDrawData(draw_data, frame->cmd, VK_NULL_HANDLE);
+#else
+        CF_UNUSED(draw_data);
 #endif
 
         vkCmdEndRenderPass(frame->cmd);
@@ -1581,14 +1588,11 @@ appAnimate(App *app)
 
     Mat4 rot = matRotation(VEC3_Z, seconds * mRadians(90.0f));
 
-    Vec3 eye = {{0, -3, 2}};
-
-    CF_UNUSED(rot);
-
-    // ubo->model = rot;
+    Vec3 eye = {.x = 0, .y = 2, .z = 2};
     // eye = matMul(rot, eye);
-    eye.z += (1 + mSin(seconds));
+    // eye.z += (1 + mSin(seconds));
 
+    ubo->model = rot;
     ubo->view = matLookAt(eye,                        // Eye
                           (Vec3){{0.0f, 0.0f, 0.0f}}, // Center
                           (Vec3){{0.0f, 1.0f, 0.0f}}  // Up Axis
@@ -1611,7 +1615,8 @@ appMainLoop(App *app)
                           (Vec3){{0.0f, 1.0f, 0.0f}}  // Up Axis
     );
     // Vulkan clip space with reverse-depth
-    ClipSpace clip = mClipSpaceVk(true);
+    // ClipSpace clip = mClipSpaceVk(true);
+    ClipSpace clip = {.y_dir = -1, .z_near = -1, .z_far = 1};
 
     // Start time tracking
     clockStart(&app->clock);
@@ -1639,12 +1644,10 @@ appMainLoop(App *app)
         }
 
         appSetupGuiRendering(app);
-#if RENDER_GUI
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         guiNewFrame();
         guiDemoWindow(NULL);
-#endif
 
         appAnimate(app);
 
@@ -1655,10 +1658,8 @@ appMainLoop(App *app)
         appDrawFrame(app, frame);
         app->frame_index++;
 
-#if RENDER_GUI
         // Update and Render additional Platform Windows
-        if (guiViewportsEnabled()) guiUpdateAndRenderViewports();
-#endif
+        if (guiViewportsEnabled()) guiUpdateViewports(RENDER_GUI);
     }
 
     VK_CHECK(vkDeviceWaitIdle(app->device));

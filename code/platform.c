@@ -378,7 +378,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         if (guiViewportsEnabled())
         {
             GLFWwindow *backup_current_context = glfwGetCurrentContext();
-            guiUpdateAndRenderViewports();
+            guiUpdateViewports(true);
             glfwMakeContextCurrent(backup_current_context);
         }
 

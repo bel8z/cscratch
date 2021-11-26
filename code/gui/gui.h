@@ -97,7 +97,7 @@ CF_API void *guiUserData(void);
 
 CF_API void guiNewFrame(void);
 CF_API ImDrawData *guiRender(void);
-CF_API void guiUpdateAndRenderViewports(void);
+CF_API void guiUpdateViewports(bool render);
 
 //=== Themes & styling ===//
 
