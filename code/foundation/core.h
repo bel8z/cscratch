@@ -593,7 +593,7 @@ typedef union LinearColor
     F32 channel[4];
 } LinearColor;
 
-/// Represents a color in HSV linear space, plus alpha channel, as 4 floats in the [0,1] range
+/// Represents a color in HSV sRGB space, plus alpha channel, as 4 floats in the [0,1] range
 typedef union HsvColor
 {
     struct
