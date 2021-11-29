@@ -2,6 +2,15 @@
 #include "math.inl"
 #include "util.h"
 
+Color32
+colorToSrgb(LinearColor in)
+{
+    return ((Color32)cfClamp(mPow(in.r, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << RGBA32_R_SHIFT |
+           ((Color32)cfClamp(mPow(in.g, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << RGBA32_G_SHIFT |
+           ((Color32)cfClamp(mPow(in.b, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << RGBA32_B_SHIFT |
+           ((Color32)cfClamp(in.a * 255.0f, 0.0f, 255.0f)) << RGBA32_A_SHIFT;
+}
+
 LinearColor
 colorToLinear(Color32 in)
 {
@@ -15,24 +24,18 @@ colorToLinear(Color32 in)
     };
 }
 
-Color32
-colorToSrgb(LinearColor in)
+LinearColor
+colorToLinearMultiplied(Color32 col)
 {
-    return ((Color32)cfClamp(mPow(in.r, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << RGBA32_R_SHIFT |
-           ((Color32)cfClamp(mPow(in.g, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << RGBA32_G_SHIFT |
-           ((Color32)cfClamp(mPow(in.b, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << RGBA32_B_SHIFT |
-           ((Color32)cfClamp(in.a * 255.0f, 0.0f, 255.0f)) << RGBA32_A_SHIFT;
-}
+    LinearColor rgba = colorToLinear(col);
 
-CF_API LinearColor
-colorGammaCorrect(LinearColor in)
-{
-    return (LinearColor){
-        .a = in.a,
-        .r = mPow(in.r, 2.2f),
-        .g = mPow(in.g, 2.2f),
-        .b = mPow(in.b, 2.2f),
-    };
+    CF_ASSERT(0.0f <= rgba.a && rgba.a <= 1.0f, "Alpha channel out of bounds");
+
+    rgba.r *= rgba.a;
+    rgba.g *= rgba.a;
+    rgba.b *= rgba.a;
+
+    return rgba;
 }
 
 LinearColor
@@ -48,106 +51,143 @@ colorMultiplyAlpha(LinearColor col)
     };
 }
 
-LinearColor
-colorMultiplyAlpha32(Color32 col)
-{
-    LinearColor rgba = colorToLinear(col);
-
-    CF_ASSERT(0.0f <= rgba.a && rgba.a <= 1.0f, "Alpha channel out of bounds");
-
-    rgba.r *= rgba.a;
-    rgba.g *= rgba.a;
-    rgba.b *= rgba.a;
-
-    return rgba;
-}
-
 // Convert rgba floats to hsva floats  (components in the [0-1] range), from Foley & van Dam p592
 // Optimized http://lolengine.net/blog/2013/01/13/fast-rgb-to-hsv
-HsvColor
-colorRgbToHsv(LinearColor in)
+static void
+_RgbToHsv(F32 rgb[3], F32 hsv[3])
 {
     F32 K = 0.f;
 
-    if (in.g < in.b)
+    if (rgb[1] < rgb[2])
     {
-        cfSwapItem(in.g, in.b);
+        cfSwapItem(rgb[1], rgb[2]);
         K = -1.f;
     }
 
-    if (in.r < in.g)
+    if (rgb[0] < rgb[1])
     {
-        cfSwapItem(in.r, in.g);
+        cfSwapItem(rgb[0], rgb[1]);
         K = -2.f / 6.f - K;
     }
 
-    F32 const chroma = in.r - (in.g < in.b ? in.g : in.b);
+    F32 const chroma = rgb[0] - (rgb[1] < rgb[2] ? rgb[1] : rgb[2]);
 
     // NOTE (Matteo): F32_MIN is added below to avoid checking against divisions by 0
-    return (HsvColor){
-        .h = mAbs(K + (in.g - in.b) / (6.f * chroma + F32_MIN)),
-        .s = chroma / (in.r + F32_MIN),
-        .v = in.r,
-        .a = in.a,
-    };
+    hsv[0] = mAbs(K + (rgb[1] - rgb[2]) / (6.f * chroma + F32_MIN));
+    hsv[1] = chroma / (rgb[0] + F32_MIN);
+    hsv[2] = rgb[0];
 }
 
 // Convert hsv floats to rgb floats (components in the [0-1] range), from Foley & van Dam p593 also
 // http://en.wikipedia.org/wiki/HSL_and_HSV
-LinearColor
-colorHsvToRgb(HsvColor in)
+static void
+_HsvToRgb(F32 hsv[3], F32 rgb[3])
 {
-    LinearColor out = {.a = in.a};
-
-    if (in.s == 0.0f)
+    if (hsv[1] == 0.0f)
     {
         // gray
-        out.r = out.g = out.b = in.v;
+        rgb[0] = rgb[1] = rgb[2] = hsv[3];
     }
     else
     {
-        F32 h = mFmod(in.h, 1.0f) / (60.0f / 360.0f);
-        I32 i = (I32)h;
-        F32 f = h - (F32)i;
-        F32 p = in.v * (1.0f - in.s);
-        F32 q = in.v * (1.0f - in.s * f);
-        F32 t = in.v * (1.0f - in.s * (1.0f - f));
+        F32 h = mFmod(hsv[0], 1.0f) * 6.0f;
+        I32 sector_index = (I32)h;
+        F32 f = h - (F32)sector_index;
+        F32 p = hsv[2] * (1.0f - hsv[1]);
+        F32 q = hsv[2] * (1.0f - hsv[1] * f);
+        F32 t = hsv[2] * (1.0f - hsv[1] * (1.0f - f));
 
-        switch (i)
+        switch (sector_index)
         {
             case 0:
-                out.r = in.v;
-                out.g = t;
-                out.b = p;
+                rgb[0] = hsv[3];
+                rgb[1] = t;
+                rgb[2] = p;
                 break;
             case 1:
-                out.r = q;
-                out.g = in.v;
-                out.b = p;
+                rgb[0] = q;
+                rgb[1] = hsv[3];
+                rgb[2] = p;
                 break;
             case 2:
-                out.r = p;
-                out.g = in.v;
-                out.b = t;
+                rgb[0] = p;
+                rgb[1] = hsv[3];
+                rgb[2] = t;
                 break;
             case 3:
-                out.r = p;
-                out.g = q;
-                out.b = in.v;
+                rgb[0] = p;
+                rgb[1] = q;
+                rgb[2] = hsv[3];
                 break;
             case 4:
-                out.r = t;
-                out.g = p;
-                out.b = in.v;
+                rgb[0] = t;
+                rgb[1] = p;
+                rgb[2] = hsv[3];
                 break;
             case 5:
             default:
-                out.r = in.v;
-                out.g = p;
-                out.b = q;
+                rgb[0] = hsv[3];
+                rgb[1] = p;
+                rgb[2] = q;
                 break;
         }
     }
+}
+
+HsvColor
+colorLinearToHsv(LinearColor in)
+{
+    // NOTE (Matteo): Convert to sRGB space first
+    in.r = mPow(in.r, 1.0f / 2.2f);
+    in.g = mPow(in.g, 1.0f / 2.2f);
+    in.b = mPow(in.b, 1.0f / 2.2f);
+
+    HsvColor out = {.a = in.a};
+    _RgbToHsv(in.channel, out.elem);
 
     return out;
+}
+
+LinearColor
+colorHsvToLinear(HsvColor in)
+{
+    LinearColor out = {.a = in.a};
+
+    _HsvToRgb(in.elem, out.channel);
+
+    // NOTE (Matteo): Convert to linear space
+    out.r = mPow(out.r, 2.2f);
+    out.g = mPow(out.g, 2.2f);
+    out.b = mPow(out.b, 2.2f);
+
+    return out;
+}
+
+HsvColor
+colorSrgbToHsv(Color32 in)
+{
+    F32 const ratio = 1.0f / 255.0f;
+    F32 rgb[3] = {
+        RGBA32_R(in) * ratio,
+        RGBA32_G(in) * ratio,
+        RGBA32_B(in) * ratio,
+    };
+    HsvColor out = {.a = RGBA32_A(in) * ratio};
+
+    _RgbToHsv(rgb, out.elem);
+
+    return out;
+}
+
+CF_API Color32
+colorHsvToSrgb(HsvColor in)
+{
+    F32 rgb[3] = {0};
+
+    _HsvToRgb(in.elem, rgb);
+
+    return ((Color32)cfClamp(rgb[0] * 255.0f, 0.0f, 255.0f)) << RGBA32_R_SHIFT |
+           ((Color32)cfClamp(rgb[1] * 255.0f, 0.0f, 255.0f)) << RGBA32_G_SHIFT |
+           ((Color32)cfClamp(rgb[2] * 255.0f, 0.0f, 255.0f)) << RGBA32_B_SHIFT |
+           ((Color32)cfClamp(in.a * 255.0f, 0.0f, 255.0f)) << RGBA32_A_SHIFT;
 }

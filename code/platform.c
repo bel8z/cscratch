@@ -355,7 +355,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
         // NOTE (Matteo): Setup GL viewport and clear buffers BEFORE app update in order to allow
         // the application code to draw directly using OpenGL
-        LinearColor clear_color = colorMultiplyAlpha32(app_io.back_color);
+        LinearColor clear_color = colorToLinearMultiplied(app_io.back_color);
         IVec2 display = {0};
         glfwGetFramebufferSize(window, &display.width, &display.height);
         glViewport(0, 0, display.width, display.height);

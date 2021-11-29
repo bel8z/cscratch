@@ -190,16 +190,23 @@
 //--------------------------------------------------------------------------------------------------
 // Color space manipulation utilities
 
-CF_API LinearColor colorToLinear(Color32 in);
+/// Convert linear space RBGA color to linear space, packed
 CF_API Color32 colorToSrgb(LinearColor in);
 
-CF_API LinearColor colorGammaCorrect(LinearColor in);
+/// Convert sRGB packed color to linear space
+CF_API LinearColor colorToLinear(Color32 in);
 
+/// Convert sRGB packed color to linear space, multiplying the alpha component
+CF_API LinearColor colorToLinearMultiplied(Color32 col);
+
+/// Multiply the alpha channel to the other channels of the color
 CF_API LinearColor colorMultiplyAlpha(LinearColor col);
-CF_API LinearColor colorMultiplyAlpha32(Color32 col);
 
-CF_API HsvColor colorRgbToHsv(LinearColor in);
-CF_API LinearColor colorHsvToRgb(HsvColor in);
+CF_API HsvColor colorSrgbToHsv(Color32 in);
+CF_API Color32 colorHsvToSrgb(HsvColor in);
+
+CF_API HsvColor colorLinearToHsv(LinearColor in);
+CF_API LinearColor colorHsvToLinear(HsvColor in);
 
 //--------------------------------------------------------------------------------------------------
 // Macros for automatic generation of arrays storing the common color names and values
