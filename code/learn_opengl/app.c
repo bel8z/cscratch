@@ -32,7 +32,7 @@ struct AppState
     CfLog log;
 
     // Output
-    Rgba32 clear_color;
+    Color32 clear_color;
 
     // Windows
     bool metrics;

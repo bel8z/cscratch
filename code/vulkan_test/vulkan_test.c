@@ -24,7 +24,7 @@
 //   Configuration   //
 //-------------------//
 
-#define RENDER_GUI false
+#define RENDER_GUI true
 
 #define BLEND_ENABLED false
 
@@ -33,7 +33,7 @@
 // TODO (Matteo): Can this be fixed? Separate render passes for GUI and app?
 // In order to render IMGUI inside the main render pass, the format must be
 // VK_FORMAT_B8G8R8A8_UNORM.
-#if RENDER_GUI
+#if 0 && RENDER_GUI
 #    define PREFERRED_FORMAT VK_FORMAT_B8G8R8A8_UNORM
 #else
 #    define PREFERRED_FORMAT VK_FORMAT_B8G8R8A8_SRGB

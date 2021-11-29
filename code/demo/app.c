@@ -27,7 +27,7 @@ struct AppState
     MemAllocator alloc;
 
     AppWindows windows;
-    Rgba32 clear_color;
+    Color32 clear_color;
 
     CfLog log;
     Duration log_time;
@@ -434,7 +434,7 @@ fxWindow(void)
 }
 
 static void
-fxDrawArc(GuiCanvas *canvas, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Rgba32 color)
+fxDrawArc(GuiCanvas *canvas, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Color32 color)
 {
     Vec2 points[1024];
 
@@ -458,7 +458,7 @@ fxDrawArc(GuiCanvas *canvas, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Rgba32 c
         v0 = rotateFwd(v0, cos, sin);
     }
 
-    Rgba32 prev_color = canvas->stroke_color;
+    Color32 prev_color = canvas->stroke_color;
     canvas->stroke_color = color;
     guiCanvasDrawPolyline(canvas, points, CF_ARRAY_SIZE(points));
     canvas->stroke_color = prev_color;

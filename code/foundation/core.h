@@ -580,28 +580,28 @@ MAT_TYPE(I32, I) // Transformation matrix with (32 bit) integer components
 //   Color spaces   //
 //------------------//
 
-/// Packed RBGA representation
-typedef U32 Rgba32;
+/// Packed representation of a color in sRGB space with 8 bits per channel (including alpha)
+typedef U32 Color32;
 
-/// Represents a color in RGBA format as 4 floats in the [0,1] range
-typedef union Rgba
+/// Represents a color in RGBA linear space as 4 floats in the [0,1] range
+typedef union LinearColor
 {
     struct
     {
         F32 r, g, b, a;
     };
     F32 channel[4];
-} Rgba;
+} LinearColor;
 
-/// Represents a color in HSV format, plus alpha channel, as 4 floats in the [0,1] range
-typedef union Hsva
+/// Represents a color in HSV linear space, plus alpha channel, as 4 floats in the [0,1] range
+typedef union HsvColor
 {
     struct
     {
         F32 h, s, v, a;
     };
     F32 elem[4];
-} Hsva;
+} HsvColor;
 
 //----------------//
 //   Rectangles   //

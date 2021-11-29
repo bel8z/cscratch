@@ -2,34 +2,45 @@
 #include "math.inl"
 #include "util.h"
 
-Rgba
-rgbaUnpack32(Rgba32 in)
+LinearColor
+colorToLinear(Color32 in)
 {
     F32 s = 1.0f / 255.0f;
 
-    return (Rgba){
-        .r = RGBA32_R(in) * s,
-        .g = RGBA32_G(in) * s,
-        .b = RGBA32_B(in) * s,
-        .a = RGBA32_A(in) * s,
+    return (LinearColor){
+        .r = mPow(RGBA32_R(in) * s, 2.2f),
+        .g = mPow(RGBA32_G(in) * s, 2.2f),
+        .b = mPow(RGBA32_B(in) * s, 2.2f),
+        .a = mPow(RGBA32_A(in) * s, 2.2f),
     };
 }
 
-Rgba32
-rgbaPack32(Rgba in)
+Color32
+colorToSrgb(LinearColor in)
 {
-    return ((Rgba32)cfClamp(in.r * 255.0f, 0.0f, 255.0f)) << RGBA32_R_SHIFT |
-           ((Rgba32)cfClamp(in.g * 255.0f, 0.0f, 255.0f)) << RGBA32_G_SHIFT |
-           ((Rgba32)cfClamp(in.b * 255.0f, 0.0f, 255.0f)) << RGBA32_B_SHIFT |
-           ((Rgba32)cfClamp(in.a * 255.0f, 0.0f, 255.0f)) << RGBA32_A_SHIFT;
+    return ((Color32)cfClamp(mPow(in.r, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << RGBA32_R_SHIFT |
+           ((Color32)cfClamp(mPow(in.g, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << RGBA32_G_SHIFT |
+           ((Color32)cfClamp(mPow(in.b, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << RGBA32_B_SHIFT |
+           ((Color32)cfClamp(in.a * 255.0f, 0.0f, 255.0f)) << RGBA32_A_SHIFT;
 }
 
-Rgba
-rgbaMultiplyAlpha(Rgba col)
+CF_API LinearColor
+colorGammaCorrect(LinearColor in)
+{
+    return (LinearColor){
+        .a = in.a,
+        .r = mPow(in.r, 2.2f),
+        .g = mPow(in.g, 2.2f),
+        .b = mPow(in.b, 2.2f),
+    };
+}
+
+LinearColor
+colorMultiplyAlpha(LinearColor col)
 {
     if (col.a >= 1.0f) return col;
 
-    return (Rgba){
+    return (LinearColor){
         .r = col.r * col.a,
         .g = col.g * col.a,
         .b = col.b * col.a,
@@ -37,10 +48,10 @@ rgbaMultiplyAlpha(Rgba col)
     };
 }
 
-Rgba
-rgbaMultiplyAlpha32(Rgba32 col)
+LinearColor
+colorMultiplyAlpha32(Color32 col)
 {
-    Rgba rgba = rgbaUnpack32(col);
+    LinearColor rgba = colorToLinear(col);
 
     CF_ASSERT(0.0f <= rgba.a && rgba.a <= 1.0f, "Alpha channel out of bounds");
 
@@ -53,8 +64,8 @@ rgbaMultiplyAlpha32(Rgba32 col)
 
 // Convert rgba floats to hsva floats  (components in the [0-1] range), from Foley & van Dam p592
 // Optimized http://lolengine.net/blog/2013/01/13/fast-rgb-to-hsv
-Hsva
-rgbaToHsva(Rgba in)
+HsvColor
+colorRgbToHsv(LinearColor in)
 {
     F32 K = 0.f;
 
@@ -73,7 +84,7 @@ rgbaToHsva(Rgba in)
     F32 const chroma = in.r - (in.g < in.b ? in.g : in.b);
 
     // NOTE (Matteo): F32_MIN is added below to avoid checking against divisions by 0
-    return (Hsva){
+    return (HsvColor){
         .h = mAbs(K + (in.g - in.b) / (6.f * chroma + F32_MIN)),
         .s = chroma / (in.r + F32_MIN),
         .v = in.r,
@@ -83,10 +94,10 @@ rgbaToHsva(Rgba in)
 
 // Convert hsv floats to rgb floats (components in the [0-1] range), from Foley & van Dam p593 also
 // http://en.wikipedia.org/wiki/HSL_and_HSV
-Rgba
-hsvaToRgba(Hsva in)
+LinearColor
+colorHsvToRgb(HsvColor in)
 {
-    Rgba out = {.a = in.a};
+    LinearColor out = {.a = in.a};
 
     if (in.s == 0.0f)
     {

@@ -22,9 +22,9 @@
 #    define RGBA32_A_MASK 0x000000FF
 #endif
 
-#define RGBA32(R, G, B, A)                                               \
-    (((Rgba32)(A) << RGBA32_A_SHIFT) | ((Rgba32)(B) << RGBA32_B_SHIFT) | \
-     ((Rgba32)(G) << RGBA32_G_SHIFT) | ((Rgba32)(R) << RGBA32_R_SHIFT))
+#define RGBA32(R, G, B, A)                                                 \
+    (((Color32)(A) << RGBA32_A_SHIFT) | ((Color32)(B) << RGBA32_B_SHIFT) | \
+     ((Color32)(G) << RGBA32_G_SHIFT) | ((Color32)(R) << RGBA32_R_SHIFT))
 
 #define RGBA32_R(col) ((col >> RGBA32_R_SHIFT) & 0xFF)
 #define RGBA32_G(col) ((col >> RGBA32_G_SHIFT) & 0xFF)
@@ -190,14 +190,16 @@
 //--------------------------------------------------------------------------------------------------
 // Color space manipulation utilities
 
-CF_API Rgba rgbaUnpack32(Rgba32 in);
-CF_API Rgba32 rgbaPack32(Rgba in);
+CF_API LinearColor colorToLinear(Color32 in);
+CF_API Color32 colorToSrgb(LinearColor in);
 
-CF_API Rgba rgbaMultiplyAlpha(Rgba col);
-CF_API Rgba rgbaMultiplyAlpha32(Rgba32 col);
+CF_API LinearColor colorGammaCorrect(LinearColor in);
 
-CF_API Hsva rgbaToHsva(Rgba in);
-CF_API Rgba hsvaToRgba(Hsva in);
+CF_API LinearColor colorMultiplyAlpha(LinearColor col);
+CF_API LinearColor colorMultiplyAlpha32(Color32 col);
+
+CF_API HsvColor colorRgbToHsv(LinearColor in);
+CF_API LinearColor colorHsvToRgb(HsvColor in);
 
 //--------------------------------------------------------------------------------------------------
 // Macros for automatic generation of arrays storing the common color names and values
