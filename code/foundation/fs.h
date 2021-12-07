@@ -15,6 +15,7 @@ typedef struct FileProperties
 {
     SystemTime last_write;
     FileAttributes attributes;
+    Usize size;
     bool exists;
 } FileProperties;
 
@@ -71,6 +72,7 @@ typedef struct File File;
 #define FILE_READ_AT(name) Usize name(File *file, U8 *buffer, Usize buffer_size, Usize offset)
 #define FILE_WRITE(name) bool name(File *file, U8 const *data, Usize data_size)
 #define FILE_WRITE_AT(name) bool name(File *file, U8 const *data, Usize data_size, Usize offset)
+#define FILE_PROPERTIES(name) FileProperties name(File *file)
 
 struct File
 {
@@ -79,10 +81,14 @@ struct File
     bool eof;
 
     FILE_SIZE((*size));
+    FILE_PROPERTIES((*properties));
+
     FILE_SEEK((*seek));
     FILE_TELL((*tell));
+
     FILE_READ((*read));
     FILE_READ_AT((*readAt));
+
     FILE_WRITE((*write));
     FILE_WRITE_AT((*writeAt));
 };

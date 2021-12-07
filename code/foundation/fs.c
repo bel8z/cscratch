@@ -36,6 +36,12 @@ fileReadContent(Str filename, MemAllocator alloc)
     return result;
 }
 
+bool
+fileWriteStr(File *file, Str str)
+{
+    return file->write(file, (U8 const *)str.buf, str.len);
+}
+
 #if 0
 static Usize
 findLineBreak(U8 const *buffer, Usize size)
@@ -55,12 +61,6 @@ findLineBreak(U8 const *buffer, Usize size)
     return USIZE_MAX;
 }
 #endif
-
-bool
-fileWriteStr(File *file, Str str)
-{
-    return file->write(file, (U8 const *)str.buf, str.len);
-}
 
 //--------------------------------//
 //   OS-specific implementation   //
@@ -84,20 +84,28 @@ typedef struct Win32DirIterator
 static_assert(sizeof(((Win32DirIterator *)0)->buffer) >= 512,
               "FsIterator buffer size is too small");
 
-static void
-win32ReadProperties(WIN32_FIND_DATAW *in, FileProperties *out)
+static inline U64
+win32MergeWords(DWORD high, DWORD low)
 {
-    out->exists = true;
+    ULARGE_INTEGER value = {.HighPart = high, .LowPart = low};
+    return value.QuadPart;
+}
 
-    FILETIME write_time = in->ftLastWriteTime;
-    out->last_write = ((U64)write_time.dwHighDateTime << 32) | write_time.dwLowDateTime;
+static inline SystemTime
+win32FileSystemTime(FILETIME time)
+{
+    return win32MergeWords(time.dwHighDateTime, time.dwLowDateTime);
+}
 
-    if (in->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+static void
+win32ReadAttributes(DWORD attributes, FileProperties *out)
+{
+    if (attributes & FILE_ATTRIBUTE_DIRECTORY)
     {
         out->attributes |= FileAttributes_Directory;
     }
 
-    if (in->dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
+    if (attributes & FILE_ATTRIBUTE_REPARSE_POINT)
     {
         out->attributes |= FileAttributes_Symlink;
     }
@@ -131,7 +139,13 @@ static FS_ITERATOR_NEXT(fsIteratorNext)
     filename->buf = iter->buffer;
     filename->len = (Usize)(size);
 
-    if (props) win32ReadProperties(&iter->data, props);
+    if (props)
+    {
+        props->exists = true;
+        props->last_write = win32FileSystemTime(iter->data.ftLastWriteTime);
+        props.size = (Usize)win32MergeWords(iter->data.nFileSizeHigh, iter->data.nFileSizeLow);
+        win32ReadAttributes(iter->data.dwFileAttributes, props);
+    }
 
     return true;
 }
@@ -210,20 +224,136 @@ fileProperties(Str filename)
 
     if (find_handle != INVALID_HANDLE_VALUE)
     {
-        win32ReadProperties(&data, &props);
+        props.exists = true;
+        props.last_write = win32FileSystemTime(data.ftLastWriteTime);
+        props.size = (Usize)win32MergeWords(data.nFileSizeHigh, data.nFileSizeLow);
+        win32ReadAttributes(data.dwFileAttributes, &props);
         FindClose(find_handle);
     }
 
     return props;
 }
 
-static FILE_SIZE(win32FileSize);
-static FILE_SEEK(win32FileSeek);
-static FILE_TELL(win32FileTell);
-static FILE_READ(win32FileRead);
-static FILE_READ_AT(win32FileReadAt);
-static FILE_WRITE(win32FileWrite);
-static FILE_WRITE_AT(win32FileWriteAt);
+static FILE_READ(win32FileRead)
+{
+    if (file->error) return USIZE_MAX;
+    if (file->eof) return 0;
+
+    DWORD read_bytes;
+
+    if (!ReadFile(file->os_handle, buffer, (DWORD)buffer_size, &read_bytes, NULL))
+    {
+        file->error = true;
+        win32HandleLastError();
+        return USIZE_MAX;
+    }
+    else if (read_bytes < buffer_size)
+    {
+        file->eof = true;
+    }
+
+    return read_bytes;
+}
+
+static FILE_READ_AT(win32FileReadAt)
+{
+    if (file->error) return USIZE_MAX;
+
+    OVERLAPPED overlapped = win32FileOffset(offset);
+    DWORD read_bytes;
+
+    if (!ReadFile(file->os_handle, buffer, (DWORD)buffer_size, &read_bytes, &overlapped))
+    {
+        file->error = true;
+        win32HandleLastError();
+        return USIZE_MAX;
+    }
+
+    return read_bytes;
+}
+
+static FILE_WRITE(win32FileWrite)
+{
+    if (file->error) return false;
+
+    DWORD written_bytes;
+
+    if (!WriteFile(file->os_handle, data, (DWORD)data_size, &written_bytes, NULL))
+    {
+        file->error = true;
+        win32HandleLastError();
+        return false;
+    }
+
+    CF_ASSERT(written_bytes == (DWORD)data_size, "Incorrect number of bytes written");
+
+    return true;
+}
+
+static FILE_WRITE_AT(win32FileWriteAt)
+{
+    if (file->error) return false;
+
+    OVERLAPPED overlapped = win32FileOffset(offset);
+    DWORD written_bytes;
+
+    if (!WriteFile(file->os_handle, data, (DWORD)data_size, &written_bytes, &overlapped))
+    {
+        file->error = true;
+        win32HandleLastError();
+        return false;
+    }
+
+    CF_ASSERT(written_bytes == (DWORD)data_size, "Incorrect number of bytes written");
+
+    return true;
+}
+
+static FILE_SEEK(win32FileSeek)
+{
+    LARGE_INTEGER temp = {.QuadPart = (LONGLONG)offset};
+    LARGE_INTEGER dest = {0};
+
+    if (!SetFilePointerEx(file->os_handle, temp, &dest, pos))
+    {
+        file->error = true;
+        win32HandleLastError();
+    };
+
+    return (Usize)dest.QuadPart;
+}
+
+static FILE_TELL(win32FileTell)
+{
+    return win32FileSeek(file, FileSeekPos_Current, 0);
+}
+
+static FILE_SIZE(win32FileSize)
+{
+    if (file->error) return USIZE_MAX;
+
+    ULARGE_INTEGER size;
+
+    size.LowPart = GetFileSize(file->os_handle, &size.HighPart);
+
+    return (Usize)size.QuadPart;
+}
+
+static FILE_PROPERTIES(win32FileProperties)
+{
+    FileProperties props = {0};
+    BY_HANDLE_FILE_INFORMATION info;
+
+    if (GetFileInformationByHandle(file->os_handle, &info))
+    {
+        props.exists = true;
+        props.last_write = win32FileSystemTime(info.ftLastWriteTime);
+        props.size = (Usize)win32MergeWords(info.nFileSizeHigh, info.nFileSizeLow);
+        win32ReadAttributes(info.dwFileAttributes, &props);
+    }
+
+    return props;
+}
 
 File
 fileOpen(Str filename, FileOpenMode mode)
@@ -236,6 +366,7 @@ fileOpen(Str filename, FileOpenMode mode)
         .tell = win32FileTell,
         .write = win32FileWrite,
         .writeAt = win32FileWriteAt,
+        .properties = win32FileProperties,
     };
 
     if (mode == 0)
@@ -288,110 +419,6 @@ fileClose(File *file)
     CloseHandle(file->os_handle);
 }
 
-FILE_READ(win32FileRead)
-{
-    if (file->error) return USIZE_MAX;
-    if (file->eof) return 0;
-
-    DWORD read_bytes;
-
-    if (!ReadFile(file->os_handle, buffer, (DWORD)buffer_size, &read_bytes, NULL))
-    {
-        file->error = true;
-        win32HandleLastError();
-        return USIZE_MAX;
-    }
-    else if (read_bytes < buffer_size)
-    {
-        file->eof = true;
-    }
-
-    return read_bytes;
-}
-
-FILE_READ_AT(win32FileReadAt)
-{
-    if (file->error) return USIZE_MAX;
-
-    OVERLAPPED overlapped = win32FileOffset(offset);
-    DWORD read_bytes;
-
-    if (!ReadFile(file->os_handle, buffer, (DWORD)buffer_size, &read_bytes, &overlapped))
-    {
-        file->error = true;
-        win32HandleLastError();
-        return USIZE_MAX;
-    }
-
-    return read_bytes;
-}
-
-FILE_WRITE(win32FileWrite)
-{
-    if (file->error) return false;
-
-    DWORD written_bytes;
-
-    if (!WriteFile(file->os_handle, data, (DWORD)data_size, &written_bytes, NULL))
-    {
-        file->error = true;
-        win32HandleLastError();
-        return false;
-    }
-
-    CF_ASSERT(written_bytes == (DWORD)data_size, "Incorrect number of bytes written");
-
-    return true;
-}
-
-FILE_WRITE_AT(win32FileWriteAt)
-{
-    if (file->error) return false;
-
-    OVERLAPPED overlapped = win32FileOffset(offset);
-    DWORD written_bytes;
-
-    if (!WriteFile(file->os_handle, data, (DWORD)data_size, &written_bytes, &overlapped))
-    {
-        file->error = true;
-        win32HandleLastError();
-        return false;
-    }
-
-    CF_ASSERT(written_bytes == (DWORD)data_size, "Incorrect number of bytes written");
-
-    return true;
-}
-
-FILE_SEEK(win32FileSeek)
-{
-    LARGE_INTEGER temp = {.QuadPart = (LONGLONG)offset};
-    LARGE_INTEGER dest = {0};
-
-    if (!SetFilePointerEx(file->os_handle, temp, &dest, pos))
-    {
-        file->error = true;
-        win32HandleLastError();
-    };
-
-    return (Usize)dest.QuadPart;
-}
-
-FILE_TELL(win32FileTell)
-{
-    return win32FileSeek(file, FileSeekPos_Current, 0);
-}
-
-FILE_SIZE(win32FileSize)
-{
-    if (file->error) return USIZE_MAX;
-
-    ULARGE_INTEGER size;
-
-    size.LowPart = GetFileSize(file->os_handle, &size.HighPart);
-
-    return (Usize)size.QuadPart;
-}
 #else
 
 #    include <sys/stat.h>
