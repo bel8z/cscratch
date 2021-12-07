@@ -376,9 +376,6 @@ M__GCD(U64)
              I32* : vec_I32DistanceSquaredN, \
              I64* : vec_I64DistanceSquaredN)(a, b, length)
 
-/// Distance between two vectors of arbitrary length
-#define vecDistanceN(v, length) mSqrt(vecDistanceSquaredN(v, length))
-
 /// Linear interpolation of two vectors of arbitrary length
 #define vecLerpN(a, b, length, t, out) \
     _Generic((a),                      \
@@ -395,10 +392,18 @@ M__GCD(U64)
              I32* : vec_I32NegateN, \
              I64* : vec_I64NegateN)(v, length, out)
 
+/// Squared norm of a vector of arbitrary length
+#define vecNormSquaredN(v, length)    \
+    _Generic((v),                \
+             F32* : vec_F32NormSquaredN, \
+             F64* : vec_F64NormSquaredN, \
+             I32* : vec_I32NormSquaredN, \
+             I64* : vec_I64NormSquaredN)(v, length)
+
 // clang-format on
 
-/// Squared norm of a vector of arbitrary length
-#define vecNormSquaredN(v, length) vecDotN(v, v, length)
+/// Distance between two vectors of arbitrary length
+#define vecDistanceN(v, length) mSqrt(vecDistanceSquaredN(v, length))
 
 /// Norm of a vector of arbitrary length
 #define vecNormN(v, length) mSqrt(vecNormSquaredN(v, length))
@@ -453,9 +458,14 @@ M__GCD(U64)
         for (Usize n = 0; n < length; ++n) out[n] = t1 * a[n] + t * b[n];                       \
     }                                                                                           \
                                                                                                 \
-    static inline void vec_##Scalar##NegateN(Scalar const *a, Usize length, Scalar *out)        \
+    static inline void vec_##Scalar##NegateN(Scalar const *v, Usize length, Scalar *out)        \
     {                                                                                           \
-        for (Usize n = 0; n < length; ++n) out[n] = -a[n];                                      \
+        for (Usize n = 0; n < length; ++n) out[n] = -v[n];                                      \
+    }                                                                                           \
+                                                                                                \
+    static inline Scalar vec_##Scalar##NormSquaredN(Scalar const *v, Usize length)              \
+    {                                                                                           \
+        return vec_##Scalar##DotN(v, v, length);                                                \
     }
 
 VEC__N_OPS(F32)
@@ -503,12 +513,19 @@ VEC__N_OPS(I64)
         DVec2 : vecDiv2D, DVec3 : vecDiv3D, DVec4 : vecDiv4D, \
         IVec2 : vecDiv2I, IVec3 : vecDiv3I, IVec4 : vecDiv4I)(a, b)
 
-/// Negate a vector
-#define vecNegate(a)                                                   \
-    _Generic((a),                                                      \
-        Vec2  : vecNegate2,  Vec3  : vecNegate3,  Vec4  : vecNegate4,  \
-        DVec2 : vecNegate2D, DVec3 : vecNegate3D, DVec4 : vecNegate4D, \
-        IVec2 : vecNegate2I, IVec3 : vecNegate3I, IVec4 : vecNegate4I)(a)
+/// Dot (scalar) product of two vectors
+#define vecDot(a, b)                                          \
+    _Generic(((a), (b)),                                      \
+        Vec2  : vecDot2,  Vec3  : vecDot3,  Vec4  : vecDot4,  \
+        DVec2 : vecDot2D, DVec3 : vecDot3D, DVec4 : vecDot4D, \
+        IVec2 : vecDot2I, IVec3 : vecDot3I, IVec4 : vecDot4I)(a, b)
+
+/// Squared distance between two vectors
+#define vecDistanceSquared(a, b)                                                                  \
+    _Generic(((a), (b)),                                                                          \
+        Vec2  : vecDistanceSquared2,  Vec3  : vecDistanceSquared3,  Vec4  : vecDistanceSquared4,  \
+        DVec2 : vecDistanceSquared2D, DVec3 : vecDistanceSquared3D, DVec4 : vecDistanceSquared4D, \
+        IVec2 : vecDistanceSquared2I, IVec3 : vecDistanceSquared3I, IVec4 : vecDistanceSquared4I)(a, b)
 
 /// Linear interpolation of two vectors
 #define vecLerp(a, b, t)                                         \
@@ -517,25 +534,34 @@ VEC__N_OPS(I64)
         DVec2 : vecLerp2D, DVec3 : vecLerp3D, DVec4 : vecLerp4D, \
         IVec2 : vecLerp2I, IVec3 : vecLerp3I, IVec4 : vecLerp4I)(a, b, t)
 
+/// Negate a vector
+#define vecNegate(v)                                                   \
+    _Generic((v),                                                      \
+        Vec2  : vecNegate2,  Vec3  : vecNegate3,  Vec4  : vecNegate4,  \
+        DVec2 : vecNegate2D, DVec3 : vecNegate3D, DVec4 : vecNegate4D, \
+        IVec2 : vecNegate2I, IVec3 : vecNegate3I, IVec4 : vecNegate4I)(v)
+
+/// Squared norm of a vector
+#define vecNormSquared(v)                                                             \
+    _Generic((v),                                                                     \
+        Vec2  : vecNormSquared2,  Vec3  : vecNormSquared3,  Vec4  : vecNormSquared4,  \
+        DVec2 : vecNormSquared2D, DVec3 : vecNormSquared3D, DVec4 : vecNormSquared4D, \
+        IVec2 : vecNormSquared2I, IVec3 : vecNormSquared3I, IVec4 : vecNormSquared4I)(v)
+
+/// Compute the normalized vector
+#define vecNormalize(v)                                                         \
+    _Generic((v),                                                               \
+        Vec2  : vecNormalize2,  Vec3  : vecNormalize3,  Vec4  : vecNormalize4,  \
+        DVec2 : vecNormalize2D, DVec3 : vecNormalize3D, DVec4 : vecNormalize4D, \
+        IVec2 : vecNormalize2I, IVec3 : vecNormalize3I, IVec4 : vecNormalize4I)(v)
+
 // clang-format on
-
-/// Dot (scalar) product of two vectors
-#define vecDot(a, b) vecDotN((a).elem, (b).elem, CF_ARRAY_SIZE((a).elem))
-
-/// Squared distance between two vectors
-#define vecDistanceSquared(a, b) vecDistanceSquaredN((a).elem, (b).elem, CF_ARRAY_SIZE((a).elem))
 
 /// Distance between two vectors
 #define vecDistance(a, b) mSqrt(vecDistanceSquared(a, b))
 
-/// Squared norm of a vector
-#define vecNormSquared(v) vecDot(v, v)
-
 /// Norm of a vector
 #define vecNorm(v) mSqrt(vecNormSquared(v))
-
-/// Compute the normalized vector
-#define vecNormalize(v) vecDiv(v, vecNorm(v))
 
 /// The "perp dot product" a^_|_·b for a and b vectors in the plane is a modification of the
 /// two-dimensional dot product in which a is replaced by the perpendicular vector rotated 90
@@ -606,6 +632,16 @@ vecCross3D(DVec3 a, DVec3 b)
         return out;                                                                   \
     }                                                                                 \
                                                                                       \
+    static inline Scalar vecDot##N##tag(tag##Vec##N a, tag##Vec##N b)                 \
+    {                                                                                 \
+        return vecDotN(a.elem, b.elem, N);                                            \
+    }                                                                                 \
+                                                                                      \
+    static inline Scalar vecDistanceSquared##N##tag(tag##Vec##N a, tag##Vec##N b)     \
+    {                                                                                 \
+        return vecDistanceSquaredN(a.elem, b.elem, N);                                \
+    }                                                                                 \
+                                                                                      \
     static inline tag##Vec##N vecLerp##N##tag(tag##Vec##N a, tag##Vec##N b, Scalar t) \
     {                                                                                 \
         tag##Vec##N out = {0};                                                        \
@@ -613,11 +649,22 @@ vecCross3D(DVec3 a, DVec3 b)
         return out;                                                                   \
     }                                                                                 \
                                                                                       \
-    static inline tag##Vec##N vecNegate##N##tag(tag##Vec##N a)                        \
+    static inline tag##Vec##N vecNegate##N##tag(tag##Vec##N v)                        \
     {                                                                                 \
         tag##Vec##N out = {0};                                                        \
-        vecNegateN(a.elem, N, out.elem);                                              \
+        vecNegateN(v.elem, N, out.elem);                                              \
         return out;                                                                   \
+    }                                                                                 \
+                                                                                      \
+    static inline Scalar vecNormSquared##N##tag(tag##Vec##N v)                        \
+    {                                                                                 \
+        return vec_##Scalar##NormSquaredN(v.elem, N);                                 \
+    }                                                                                 \
+                                                                                      \
+    static inline tag##Vec##N vecNormalize##N##tag(tag##Vec##N v)                     \
+    {                                                                                 \
+        Scalar norm = mSqrt(vecNormSquared##N##tag(v));                               \
+        return vecDiv##N##tag(v, norm);                                               \
     }
 
 VEC__OPS(F32, 2, )
@@ -756,12 +803,8 @@ matLookAt(Vec3 eye, Vec3 target, Vec3 up)
 
     // See https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluLookAt.xml
 
-    Vec3 s = vecSub(target, eye);
-    Vec3 zaxis = vecNormalize(s);
-
-    Vec3 c = vecCross(zaxis, up);
-    Vec3 xaxis = vecNormalize(c);
-
+    Vec3 zaxis = vecNormalize(vecSub(target, eye));
+    Vec3 xaxis = vecNormalize(vecCross(zaxis, up));
     Vec3 yaxis = vecCross(xaxis, zaxis);
 
     // Set the rows to the new axes (since this is an inverse transform)
@@ -956,8 +999,8 @@ mClipSpaceVk(bool reverse_depth)
 {
     // NOTE (Matteo): Vulkan uses a left-handed clip space, with the Z coordinate
     // normalized by default in the [0, 1] interval.
-    // According to https://vincent-p.github.io/posts/vulkan_perspective_matrix, using "reverse
-    // depth" gives better numerical distribution so I allow it as a parameter.
+    // According to https://vincent-p.github.io/posts/vulkan_perspective_matrix, using
+    // "reverse depth" gives better numerical distribution so I allow it as a parameter.
 
     ClipSpace clip = {.y_dir = -1};
 
