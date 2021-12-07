@@ -62,7 +62,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     if (fsIteratorStart(&iter, dirname))
     {
         Str f = {0};
-        while (fsIteratorNext(&iter, &f, NULL))
+        while (iter.next(&iter, &f, NULL))
         {
             pathPrint(f);
         }

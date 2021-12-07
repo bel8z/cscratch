@@ -96,7 +96,8 @@
 			"list.h": "c",
 			"mmintrin.h": "c",
 			"xmmintrin.h": "c",
-			"atomic": "c"
+			"atomic": "c",
+			"xstddef": "c"
 		}
 	}
 }

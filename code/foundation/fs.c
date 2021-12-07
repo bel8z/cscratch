@@ -15,12 +15,12 @@ fileReadContent(Str filename, MemAllocator alloc)
 
     if (!file.error)
     {
-        Usize file_size = fileSize(&file);
+        Usize file_size = file.size(&file);
         Usize read_size = file_size;
 
         result.data = memAlloc(alloc, read_size);
 
-        if (result.data && fileRead(&file, result.data, read_size) == read_size)
+        if (result.data && file.read(&file, result.data, read_size) == read_size)
         {
             result.size = read_size;
         }
@@ -59,7 +59,7 @@ findLineBreak(U8 const *buffer, Usize size)
 bool
 fileWriteStr(File *file, Str str)
 {
-    return fileWrite(file, (U8 const *)str.buf, str.len);
+    return file->write(file, (U8 const *)str.buf, str.len);
 }
 
 //--------------------------------//
@@ -111,6 +111,31 @@ win32FileOffset(Usize offset)
     return overlapped;
 }
 
+static FS_ITERATOR_NEXT(fsIteratorNext)
+{
+    CF_ASSERT_NOT_NULL(self);
+
+    Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
+
+    if (!FindNextFileW(iter->finder, &iter->data)) return false;
+
+    Usize size = win32Utf16To8(str16FromCstr(iter->data.cFileName), iter->buffer,
+                               CF_ARRAY_SIZE(iter->buffer));
+
+    // NOTE (Matteo): Truncation is considered an error
+    // TODO (Matteo): Maybe require a bigger buffer?
+    if (size == USIZE_MAX || size == CF_ARRAY_SIZE(iter->buffer)) return false;
+
+    CF_ASSERT(size > 0, "Which filename can have a size of 0???");
+
+    filename->buf = iter->buffer;
+    filename->len = (Usize)(size);
+
+    if (props) win32ReadProperties(&iter->data, props);
+
+    return true;
+}
+
 bool
 fsIteratorStart(FsIterator *self, Str dir_path)
 {
@@ -144,31 +169,7 @@ fsIteratorStart(FsIterator *self, Str dir_path)
         return false;
     }
 
-    return true;
-}
-
-bool
-fsIteratorNext(FsIterator *self, Str *filename, FileProperties *props)
-{
-    CF_ASSERT_NOT_NULL(self);
-
-    Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
-
-    if (!FindNextFileW(iter->finder, &iter->data)) return false;
-
-    Usize size = win32Utf16To8(str16FromCstr(iter->data.cFileName), iter->buffer,
-                               CF_ARRAY_SIZE(iter->buffer));
-
-    // NOTE (Matteo): Truncation is considered an error
-    // TODO (Matteo): Maybe require a bigger buffer?
-    if (size == USIZE_MAX || size == CF_ARRAY_SIZE(iter->buffer)) return false;
-
-    CF_ASSERT(size > 0, "Which filename can have a size of 0???");
-
-    filename->buf = iter->buffer;
-    filename->len = (Usize)(size);
-
-    if (props) win32ReadProperties(&iter->data, props);
+    self->next = fsIteratorNext;
 
     return true;
 }
@@ -216,10 +217,26 @@ fileProperties(Str filename)
     return props;
 }
 
+static FILE_SIZE(win32FileSize);
+static FILE_SEEK(win32FileSeek);
+static FILE_TELL(win32FileTell);
+static FILE_READ(win32FileRead);
+static FILE_READ_AT(win32FileReadAt);
+static FILE_WRITE(win32FileWrite);
+static FILE_WRITE_AT(win32FileWriteAt);
+
 File
 fileOpen(Str filename, FileOpenMode mode)
 {
-    File result = {0};
+    File result = {
+        .read = win32FileRead,
+        .readAt = win32FileReadAt,
+        .seek = win32FileSeek,
+        .size = win32FileSize,
+        .tell = win32FileTell,
+        .write = win32FileWrite,
+        .writeAt = win32FileWriteAt,
+    };
 
     if (mode == 0)
     {
@@ -271,8 +288,7 @@ fileClose(File *file)
     CloseHandle(file->os_handle);
 }
 
-Usize
-fileRead(File *file, U8 *buffer, Usize buffer_size)
+FILE_READ(win32FileRead)
 {
     if (file->error) return USIZE_MAX;
     if (file->eof) return 0;
@@ -293,8 +309,7 @@ fileRead(File *file, U8 *buffer, Usize buffer_size)
     return read_bytes;
 }
 
-Usize
-fileReadAt(File *file, U8 *buffer, Usize buffer_size, Usize offset)
+FILE_READ_AT(win32FileReadAt)
 {
     if (file->error) return USIZE_MAX;
 
@@ -311,8 +326,7 @@ fileReadAt(File *file, U8 *buffer, Usize buffer_size, Usize offset)
     return read_bytes;
 }
 
-bool
-fileWrite(File *file, U8 const *data, Usize data_size)
+FILE_WRITE(win32FileWrite)
 {
     if (file->error) return false;
 
@@ -330,8 +344,7 @@ fileWrite(File *file, U8 const *data, Usize data_size)
     return true;
 }
 
-bool
-fileWriteAt(File *file, U8 const *data, Usize data_size, Usize offset)
+FILE_WRITE_AT(win32FileWriteAt)
 {
     if (file->error) return false;
 
@@ -350,8 +363,7 @@ fileWriteAt(File *file, U8 const *data, Usize data_size, Usize offset)
     return true;
 }
 
-Usize
-fileSeek(File *file, FileSeekPos pos, Usize offset)
+FILE_SEEK(win32FileSeek)
 {
     LARGE_INTEGER temp = {.QuadPart = (LONGLONG)offset};
     LARGE_INTEGER dest = {0};
@@ -365,14 +377,12 @@ fileSeek(File *file, FileSeekPos pos, Usize offset)
     return (Usize)dest.QuadPart;
 }
 
-Usize
-fileTell(File *file)
+FILE_TELL(win32FileTell)
 {
-    return fileSeek(file, FileSeekPos_Current, 0);
+    return win32FileSeek(file, FileSeekPos_Current, 0);
 }
 
-Usize
-fileSize(File *file)
+FILE_SIZE(win32FileSize)
 {
     if (file->error) return USIZE_MAX;
 

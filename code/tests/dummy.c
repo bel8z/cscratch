@@ -342,7 +342,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         clockStart(&clock);
         file = fileOpen(filename, FileOpenMode_Read);
         U8 byte = {0};
-        while (fileRead(&file, &byte, 1)) bcount++;
+        while (file.read(&file, &byte, 1)) bcount++;
         fileClose(&file);
         traw = clockElapsed(&clock);
     }

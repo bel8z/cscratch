@@ -7,7 +7,8 @@
 static Usize
 io_fileRead(void *context, U8 *buffer, Usize buffer_size)
 {
-    return fileRead(context, buffer, buffer_size);
+    File *file = context;
+    return file->read(file, buffer, buffer_size);
 }
 
 static Usize

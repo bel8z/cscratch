@@ -106,14 +106,14 @@ static I32
 stbiRead(void *user, Char8 *data, I32 size)
 {
     File *file = user;
-    return (I32)fileRead(file, (U8 *)data, (Usize)size);
+    return (I32)file->read(file, (U8 *)data, (Usize)size);
 }
 
 static void
 stbiSkip(void *user, I32 n)
 {
     File *file = user;
-    fileSeek(file, FileSeekPos_Current, (Usize)n);
+    file->seek(file, FileSeekPos_Current, (Usize)n);
 }
 
 static I32

@@ -420,7 +420,7 @@ appLoadFromFile(AppState *state, Str full_name)
         if (fsIteratorStart(&it, strFromCstr(root_name)))
         {
             Str filename = {0};
-            while (fsIteratorNext(&it, &filename, NULL))
+            while (it.next(&it, &filename, NULL))
             {
                 if (appIsFileSupported(filename))
                 {
