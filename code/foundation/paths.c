@@ -63,6 +63,27 @@ pathSplitNameExt(Str path, Str *ext)
 }
 
 Usize
+pathJoin(Str root, Str leaf, Char8 *buffer, Usize buffer_size)
+{
+    Usize size = root.len + leaf.len + 1;
+
+    if (buffer)
+    {
+        if (size > buffer_size) return USIZE_MAX;
+
+        memCopy(root.buf, buffer, root.len);
+        buffer += root.len;
+
+        *buffer = '/';
+        buffer++;
+
+        memCopy(leaf.buf, buffer, leaf.len);
+    }
+
+    return size;
+}
+
+Usize
 pathChangeExt(Str path, Str new_ext, Char8 *out)
 {
     Str ext = pathSplitExt(path);
