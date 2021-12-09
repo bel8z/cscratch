@@ -143,7 +143,7 @@ static FS_ITERATOR_NEXT(fsIteratorNext)
     {
         props->exists = true;
         props->last_write = win32FileSystemTime(iter->data.ftLastWriteTime);
-        props.size = (Usize)win32MergeWords(iter->data.nFileSizeHigh, iter->data.nFileSizeLow);
+        props->size = (Usize)win32MergeWords(iter->data.nFileSizeHigh, iter->data.nFileSizeLow);
         win32ReadAttributes(iter->data.dwFileAttributes, props);
     }
 
