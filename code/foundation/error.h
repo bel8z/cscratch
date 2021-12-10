@@ -42,7 +42,7 @@
 #if CF_DEBUG
 #    define CF__ASSERT_FAIL(expr, msg) ((CF__ASSERT_PRINT(expr, msg), CF_DEBUG_BREAK(), 0))
 #else
-#    define CF__ASSERT_FAIL(expr, msg) ((CF__ASSERT_PRINT(expr, msg), CF_CRASH(), 0))
+#    define CF__ASSERT_FAIL(expr, msg) ((CF__ASSERT_PRINT(expr, msg), CF__CRASH(), 0))
 #endif
 
 /// CF_ASSERT: Assertion macro, by default enabled in release builds (use CF_RELEASE_ASSERTS to
