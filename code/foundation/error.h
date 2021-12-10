@@ -38,22 +38,24 @@
             CF_FILE, CF_LINE)
 
 #if CF_DEBUG
-#    define CF_FAIL(msg) ((CF__ASSERT_PRINT(expr, msg), CF_DEBUG_BREAK(), 0))
+#    define CF__ASSERT_FAIL(expr, msg) ((CF__ASSERT_PRINT(expr, msg), CF_DEBUG_BREAK(), 0))
 #else
-#    define CF_FAIL(msg) ((CF__ASSERT_PRINT(expr, msg), CF_CRASH(), 0))
+#    define CF__ASSERT_FAIL(expr, msg) ((CF__ASSERT_PRINT(expr, msg), CF_CRASH(), 0))
 #endif
 
+#define CF_FAIL(msg) CF__ASSERT_FAIL(, msg)
+
 #if CF_DEBUG || CF_RELEASE_ASSERTS
-#    define CF_ASSERT(expr, msg) (!(expr) ? CF_FAIL(msg) : 1)
+#    define CF_ASSERT(expr, msg) (!(expr) ? CF__ASSERT_FAIL(expr, msg) : 1)
 #else
 #    define CF_ASSERT(expr, msg) CF_UNUSED(expr)
 #endif
 
 #define CF_ASSERT_NOT_NULL(ptr) CF_ASSERT(ptr, #ptr " is null")
 
-#define CF_NOT_IMPLEMENTED() CF_ASSERT(false, "Not implemented")
+#define CF_NOT_IMPLEMENTED() CF_FAIL("Not implemented")
 
-#define CF_INVALID_CODE_PATH() CF_ASSERT(false, "Invalid code path")
+#define CF_INVALID_CODE_PATH() CF_FAIL("Invalid code path")
 
 /// Assertion macro enabled in debug builds only
 #if CF_DEBUG

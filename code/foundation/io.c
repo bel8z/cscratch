@@ -4,67 +4,126 @@
 #include "fs.h"
 #include "memory.h"
 
-static Usize
-io_fileRead(void *context, U8 *buffer, Usize buffer_size)
+static inline void
+io_fillCondition(IoReader *self)
 {
-    File *file = context;
-    return file->read(file, buffer, buffer_size);
+    CF_ASSERT(self->cursor == self->end, "Only an exhausted buffer can be refilled");
 }
 
-static Usize
-io_fillBuffer(IoReader *reader)
+static IO_FILL(io_fillZero)
 {
-    return reader->readStream(reader->stream, reader->buffer, CF_ARRAY_SIZE(reader->buffer));
+    io_fillCondition(self);
+
+    static U8 zeros[256] = {0};
+
+    self->start = self->cursor = zeros;
+    self->end = zeros + CF_ARRAY_SIZE(zeros);
+
+    return self->error_code;
+}
+
+static IoError32
+io_readFail(IoReader *self, IoError32 cause)
+{
+    self->error_code = cause;
+    self->fill = io_fillZero;
+    return self->error_code;
+}
+
+static IO_FILL(io_fillFromFile)
+{
+    io_fillCondition(self);
+
+    if (!self->error_code)
+    {
+        File *file = self->source;
+        Usize buffer_size = self->end - self->start;
+        Usize read_size = file->read(file, self->start, buffer_size);
+
+        switch (read_size)
+        {
+            case USIZE_MAX:
+                CF_ASSERT(file->error, "File should report error if read failed");
+                io_readFail(self, IO_FILE_ERROR);
+                break;
+
+            case 0:
+                CF_ASSERT(file->eof, "File should report end of file");
+                io_readFail(self, IO_STREAM_END);
+                break;
+
+            default:
+                Usize offset = buffer_size - read_size;
+                self->cursor = self->start + offset;
+                if (offset) memCopy(self->start, self->cursor, read_size);
+                break;
+        }
+    }
+
+    return self->error_code;
+}
+
+static IO_FILL(io_fillFromMemory)
+{
+    io_fillCondition(self);
+
+    if (!self->error_code)
+    {
+        self->fill = io_fillZero;
+        self->error_code = IO_STREAM_END;
+    }
+
+    return self->error_code;
 }
 
 void
-ioReaderInitFile(IoReader *reader, File *file)
+ioReaderInitFile(IoReader *reader, File *file, U8 *buffer, Usize buffer_size)
 {
-    reader->stream = file;
-    reader->readStream = io_fileRead;
-    ioReaderResync(reader);
+    reader->error_code = IO_SUCCESS;
+    reader->source = file;
+    reader->fill = io_fillFromFile;
+    reader->start = buffer;
+    reader->end = buffer + buffer_size;
+    // NOTE (Matteo): Place cursor at the end to trigger a refill
+    reader->cursor = reader->end;
 }
 
 void
-ioReaderResync(IoReader *reader)
+ioReaderInitMemory(IoReader *reader, U8 *buffer, Usize buffer_size)
 {
-    reader->pos = reader->len = 0;
+    reader->error_code = IO_SUCCESS;
+    reader->source = NULL;
+    reader->fill = io_fillFromMemory;
+    reader->start = reader->cursor = buffer;
+    reader->end = buffer + buffer_size;
 }
 
 Usize
 ioRead(IoReader *reader, U8 *buffer, Usize buffer_size)
 {
-    CF_ASSERT(reader->pos <= reader->len, "Logic error");
+    Usize read = 0;
 
-    Usize total = 0;
-
-    if (reader->pos < reader->len)
+    while (true)
     {
-        total = cfMin(buffer_size, reader->len - reader->pos);
-        memCopy(reader->buffer + reader->pos, buffer, total);
-        reader->pos += total;
-    }
+        Usize remaining = buffer_size - read;
+        if (!remaining) break;
 
-    Usize avail = buffer_size - total;
+        Usize avail = reader->end - reader->cursor;
 
-    if (avail > 0)
-    {
-        CF_ASSERT(reader->pos == reader->len, "Logic error");
-        CF_ASSERT(total < buffer_size, "Logic error");
-
-        Usize bytes_read = io_fillBuffer(reader);
-        if (bytes_read == USIZE_MAX)
+        if (avail)
         {
-            // Raw read failed: rollback buffered read and report error
-            reader->pos -= total;
-            return USIZE_MAX;
+            Usize count = cfMin(avail, remaining);
+            memCopy(reader->cursor, buffer, count);
+            reader->cursor += count;
+            read += count;
         }
-
-        reader->len = bytes_read;
-        reader->pos = cfMin(avail, bytes_read);
-        memCopy(reader->buffer, buffer + total, reader->pos);
-        total += reader->pos;
+        else if (reader->fill(reader))
+        {
+            // NOTE (Matteo): The invariant must be kept even if the refill failed
+            io_fillCondition(reader);
+            break;
+        }
     }
 
-    return total;
+    return read;
 }

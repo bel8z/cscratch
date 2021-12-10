@@ -48,7 +48,7 @@ struct GuiData
 
 #if !defined GUI_SRGB_COLORS
 #    define GUI_SRGB_COLORS 0
-#endif GUI_SRGB_COLORS
+#endif // GUI_SRGB_COLORS
 
 //=== Type conversions ===//
 

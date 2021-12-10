@@ -5,29 +5,39 @@
 // Forward declare supported stream types
 typedef struct File File;
 
-/// Offers buffered read over a generic underlying stream
-typedef struct IoReader
+/// Error codes for IO operations, can be expanded for custom implementation
+typedef U32 IoError32;
+#define IO_SUCCESS 0
+#define IO_STREAM_END 1
+#define IO_FILE_ERROR 2
+
+#define IO_FILL(name) IoError32 name(IoReader *self)
+
+/// Offers buffered read over a generic underlying source
+typedef struct IoReader IoReader;
+struct IoReader
 {
-    /// Underlying stream
-    void *stream;
-    /// Function for reading from the underlying stream
-    Usize (*readStream)(void *stream, U8 *buffer, Usize buffer_size);
-    /// Local buffer
-    U8 buffer[4096]; // TODO (Matteo): Allow for a custom sized buffer?
-    /// Number of buffered bytes
-    Usize len;
-    /// Position of the next buffered read
-    Usize pos;
-} IoReader;
+    /// (Optional) underlying source
+    void *source;
+    /// Start of the reader buffer
+    U8 *start;
+    /// End of the reader buffer
+    U8 *end;
+    /// Current reading position in the buffer
+    U8 *cursor;
+    /// Refills the reader buffer from the underlying source
+    IO_FILL((*fill));
+    /// "Sticky" error code
+    IoError32 error_code;
+};
 
-/// Initialize the buffered reader over a file
-void ioReaderInitFile(IoReader *reader, File *file);
+/// Initialize a buffered reader over a file
+void ioReaderInitFile(IoReader *reader, File *file, U8 *buffer, Usize buffer_size);
 
-/// Call when the underlying stream has been repositioned (e.g. file seek) in order
-/// to discard the buffered bytes and ensure the next read is synchronized.
-void ioReaderResync(IoReader *reader);
+/// Initialize a reader over a memory buffer
+void ioReaderInitMemory(IoReader *reader, U8 *buffer, Usize buffer_size);
 
-/// Read from the underlying stream to the given buffer
+/// Read into the given buffer
 Usize ioRead(IoReader *reader, U8 *buffer, Usize buffer_size);
 
 // TODO (Matteo):
