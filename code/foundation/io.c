@@ -110,22 +110,62 @@ ioRead(IoReader *reader, Usize count, U8 *buffer)
         Usize remaining = count - read;
         if (!remaining) break;
 
-        Usize avail = reader->end - reader->cursor;
+        Usize available = reader->end - reader->cursor;
 
-        if (avail)
+        if (available)
         {
-            Usize copied = cfMin(avail, remaining);
+            Usize copied = cfMin(available, remaining);
             if (buffer) memCopy(reader->cursor, buffer, copied);
             reader->cursor += copied;
             read += copied;
         }
         else if (reader->fill(reader))
         {
-            // NOTE (Matteo): The invariant must be kept even if the refill failed
-            io_fillCondition(reader);
             break;
         }
     }
+
+    return read;
+}
+
+Usize
+ioReadLine(IoReader *reader, Usize count, U8 *buffer)
+{
+    CF_NOT_IMPLEMENTED();
+
+    Usize read = 0;
+
+#if 0
+    bool found = false;
+
+    while (true)
+    {
+        Usize remaining = count - read;
+        if (!remaining) break;
+
+        Usize available = reader->end - reader->cursor;
+        Usize cap = cfMin(remaining, available);
+
+        for (; read < cap && !found; ++read)
+        {
+            switch (reader->cursor[read])
+            {
+                case '\n':
+                case '\r':
+                {
+                    found = true;
+                    break;
+                }
+
+                default:
+                {
+                    buffer[read] = reader->cursor[read];
+                    break;
+                }
+            }
+        }
+    }
+#endif
 
     return read;
 }

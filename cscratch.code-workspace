@@ -98,7 +98,8 @@
 			"xmmintrin.h": "c",
 			"atomic": "c",
 			"xstddef": "c",
-			"paths.h": "c"
+			"paths.h": "c",
+			"memory.h": "c"
 		}
 	}
 }

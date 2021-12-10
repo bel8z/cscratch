@@ -3,37 +3,26 @@
 #include "foundation/core.h"
 #include "foundation/error.h"
 #include "foundation/fs.h"
+#include "foundation/io.h"
 #include "foundation/memory.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"
 
 #include <stdio.h>
 
-typedef struct InputFile
+File
+appOpenInput(Platform *platform, Str filename)
 {
-    File file;
-    Char8 path_buf[1024];
-    U8 read_buf[4096];
-    Usize read_size;
-} InputFile;
+    Char8 buffer[1024];
 
-void
-inFileOpen(InputFile *in, Platform *platform, Str filename)
-{
     Str path = {
-        .buf = in->path_buf,
-        .len = pathJoin(platform->paths->base, filename, in->path_buf, CF_ARRAY_SIZE(in->path_buf)),
+        .buf = buffer,
+        .len = pathJoin(platform->paths->base, filename, buffer, CF_ARRAY_SIZE(buffer)),
     };
-    CF_ASSERT(path.len < CF_ARRAY_SIZE(in->path_buf), "");
 
-    in->file = fileOpen(path, FileOpenMode_Read);
-}
+    CF_ASSERT(path.len < CF_ARRAY_SIZE(buffer), "");
 
-bool
-inFileFillBuffer(InputFile *in)
-{
-    in->read_size = in->file.read(&in->file, in->read_buf, CF_ARRAY_SIZE(in->read_buf));
-    return (in->read_size > 0);
+    return fileOpen(path, FileOpenMode_Read);
 }
 
 I32
@@ -42,12 +31,17 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     CF_UNUSED(platform);
     CF_UNUSED(cmd_line);
 
-    InputFile in = {0};
-    inFileOpen(&in, platform, strLiteral("input/day1"));
+    File in_file = appOpenInput(platform, strLiteral("input/day1"));
+    U8 in_buffer[4096] = {0};
+    IoReader in = {0};
+    ioReaderInitFile(&in, &in_file, in_buffer, CF_ARRAY_SIZE(in_buffer));
 
-    while (inFileFillBuffer(&in))
+    U8 line[1024] = {0};
+    Usize line_size = 0;
+
+    while ((line_size = ioReadLine(&in, 1024, line)))
     {
-        fwrite(in.read_buf, sizeof(*in.read_buf), in.read_size, stderr);
+        fwrite(line, sizeof(*line), line_size, stderr);
     }
 
     return 0;

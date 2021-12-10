@@ -41,6 +41,7 @@ void ioReaderInitMemory(IoReader *reader, U8 *buffer, Usize buffer_size);
 /// Buffer can be null (in the case the read bytes are consumed)
 Usize ioRead(IoReader *reader, Usize count, U8 *buffer);
 
+/// Read a line of text into the given buffer; the read is limited at 'count' bytes
 Usize ioReadLine(IoReader *reader, Usize count, U8 *buffer);
 
 // TODO (Matteo):
