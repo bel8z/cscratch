@@ -52,7 +52,7 @@ win32HandleLastError(void)
                            FORMAT_MESSAGE_IGNORE_INSERTS,
                        NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&msg, 0,
                        NULL);
-        CF_FAIL(msg);
+        CF_ASSERT_FAIL(msg);
         LocalFree(msg);
     }
 }
