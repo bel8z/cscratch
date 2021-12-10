@@ -335,7 +335,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         IoReader reader = {0};
         ioReaderInitFile(&reader, &file, buffer, CF_ARRAY_SIZE(buffer));
         U8 byte = {0};
-        while (ioRead(&reader, &byte, 1)) bcount++;
+        while (ioRead(&reader, 1, &byte)) bcount++;
         fileClose(&file);
         tbuf = clockElapsed(&clock);
     }

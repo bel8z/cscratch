@@ -37,8 +37,11 @@ void ioReaderInitFile(IoReader *reader, File *file, U8 *buffer, Usize buffer_siz
 /// Initialize a reader over a memory buffer
 void ioReaderInitMemory(IoReader *reader, U8 *buffer, Usize buffer_size);
 
-/// Read into the given buffer
-Usize ioRead(IoReader *reader, U8 *buffer, Usize buffer_size);
+/// Read at most 'count' bytes into the given buffer
+/// Buffer can be null (in the case the read bytes are consumed)
+Usize ioRead(IoReader *reader, Usize count, U8 *buffer);
+
+Usize ioReadLine(IoReader *reader, Usize count, U8 *buffer);
 
 // TODO (Matteo):
 // * read until delimiter

@@ -66,7 +66,7 @@ enum FileSeekPos_
 typedef struct File File;
 
 #define FILE_SIZE(name) Usize name(File *file)
-#define FILE_SEEK(name) Usize name(File *file, FileSeekPos pos, Usize offset)
+#define FILE_SEEK(name) Usize name(File *file, FileSeekPos pos, Isize offset)
 #define FILE_TELL(name) Usize name(File *file)
 #define FILE_READ(name) Usize name(File *file, U8 *buffer, Usize buffer_size)
 #define FILE_READ_AT(name) Usize name(File *file, U8 *buffer, Usize buffer_size, Usize offset)

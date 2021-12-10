@@ -53,6 +53,8 @@ static IO_FILL(io_fillFromFile)
                 break;
 
             default:
+                // NOTE (Matteo): This is a performance vs. ease of use tradeoff;
+                // smaller reads are moved at the end of the buffer
                 Usize offset = buffer_size - read_size;
                 self->cursor = self->start + offset;
                 if (offset) memCopy(self->start, self->cursor, read_size);
@@ -99,23 +101,23 @@ ioReaderInitMemory(IoReader *reader, U8 *buffer, Usize buffer_size)
 }
 
 Usize
-ioRead(IoReader *reader, U8 *buffer, Usize buffer_size)
+ioRead(IoReader *reader, Usize count, U8 *buffer)
 {
     Usize read = 0;
 
     while (true)
     {
-        Usize remaining = buffer_size - read;
+        Usize remaining = count - read;
         if (!remaining) break;
 
         Usize avail = reader->end - reader->cursor;
 
         if (avail)
         {
-            Usize count = cfMin(avail, remaining);
-            memCopy(reader->cursor, buffer, count);
-            reader->cursor += count;
-            read += count;
+            Usize copied = cfMin(avail, remaining);
+            if (buffer) memCopy(reader->cursor, buffer, copied);
+            reader->cursor += copied;
+            read += copied;
         }
         else if (reader->fill(reader))
         {

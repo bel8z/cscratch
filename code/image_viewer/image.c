@@ -113,7 +113,7 @@ static void
 stbiSkip(void *user, I32 n)
 {
     File *file = user;
-    file->seek(file, FileSeekPos_Current, (Usize)n);
+    file->seek(file, FileSeekPos_Current, n);
 }
 
 static I32

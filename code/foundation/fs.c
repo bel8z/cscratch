@@ -311,8 +311,11 @@ static FILE_WRITE_AT(win32FileWriteAt)
 
 static FILE_SEEK(win32FileSeek)
 {
-    LARGE_INTEGER temp = {.QuadPart = (LONGLONG)offset};
+    LARGE_INTEGER temp = {.QuadPart = offset};
     LARGE_INTEGER dest = {0};
+
+    CF_ASSERT(offset > 0 || pos == FileSeekPos_Current,
+              "Negative offset is supported only if seeking from the current position");
 
     if (!SetFilePointerEx(file->os_handle, temp, &dest, pos))
     {
