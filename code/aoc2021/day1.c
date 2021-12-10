@@ -41,7 +41,9 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     while ((line_size = ioReadLine(&in, 1024, line)))
     {
+        fprintf(stderr, "\"");
         fwrite(line, sizeof(*line), line_size, stderr);
+        fprintf(stderr, "\"\n");
     }
 
     return 0;

@@ -128,44 +128,32 @@ ioRead(IoReader *reader, Usize count, U8 *buffer)
     return read;
 }
 
+bool
+ioReadByte(IoReader *reader, U8 *byte)
+{
+    return (1 == ioRead(reader, 1, byte));
+}
+
 Usize
 ioReadLine(IoReader *reader, Usize count, U8 *buffer)
 {
-    CF_NOT_IMPLEMENTED();
-
     Usize read = 0;
-
-#if 0
     bool found = false;
+    U8 byte = 0;
 
     while (true)
     {
-        Usize remaining = count - read;
-        if (!remaining) break;
+        if (found) break;
+        if (read == count) break;
+        if (!ioReadByte(reader, &byte)) break;
 
-        Usize available = reader->end - reader->cursor;
-        Usize cap = cfMin(remaining, available);
-
-        for (; read < cap && !found; ++read)
+        switch (byte)
         {
-            switch (reader->cursor[read])
-            {
-                case '\n':
-                case '\r':
-                {
-                    found = true;
-                    break;
-                }
-
-                default:
-                {
-                    buffer[read] = reader->cursor[read];
-                    break;
-                }
-            }
+            case '\r': break; // Ignored
+            case '\n': found = true; break;
+            default: buffer[read++] = byte; break;
         }
     }
-#endif
 
     return read;
 }
