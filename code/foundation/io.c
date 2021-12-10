@@ -10,7 +10,7 @@ io_fillCondition(IoReader *self)
     CF_ASSERT(self->cursor == self->end, "Only an exhausted buffer can be refilled");
 }
 
-static IO_FILL(io_fillZero)
+static IO_FILL_FUNC(io_fillZero)
 {
     io_fillCondition(self);
 
@@ -30,7 +30,7 @@ io_readFail(IoReader *self, IoError32 cause)
     return self->error_code;
 }
 
-static IO_FILL(io_fillFromFile)
+static IO_FILL_FUNC(io_fillFromFile)
 {
     io_fillCondition(self);
 
@@ -44,12 +44,12 @@ static IO_FILL(io_fillFromFile)
         {
             case USIZE_MAX:
                 CF_ASSERT(file->error, "File should report error if read failed");
-                io_readFail(self, IO_FILE_ERROR);
+                io_readFail(self, IoError_FileError);
                 break;
 
             case 0:
                 CF_ASSERT(file->eof, "File should report end of file");
-                io_readFail(self, IO_STREAM_END);
+                io_readFail(self, IoError_EndOfStream);
                 break;
 
             default:
@@ -65,14 +65,14 @@ static IO_FILL(io_fillFromFile)
     return self->error_code;
 }
 
-static IO_FILL(io_fillFromMemory)
+static IO_FILL_FUNC(io_fillFromMemory)
 {
     io_fillCondition(self);
 
     if (!self->error_code)
     {
         self->fill = io_fillZero;
-        self->error_code = IO_STREAM_END;
+        self->error_code = IoError_EndOfStream;
     }
 
     return self->error_code;
@@ -81,7 +81,7 @@ static IO_FILL(io_fillFromMemory)
 void
 ioReaderInitFile(IoReader *reader, File *file, U8 *buffer, Usize buffer_size)
 {
-    reader->error_code = IO_SUCCESS;
+    reader->error_code = IoError_None;
     reader->source = file;
     reader->fill = io_fillFromFile;
     reader->start = buffer;
@@ -93,15 +93,15 @@ ioReaderInitFile(IoReader *reader, File *file, U8 *buffer, Usize buffer_size)
 void
 ioReaderInitMemory(IoReader *reader, U8 *buffer, Usize buffer_size)
 {
-    reader->error_code = IO_SUCCESS;
+    reader->error_code = IoError_None;
     reader->source = NULL;
     reader->fill = io_fillFromMemory;
     reader->start = reader->cursor = buffer;
     reader->end = buffer + buffer_size;
 }
 
-Usize
-ioRead(IoReader *reader, Usize count, U8 *buffer)
+IoError32
+ioRead(IoReader *reader, Usize count, U8 *buffer, Usize *read_size)
 {
     Usize read = 0;
 
@@ -125,17 +125,23 @@ ioRead(IoReader *reader, Usize count, U8 *buffer)
         }
     }
 
-    return read;
+    if (read_size) *read_size = read;
+    return reader->error_code;
 }
 
-bool
+IoError32
 ioReadByte(IoReader *reader, U8 *byte)
 {
-    return (1 == ioRead(reader, 1, byte));
+    Usize read;
+    if (!ioRead(reader, 1, byte, &read))
+    {
+        CF_ASSERT(1 == read, "Read too much");
+    }
+    return reader->error_code;
 }
 
-Usize
-ioReadLine(IoReader *reader, Usize count, U8 *buffer)
+IoError32
+ioReadLine(IoReader *reader, Usize count, U8 *buffer, Usize *length)
 {
     Usize read = 0;
     bool found = false;
@@ -143,9 +149,12 @@ ioReadLine(IoReader *reader, Usize count, U8 *buffer)
 
     while (true)
     {
-        if (found) break;
-        if (read == count) break;
-        if (!ioReadByte(reader, &byte)) break;
+        *length = read;
+
+        if (found) return IoError_None;
+        if (read == count) return IoError_StreamTooLong;
+
+        if (ioReadByte(reader, &byte)) break;
 
         switch (byte)
         {
@@ -155,5 +164,5 @@ ioReadLine(IoReader *reader, Usize count, U8 *buffer)
         }
     }
 
-    return read;
+    return reader->error_code;
 }

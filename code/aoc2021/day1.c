@@ -39,7 +39,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     U8 line[1024] = {0};
     Usize line_size = 0;
 
-    while ((line_size = ioReadLine(&in, 1024, line)))
+    while (!ioReadLine(&in, 1024, line, &line_size))
     {
         fprintf(stderr, "\"");
         fwrite(line, sizeof(*line), line_size, stderr);
