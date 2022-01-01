@@ -34,6 +34,27 @@
 #define SRGB32_SOLID(R, G, B) SRGB32(R, G, B, 0xFF)
 
 //--------------------------------------------------------------------------------------------------
+// Color space manipulation utilities
+
+/// Convert linear space RBGA color to linear space, packed
+CF_API Srgb32 colorToSrgb(LinearColor in);
+
+/// Convert sRGB packed color to linear space
+CF_API LinearColor colorToLinear(Srgb32 in);
+
+/// Convert sRGB packed color to linear space, multiplying the alpha component
+CF_API LinearColor colorToLinearMultiplied(Srgb32 col);
+
+/// Multiply the alpha channel to the other channels of the color
+CF_API LinearColor colorMultiplyAlpha(LinearColor col);
+
+CF_API HsvColor colorSrgbToHsv(Srgb32 in);
+CF_API Srgb32 colorHsvToSrgb(HsvColor in);
+
+CF_API HsvColor colorLinearToHsv(LinearColor in);
+CF_API LinearColor colorHsvToLinear(HsvColor in);
+
+//--------------------------------------------------------------------------------------------------
 // Common colors definition based on X11 names (see https://en.wikipedia.org/wiki/X11_color_names)
 
 #define SRGB32_TRANSPARENT SRGB32(0x00, 0x00, 0x00, 0x00)
@@ -186,27 +207,6 @@
 #define SRGB32_YELLOW              SRGB32_SOLID(0xFF, 0xFF, 0x00)
 #define SRGB32_YELLOW_GREEN        SRGB32_SOLID(0x9A, 0xCD, 0x32)
 // clang-format on
-
-//--------------------------------------------------------------------------------------------------
-// Color space manipulation utilities
-
-/// Convert linear space RBGA color to linear space, packed
-CF_API Srgb32 colorToSrgb(LinearColor in);
-
-/// Convert sRGB packed color to linear space
-CF_API LinearColor colorToLinear(Srgb32 in);
-
-/// Convert sRGB packed color to linear space, multiplying the alpha component
-CF_API LinearColor colorToLinearMultiplied(Srgb32 col);
-
-/// Multiply the alpha channel to the other channels of the color
-CF_API LinearColor colorMultiplyAlpha(LinearColor col);
-
-CF_API HsvColor colorSrgbToHsv(Srgb32 in);
-CF_API Srgb32 colorHsvToSrgb(HsvColor in);
-
-CF_API HsvColor colorLinearToHsv(LinearColor in);
-CF_API LinearColor colorHsvToLinear(HsvColor in);
 
 //--------------------------------------------------------------------------------------------------
 // Macros for automatic generation of arrays storing the common color names and values
