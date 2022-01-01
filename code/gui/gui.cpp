@@ -1095,6 +1095,7 @@ guiColorEdit(Cstr label, Srgb32 *color)
 
     ImFormatString(label_buffer, CF_ARRAY_SIZE(label_buffer), "%s##Picker", label);
 
+    // TODO (Matteo): Color picker works best in sRGB space?
     LinearColor color4 = colorToLinear(*color);
     I32 edit_flags = ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf |
                      ImGuiColorEditFlags_PickerHueWheel;
