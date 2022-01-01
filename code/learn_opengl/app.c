@@ -32,7 +32,7 @@ struct AppState
     CfLog log;
 
     // Output
-    Color32 clear_color;
+    Srgb32 clear_color;
 
     // Windows
     bool metrics;
@@ -84,7 +84,7 @@ APP_API APP_CREATE_PROC(appCreate)
     AppState *app = memAlloc(plat->heap, sizeof(*app));
 
     app->plat = plat;
-    app->clear_color = RGBA32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
+    app->clear_color = SRGB32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
     app->log = cfLogCreate(plat->vm, CF_MB(1));
 
     appLoad(app);

@@ -2,30 +2,30 @@
 #include "math.inl"
 #include "util.h"
 
-Color32
+Srgb32
 colorToSrgb(LinearColor in)
 {
-    return ((Color32)cfClamp(mPow(in.r, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << RGBA32_R_SHIFT |
-           ((Color32)cfClamp(mPow(in.g, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << RGBA32_G_SHIFT |
-           ((Color32)cfClamp(mPow(in.b, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << RGBA32_B_SHIFT |
-           ((Color32)cfClamp(in.a * 255.0f, 0.0f, 255.0f)) << RGBA32_A_SHIFT;
+    return ((Srgb32)cfClamp(mPow(in.r, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << SRGB32_R_SHIFT |
+           ((Srgb32)cfClamp(mPow(in.g, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << SRGB32_G_SHIFT |
+           ((Srgb32)cfClamp(mPow(in.b, 1.0f / 2.2f) * 255.0f, 0.0f, 255.0f)) << SRGB32_B_SHIFT |
+           ((Srgb32)cfClamp(in.a * 255.0f, 0.0f, 255.0f)) << SRGB32_A_SHIFT;
 }
 
 LinearColor
-colorToLinear(Color32 in)
+colorToLinear(Srgb32 in)
 {
     F32 s = 1.0f / 255.0f;
 
     return (LinearColor){
-        .r = mPow(RGBA32_R(in) * s, 2.2f),
-        .g = mPow(RGBA32_G(in) * s, 2.2f),
-        .b = mPow(RGBA32_B(in) * s, 2.2f),
-        .a = mPow(RGBA32_A(in) * s, 2.2f),
+        .r = mPow(SRGB32_R(in) * s, 2.2f),
+        .g = mPow(SRGB32_G(in) * s, 2.2f),
+        .b = mPow(SRGB32_B(in) * s, 2.2f),
+        .a = mPow(SRGB32_A(in) * s, 2.2f),
     };
 }
 
 LinearColor
-colorToLinearMultiplied(Color32 col)
+colorToLinearMultiplied(Srgb32 col)
 {
     LinearColor rgba = colorToLinear(col);
 
@@ -164,30 +164,30 @@ colorHsvToLinear(HsvColor in)
 }
 
 HsvColor
-colorSrgbToHsv(Color32 in)
+colorSrgbToHsv(Srgb32 in)
 {
     F32 const ratio = 1.0f / 255.0f;
     F32 rgb[3] = {
-        RGBA32_R(in) * ratio,
-        RGBA32_G(in) * ratio,
-        RGBA32_B(in) * ratio,
+        SRGB32_R(in) * ratio,
+        SRGB32_G(in) * ratio,
+        SRGB32_B(in) * ratio,
     };
-    HsvColor out = {.a = RGBA32_A(in) * ratio};
+    HsvColor out = {.a = SRGB32_A(in) * ratio};
 
     _RgbToHsv(rgb, out.elem);
 
     return out;
 }
 
-CF_API Color32
+CF_API Srgb32
 colorHsvToSrgb(HsvColor in)
 {
     F32 rgb[3] = {0};
 
     _HsvToRgb(in.elem, rgb);
 
-    return ((Color32)cfClamp(rgb[0] * 255.0f, 0.0f, 255.0f)) << RGBA32_R_SHIFT |
-           ((Color32)cfClamp(rgb[1] * 255.0f, 0.0f, 255.0f)) << RGBA32_G_SHIFT |
-           ((Color32)cfClamp(rgb[2] * 255.0f, 0.0f, 255.0f)) << RGBA32_B_SHIFT |
-           ((Color32)cfClamp(in.a * 255.0f, 0.0f, 255.0f)) << RGBA32_A_SHIFT;
+    return ((Srgb32)cfClamp(rgb[0] * 255.0f, 0.0f, 255.0f)) << SRGB32_R_SHIFT |
+           ((Srgb32)cfClamp(rgb[1] * 255.0f, 0.0f, 255.0f)) << SRGB32_G_SHIFT |
+           ((Srgb32)cfClamp(rgb[2] * 255.0f, 0.0f, 255.0f)) << SRGB32_B_SHIFT |
+           ((Srgb32)cfClamp(in.a * 255.0f, 0.0f, 255.0f)) << SRGB32_A_SHIFT;
 }

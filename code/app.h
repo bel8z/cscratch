@@ -21,7 +21,7 @@ typedef struct AppIo
 
     // Outputs
     Cstr window_title;
-    Color32 back_color;
+    Srgb32 back_color;
     bool quit;
     bool rebuild_fonts;
     bool continuous_update;

@@ -581,7 +581,7 @@ MAT_TYPE(I32, I) // Transformation matrix with (32 bit) integer components
 //------------------//
 
 /// Packed representation of a color in sRGB space with 8 bits per channel (including alpha)
-typedef U32 Color32;
+typedef U32 Srgb32;
 
 /// Represents a color in RGBA linear space as 4 floats in the [0,1] range
 typedef union LinearColor

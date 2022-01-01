@@ -12,7 +12,7 @@ typedef struct Image
 {
     union
     {
-        Color32 *pixels;
+        Srgb32 *pixels;
         U8 *bytes;
     };
     I32 width;
