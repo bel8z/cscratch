@@ -6,6 +6,8 @@ set(IMGUI_DIR ${EXT_DIR}/imgui)
 set(BACKEND_DIR ${IMGUI_DIR}/backends)
 
 find_package(Vulkan REQUIRED)
+message(STATUS "Vulkan_INCLUDE_DIRS: ${Vulkan_INCLUDE_DIRS}")
+message(STATUS "Vulkan_LIBRARIES: ${Vulkan_LIBRARIES}")
 
 set(APP_SOURCES)
 file(GLOB_RECURSE APP_SOURCES ${CODE_DIR}/${APP}/*.c)
