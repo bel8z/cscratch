@@ -140,12 +140,6 @@ endforeach()
 
 add_subdirectory(${CODE_DIR}/vulkan_test)
 
-#---------------------#
-# Advent of code 2021 #
-#---------------------#
-
-add_subdirectory(${CODE_DIR}/aoc2021)
-
 #---------#
 # Testing #
 #---------#

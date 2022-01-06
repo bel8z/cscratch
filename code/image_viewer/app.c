@@ -41,6 +41,7 @@
 //-------------------//
 
 static Cstr g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
+static FileApi *g_file = NULL;
 
 #define MAIN_WINDOW "Main"
 #define STYLE_WINDOW "Style Editor"
@@ -149,6 +150,7 @@ struct AppState
 TASK_QUEUE_PROC(loadFileTask)
 {
     CF_ASSERT_NOT_NULL(data);
+    CF_ASSERT_NOT_NULL(g_file);
 
     ImageFile *file = data;
 
@@ -156,7 +158,7 @@ TASK_QUEUE_PROC(loadFileTask)
     {
         file->state = ImageFileState_Loading;
 
-        if (!(*canceled) && imageLoadFromFile(&file->image, file->filename))
+        if (!(*canceled) && imageLoadFromFile(&file->image, file->filename, g_file))
         {
             file->state = ImageFileState_Loaded;
         }
@@ -810,6 +812,8 @@ APP_API APP_PROC(appLoad)
     // Init image loading
     gloadInit(app->plat->gl);
     imageInit(app->plat->heap);
+
+    g_file = app->plat->file;
 
     taskStartProcessing(app->queue);
 }

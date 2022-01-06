@@ -65,20 +65,23 @@ enum FileSeekPos_
 
 typedef struct File File;
 
+#define FILE_OPEN(name) File *name(Str filename, FileOpenMode mode)
+#define FILE_CLOSE(name) void name(File *file)
 #define FILE_SIZE(name) Usize name(File *file)
 #define FILE_SEEK(name) Usize name(File *file, FileSeekPos pos, Isize offset)
 #define FILE_TELL(name) Usize name(File *file)
 #define FILE_READ(name) Usize name(File *file, U8 *buffer, Usize buffer_size)
-#define FILE_READ_AT(name) Usize name(File *file, U8 *buffer, Usize buffer_size, Usize offset)
+#define FILE_READ_AT(name) Usize name(File *file, Usize offset, U8 *buffer, Usize buffer_size)
 #define FILE_WRITE(name) bool name(File *file, U8 const *data, Usize data_size)
-#define FILE_WRITE_AT(name) bool name(File *file, U8 const *data, Usize data_size, Usize offset)
+#define FILE_WRITE_AT(name) bool name(File *file, Usize offset, U8 const *data, Usize data_size)
 #define FILE_PROPERTIES(name) FileProperties name(File *file)
 
-struct File
+typedef struct FileApi
 {
-    void *os_handle;
-    bool error; // TODO (Matteo): Error detail
-    bool eof;
+    File *invalid;
+
+    FILE_OPEN((*open));
+    FILE_CLOSE((*close));
 
     FILE_SIZE((*size));
     FILE_PROPERTIES((*properties));
@@ -91,7 +94,14 @@ struct File
 
     FILE_WRITE((*write));
     FILE_WRITE_AT((*writeAt));
-};
+} FileApi;
+
+bool fileCopy(Str source, Str dest, bool overwrite);
+FileProperties fileProperties(Str filename);
+
+bool fileWriteStr(FileApi *api, File *file, Str str);
+
+// NOTE (Matteo): Experimental API
 
 typedef struct FileContent
 {
@@ -99,16 +109,5 @@ typedef struct FileContent
     Usize size;
 } FileContent;
 
-bool fileCopy(Str source, Str dest, bool overwrite);
-FileProperties fileProperties(Str filename);
-
-File fileOpen(Str filename, FileOpenMode mode);
-void fileClose(File *file);
-
-bool fileWriteStr(File *file, Str str);
-
-// NOTE (Matteo): Experimental API
-
-FileContent fileReadContent(Str filename, MemAllocator alloc);
-
+FileContent fileReadContent(FileApi *api, Str filename, MemAllocator alloc);
 //------------------------------------------------------------------------------

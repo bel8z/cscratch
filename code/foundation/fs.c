@@ -7,20 +7,20 @@
 //-----------------------//
 
 FileContent
-fileReadContent(Str filename, MemAllocator alloc)
+fileReadContent(FileApi *api, Str filename, MemAllocator alloc)
 {
     FileContent result = {0};
 
-    File file = fileOpen(filename, FileOpenMode_Read);
+    File *file = api->open(filename, FileOpenMode_Read);
 
-    if (!file.error)
+    if (file != api->invalid)
     {
-        Usize file_size = file.size(&file);
+        Usize file_size = api->size(file);
         Usize read_size = file_size;
 
         result.data = memAlloc(alloc, read_size);
 
-        if (result.data && file.read(&file, result.data, read_size) == read_size)
+        if (result.data && api->read(file, result.data, read_size) == read_size)
         {
             result.size = read_size;
         }
@@ -30,16 +30,16 @@ fileReadContent(Str filename, MemAllocator alloc)
             result.data = NULL;
         }
 
-        fileClose(&file);
+        api->close(file);
     }
 
     return result;
 }
 
 bool
-fileWriteStr(File *file, Str str)
+fileWriteStr(FileApi *api, File *file, Str str)
 {
-    return file->write(file, (U8 const *)str.buf, str.len);
+    return api->write(file, (U8 const *)str.buf, str.len);
 }
 
 #if 0
@@ -232,194 +232,6 @@ fileProperties(Str filename)
     }
 
     return props;
-}
-
-static FILE_READ(win32FileRead)
-{
-    if (file->error) return USIZE_MAX;
-    if (file->eof) return 0;
-
-    DWORD read_bytes;
-
-    if (!ReadFile(file->os_handle, buffer, (DWORD)buffer_size, &read_bytes, NULL))
-    {
-        file->error = true;
-        win32HandleLastError();
-        return USIZE_MAX;
-    }
-    else if (read_bytes < buffer_size)
-    {
-        file->eof = true;
-    }
-
-    return read_bytes;
-}
-
-static FILE_READ_AT(win32FileReadAt)
-{
-    if (file->error) return USIZE_MAX;
-
-    OVERLAPPED overlapped = win32FileOffset(offset);
-    DWORD read_bytes;
-
-    if (!ReadFile(file->os_handle, buffer, (DWORD)buffer_size, &read_bytes, &overlapped))
-    {
-        file->error = true;
-        win32HandleLastError();
-        return USIZE_MAX;
-    }
-
-    return read_bytes;
-}
-
-static FILE_WRITE(win32FileWrite)
-{
-    if (file->error) return false;
-
-    DWORD written_bytes;
-
-    if (!WriteFile(file->os_handle, data, (DWORD)data_size, &written_bytes, NULL))
-    {
-        file->error = true;
-        win32HandleLastError();
-        return false;
-    }
-
-    CF_ASSERT(written_bytes == (DWORD)data_size, "Incorrect number of bytes written");
-
-    return true;
-}
-
-static FILE_WRITE_AT(win32FileWriteAt)
-{
-    if (file->error) return false;
-
-    OVERLAPPED overlapped = win32FileOffset(offset);
-    DWORD written_bytes;
-
-    if (!WriteFile(file->os_handle, data, (DWORD)data_size, &written_bytes, &overlapped))
-    {
-        file->error = true;
-        win32HandleLastError();
-        return false;
-    }
-
-    CF_ASSERT(written_bytes == (DWORD)data_size, "Incorrect number of bytes written");
-
-    return true;
-}
-
-static FILE_SEEK(win32FileSeek)
-{
-    LARGE_INTEGER temp = {.QuadPart = offset};
-    LARGE_INTEGER dest = {0};
-
-    CF_ASSERT(offset > 0 || pos == FileSeekPos_Current,
-              "Negative offset is supported only if seeking from the current position");
-
-    if (!SetFilePointerEx(file->os_handle, temp, &dest, pos))
-    {
-        file->error = true;
-        win32HandleLastError();
-    };
-
-    return (Usize)dest.QuadPart;
-}
-
-static FILE_TELL(win32FileTell)
-{
-    return win32FileSeek(file, FileSeekPos_Current, 0);
-}
-
-static FILE_SIZE(win32FileSize)
-{
-    if (file->error) return USIZE_MAX;
-
-    ULARGE_INTEGER size;
-
-    size.LowPart = GetFileSize(file->os_handle, &size.HighPart);
-
-    return (Usize)size.QuadPart;
-}
-
-static FILE_PROPERTIES(win32FileProperties)
-{
-    FileProperties props = {0};
-    BY_HANDLE_FILE_INFORMATION info;
-
-    if (GetFileInformationByHandle(file->os_handle, &info))
-    {
-        props.exists = true;
-        props.last_write = win32FileSystemTime(info.ftLastWriteTime);
-        props.size = (Usize)win32MergeWords(info.nFileSizeHigh, info.nFileSizeLow);
-        win32ReadAttributes(info.dwFileAttributes, &props);
-    }
-
-    return props;
-}
-
-File
-fileOpen(Str filename, FileOpenMode mode)
-{
-    File result = {
-        .read = win32FileRead,
-        .readAt = win32FileReadAt,
-        .seek = win32FileSeek,
-        .size = win32FileSize,
-        .tell = win32FileTell,
-        .write = win32FileWrite,
-        .writeAt = win32FileWriteAt,
-        .properties = win32FileProperties,
-    };
-
-    if (mode == 0)
-    {
-        result.error = true;
-    }
-    else
-    {
-        DWORD access = 0;
-        DWORD creation = OPEN_EXISTING;
-
-        if (mode & FileOpenMode_Read) access |= GENERIC_READ;
-
-        if (mode & FileOpenMode_Write)
-        {
-            access |= GENERIC_WRITE;
-            // Overwrite creation mode
-            creation = CREATE_ALWAYS;
-        }
-
-        Char16 buffer[1024] = {0};
-        win32Utf8To16(filename, buffer, CF_ARRAY_SIZE(buffer));
-
-        result.os_handle = CreateFileW(buffer, access, FILE_SHARE_READ, NULL, creation,
-                                       FILE_ATTRIBUTE_NORMAL, NULL);
-
-        if (result.os_handle == INVALID_HANDLE_VALUE)
-        {
-            result.error = true;
-            win32HandleLastError();
-        }
-        else if (mode == FileOpenMode_Append)
-        {
-            if (!SetFilePointer(result.os_handle, 0, NULL, FILE_END))
-            {
-                CloseHandle(result.os_handle);
-                result.os_handle = INVALID_HANDLE_VALUE;
-                result.error = true;
-                win32HandleLastError();
-            }
-        }
-    }
-
-    return result;
-}
-
-void
-fileClose(File *file)
-{
-    CloseHandle(file->os_handle);
 }
 
 #else

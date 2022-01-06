@@ -30,40 +30,40 @@ io_readFail(IoReader *self, IoError32 cause)
     return self->error_code;
 }
 
-static IO_FILL_FUNC(io_fillFromFile)
-{
-    io_fillCondition(self);
+// static IO_FILL_FUNC(io_fillFromFile)
+// {
+//     io_fillCondition(self);
 
-    if (!self->error_code)
-    {
-        File *file = self->source;
-        Usize buffer_size = self->end - self->start;
-        Usize read_size = file->read(file, self->start, buffer_size);
+//     if (!self->error_code)
+//     {
+//         File *file = self->source;
+//         Usize buffer_size = self->end - self->start;
+//         Usize read_size = file->read(file, self->start, buffer_size);
 
-        switch (read_size)
-        {
-            case USIZE_MAX:
-                CF_ASSERT(file->error, "File should report error if read failed");
-                io_readFail(self, IoError_FileError);
-                break;
+//         switch (read_size)
+//         {
+//             case USIZE_MAX:
+//                 CF_ASSERT(file->error, "File should report error if read failed");
+//                 io_readFail(self, IoError_FileError);
+//                 break;
 
-            case 0:
-                CF_ASSERT(file->eof, "File should report end of file");
-                io_readFail(self, IoError_EndOfStream);
-                break;
+//             case 0:
+//                 CF_ASSERT(file->eof, "File should report end of file");
+//                 io_readFail(self, IoError_EndOfStream);
+//                 break;
 
-            default:
-                // NOTE (Matteo): This is a performance vs. ease of use tradeoff;
-                // smaller reads are moved at the end of the buffer
-                Usize offset = buffer_size - read_size;
-                self->cursor = self->start + offset;
-                if (offset) memCopy(self->start, self->cursor, read_size);
-                break;
-        }
-    }
+//             default:
+//                 // NOTE (Matteo): This is a performance vs. ease of use tradeoff;
+//                 // smaller reads are moved at the end of the buffer
+//                 Usize offset = buffer_size - read_size;
+//                 self->cursor = self->start + offset;
+//                 if (offset) memCopy(self->start, self->cursor, read_size);
+//                 break;
+//         }
+//     }
 
-    return self->error_code;
-}
+//     return self->error_code;
+// }
 
 static IO_FILL_FUNC(io_fillFromMemory)
 {
@@ -78,17 +78,17 @@ static IO_FILL_FUNC(io_fillFromMemory)
     return self->error_code;
 }
 
-void
-ioReaderInitFile(IoReader *reader, File *file, U8 *buffer, Usize buffer_size)
-{
-    reader->error_code = IoError_None;
-    reader->source = file;
-    reader->fill = io_fillFromFile;
-    reader->start = buffer;
-    reader->end = buffer + buffer_size;
-    // NOTE (Matteo): Place cursor at the end to trigger a refill
-    reader->cursor = reader->end;
-}
+// void
+// ioReaderInitFile(IoReader *reader, File *file, U8 *buffer, Usize buffer_size)
+// {
+//     reader->error_code = IoError_None;
+//     reader->source = file;
+//     reader->fill = io_fillFromFile;
+//     reader->start = buffer;
+//     reader->end = buffer + buffer_size;
+//     // NOTE (Matteo): Place cursor at the end to trigger a refill
+//     reader->cursor = reader->end;
+// }
 
 void
 ioReaderInitMemory(IoReader *reader, U8 *buffer, Usize buffer_size)

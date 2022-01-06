@@ -40,6 +40,19 @@ static VM_MIRROR_FREE(win32MirrorFree);
 
 static MEM_ALLOCATOR_FUNC(win32Alloc);
 
+//---- File system ----//
+
+static FILE_OPEN(win32FileOpen);
+static FILE_CLOSE(win32FileClose);
+static FILE_SIZE(win32FileSize);
+static FILE_SEEK(win32FileSeek);
+static FILE_TELL(win32FileTell);
+static FILE_READ(win32FileRead);
+static FILE_READ_AT(win32FileReadAt);
+static FILE_WRITE(win32FileWrite);
+static FILE_WRITE_AT(win32FileWriteAt);
+static FILE_PROPERTIES(win32FileProperties);
+
 //---- Dynamic loading ----//
 
 static Library *win32libLoad(Str filename);
@@ -58,6 +71,20 @@ static Platform g_platform = {
             .revert = win32VmDecommit,
             .mirrorAllocate = win32MirrorAllocate,
             .mirrorFree = win32MirrorFree,
+        },
+    .file =
+        &(FileApi){
+            .invalid = INVALID_HANDLE_VALUE,
+            .open = win32FileOpen,
+            .close = win32FileClose,
+            .size = win32FileSize,
+            .properties = win32FileProperties,
+            .seek = win32FileSeek,
+            .tell = win32FileTell,
+            .read = win32FileRead,
+            .readAt = win32FileReadAt,
+            .write = win32FileWrite,
+            .writeAt = win32FileWriteAt,
         },
     .library =
         &(LibraryApi){
@@ -440,6 +467,209 @@ MEM_ALLOCATOR_FUNC(win32Alloc)
     }
 
     return new_mem;
+}
+
+//-----------------------//
+//   File system   //
+//-----------------------//
+
+static inline U64
+win32MergeWords(DWORD high, DWORD low)
+{
+    ULARGE_INTEGER value = {.HighPart = high, .LowPart = low};
+    return value.QuadPart;
+}
+
+static inline SystemTime
+win32FileSystemTime(FILETIME time)
+{
+    return win32MergeWords(time.dwHighDateTime, time.dwLowDateTime);
+}
+
+static void
+win32ReadAttributes(DWORD attributes, FileProperties *out)
+{
+    if (attributes & FILE_ATTRIBUTE_DIRECTORY)
+    {
+        out->attributes |= FileAttributes_Directory;
+    }
+
+    if (attributes & FILE_ATTRIBUTE_REPARSE_POINT)
+    {
+        out->attributes |= FileAttributes_Symlink;
+    }
+}
+
+static OVERLAPPED
+win32FileOffset(Usize offset)
+{
+    ULARGE_INTEGER temp_offset = {.QuadPart = offset};
+    OVERLAPPED overlapped = {.Offset = temp_offset.LowPart, .OffsetHigh = temp_offset.HighPart};
+    return overlapped;
+}
+
+FILE_READ(win32FileRead)
+{
+    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+
+    DWORD read_bytes;
+
+    if (!ReadFile(file, buffer, (DWORD)buffer_size, &read_bytes, NULL))
+    {
+        win32HandleLastError();
+        return USIZE_MAX;
+    }
+
+    return read_bytes;
+}
+
+FILE_READ_AT(win32FileReadAt)
+{
+    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+
+    OVERLAPPED overlapped = win32FileOffset(offset);
+    DWORD read_bytes;
+
+    if (!ReadFile(file, buffer, (DWORD)buffer_size, &read_bytes, &overlapped))
+    {
+        win32HandleLastError();
+        return USIZE_MAX;
+    }
+
+    return read_bytes;
+}
+
+FILE_WRITE(win32FileWrite)
+{
+    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+
+    DWORD written_bytes;
+
+    if (!WriteFile(file, data, (DWORD)data_size, &written_bytes, NULL))
+    {
+        win32HandleLastError();
+        return false;
+    }
+
+    CF_ASSERT(written_bytes == (DWORD)data_size, "Incorrect number of bytes written");
+
+    return true;
+}
+
+FILE_WRITE_AT(win32FileWriteAt)
+{
+    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+
+    OVERLAPPED overlapped = win32FileOffset(offset);
+    DWORD written_bytes;
+
+    if (!WriteFile(file, data, (DWORD)data_size, &written_bytes, &overlapped))
+    {
+        win32HandleLastError();
+        return false;
+    }
+
+    CF_ASSERT(written_bytes == (DWORD)data_size, "Incorrect number of bytes written");
+
+    return true;
+}
+
+FILE_SEEK(win32FileSeek)
+{
+    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+
+    LARGE_INTEGER temp = {.QuadPart = offset};
+    LARGE_INTEGER dest = {0};
+
+    CF_ASSERT(offset > 0 || pos == FileSeekPos_Current,
+              "Negative offset is supported only if seeking from the current position");
+
+    if (!SetFilePointerEx(file, temp, &dest, pos))
+    {
+        win32HandleLastError();
+        return USIZE_MAX;
+    };
+
+    return (Usize)dest.QuadPart;
+}
+
+FILE_TELL(win32FileTell)
+{
+    return win32FileSeek(file, FileSeekPos_Current, 0);
+}
+
+FILE_SIZE(win32FileSize)
+{
+    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+
+    ULARGE_INTEGER size;
+
+    size.LowPart = GetFileSize(file, &size.HighPart);
+
+    return (Usize)size.QuadPart;
+}
+
+FILE_PROPERTIES(win32FileProperties)
+{
+    FileProperties props = {0};
+    BY_HANDLE_FILE_INFORMATION info;
+
+    if (GetFileInformationByHandle(file, &info))
+    {
+        props.exists = true;
+        props.last_write = win32FileSystemTime(info.ftLastWriteTime);
+        props.size = (Usize)win32MergeWords(info.nFileSizeHigh, info.nFileSizeLow);
+        win32ReadAttributes(info.dwFileAttributes, &props);
+    }
+
+    return props;
+}
+
+FILE_OPEN(win32FileOpen)
+{
+    File *result = INVALID_HANDLE_VALUE;
+
+    if (mode != 0)
+    {
+        DWORD access = 0;
+        DWORD creation = OPEN_EXISTING;
+
+        if (mode & FileOpenMode_Read) access |= GENERIC_READ;
+
+        if (mode & FileOpenMode_Write)
+        {
+            access |= GENERIC_WRITE;
+            // Overwrite creation mode
+            creation = CREATE_ALWAYS;
+        }
+
+        Char16 buffer[1024] = {0};
+        win32Utf8To16(filename, buffer, CF_ARRAY_SIZE(buffer));
+
+        result = CreateFileW(buffer, access, FILE_SHARE_READ, NULL, creation, FILE_ATTRIBUTE_NORMAL,
+                             NULL);
+
+        if (result == INVALID_HANDLE_VALUE)
+        {
+            win32HandleLastError();
+        }
+        else if (mode == FileOpenMode_Append)
+        {
+            if (!SetFilePointer(result, 0, NULL, FILE_END))
+            {
+                CloseHandle(result);
+                result = INVALID_HANDLE_VALUE;
+                win32HandleLastError();
+            }
+        }
+    }
+
+    return result;
+}
+
+FILE_CLOSE(win32FileClose)
+{
+    CloseHandle(file);
 }
 
 //-----------------------//

@@ -102,25 +102,34 @@ stbiFree(void *memory)
 //------------------------------------------------------------------------------
 // IO operations
 
+typedef struct FileReader
+{
+    FileApi *api;
+    File *file;
+    bool eof;
+} FileReader;
+
 static I32
 stbiRead(void *user, Char8 *data, I32 size)
 {
-    File *file = user;
-    return (I32)file->read(file, (U8 *)data, (Usize)size);
+    FileReader *reader = user;
+    Usize read_bytes = reader->api->read(reader->file, (U8 *)data, (Usize)size);
+    reader->eof = !read_bytes;
+    return (I32)read_bytes;
 }
 
 static void
 stbiSkip(void *user, I32 n)
 {
-    File *file = user;
-    file->seek(file, FileSeekPos_Current, n);
+    FileReader *reader = user;
+    reader->api->seek(reader->file, FileSeekPos_Current, n);
 }
 
 static I32
 stbiEof(void *user)
 {
-    File *file = user;
-    return file->eof;
+    FileReader *reader = user;
+    return reader->eof;
 }
 
 //------------------------------------------------------------------------------
@@ -133,20 +142,27 @@ imageInit(MemAllocator alloc)
 }
 
 bool
-imageLoadFromFile(Image *image, Cstr filename)
+imageLoadFromFile(Image *image, Cstr filename, FileApi *api)
 {
     CF_ASSERT_NOT_NULL(image);
     CF_ASSERT_NOT_NULL(filename);
     CF_ASSERT(!image->bytes, "overwriting valid image");
 
-    File file = fileOpen(strFromCstr(filename), FileOpenMode_Read);
-    stbi_io_callbacks cb = {.eof = stbiEof, .read = stbiRead, .skip = stbiSkip};
+    FileReader reader = {
+        .api = api,
+        .file = api->open(strFromCstr(filename), FileOpenMode_Read),
+    };
+    stbi_io_callbacks cb = {
+        .eof = stbiEof,
+        .read = stbiRead,
+        .skip = stbiSkip,
+    };
 
     image->width = 0;
     image->height = 0;
-    image->bytes = stbi_load_from_callbacks(&cb, &file, &image->width, &image->height, NULL, 4);
+    image->bytes = stbi_load_from_callbacks(&cb, &reader, &image->width, &image->height, NULL, 4);
 
-    fileClose(&file);
+    api->close(reader.file);
 
     return (image->bytes != NULL);
 }

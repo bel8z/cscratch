@@ -2,6 +2,8 @@
 
 #include "foundation/core.h"
 
+typedef struct FileApi FileApi;
+
 // TODO (Matteo):
 // * Keep image bits around (for querying/manipulation)?
 // * Implement image view navigation (scale/offset)
@@ -22,6 +24,6 @@ typedef struct Image
 void imageInit(MemAllocator alloc);
 
 // TODO (Matteo): Migrate to Str?
-bool imageLoadFromFile(Image *image, Cstr filename);
+bool imageLoadFromFile(Image *image, Cstr filename, FileApi *api);
 bool imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size);
 void imageUnload(Image *image);

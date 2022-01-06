@@ -10,6 +10,7 @@
 //=== Foundation interfaces ===//
 
 typedef struct CfVirtualMemory CfVirtualMemory;
+typedef struct FileApi FileApi;
 
 //=== Dynamic library loading ===//
 
@@ -70,6 +71,9 @@ typedef struct Platform
     // Total size in bytes of the allocation provided by the heap
     // TODO (Matteo): Should be a pointer?
     Usize heap_size;
+
+    // File IO API
+    FileApi *file;
 
     /// Tracks elapsed time since the start of the application (useful for performance measurements)
     Clock clock;

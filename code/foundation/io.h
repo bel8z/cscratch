@@ -38,7 +38,7 @@ struct IoReader
 };
 
 /// Initialize a buffered reader over a file
-void ioReaderInitFile(IoReader *reader, File *file, U8 *buffer, Usize buffer_size);
+// void ioReaderInitFile(IoReader *reader, File *file, U8 *buffer, Usize buffer_size);
 
 /// Initialize a reader over a memory buffer
 void ioReaderInitMemory(IoReader *reader, U8 *buffer, Usize buffer_size);
