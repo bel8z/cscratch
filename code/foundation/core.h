@@ -4,6 +4,7 @@
 /// This is the main API header, and is the only one that other API headers are allowed to include
 
 #include <float.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

@@ -5,8 +5,6 @@
 #include "foundation/memory.h"
 #include "foundation/strings.h"
 
-#include <stdio.h>
-
 static MemAllocator g_heap;
 
 //======================================================//

@@ -3,7 +3,6 @@
 #include "memory.h"
 
 #include <ctype.h>
-#include <stdarg.h>
 #include <stdio.h>
 
 //----------------------//
@@ -27,7 +26,7 @@ strToCstr(Str str, Char8 *buffer, Usize size)
 //-----------------------//
 
 // NOTE (Matteo): This returns the length of the written string, ignoring the null terminator
-static I32
+I32
 strPrintfV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
 {
     va_list args_copy;
@@ -40,7 +39,7 @@ strPrintfV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
 
     if (len < 0 || (len + 1) > buffer_size) return -1;
 
-    vsnprintf(buffer, len + 1, fmt, args); // NOLINT
+    if (buffer) vsnprintf(buffer, len + 1, fmt, args); // NOLINT
 
     return len;
 }

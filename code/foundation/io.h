@@ -137,6 +137,10 @@ typedef struct IoFileApi
 {
     IoFile *invalid;
 
+    IoFile *std_in;
+    IoFile *std_out;
+    IoFile *std_err;
+
     IO_FILE_COPY((*copy));
 
     IO_FILE_OPEN((*open));

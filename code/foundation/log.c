@@ -1,8 +1,6 @@
 #include "log.h"
 #include "strings.h"
 
-#include <stdarg.h>
-
 CfLog
 cfLogCreate(CfVirtualMemory *vm, Usize buffer_size)
 {

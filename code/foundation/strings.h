@@ -56,6 +56,8 @@ CF_API Usize strToCstr(Str str, Char8 *buffer, Usize size);
 //   String formatting   //
 //-----------------------//
 
+I32 strPrintfV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args);
+
 /// Print formatted string on the given static buffer
 /// This does not take a Str because it represents a string view more than a char buffer.
 /// You can use a Str by explicitly calling strPrintf(str.buf, str.len, ...).

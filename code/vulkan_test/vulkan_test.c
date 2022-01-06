@@ -11,14 +11,10 @@
 
 // Foundation libraries
 #include "foundation/error.h"
+#include "foundation/io.h"
 #include "foundation/memory.h"
 #include "foundation/strings.h"
 #include "foundation/time.h"
-
-// Standard libraries - TODO (Matteo): Get rid of them?
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 //-------------------//
 //   Configuration   //
@@ -276,22 +272,30 @@ CF_PRINTF_LIKE(1, 2)
 static void
 appDiagnostic(App *app, Cstr format, ...)
 {
-    CF_UNUSED(app);
+    IoFileApi *file = app->platform->file;
+    Char8 buffer[1024] = {0};
 
     va_list args;
     va_start(args, format);
-    vfprintf(stderr, format, args);
+    I32 len = strPrintfV(buffer, CF_ARRAY_SIZE(buffer), format, args);
     va_end(args);
+
+    if (len > 0) file->write(file->std_err, (U8 const *)buffer, (Usize)len);
 }
 
 CF_PRINTF_LIKE(1, 2)
 static void
 appTerminate(App *app, Cstr format, ...)
 {
+    IoFileApi *file = app->platform->file;
+    Char8 buffer[1024] = {0};
+
     va_list args;
     va_start(args, format);
-    vfprintf(stderr, format, args);
+    I32 len = strPrintfV(buffer, CF_ARRAY_SIZE(buffer), format, args);
     va_end(args);
+
+    if (len > 0) file->write(file->std_err, (U8 const *)buffer, (Usize)len);
 
     appShutdown(app);
     exit(EXIT_FAILURE);

@@ -34,8 +34,6 @@
 #include "foundation/log.h"
 #include "foundation/memory.h"
 
-#include <stdarg.h>
-
 struct GuiData
 {
     MemAllocator allocator;

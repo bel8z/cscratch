@@ -78,6 +78,9 @@ static Platform g_platform = {
     .file =
         &(IoFileApi){
             .invalid = INVALID_HANDLE_VALUE,
+            .std_in = INVALID_HANDLE_VALUE,
+            .std_out = INVALID_HANDLE_VALUE,
+            .std_err = INVALID_HANDLE_VALUE,
             .copy = win32FileCopy,
             .open = win32FileOpen,
             .close = win32FileClose,
@@ -195,6 +198,12 @@ win32PlatformInit(void)
     g_platform.heap.state = &g_platform;
     g_platform.heap.func = win32Alloc;
 #endif
+
+    // ** Init IO pipes **
+
+    g_platform.file->std_in = GetStdHandle(STD_INPUT_HANDLE);
+    g_platform.file->std_out = GetStdHandle(STD_OUTPUT_HANDLE);
+    g_platform.file->std_err = GetStdHandle(STD_ERROR_HANDLE);
 
     // ** Init paths **
 
