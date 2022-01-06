@@ -1,5 +1,7 @@
+#include "platform.h"
+
 #include "foundation/core.h"
-#include "foundation/fs.h"
+#include "foundation/io.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"
 
@@ -17,8 +19,9 @@ pathPrint(Str p)
 I32
 platformMain(Platform *platform, CommandLine *cmd_line)
 {
-    CF_UNUSED(platform);
     CF_UNUSED(cmd_line);
+
+    IoFileApi *file = platform->file;
 
     printf("Splitting paths:\n");
 
@@ -57,9 +60,9 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     printf("Browsing dir:\n");
 
     // Platform plat = cfPlatformCreate();
-    FsIterator iter = {0};
+    IoDirectory iter = {0};
 
-    if (fsIteratorStart(&iter, dirname))
+    if (file->dirOpen(&iter, dirname))
     {
         Str f = {0};
         while (iter.next(&iter, &f, NULL))
@@ -67,7 +70,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
             pathPrint(f);
         }
 
-        fsIteratorEnd(&iter);
+        iter.close(&iter);
     }
 
     // U32 sz = 0;

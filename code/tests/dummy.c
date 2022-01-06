@@ -1,6 +1,5 @@
 #include "platform.h"
 
-#include "foundation/fs.h"
 #include "foundation/io.h"
 #include "foundation/list.h"
 #include "foundation/memory.h"
@@ -316,9 +315,9 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     // Str filename = strLiteral("C:/Temp/Dummy.txt");
     // Clock clock;
-    // File file;
+    // IoFile file;
     // {
-    //     file = fileOpen(filename, FileOpenMode_Write);
+    //     file = fileOpen(filename, IoOpenMode_Write);
     //     for (Usize i = 0; i < 1000; ++i)
     //     {
     //         fileWriteStr(&file, strLiteral("This is a dummy file!\n"));
@@ -330,7 +329,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     // Usize bcount = 0;
     // {
     //     clockStart(&clock);
-    //     file = fileOpen(filename, FileOpenMode_Read);
+    //     file = fileOpen(filename, IoOpenMode_Read);
     //     U8 buffer[1024] = {0};
     //     IoReader reader = {0};
     //     ioReaderInitFile(&reader, &file, buffer, CF_ARRAY_SIZE(buffer));
@@ -341,7 +340,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     // }
     // {
     //     clockStart(&clock);
-    //     file = fileOpen(filename, FileOpenMode_Read);
+    //     file = fileOpen(filename, IoOpenMode_Read);
     //     U8 byte = {0};
     //     while (file.read(&file, &byte, 1)) bcount++;
     //     fileClose(&file);

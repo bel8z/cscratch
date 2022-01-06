@@ -10,7 +10,6 @@
 
 #include "foundation/colors.h"
 #include "foundation/error.h"
-#include "foundation/fs.h"
 #include "foundation/log.h"
 #include "foundation/math.inl"
 #include "foundation/strings.h"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "foundation/core.h"
-#include "foundation/fs.h"
+#include "foundation/io.h"
 #include "foundation/log.h"
 #include "foundation/strings.h"
 

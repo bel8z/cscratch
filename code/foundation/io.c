@@ -1,8 +1,9 @@
 #include "io.h"
 
 #include "error.h"
-#include "fs.h"
 #include "memory.h"
+
+//=== IO buffered reader ===//
 
 static inline void
 io_fillCondition(IoReader *self)
@@ -166,3 +167,55 @@ ioReadLine(IoReader *reader, Usize count, U8 *buffer, Usize *length)
 
     return reader->error_code;
 }
+
+//=== File IO ===//
+
+FileContent
+fileReadContent(IoFileApi *api, Str filename, MemAllocator alloc)
+{
+    FileContent result = {0};
+
+    IoFile *file = api->open(filename, IoOpenMode_Read);
+
+    if (file != api->invalid)
+    {
+        Usize file_size = api->size(file);
+        Usize read_size = file_size;
+
+        result.data = memAlloc(alloc, read_size);
+
+        if (result.data && api->read(file, result.data, read_size) == read_size)
+        {
+            result.size = read_size;
+        }
+        else
+        {
+            memFree(alloc, result.data, read_size);
+            result.data = NULL;
+        }
+
+        api->close(file);
+    }
+
+    return result;
+}
+
+#if 0
+static Usize
+findLineBreak(U8 const *buffer, Usize size)
+{
+    bool cr_found = false;
+
+    for (Usize pos = 0; pos < size; ++pos)
+    {
+        switch (buffer[pos])
+        {
+            case '\r': cr_found = true; break;
+            case '\n': return cr_found ? pos - 1 : pos;
+            default: cr_found = false; break;
+        }
+    }
+
+    return USIZE_MAX;
+}
+#endif

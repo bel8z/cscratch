@@ -10,7 +10,7 @@
 //=== Foundation interfaces ===//
 
 typedef struct CfVirtualMemory CfVirtualMemory;
-typedef struct FileApi FileApi;
+typedef struct IoFileApi IoFileApi;
 
 //=== Dynamic library loading ===//
 
@@ -73,7 +73,7 @@ typedef struct Platform
     Usize heap_size;
 
     // File IO API
-    FileApi *file;
+    IoFileApi *file;
 
     /// Tracks elapsed time since the start of the application (useful for performance measurements)
     Clock clock;

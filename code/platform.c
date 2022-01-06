@@ -11,7 +11,7 @@
 // Foundation library
 #include "foundation/colors.h"
 #include "foundation/core.h"
-#include "foundation/fs.h"
+#include "foundation/io.h"
 #include "foundation/math.inl"
 #include "foundation/memory.h"
 #include "foundation/paths.h"
@@ -155,7 +155,7 @@ static APP_PROC(appProcStub);
 static APP_CREATE_PROC(appCreateStub);
 static APP_UPDATE_PROC(appUpdateStub);
 
-static void appApiLoad(AppApi *api, Paths *paths, LibraryApi *library);
+static void appApiLoad(AppApi *api, Paths *paths, LibraryApi *library, IoFileApi *file);
 static void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
 
 //------------------------------------------------------------------------------
@@ -272,7 +272,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     // Setup application
     AppApi app_api = {0};
-    appApiLoad(&app_api, platform->paths, platform->library);
+    appApiLoad(&app_api, platform->paths, platform->library, platform->file);
     AppState *app_state = app_api.create(platform, cmd_line);
 
     // Setup DPI handling
@@ -434,7 +434,7 @@ static APP_UPDATE_PROC(appUpdateStub)
 }
 
 void
-appApiLoad(AppApi *api, Paths *paths, LibraryApi *library)
+appApiLoad(AppApi *api, Paths *paths, LibraryApi *library, IoFileApi *file)
 {
     if (api->lib)
     {
@@ -449,7 +449,7 @@ appApiLoad(AppApi *api, Paths *paths, LibraryApi *library)
     strPrintf(api->dst_file, Paths_Size, "%s.tmp", api->src_file);
 
     Str dst_file = strFromCstr(api->dst_file);
-    if (fileCopy(strFromCstr(api->src_file), dst_file, true))
+    if (file->copy(strFromCstr(api->src_file), dst_file, true))
     {
         api->lib = library->load(dst_file);
     }
@@ -474,11 +474,11 @@ void
 appApiUpdate(AppApi *api, Platform *platform, AppState *app)
 {
     // TODO (Matteo): Are these operation too expensive to be performed every frame?
-    if (fileProperties(strFromCstr(api->src_file)).last_write >
-        fileProperties(strFromCstr(api->dst_file)).last_write)
+    if (platform->file->propertiesP(strFromCstr(api->src_file)).last_write >
+        platform->file->propertiesP(strFromCstr(api->dst_file)).last_write)
     {
         api->unload(app);
-        appApiLoad(api, platform->paths, platform->library);
+        appApiLoad(api, platform->paths, platform->library, platform->file);
         api->load(app);
     }
 }

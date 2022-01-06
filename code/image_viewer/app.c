@@ -29,7 +29,7 @@
 
 #include "foundation/colors.h"
 #include "foundation/error.h"
-#include "foundation/fs.h"
+#include "foundation/io.h"
 #include "foundation/math.inl"
 #include "foundation/memory.h"
 #include "foundation/paths.h"
@@ -41,7 +41,7 @@
 //-------------------//
 
 static Cstr g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
-static FileApi *g_file = NULL;
+static IoFileApi *g_file = NULL;
 
 #define MAIN_WINDOW "Main"
 #define STYLE_WINDOW "Style Editor"
@@ -418,8 +418,9 @@ appLoadFromFile(AppState *state, Str full_name)
 #    pragma warning(push)
 #    pragma warning(disable : 4221) // cannot be initialized using address of automatic variable
 #endif
-        FsIterator it = {0};
-        if (fsIteratorStart(&it, strFromCstr(root_name)))
+        IoFileApi *io = state->plat->file;
+        IoDirectory it = {0};
+        if (io->dirOpen(&it, strFromCstr(root_name)))
         {
             Str filename = {0};
             while (it.next(&it, &filename, NULL))
@@ -430,7 +431,7 @@ appLoadFromFile(AppState *state, Str full_name)
                 }
             }
 
-            fsIteratorEnd(&it);
+            it.close(&it);
         }
 #if CF_COMPILER_MSVC
 #    pragma warning(pop)

@@ -3,7 +3,7 @@
 #include "foundation/core.h"
 
 #include "foundation/error.h"
-#include "foundation/fs.h"
+#include "foundation/io.h"
 #include "foundation/memory.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"
@@ -42,16 +42,19 @@ static MEM_ALLOCATOR_FUNC(win32Alloc);
 
 //---- File system ----//
 
-static FILE_OPEN(win32FileOpen);
-static FILE_CLOSE(win32FileClose);
-static FILE_SIZE(win32FileSize);
-static FILE_SEEK(win32FileSeek);
-static FILE_TELL(win32FileTell);
-static FILE_READ(win32FileRead);
-static FILE_READ_AT(win32FileReadAt);
-static FILE_WRITE(win32FileWrite);
-static FILE_WRITE_AT(win32FileWriteAt);
-static FILE_PROPERTIES(win32FileProperties);
+static IO_FILE_COPY(win32FileCopy);
+static IO_FILE_OPEN(win32FileOpen);
+static IO_FILE_CLOSE(win32FileClose);
+static IO_FILE_SIZE(win32FileSize);
+static IO_FILE_SEEK(win32FileSeek);
+static IO_FILE_READ(win32FileRead);
+static IO_FILE_READ_AT(win32FileReadAt);
+static IO_FILE_WRITE(win32FileWrite);
+static IO_FILE_WRITE_AT(win32FileWriteAt);
+static IO_FILE_PROPERTIES(win32FileProperties);
+static IO_FILE_PROPERTIES_P(win32FilePropertiesP);
+
+static IO_DIRECTORY_OPEN(win32DirectoryOpen);
 
 //---- Dynamic loading ----//
 
@@ -73,18 +76,20 @@ static Platform g_platform = {
             .mirrorFree = win32MirrorFree,
         },
     .file =
-        &(FileApi){
+        &(IoFileApi){
             .invalid = INVALID_HANDLE_VALUE,
+            .copy = win32FileCopy,
             .open = win32FileOpen,
             .close = win32FileClose,
             .size = win32FileSize,
             .properties = win32FileProperties,
+            .propertiesP = win32FilePropertiesP,
             .seek = win32FileSeek,
-            .tell = win32FileTell,
             .read = win32FileRead,
             .readAt = win32FileReadAt,
             .write = win32FileWrite,
             .writeAt = win32FileWriteAt,
+            .dirOpen = win32DirectoryOpen,
         },
     .library =
         &(LibraryApi){
@@ -469,9 +474,23 @@ MEM_ALLOCATOR_FUNC(win32Alloc)
     return new_mem;
 }
 
-//-----------------------//
+//-----------------//
 //   File system   //
-//-----------------------//
+//-----------------//
+
+// TODO (Matteo): Provide async file IO? Win32 offers IO Completion Ports which seem very good for
+// the purpose
+
+typedef struct Win32DirIterator
+{
+    HANDLE finder;
+    WIN32_FIND_DATAW data;
+    Char8 buffer[sizeof(IoDirectory) - sizeof(HANDLE) - sizeof(WIN32_FIND_DATAW)];
+} Win32DirIterator;
+
+// NOTE (Matteo): Ensure that there is room for a reasonably sized buffer
+static_assert(sizeof(((Win32DirIterator *)0)->buffer) >= 512,
+              "FsIterator buffer size is too small");
 
 static inline U64
 win32MergeWords(DWORD high, DWORD low)
@@ -487,16 +506,16 @@ win32FileSystemTime(FILETIME time)
 }
 
 static void
-win32ReadAttributes(DWORD attributes, FileProperties *out)
+win32ReadAttributes(DWORD attributes, IoFileProperties *out)
 {
     if (attributes & FILE_ATTRIBUTE_DIRECTORY)
     {
-        out->attributes |= FileAttributes_Directory;
+        out->attributes |= IoFileAttributes_Directory;
     }
 
     if (attributes & FILE_ATTRIBUTE_REPARSE_POINT)
     {
-        out->attributes |= FileAttributes_Symlink;
+        out->attributes |= IoFileAttributes_Symlink;
     }
 }
 
@@ -508,7 +527,135 @@ win32FileOffset(Usize offset)
     return overlapped;
 }
 
-FILE_READ(win32FileRead)
+IO_FILE_COPY(win32FileCopy)
+{
+    Char16 ws[MAX_PATH] = {0};
+    Char16 wd[MAX_PATH] = {0};
+    win32Utf8To16(source, ws, CF_ARRAY_SIZE(ws));
+    win32Utf8To16(dest, wd, CF_ARRAY_SIZE(wd));
+
+    if (CopyFileW(ws, wd, !overwrite)) return true;
+
+    win32HandleLastError();
+    return false;
+}
+
+IO_FILE_OPEN(win32FileOpen)
+{
+    IoFile *result = INVALID_HANDLE_VALUE;
+
+    if (mode != 0)
+    {
+        DWORD access = 0;
+        DWORD creation = OPEN_EXISTING;
+
+        if (mode & IoOpenMode_Read) access |= GENERIC_READ;
+
+        if (mode & IoOpenMode_Write)
+        {
+            access |= GENERIC_WRITE;
+            // Overwrite creation mode
+            creation = CREATE_ALWAYS;
+        }
+
+        Char16 buffer[1024] = {0};
+        win32Utf8To16(filename, buffer, CF_ARRAY_SIZE(buffer));
+
+        result = CreateFileW(buffer, access, FILE_SHARE_READ, NULL, creation, FILE_ATTRIBUTE_NORMAL,
+                             NULL);
+
+        if (result == INVALID_HANDLE_VALUE)
+        {
+            win32HandleLastError();
+        }
+        else if (mode == IoOpenMode_Append)
+        {
+            if (!SetFilePointer(result, 0, NULL, FILE_END))
+            {
+                CloseHandle(result);
+                result = INVALID_HANDLE_VALUE;
+                win32HandleLastError();
+            }
+        }
+    }
+
+    return result;
+}
+
+IO_FILE_CLOSE(win32FileClose)
+{
+    CloseHandle(file);
+}
+
+IO_FILE_SIZE(win32FileSize)
+{
+    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+
+    ULARGE_INTEGER size;
+
+    size.LowPart = GetFileSize(file, &size.HighPart);
+
+    return (Usize)size.QuadPart;
+}
+
+IO_FILE_PROPERTIES(win32FileProperties)
+{
+    IoFileProperties props = {0};
+    BY_HANDLE_FILE_INFORMATION info;
+
+    if (GetFileInformationByHandle(file, &info))
+    {
+        props.exists = true;
+        props.last_write = win32FileSystemTime(info.ftLastWriteTime);
+        props.size = (Usize)win32MergeWords(info.nFileSizeHigh, info.nFileSizeLow);
+        win32ReadAttributes(info.dwFileAttributes, &props);
+    }
+
+    return props;
+}
+
+IO_FILE_PROPERTIES_P(win32FilePropertiesP)
+{
+    IoFileProperties props = {0};
+
+    Char16 wide_name[MAX_PATH] = {0};
+    win32Utf8To16(path, wide_name, CF_ARRAY_SIZE(wide_name));
+
+    WIN32_FIND_DATAW data = {0};
+    HANDLE find_handle = FindFirstFileW(wide_name, &data);
+
+    if (find_handle != INVALID_HANDLE_VALUE)
+    {
+        props.exists = true;
+        props.last_write = win32FileSystemTime(data.ftLastWriteTime);
+        props.size = (Usize)win32MergeWords(data.nFileSizeHigh, data.nFileSizeLow);
+        win32ReadAttributes(data.dwFileAttributes, &props);
+        FindClose(find_handle);
+    }
+
+    return props;
+}
+
+IO_FILE_SEEK(win32FileSeek)
+{
+    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+
+    LARGE_INTEGER temp = {.QuadPart = offset};
+    LARGE_INTEGER dest = {0};
+
+    CF_ASSERT(offset > 0 || pos == IoSeekPos_Current,
+              "Negative offset is supported only if seeking from the current position");
+
+    if (!SetFilePointerEx(file, temp, &dest, pos))
+    {
+        win32HandleLastError();
+        return USIZE_MAX;
+    };
+
+    return (Usize)dest.QuadPart;
+}
+
+IO_FILE_READ(win32FileRead)
 {
     if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
 
@@ -523,7 +670,7 @@ FILE_READ(win32FileRead)
     return read_bytes;
 }
 
-FILE_READ_AT(win32FileReadAt)
+IO_FILE_READ_AT(win32FileReadAt)
 {
     if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
 
@@ -539,7 +686,7 @@ FILE_READ_AT(win32FileReadAt)
     return read_bytes;
 }
 
-FILE_WRITE(win32FileWrite)
+IO_FILE_WRITE(win32FileWrite)
 {
     if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
 
@@ -556,7 +703,7 @@ FILE_WRITE(win32FileWrite)
     return true;
 }
 
-FILE_WRITE_AT(win32FileWriteAt)
+IO_FILE_WRITE_AT(win32FileWriteAt)
 {
     if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
 
@@ -574,103 +721,108 @@ FILE_WRITE_AT(win32FileWriteAt)
     return true;
 }
 
-FILE_SEEK(win32FileSeek)
+static IO_DIRECTORY_NEXT(win32DirectoryNext)
 {
-    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+    CF_ASSERT_NOT_NULL(self);
 
-    LARGE_INTEGER temp = {.QuadPart = offset};
-    LARGE_INTEGER dest = {0};
+    Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
 
-    CF_ASSERT(offset > 0 || pos == FileSeekPos_Current,
-              "Negative offset is supported only if seeking from the current position");
+    if (!FindNextFileW(iter->finder, &iter->data)) return false;
 
-    if (!SetFilePointerEx(file, temp, &dest, pos))
+    Usize size = win32Utf16To8(str16FromCstr(iter->data.cFileName), iter->buffer,
+                               CF_ARRAY_SIZE(iter->buffer));
+
+    // NOTE (Matteo): Truncation is considered an error
+    // TODO (Matteo): Maybe require a bigger buffer?
+    if (size == USIZE_MAX || size == CF_ARRAY_SIZE(iter->buffer)) return false;
+
+    CF_ASSERT(size > 0, "Which filename can have a size of 0???");
+
+    filename->buf = iter->buffer;
+    filename->len = (Usize)(size);
+
+    if (props)
     {
-        win32HandleLastError();
-        return USIZE_MAX;
-    };
+        props->exists = true;
+        props->last_write = win32FileSystemTime(iter->data.ftLastWriteTime);
+        props->size = (Usize)win32MergeWords(iter->data.nFileSizeHigh, iter->data.nFileSizeLow);
+        win32ReadAttributes(iter->data.dwFileAttributes, props);
+    }
 
-    return (Usize)dest.QuadPart;
+    return true;
 }
 
-FILE_TELL(win32FileTell)
+static IO_DIRECTORY_CLOSE(win32DirectoryClose)
 {
-    return win32FileSeek(file, FileSeekPos_Current, 0);
+    CF_ASSERT_NOT_NULL(self);
+
+    Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
+    FindClose(iter->finder);
 }
 
-FILE_SIZE(win32FileSize)
+IO_DIRECTORY_OPEN(win32DirectoryOpen)
 {
-    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+    CF_ASSERT_NOT_NULL(self);
 
-    ULARGE_INTEGER size;
+    Win32DirIterator *iter = (Win32DirIterator *)self->opaque;
+    Char16 buffer[1024];
 
-    size.LowPart = GetFileSize(file, &size.HighPart);
+    // Encode path to UTF16
+    Usize length = win32Utf8To16(path, buffer, CF_ARRAY_SIZE(buffer));
 
-    return (Usize)size.QuadPart;
+    if (length == USIZE_MAX || length >= CF_ARRAY_SIZE(buffer) - 2)
+    {
+        CF_ASSERT(false, "Encoding error or overflow");
+        return false;
+    }
+
+    // Append a wildcard (D:)
+    buffer[length] = L'*';
+    buffer[length + 1] = 0;
+
+    // Start iteration
+    iter->finder = FindFirstFileW(buffer, &iter->data);
+    if (iter->finder == INVALID_HANDLE_VALUE) return false;
+
+    // Skip to ".." so that the "advance" method can call FindNextFileW directly
+    if (!wcscmp(iter->data.cFileName, L".") && !FindNextFileW(iter->finder, &iter->data))
+    {
+        FindClose(iter->finder);
+        iter->finder = INVALID_HANDLE_VALUE;
+        return false;
+    }
+
+    self->next = win32DirectoryNext;
+    self->close = win32DirectoryClose;
+
+    return true;
 }
 
-FILE_PROPERTIES(win32FileProperties)
-{
-    FileProperties props = {0};
-    BY_HANDLE_FILE_INFORMATION info;
+// NOTE (Matteo): POSIX-like example
+#if 0
+#    include <sys/stat.h>
 
-    if (GetFileInformationByHandle(file, &info))
+IoFileProperties
+posixFileProperties(Str filename)
+{
+    IoFileProperties props = {0};
+
+    Char8 buffer[1024] = {0};
+    struct _stat64i32 info = {0};
+
+    memCopy(filename.buf, buffer, filename.len);
+    if (!_stat(buffer, &info))
     {
         props.exists = true;
-        props.last_write = win32FileSystemTime(info.ftLastWriteTime);
-        props.size = (Usize)win32MergeWords(info.nFileSizeHigh, info.nFileSizeLow);
-        win32ReadAttributes(info.dwFileAttributes, &props);
+        props.last_write = (SystemTime)info.st_mtime;
+        if (info.st_mode & 0x0120000) props.attributes |= IoFileAttributes_Symlink;
+        if (info.st_mode & 0x0040000) props.attributes |= IoFileAttributes_Directory;
     }
 
     return props;
 }
 
-FILE_OPEN(win32FileOpen)
-{
-    File *result = INVALID_HANDLE_VALUE;
-
-    if (mode != 0)
-    {
-        DWORD access = 0;
-        DWORD creation = OPEN_EXISTING;
-
-        if (mode & FileOpenMode_Read) access |= GENERIC_READ;
-
-        if (mode & FileOpenMode_Write)
-        {
-            access |= GENERIC_WRITE;
-            // Overwrite creation mode
-            creation = CREATE_ALWAYS;
-        }
-
-        Char16 buffer[1024] = {0};
-        win32Utf8To16(filename, buffer, CF_ARRAY_SIZE(buffer));
-
-        result = CreateFileW(buffer, access, FILE_SHARE_READ, NULL, creation, FILE_ATTRIBUTE_NORMAL,
-                             NULL);
-
-        if (result == INVALID_HANDLE_VALUE)
-        {
-            win32HandleLastError();
-        }
-        else if (mode == FileOpenMode_Append)
-        {
-            if (!SetFilePointer(result, 0, NULL, FILE_END))
-            {
-                CloseHandle(result);
-                result = INVALID_HANDLE_VALUE;
-                win32HandleLastError();
-            }
-        }
-    }
-
-    return result;
-}
-
-FILE_CLOSE(win32FileClose)
-{
-    CloseHandle(file);
-}
+#endif
 
 //-----------------------//
 //   Dynamic libraries   //

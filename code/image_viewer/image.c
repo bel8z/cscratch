@@ -1,6 +1,6 @@
 #include "image.h"
 
-#include "foundation/fs.h"
+#include "foundation/io.h"
 #include "foundation/memory.h"
 #include "foundation/strings.h"
 
@@ -104,8 +104,8 @@ stbiFree(void *memory)
 
 typedef struct FileReader
 {
-    FileApi *api;
-    File *file;
+    IoFileApi *api;
+    IoFile *file;
     bool eof;
 } FileReader;
 
@@ -122,7 +122,7 @@ static void
 stbiSkip(void *user, I32 n)
 {
     FileReader *reader = user;
-    reader->api->seek(reader->file, FileSeekPos_Current, n);
+    reader->api->seek(reader->file, IoSeekPos_Current, n);
 }
 
 static I32
@@ -142,7 +142,7 @@ imageInit(MemAllocator alloc)
 }
 
 bool
-imageLoadFromFile(Image *image, Cstr filename, FileApi *api)
+imageLoadFromFile(Image *image, Cstr filename, IoFileApi *api)
 {
     CF_ASSERT_NOT_NULL(image);
     CF_ASSERT_NOT_NULL(filename);
@@ -150,7 +150,7 @@ imageLoadFromFile(Image *image, Cstr filename, FileApi *api)
 
     FileReader reader = {
         .api = api,
-        .file = api->open(strFromCstr(filename), FileOpenMode_Read),
+        .file = api->open(strFromCstr(filename), IoOpenMode_Read),
     };
     stbi_io_callbacks cb = {
         .eof = stbiEof,
