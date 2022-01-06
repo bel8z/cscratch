@@ -16,7 +16,7 @@ typedef struct Shader
     U32 program;
 } Shader;
 
-Shader shaderLoadFiles(FileContent vtx, FileContent pix, CfLog *log);
+Shader shaderLoadFiles(IoFileContent vtx, IoFileContent pix, CfLog *log);
 Shader shaderLoadStrings(Str vtx, Str pix, CfLog *log);
 
 void shaderBegin(Shader shader);
@@ -86,7 +86,7 @@ shaderLoadStrings(Str vtx, Str pix, CfLog *log)
 }
 
 Shader
-shaderLoadFiles(FileContent vtx, FileContent pix, CfLog *log)
+shaderLoadFiles(IoFileContent vtx, IoFileContent pix, CfLog *log)
 {
     return shaderLoadStrings((Str){.buf = (Char8 *)vtx.data, .len = vtx.size},
                              (Str){.buf = (Char8 *)pix.data, .len = pix.size}, //

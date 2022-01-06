@@ -170,11 +170,10 @@ ioReadLine(IoReader *reader, Usize count, U8 *buffer, Usize *length)
 
 //=== File IO ===//
 
-FileContent
-fileReadContent(IoFileApi *api, Str filename, MemAllocator alloc)
+IoFileContent
+ioFileReadAll(IoFileApi *api, Str filename, MemAllocator alloc)
 {
-    FileContent result = {0};
-
+    IoFileContent content = {0};
     IoFile *file = api->open(filename, IoOpenMode_Read);
 
     if (file != api->invalid)
@@ -182,22 +181,22 @@ fileReadContent(IoFileApi *api, Str filename, MemAllocator alloc)
         Usize file_size = api->size(file);
         Usize read_size = file_size;
 
-        result.data = memAlloc(alloc, read_size);
+        content.data = memAlloc(alloc, read_size);
 
-        if (result.data && api->read(file, result.data, read_size) == read_size)
+        if (content.data && api->read(file, content.data, read_size) == read_size)
         {
-            result.size = read_size;
+            content.size = read_size;
         }
         else
         {
-            memFree(alloc, result.data, read_size);
-            result.data = NULL;
+            memFree(alloc, content.data, read_size);
+            content.data = NULL;
         }
 
         api->close(file);
     }
 
-    return result;
+    return content;
 }
 
 #if 0

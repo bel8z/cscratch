@@ -163,12 +163,12 @@ typedef struct IoFileApi
 
 // NOTE (Matteo): Experimental API
 
-typedef struct FileContent
+typedef struct IoFileContent
 {
     U8 *data;
     Usize size;
-} FileContent;
+} IoFileContent;
 
-FileContent fileReadContent(IoFileApi *api, Str filename, MemAllocator alloc);
+IoFileContent ioFileReadAll(IoFileApi *api, Str filename, MemAllocator alloc);
 
-#define fileWriteStr(api, file, str) (api)->write(file, (U8 const *)str.buf, str.len)
+#define ioFileWriteStr(api, file, str) (api)->write(file, (U8 const *)str.buf, str.len)
