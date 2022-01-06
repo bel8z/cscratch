@@ -644,7 +644,7 @@ appImageView(AppState *state)
         if (iv->advanced)
         {
             // DEBUG (Matteo): Draw view and image bounds - remove when zoom is fixed
-            canvas.stroke_color = guiGetStyledColor(RGBA32_FUCHSIA);
+            canvas.stroke_color = guiGetStyledColor(SRGB32_FUCHSIA);
             guiCanvasDrawRect(&canvas, image_min, image_max);
             guiCanvasDrawRect(&canvas, view_min, view_max);
         }

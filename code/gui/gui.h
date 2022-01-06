@@ -124,9 +124,9 @@ CF_API void guiSetTheme(GuiTheme theme);
 
 CF_API void guiThemeSelector(Cstr label);
 
-CF_API Color32 guiGetStyledColor(Color32 in);
+CF_API Srgb32 guiGetStyledColor(Srgb32 in);
 
-CF_API Color32 guiGetBackColor(void);
+CF_API Srgb32 guiGetBackColor(void);
 
 //=== IO ===//
 
@@ -199,7 +199,7 @@ CF_API void guiEndMenu(void);
 CF_API bool guiMenuItem(Cstr label, bool *p_selected);
 
 /// Custom color edit with an additional combobox for choosing X11 named colors
-CF_API bool guiColorEdit(Cstr label, Color32 *color);
+CF_API bool guiColorEdit(Cstr label, Srgb32 *color);
 
 CF_API void guiStyleEditor(void);
 
@@ -290,7 +290,7 @@ typedef struct GuiCanvas
 {
     Vec2 size, p0, p1;
     ImDrawList *draw_list;
-    Color32 stroke_color, fill_color;
+    Srgb32 stroke_color, fill_color;
     F32 stroke_thick;
 } GuiCanvas;
 
@@ -306,13 +306,13 @@ CF_API void guiCanvasFillRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1);
 CF_API void guiCanvasDrawCircle(GuiCanvas *canvas, Vec2 center, F32 radius);
 CF_API void guiCanvasFillCircle(GuiCanvas *canvas, Vec2 center, F32 radius);
 
-CF_API void guiCanvasDrawText(GuiCanvas *canvas, Str text, Vec2 pos, Color32 color);
+CF_API void guiCanvasDrawText(GuiCanvas *canvas, Str text, Vec2 pos, Srgb32 color);
 
 CF_API void guiCanvasDrawImage(GuiCanvas *canvas, U32 texture, //
                                Vec2 image_min, Vec2 image_max, //
                                Vec2 uv_min, Vec2 uv_max);
 
-CF_API void guiCanvasPushStrokeColor(GuiCanvas *canvas, Color32 color);
+CF_API void guiCanvasPushStrokeColor(GuiCanvas *canvas, Srgb32 color);
 CF_API void guiCanvasPopStrokeColor(GuiCanvas *canvas);
 
 //=== Miscellanea ===//

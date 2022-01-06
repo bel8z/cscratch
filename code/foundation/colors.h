@@ -8,205 +8,205 @@
 #if CF_LITTLE_ENDIAN
 // NOTE (Matteo): Technically, the integer content is ABGR, but the byte order on little endian
 // systems is RGBA
-#    define RGBA32_R_SHIFT 0
-#    define RGBA32_G_SHIFT 8
-#    define RGBA32_B_SHIFT 16
-#    define RGBA32_A_SHIFT 24
-#    define RGBA32_A_MASK 0xFF000000
+#    define SRGB32_R_SHIFT 0
+#    define SRGB32_G_SHIFT 8
+#    define SRGB32_B_SHIFT 16
+#    define SRGB32_A_SHIFT 24
+#    define SRGB32_A_MASK 0xFF000000
 #else
 // TODO (Matteo): How does this interact with OpenGL/DearImgui?
-#    define RGBA32_R_SHIFT 24
-#    define RGBA32_G_SHIFT 16
-#    define RGBA32_B_SHIFT 8
-#    define RGBA32_A_SHIFT 0
-#    define RGBA32_A_MASK 0x000000FF
+#    define SRGB32_R_SHIFT 24
+#    define SRGB32_G_SHIFT 16
+#    define SRGB32_B_SHIFT 8
+#    define SRGB32_A_SHIFT 0
+#    define SRGB32_A_MASK 0x000000FF
 #endif
 
-#define RGBA32(R, G, B, A)                                                 \
-    (((Color32)(A) << RGBA32_A_SHIFT) | ((Color32)(B) << RGBA32_B_SHIFT) | \
-     ((Color32)(G) << RGBA32_G_SHIFT) | ((Color32)(R) << RGBA32_R_SHIFT))
+#define SRGB32(R, G, B, A)                                               \
+    (((Srgb32)(A) << SRGB32_A_SHIFT) | ((Srgb32)(B) << SRGB32_B_SHIFT) | \
+     ((Srgb32)(G) << SRGB32_G_SHIFT) | ((Srgb32)(R) << SRGB32_R_SHIFT))
 
-#define RGBA32_R(col) ((col >> RGBA32_R_SHIFT) & 0xFF)
-#define RGBA32_G(col) ((col >> RGBA32_G_SHIFT) & 0xFF)
-#define RGBA32_B(col) ((col >> RGBA32_B_SHIFT) & 0xFF)
-#define RGBA32_A(col) ((col >> RGBA32_A_SHIFT) & 0xFF)
+#define SRGB32_R(col) ((col >> SRGB32_R_SHIFT) & 0xFF)
+#define SRGB32_G(col) ((col >> SRGB32_G_SHIFT) & 0xFF)
+#define SRGB32_B(col) ((col >> SRGB32_B_SHIFT) & 0xFF)
+#define SRGB32_A(col) ((col >> SRGB32_A_SHIFT) & 0xFF)
 
-#define RGBA32_SOLID(R, G, B) RGBA32(R, G, B, 0xFF)
-
-//--------------------------------------------------------------------------------------------------
-// Common colors definition based on X11 names (see https://en.wikipedia.org/wiki/X11_color_names)
-
-#define RGBA32_TRANSPARENT RGBA32(0x00, 0x00, 0x00, 0x00)
-
-// clang-format off
-#define RGBA32_ALICE_BLUE          RGBA32_SOLID(0xF0, 0xF8, 0xFF)
-#define RGBA32_ANTIQUE_WHITE       RGBA32_SOLID(0xFA, 0xEB, 0xD7)
-#define RGBA32_AQUA                RGBA32_SOLID(0x00, 0xFF, 0xFF)
-#define RGBA32_AQUAMARINE          RGBA32_SOLID(0x7F, 0xFF, 0xD4)
-#define RGBA32_AZURE               RGBA32_SOLID(0xF0, 0xFF, 0xFF)
-#define RGBA32_BEIGE               RGBA32_SOLID(0xF5, 0xF5, 0xDC)
-#define RGBA32_BISQUE              RGBA32_SOLID(0xFF, 0xE4, 0xC4)
-#define RGBA32_BLACK               RGBA32_SOLID(0x00, 0x00, 0x00)
-#define RGBA32_BLANCHED_ALMOND     RGBA32_SOLID(0xFF, 0xEB, 0xCD)
-#define RGBA32_BLUE                RGBA32_SOLID(0x00, 0x00, 0xFF)
-#define RGBA32_BLUE_VIOLET         RGBA32_SOLID(0x8A, 0x2B, 0xE2)
-#define RGBA32_BROWN               RGBA32_SOLID(0xA5, 0x2A, 0x2A)
-#define RGBA32_BURLYWOOD           RGBA32_SOLID(0xDE, 0xB8, 0x87)
-#define RGBA32_CADET_BLUE          RGBA32_SOLID(0x5F, 0x9E, 0xA0)
-#define RGBA32_CHARTREUSE          RGBA32_SOLID(0x7F, 0xFF, 0x00)
-#define RGBA32_CHOCOLATE           RGBA32_SOLID(0xD2, 0x69, 0x1E)
-#define RGBA32_CORAL               RGBA32_SOLID(0xFF, 0x7F, 0x50)
-#define RGBA32_CORNFLOWER_BLUE     RGBA32_SOLID(0x64, 0x95, 0xED)
-#define RGBA32_CORNSILK            RGBA32_SOLID(0xFF, 0xF8, 0xDC)
-#define RGBA32_CRIMSON             RGBA32_SOLID(0xDC, 0x14, 0x3C)
-#define RGBA32_CYAN                RGBA32_SOLID(0x00, 0xFF, 0xFF)
-#define RGBA32_DARK_BLUE           RGBA32_SOLID(0x00, 0x00, 0x8B)
-#define RGBA32_DARK_CYAN           RGBA32_SOLID(0x00, 0x8B, 0x8B)
-#define RGBA32_DARK_GOLDENROD      RGBA32_SOLID(0xB8, 0x86, 0x0B)
-#define RGBA32_DARK_GRAY           RGBA32_SOLID(0xA9, 0xA9, 0xA9)
-#define RGBA32_DARK_GREEN          RGBA32_SOLID(0x00, 0x64, 0x00)
-#define RGBA32_DARK_KHAKI          RGBA32_SOLID(0xBD, 0xB7, 0x6B)
-#define RGBA32_DARK_MAGENTA        RGBA32_SOLID(0x8B, 0x00, 0x8B)
-#define RGBA32_DARK_OLIVE_GREEN    RGBA32_SOLID(0x55, 0x6B, 0x2F)
-#define RGBA32_DARK_ORANGE         RGBA32_SOLID(0xFF, 0x8C, 0x00)
-#define RGBA32_DARK_ORCHID         RGBA32_SOLID(0x99, 0x32, 0xCC)
-#define RGBA32_DARK_RED            RGBA32_SOLID(0x8B, 0x00, 0x00)
-#define RGBA32_DARK_SALMON         RGBA32_SOLID(0xE9, 0x96, 0x7A)
-#define RGBA32_DARK_SEA_GREEN      RGBA32_SOLID(0x8F, 0xBC, 0x8F)
-#define RGBA32_DARK_SILVER         RGBA32_SOLID(0xAF, 0xAF, 0xAF)
-#define RGBA32_DARK_SLATE_BLUE     RGBA32_SOLID(0x48, 0x3D, 0x8B)
-#define RGBA32_DARK_SLATE_GRAY     RGBA32_SOLID(0x2F, 0x4F, 0x4F)
-#define RGBA32_DARK_TURQUOISE      RGBA32_SOLID(0x00, 0xCE, 0xD1)
-#define RGBA32_DARK_VIOLET         RGBA32_SOLID(0x94, 0x00, 0xD3)
-#define RGBA32_DEEP_PINK           RGBA32_SOLID(0xFF, 0x14, 0x93)
-#define RGBA32_DEEP_SKY_BLUE       RGBA32_SOLID(0x00, 0xBF, 0xFF)
-#define RGBA32_DIM_GRAY            RGBA32_SOLID(0x69, 0x69, 0x69)
-#define RGBA32_DODGER_BLUE         RGBA32_SOLID(0x1E, 0x90, 0xFF)
-#define RGBA32_FIREBRICK           RGBA32_SOLID(0xB2, 0x22, 0x22)
-#define RGBA32_FLORAL_WHITE        RGBA32_SOLID(0xFF, 0xFA, 0xF0)
-#define RGBA32_FOREST_GREEN        RGBA32_SOLID(0x22, 0x8B, 0x22)
-#define RGBA32_FUCHSIA             RGBA32_SOLID(0xFF, 0x00, 0xFF)
-#define RGBA32_GAINSBORO           RGBA32_SOLID(0xDC, 0xDC, 0xDC)
-#define RGBA32_GHOST_WHITE         RGBA32_SOLID(0xF8, 0xF8, 0xFF)
-#define RGBA32_GOLD                RGBA32_SOLID(0xFF, 0xD7, 0x00)
-#define RGBA32_GOLDENROD           RGBA32_SOLID(0xDA, 0xA5, 0x20)
-#define RGBA32_GRAY                RGBA32_SOLID(0xBE, 0xBE, 0xBE)
-#define RGBA32_WEB_GRAY            RGBA32_SOLID(0x80, 0x80, 0x80)
-#define RGBA32_GREEN               RGBA32_SOLID(0x00, 0xFF, 0x00)
-#define RGBA32_WEB_GREEN           RGBA32_SOLID(0x00, 0x80, 0x00)
-#define RGBA32_GREEN_YELLOW        RGBA32_SOLID(0xAD, 0xFF, 0x2F)
-#define RGBA32_HONEYDEW            RGBA32_SOLID(0xF0, 0xFF, 0xF0)
-#define RGBA32_HOT_PINK            RGBA32_SOLID(0xFF, 0x69, 0xB4)
-#define RGBA32_INDIAN_RED          RGBA32_SOLID(0xCD, 0x5C, 0x5C)
-#define RGBA32_INDIGO              RGBA32_SOLID(0x4B, 0x00, 0x82)
-#define RGBA32_IVORY               RGBA32_SOLID(0xFF, 0xFF, 0xF0)
-#define RGBA32_KHAKI               RGBA32_SOLID(0xF0, 0xE6, 0x8C)
-#define RGBA32_LAVENDER            RGBA32_SOLID(0xE6, 0xE6, 0xFA)
-#define RGBA32_LAVENDER_BLUSH      RGBA32_SOLID(0xFF, 0xF0, 0xF5)
-#define RGBA32_LAWN_GREEN          RGBA32_SOLID(0x7C, 0xFC, 0x00)
-#define RGBA32_LEMON_CHIFFON       RGBA32_SOLID(0xFF, 0xFA, 0xCD)
-#define RGBA32_LIGHT_BLUE          RGBA32_SOLID(0xAD, 0xD8, 0xE6)
-#define RGBA32_LIGHT_CORAL         RGBA32_SOLID(0xF0, 0x80, 0x80)
-#define RGBA32_LIGHT_CYAN          RGBA32_SOLID(0xE0, 0xFF, 0xFF)
-#define RGBA32_LIGHT_GOLDENROD     RGBA32_SOLID(0xFA, 0xFA, 0xD2)
-#define RGBA32_LIGHT_GRAY          RGBA32_SOLID(0xD3, 0xD3, 0xD3)
-#define RGBA32_LIGHT_GREEN         RGBA32_SOLID(0x90, 0xEE, 0x90)
-#define RGBA32_LIGHT_PINK          RGBA32_SOLID(0xFF, 0xB6, 0xC1)
-#define RGBA32_LIGHT_SALMON        RGBA32_SOLID(0xFF, 0xA0, 0x7A)
-#define RGBA32_LIGHT_SEA_GREEN     RGBA32_SOLID(0x20, 0xB2, 0xAA)
-#define RGBA32_LIGHT_SKY_BLUE      RGBA32_SOLID(0x87, 0xCE, 0xFA)
-#define RGBA32_LIGHT_SLATE_GRAY    RGBA32_SOLID(0x77, 0x88, 0x99)
-#define RGBA32_LIGHT_STEEL_BLUE    RGBA32_SOLID(0xB0, 0xC4, 0xDE)
-#define RGBA32_LIGHT_YELLOW        RGBA32_SOLID(0xFF, 0xFF, 0xE0)
-#define RGBA32_LIME                RGBA32_SOLID(0x00, 0xFF, 0x00)
-#define RGBA32_LIME_GREEN          RGBA32_SOLID(0x32, 0xCD, 0x32)
-#define RGBA32_LINEN               RGBA32_SOLID(0xFA, 0xF0, 0xE6)
-#define RGBA32_MAGENTA             RGBA32_SOLID(0xFF, 0x00, 0xFF)
-#define RGBA32_MAROON              RGBA32_SOLID(0xB0, 0x30, 0x60)
-#define RGBA32_WEB_MAROON          RGBA32_SOLID(0x80, 0x00, 0x00)
-#define RGBA32_MEDIUM_AQUAMARINE   RGBA32_SOLID(0x66, 0xCD, 0xAA)
-#define RGBA32_MEDIUM_BLUE         RGBA32_SOLID(0x00, 0x00, 0xCD)
-#define RGBA32_MEDIUM_ORCHID       RGBA32_SOLID(0xBA, 0x55, 0xD3)
-#define RGBA32_MEDIUM_PURPLE       RGBA32_SOLID(0x93, 0x70, 0xDB)
-#define RGBA32_MEDIUM_SEA_GREEN    RGBA32_SOLID(0x3C, 0xB3, 0x71)
-#define RGBA32_MEDIUM_SLATE_BLUE   RGBA32_SOLID(0x7B, 0x68, 0xEE)
-#define RGBA32_MEDIUM_SPRING_GREEN RGBA32_SOLID(0x00, 0xFA, 0x9A)
-#define RGBA32_MEDIUM_TURQUOISE    RGBA32_SOLID(0x48, 0xD1, 0xCC)
-#define RGBA32_MEDIUM_VIOLET_RED   RGBA32_SOLID(0xC7, 0x15, 0x85)
-#define RGBA32_MIDNIGHT_BLUE       RGBA32_SOLID(0x19, 0x19, 0x70)
-#define RGBA32_MINT_CREAM          RGBA32_SOLID(0xF5, 0xFF, 0xFA)
-#define RGBA32_MISTY_ROSE          RGBA32_SOLID(0xFF, 0xE4, 0xE1)
-#define RGBA32_MOCCASIN            RGBA32_SOLID(0xFF, 0xE4, 0xB5)
-#define RGBA32_NAVAJO_WHITE        RGBA32_SOLID(0xFF, 0xDE, 0xAD)
-#define RGBA32_NAVY_BLUE           RGBA32_SOLID(0x00, 0x00, 0x80)
-#define RGBA32_OLD_LACE            RGBA32_SOLID(0xFD, 0xF5, 0xE6)
-#define RGBA32_OLIVE               RGBA32_SOLID(0x80, 0x80, 0x00)
-#define RGBA32_OLIVE_DRAB          RGBA32_SOLID(0x6B, 0x8E, 0x23)
-#define RGBA32_ORANGE              RGBA32_SOLID(0xFF, 0xA5, 0x00)
-#define RGBA32_ORANGE_RED          RGBA32_SOLID(0xFF, 0x45, 0x00)
-#define RGBA32_ORCHID              RGBA32_SOLID(0xDA, 0x70, 0xD6)
-#define RGBA32_PALE_GOLDENROD      RGBA32_SOLID(0xEE, 0xE8, 0xAA)
-#define RGBA32_PALE_GREEN          RGBA32_SOLID(0x98, 0xFB, 0x98)
-#define RGBA32_PALE_TURQUOISE      RGBA32_SOLID(0xAF, 0xEE, 0xEE)
-#define RGBA32_PALE_VIOLET_RED     RGBA32_SOLID(0xDB, 0x70, 0x93)
-#define RGBA32_PAPAYA_WHIP         RGBA32_SOLID(0xFF, 0xEF, 0xD5)
-#define RGBA32_PEACH_PUFF          RGBA32_SOLID(0xFF, 0xDA, 0xB9)
-#define RGBA32_PERU                RGBA32_SOLID(0xCD, 0x85, 0x3F)
-#define RGBA32_PINK                RGBA32_SOLID(0xFF, 0xC0, 0xCB)
-#define RGBA32_PLUM                RGBA32_SOLID(0xDD, 0xA0, 0xDD)
-#define RGBA32_POWDER_BLUE         RGBA32_SOLID(0xB0, 0xE0, 0xE6)
-#define RGBA32_PURPLE              RGBA32_SOLID(0xA0, 0x20, 0xF0)
-#define RGBA32_WEB_PURPLE          RGBA32_SOLID(0x80, 0x00, 0x80)
-#define RGBA32_REBECCA_PURPLE      RGBA32_SOLID(0x66, 0x33, 0x99)
-#define RGBA32_RED                 RGBA32_SOLID(0xFF, 0x00, 0x00)
-#define RGBA32_ROSY_BROWN          RGBA32_SOLID(0xBC, 0x8F, 0x8F)
-#define RGBA32_ROYAL_BLUE          RGBA32_SOLID(0x41, 0x69, 0xE1)
-#define RGBA32_SADDLE_BROWN        RGBA32_SOLID(0x8B, 0x45, 0x13)
-#define RGBA32_SALMON              RGBA32_SOLID(0xFA, 0x80, 0x72)
-#define RGBA32_SANDY_BROWN         RGBA32_SOLID(0xF4, 0xA4, 0x60)
-#define RGBA32_SEA_GREEN           RGBA32_SOLID(0x2E, 0x8B, 0x57)
-#define RGBA32_SEASHELL            RGBA32_SOLID(0xFF, 0xF5, 0xEE)
-#define RGBA32_SIENNA              RGBA32_SOLID(0xA0, 0x52, 0x2D)
-#define RGBA32_SILVER              RGBA32_SOLID(0xC0, 0xC0, 0xC0)
-#define RGBA32_SKY_BLUE            RGBA32_SOLID(0x87, 0xCE, 0xEB)
-#define RGBA32_SLATE_BLUE          RGBA32_SOLID(0x6A, 0x5A, 0xCD)
-#define RGBA32_SLATE_GRAY          RGBA32_SOLID(0x70, 0x80, 0x90)
-#define RGBA32_SNOW                RGBA32_SOLID(0xFF, 0xFA, 0xFA)
-#define RGBA32_SPRING_GREEN        RGBA32_SOLID(0x00, 0xFF, 0x7F)
-#define RGBA32_STEEL_BLUE          RGBA32_SOLID(0x46, 0x82, 0xB4)
-#define RGBA32_TAN                 RGBA32_SOLID(0xD2, 0xB4, 0x8C)
-#define RGBA32_TEAL                RGBA32_SOLID(0x00, 0x80, 0x80)
-#define RGBA32_THISTLE             RGBA32_SOLID(0xD8, 0xBF, 0xD8)
-#define RGBA32_TOMATO              RGBA32_SOLID(0xFF, 0x63, 0x47)
-#define RGBA32_TURQUOISE           RGBA32_SOLID(0x40, 0xE0, 0xD0)
-#define RGBA32_VIOLET              RGBA32_SOLID(0xEE, 0x82, 0xEE)
-#define RGBA32_WHEAT               RGBA32_SOLID(0xF5, 0xDE, 0xB3)
-#define RGBA32_WHITE               RGBA32_SOLID(0xFF, 0xFF, 0xFF)
-#define RGBA32_WHITE_SMOKE         RGBA32_SOLID(0xF5, 0xF5, 0xF5)
-#define RGBA32_YELLOW              RGBA32_SOLID(0xFF, 0xFF, 0x00)
-#define RGBA32_YELLOW_GREEN        RGBA32_SOLID(0x9A, 0xCD, 0x32)
-// clang-format on
+#define SRGB32_SOLID(R, G, B) SRGB32(R, G, B, 0xFF)
 
 //--------------------------------------------------------------------------------------------------
 // Color space manipulation utilities
 
 /// Convert linear space RBGA color to linear space, packed
-CF_API Color32 colorToSrgb(LinearColor in);
+CF_API Srgb32 colorToSrgb(LinearColor in);
 
 /// Convert sRGB packed color to linear space
-CF_API LinearColor colorToLinear(Color32 in);
+CF_API LinearColor colorToLinear(Srgb32 in);
 
 /// Convert sRGB packed color to linear space, multiplying the alpha component
-CF_API LinearColor colorToLinearMultiplied(Color32 col);
+CF_API LinearColor colorToLinearMultiplied(Srgb32 col);
 
 /// Multiply the alpha channel to the other channels of the color
 CF_API LinearColor colorMultiplyAlpha(LinearColor col);
 
-CF_API HsvColor colorSrgbToHsv(Color32 in);
-CF_API Color32 colorHsvToSrgb(HsvColor in);
+CF_API HsvColor colorSrgbToHsv(Srgb32 in);
+CF_API Srgb32 colorHsvToSrgb(HsvColor in);
 
 CF_API HsvColor colorLinearToHsv(LinearColor in);
 CF_API LinearColor colorHsvToLinear(HsvColor in);
+
+//--------------------------------------------------------------------------------------------------
+// Common colors definition based on X11 names (see https://en.wikipedia.org/wiki/X11_color_names)
+
+#define SRGB32_TRANSPARENT SRGB32(0x00, 0x00, 0x00, 0x00)
+
+// clang-format off
+#define SRGB32_ALICE_BLUE          SRGB32_SOLID(0xF0, 0xF8, 0xFF)
+#define SRGB32_ANTIQUE_WHITE       SRGB32_SOLID(0xFA, 0xEB, 0xD7)
+#define SRGB32_AQUA                SRGB32_SOLID(0x00, 0xFF, 0xFF)
+#define SRGB32_AQUAMARINE          SRGB32_SOLID(0x7F, 0xFF, 0xD4)
+#define SRGB32_AZURE               SRGB32_SOLID(0xF0, 0xFF, 0xFF)
+#define SRGB32_BEIGE               SRGB32_SOLID(0xF5, 0xF5, 0xDC)
+#define SRGB32_BISQUE              SRGB32_SOLID(0xFF, 0xE4, 0xC4)
+#define SRGB32_BLACK               SRGB32_SOLID(0x00, 0x00, 0x00)
+#define SRGB32_BLANCHED_ALMOND     SRGB32_SOLID(0xFF, 0xEB, 0xCD)
+#define SRGB32_BLUE                SRGB32_SOLID(0x00, 0x00, 0xFF)
+#define SRGB32_BLUE_VIOLET         SRGB32_SOLID(0x8A, 0x2B, 0xE2)
+#define SRGB32_BROWN               SRGB32_SOLID(0xA5, 0x2A, 0x2A)
+#define SRGB32_BURLYWOOD           SRGB32_SOLID(0xDE, 0xB8, 0x87)
+#define SRGB32_CADET_BLUE          SRGB32_SOLID(0x5F, 0x9E, 0xA0)
+#define SRGB32_CHARTREUSE          SRGB32_SOLID(0x7F, 0xFF, 0x00)
+#define SRGB32_CHOCOLATE           SRGB32_SOLID(0xD2, 0x69, 0x1E)
+#define SRGB32_CORAL               SRGB32_SOLID(0xFF, 0x7F, 0x50)
+#define SRGB32_CORNFLOWER_BLUE     SRGB32_SOLID(0x64, 0x95, 0xED)
+#define SRGB32_CORNSILK            SRGB32_SOLID(0xFF, 0xF8, 0xDC)
+#define SRGB32_CRIMSON             SRGB32_SOLID(0xDC, 0x14, 0x3C)
+#define SRGB32_CYAN                SRGB32_SOLID(0x00, 0xFF, 0xFF)
+#define SRGB32_DARK_BLUE           SRGB32_SOLID(0x00, 0x00, 0x8B)
+#define SRGB32_DARK_CYAN           SRGB32_SOLID(0x00, 0x8B, 0x8B)
+#define SRGB32_DARK_GOLDENROD      SRGB32_SOLID(0xB8, 0x86, 0x0B)
+#define SRGB32_DARK_GRAY           SRGB32_SOLID(0xA9, 0xA9, 0xA9)
+#define SRGB32_DARK_GREEN          SRGB32_SOLID(0x00, 0x64, 0x00)
+#define SRGB32_DARK_KHAKI          SRGB32_SOLID(0xBD, 0xB7, 0x6B)
+#define SRGB32_DARK_MAGENTA        SRGB32_SOLID(0x8B, 0x00, 0x8B)
+#define SRGB32_DARK_OLIVE_GREEN    SRGB32_SOLID(0x55, 0x6B, 0x2F)
+#define SRGB32_DARK_ORANGE         SRGB32_SOLID(0xFF, 0x8C, 0x00)
+#define SRGB32_DARK_ORCHID         SRGB32_SOLID(0x99, 0x32, 0xCC)
+#define SRGB32_DARK_RED            SRGB32_SOLID(0x8B, 0x00, 0x00)
+#define SRGB32_DARK_SALMON         SRGB32_SOLID(0xE9, 0x96, 0x7A)
+#define SRGB32_DARK_SEA_GREEN      SRGB32_SOLID(0x8F, 0xBC, 0x8F)
+#define SRGB32_DARK_SILVER         SRGB32_SOLID(0xAF, 0xAF, 0xAF)
+#define SRGB32_DARK_SLATE_BLUE     SRGB32_SOLID(0x48, 0x3D, 0x8B)
+#define SRGB32_DARK_SLATE_GRAY     SRGB32_SOLID(0x2F, 0x4F, 0x4F)
+#define SRGB32_DARK_TURQUOISE      SRGB32_SOLID(0x00, 0xCE, 0xD1)
+#define SRGB32_DARK_VIOLET         SRGB32_SOLID(0x94, 0x00, 0xD3)
+#define SRGB32_DEEP_PINK           SRGB32_SOLID(0xFF, 0x14, 0x93)
+#define SRGB32_DEEP_SKY_BLUE       SRGB32_SOLID(0x00, 0xBF, 0xFF)
+#define SRGB32_DIM_GRAY            SRGB32_SOLID(0x69, 0x69, 0x69)
+#define SRGB32_DODGER_BLUE         SRGB32_SOLID(0x1E, 0x90, 0xFF)
+#define SRGB32_FIREBRICK           SRGB32_SOLID(0xB2, 0x22, 0x22)
+#define SRGB32_FLORAL_WHITE        SRGB32_SOLID(0xFF, 0xFA, 0xF0)
+#define SRGB32_FOREST_GREEN        SRGB32_SOLID(0x22, 0x8B, 0x22)
+#define SRGB32_FUCHSIA             SRGB32_SOLID(0xFF, 0x00, 0xFF)
+#define SRGB32_GAINSBORO           SRGB32_SOLID(0xDC, 0xDC, 0xDC)
+#define SRGB32_GHOST_WHITE         SRGB32_SOLID(0xF8, 0xF8, 0xFF)
+#define SRGB32_GOLD                SRGB32_SOLID(0xFF, 0xD7, 0x00)
+#define SRGB32_GOLDENROD           SRGB32_SOLID(0xDA, 0xA5, 0x20)
+#define SRGB32_GRAY                SRGB32_SOLID(0xBE, 0xBE, 0xBE)
+#define SRGB32_WEB_GRAY            SRGB32_SOLID(0x80, 0x80, 0x80)
+#define SRGB32_GREEN               SRGB32_SOLID(0x00, 0xFF, 0x00)
+#define SRGB32_WEB_GREEN           SRGB32_SOLID(0x00, 0x80, 0x00)
+#define SRGB32_GREEN_YELLOW        SRGB32_SOLID(0xAD, 0xFF, 0x2F)
+#define SRGB32_HONEYDEW            SRGB32_SOLID(0xF0, 0xFF, 0xF0)
+#define SRGB32_HOT_PINK            SRGB32_SOLID(0xFF, 0x69, 0xB4)
+#define SRGB32_INDIAN_RED          SRGB32_SOLID(0xCD, 0x5C, 0x5C)
+#define SRGB32_INDIGO              SRGB32_SOLID(0x4B, 0x00, 0x82)
+#define SRGB32_IVORY               SRGB32_SOLID(0xFF, 0xFF, 0xF0)
+#define SRGB32_KHAKI               SRGB32_SOLID(0xF0, 0xE6, 0x8C)
+#define SRGB32_LAVENDER            SRGB32_SOLID(0xE6, 0xE6, 0xFA)
+#define SRGB32_LAVENDER_BLUSH      SRGB32_SOLID(0xFF, 0xF0, 0xF5)
+#define SRGB32_LAWN_GREEN          SRGB32_SOLID(0x7C, 0xFC, 0x00)
+#define SRGB32_LEMON_CHIFFON       SRGB32_SOLID(0xFF, 0xFA, 0xCD)
+#define SRGB32_LIGHT_BLUE          SRGB32_SOLID(0xAD, 0xD8, 0xE6)
+#define SRGB32_LIGHT_CORAL         SRGB32_SOLID(0xF0, 0x80, 0x80)
+#define SRGB32_LIGHT_CYAN          SRGB32_SOLID(0xE0, 0xFF, 0xFF)
+#define SRGB32_LIGHT_GOLDENROD     SRGB32_SOLID(0xFA, 0xFA, 0xD2)
+#define SRGB32_LIGHT_GRAY          SRGB32_SOLID(0xD3, 0xD3, 0xD3)
+#define SRGB32_LIGHT_GREEN         SRGB32_SOLID(0x90, 0xEE, 0x90)
+#define SRGB32_LIGHT_PINK          SRGB32_SOLID(0xFF, 0xB6, 0xC1)
+#define SRGB32_LIGHT_SALMON        SRGB32_SOLID(0xFF, 0xA0, 0x7A)
+#define SRGB32_LIGHT_SEA_GREEN     SRGB32_SOLID(0x20, 0xB2, 0xAA)
+#define SRGB32_LIGHT_SKY_BLUE      SRGB32_SOLID(0x87, 0xCE, 0xFA)
+#define SRGB32_LIGHT_SLATE_GRAY    SRGB32_SOLID(0x77, 0x88, 0x99)
+#define SRGB32_LIGHT_STEEL_BLUE    SRGB32_SOLID(0xB0, 0xC4, 0xDE)
+#define SRGB32_LIGHT_YELLOW        SRGB32_SOLID(0xFF, 0xFF, 0xE0)
+#define SRGB32_LIME                SRGB32_SOLID(0x00, 0xFF, 0x00)
+#define SRGB32_LIME_GREEN          SRGB32_SOLID(0x32, 0xCD, 0x32)
+#define SRGB32_LINEN               SRGB32_SOLID(0xFA, 0xF0, 0xE6)
+#define SRGB32_MAGENTA             SRGB32_SOLID(0xFF, 0x00, 0xFF)
+#define SRGB32_MAROON              SRGB32_SOLID(0xB0, 0x30, 0x60)
+#define SRGB32_WEB_MAROON          SRGB32_SOLID(0x80, 0x00, 0x00)
+#define SRGB32_MEDIUM_AQUAMARINE   SRGB32_SOLID(0x66, 0xCD, 0xAA)
+#define SRGB32_MEDIUM_BLUE         SRGB32_SOLID(0x00, 0x00, 0xCD)
+#define SRGB32_MEDIUM_ORCHID       SRGB32_SOLID(0xBA, 0x55, 0xD3)
+#define SRGB32_MEDIUM_PURPLE       SRGB32_SOLID(0x93, 0x70, 0xDB)
+#define SRGB32_MEDIUM_SEA_GREEN    SRGB32_SOLID(0x3C, 0xB3, 0x71)
+#define SRGB32_MEDIUM_SLATE_BLUE   SRGB32_SOLID(0x7B, 0x68, 0xEE)
+#define SRGB32_MEDIUM_SPRING_GREEN SRGB32_SOLID(0x00, 0xFA, 0x9A)
+#define SRGB32_MEDIUM_TURQUOISE    SRGB32_SOLID(0x48, 0xD1, 0xCC)
+#define SRGB32_MEDIUM_VIOLET_RED   SRGB32_SOLID(0xC7, 0x15, 0x85)
+#define SRGB32_MIDNIGHT_BLUE       SRGB32_SOLID(0x19, 0x19, 0x70)
+#define SRGB32_MINT_CREAM          SRGB32_SOLID(0xF5, 0xFF, 0xFA)
+#define SRGB32_MISTY_ROSE          SRGB32_SOLID(0xFF, 0xE4, 0xE1)
+#define SRGB32_MOCCASIN            SRGB32_SOLID(0xFF, 0xE4, 0xB5)
+#define SRGB32_NAVAJO_WHITE        SRGB32_SOLID(0xFF, 0xDE, 0xAD)
+#define SRGB32_NAVY_BLUE           SRGB32_SOLID(0x00, 0x00, 0x80)
+#define SRGB32_OLD_LACE            SRGB32_SOLID(0xFD, 0xF5, 0xE6)
+#define SRGB32_OLIVE               SRGB32_SOLID(0x80, 0x80, 0x00)
+#define SRGB32_OLIVE_DRAB          SRGB32_SOLID(0x6B, 0x8E, 0x23)
+#define SRGB32_ORANGE              SRGB32_SOLID(0xFF, 0xA5, 0x00)
+#define SRGB32_ORANGE_RED          SRGB32_SOLID(0xFF, 0x45, 0x00)
+#define SRGB32_ORCHID              SRGB32_SOLID(0xDA, 0x70, 0xD6)
+#define SRGB32_PALE_GOLDENROD      SRGB32_SOLID(0xEE, 0xE8, 0xAA)
+#define SRGB32_PALE_GREEN          SRGB32_SOLID(0x98, 0xFB, 0x98)
+#define SRGB32_PALE_TURQUOISE      SRGB32_SOLID(0xAF, 0xEE, 0xEE)
+#define SRGB32_PALE_VIOLET_RED     SRGB32_SOLID(0xDB, 0x70, 0x93)
+#define SRGB32_PAPAYA_WHIP         SRGB32_SOLID(0xFF, 0xEF, 0xD5)
+#define SRGB32_PEACH_PUFF          SRGB32_SOLID(0xFF, 0xDA, 0xB9)
+#define SRGB32_PERU                SRGB32_SOLID(0xCD, 0x85, 0x3F)
+#define SRGB32_PINK                SRGB32_SOLID(0xFF, 0xC0, 0xCB)
+#define SRGB32_PLUM                SRGB32_SOLID(0xDD, 0xA0, 0xDD)
+#define SRGB32_POWDER_BLUE         SRGB32_SOLID(0xB0, 0xE0, 0xE6)
+#define SRGB32_PURPLE              SRGB32_SOLID(0xA0, 0x20, 0xF0)
+#define SRGB32_WEB_PURPLE          SRGB32_SOLID(0x80, 0x00, 0x80)
+#define SRGB32_REBECCA_PURPLE      SRGB32_SOLID(0x66, 0x33, 0x99)
+#define SRGB32_RED                 SRGB32_SOLID(0xFF, 0x00, 0x00)
+#define SRGB32_ROSY_BROWN          SRGB32_SOLID(0xBC, 0x8F, 0x8F)
+#define SRGB32_ROYAL_BLUE          SRGB32_SOLID(0x41, 0x69, 0xE1)
+#define SRGB32_SADDLE_BROWN        SRGB32_SOLID(0x8B, 0x45, 0x13)
+#define SRGB32_SALMON              SRGB32_SOLID(0xFA, 0x80, 0x72)
+#define SRGB32_SANDY_BROWN         SRGB32_SOLID(0xF4, 0xA4, 0x60)
+#define SRGB32_SEA_GREEN           SRGB32_SOLID(0x2E, 0x8B, 0x57)
+#define SRGB32_SEASHELL            SRGB32_SOLID(0xFF, 0xF5, 0xEE)
+#define SRGB32_SIENNA              SRGB32_SOLID(0xA0, 0x52, 0x2D)
+#define SRGB32_SILVER              SRGB32_SOLID(0xC0, 0xC0, 0xC0)
+#define SRGB32_SKY_BLUE            SRGB32_SOLID(0x87, 0xCE, 0xEB)
+#define SRGB32_SLATE_BLUE          SRGB32_SOLID(0x6A, 0x5A, 0xCD)
+#define SRGB32_SLATE_GRAY          SRGB32_SOLID(0x70, 0x80, 0x90)
+#define SRGB32_SNOW                SRGB32_SOLID(0xFF, 0xFA, 0xFA)
+#define SRGB32_SPRING_GREEN        SRGB32_SOLID(0x00, 0xFF, 0x7F)
+#define SRGB32_STEEL_BLUE          SRGB32_SOLID(0x46, 0x82, 0xB4)
+#define SRGB32_TAN                 SRGB32_SOLID(0xD2, 0xB4, 0x8C)
+#define SRGB32_TEAL                SRGB32_SOLID(0x00, 0x80, 0x80)
+#define SRGB32_THISTLE             SRGB32_SOLID(0xD8, 0xBF, 0xD8)
+#define SRGB32_TOMATO              SRGB32_SOLID(0xFF, 0x63, 0x47)
+#define SRGB32_TURQUOISE           SRGB32_SOLID(0x40, 0xE0, 0xD0)
+#define SRGB32_VIOLET              SRGB32_SOLID(0xEE, 0x82, 0xEE)
+#define SRGB32_WHEAT               SRGB32_SOLID(0xF5, 0xDE, 0xB3)
+#define SRGB32_WHITE               SRGB32_SOLID(0xFF, 0xFF, 0xFF)
+#define SRGB32_WHITE_SMOKE         SRGB32_SOLID(0xF5, 0xF5, 0xF5)
+#define SRGB32_YELLOW              SRGB32_SOLID(0xFF, 0xFF, 0x00)
+#define SRGB32_YELLOW_GREEN        SRGB32_SOLID(0x9A, 0xCD, 0x32)
+// clang-format on
 
 //--------------------------------------------------------------------------------------------------
 // Macros for automatic generation of arrays storing the common color names and values
@@ -360,8 +360,8 @@ CF_API LinearColor colorHsvToLinear(HsvColor in);
     X(YELLOW)              \
     X(YELLOW_GREEN)
 
-#define CF__COLOR_ENUM_ENTRY(name, ...) RGBA32__##name,
-#define CF__COLOR_VALUE(name, ...) /* [RGBA32__##name] = */ RGBA32_##name,
+#define CF__COLOR_ENUM_ENTRY(name, ...) SRGB32__##name,
+#define CF__COLOR_VALUE(name, ...) /* [SRGB32__##name] = */ SRGB32_##name,
 #define CF__COLOR_STRING(name, ...) CF_STRINGIFY(name),
 
 enum

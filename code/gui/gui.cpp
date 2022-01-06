@@ -230,13 +230,13 @@ guiThemeSelector(Cstr label)
     if (next != curr) guiSetTheme(next);
 }
 
-Color32
-guiGetStyledColor(Color32 in)
+Srgb32
+guiGetStyledColor(Srgb32 in)
 {
     return ImGui::GetColorU32(in);
 }
 
-Color32
+Srgb32
 guiGetBackColor(void)
 {
     return ImGui::GetColorU32(ImGuiCol_WindowBg, 1.0f);
@@ -801,7 +801,7 @@ guiCanvasFillCircle(GuiCanvas *canvas, Vec2 center, F32 radius)
 }
 
 void
-guiCanvasDrawText(GuiCanvas *canvas, Str text, Vec2 pos, Color32 color)
+guiCanvasDrawText(GuiCanvas *canvas, Str text, Vec2 pos, Srgb32 color)
 {
     canvas->draw_list->AddText(pos, color, text.buf, text.buf + text.len);
 }
@@ -812,7 +812,7 @@ guiCanvasDrawImage(GuiCanvas *canvas, U32 texture, //
                    Vec2 uv_min, Vec2 uv_max)
 {
     canvas->draw_list->AddImage((ImTextureID)(Iptr)texture, image_min, image_max, uv_min, uv_max,
-                                ImGui::GetColorU32(RGBA32_WHITE));
+                                ImGui::GetColorU32(SRGB32_WHITE));
 }
 
 //=== IO ===//
@@ -1036,7 +1036,7 @@ guiMenuItem(Cstr label, bool *p_selected)
 }
 
 bool
-guiColorEdit(Cstr label, Color32 *color)
+guiColorEdit(Cstr label, Srgb32 *color)
 {
     // TODO (Matteo): Fix redundant label
 
@@ -1047,7 +1047,7 @@ guiColorEdit(Cstr label, Color32 *color)
 // TODO (Matteo): MSVC Diagnostics
 #endif
 
-    static Color32 const colors[] = CF_COLOR_VALUES;
+    static Srgb32 const colors[] = CF_COLOR_VALUES;
     static Cstr const names[] = CF_COLOR_NAMES;
 
 #if CF_COMPILER_CLANG
@@ -1095,6 +1095,7 @@ guiColorEdit(Cstr label, Color32 *color)
 
     ImFormatString(label_buffer, CF_ARRAY_SIZE(label_buffer), "%s##Picker", label);
 
+    // TODO (Matteo): Color picker works best in sRGB space?
     LinearColor color4 = colorToLinear(*color);
     I32 edit_flags = ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf |
                      ImGuiColorEditFlags_PickerHueWheel;

@@ -27,7 +27,7 @@ struct AppState
     MemAllocator alloc;
 
     AppWindows windows;
-    Color32 clear_color;
+    Srgb32 clear_color;
 
     CfLog log;
     Duration log_time;
@@ -49,7 +49,7 @@ APP_API APP_CREATE_PROC(appCreate)
 
     app->plat = plat;
     app->alloc = plat->heap;
-    app->clear_color = RGBA32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
+    app->clear_color = SRGB32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
     app->windows.stats = true;
 
     app->log = cfLogCreate(plat->vm, 128);
@@ -286,7 +286,7 @@ fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
         points[i].y = center.y + a * cost * sinw + b * sint * cosw;
     }
 
-    canvas->stroke_color = RGBA32_YELLOW;
+    canvas->stroke_color = SRGB32_YELLOW;
     guiCanvasDrawPolyline(canvas, points, CF_ARRAY_SIZE(points));
 
     // Draw mouse position and nearest point on the ellipse
@@ -297,7 +297,7 @@ fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     Vec2 query_res = DistancePointEllipse(a, b, query_pt).xy;
     query_res = rotateFwd(query_res, cosw, sinw);
 
-    canvas->stroke_color = canvas->fill_color = RGBA32_ORANGE_RED;
+    canvas->stroke_color = canvas->fill_color = SRGB32_ORANGE_RED;
 
     guiCanvasFillCircle(canvas, mouse_data.xyz.xy, 5.0f);
 
@@ -310,12 +310,12 @@ fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     F32 cosw2 = cosw * cosw;
     Vec2 itx = {.x = 0, .y = a * b * mRsqrt(a * a * cosw2 + b * b * sinw2)};
 
-    canvas->stroke_color = RGBA32_CYAN;
+    canvas->stroke_color = SRGB32_CYAN;
     guiCanvasDrawLine(canvas,                                   //
                       (Vec2){.x = center.x, .y = canvas->p0.y}, //
                       (Vec2){.x = center.x, .y = canvas->p1.y});
 
-    canvas->stroke_color = RGBA32_ORANGE_RED;
+    canvas->stroke_color = SRGB32_ORANGE_RED;
     guiCanvasDrawLine(canvas, center, (Vec2){.x = center.x + itx.x, .y = center.y + itx.y});
 
     // Place a circle on the ellipse
@@ -330,10 +330,10 @@ fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
 
     circ_center = vecAdd2(circ_center, delta);
 
-    canvas->stroke_color = RGBA32_YELLOW;
+    canvas->stroke_color = SRGB32_YELLOW;
     guiCanvasDrawCircle(canvas, vecAdd(circ_center, center), circ_rad);
 
-    canvas->fill_color = RGBA32_FUCHSIA;
+    canvas->fill_color = SRGB32_FUCHSIA;
     guiCanvasFillCircle(canvas, vecAdd(query_res, center), 5.0f);
 }
 
@@ -372,7 +372,7 @@ fxSine(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
         polar.y = center.y + sin;
     }
 
-    canvas->stroke_color = RGBA32_YELLOW;
+    canvas->stroke_color = SRGB32_YELLOW;
     guiCanvasDrawCircle(canvas, center, amp);
     guiCanvasDrawLine(canvas, center, polar);
     guiCanvasDrawLine(canvas, polar, points[0]);
@@ -381,7 +381,7 @@ fxSine(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     Vec2 p0 = canvas->p0;
     Vec2 p1 = canvas->p1;
 
-    canvas->stroke_color = RGBA32_PURPLE;
+    canvas->stroke_color = SRGB32_PURPLE;
     guiCanvasDrawLine(canvas, //
                       (Vec2){.x = p0.x, .y = p0.y + y_offset},
                       (Vec2){.x = p1.x, .y = p0.y + y_offset});
@@ -394,7 +394,7 @@ fxSine(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
                       (Vec2){.x = p0.x + 2 * amp, .y = p0.y},
                       (Vec2){.x = p0.x + 2 * amp, .y = p1.y});
 
-    canvas->fill_color = RGBA32_ORANGE_RED;
+    canvas->fill_color = SRGB32_ORANGE_RED;
     guiCanvasFillCircle(canvas, mouse_data.xyz.xy, 5.0f);
 }
 
@@ -405,7 +405,7 @@ fxDraw(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
 
     Char8 buffer[1024];
     strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%f", time);
-    guiCanvasDrawText(canvas, strFromCstr(buffer), canvas->p0, RGBA32_RED);
+    guiCanvasDrawText(canvas, strFromCstr(buffer), canvas->p0, SRGB32_RED);
 
     // fxSine(canvas, mouse_data, time);
     fxEllipse(canvas, mouse_data, time);
@@ -434,7 +434,7 @@ fxWindow(void)
 }
 
 static void
-fxDrawArc(GuiCanvas *canvas, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Color32 color)
+fxDrawArc(GuiCanvas *canvas, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Srgb32 color)
 {
     Vec2 points[1024];
 
@@ -458,7 +458,7 @@ fxDrawArc(GuiCanvas *canvas, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Color32 
         v0 = rotateFwd(v0, cos, sin);
     }
 
-    Color32 prev_color = canvas->stroke_color;
+    Srgb32 prev_color = canvas->stroke_color;
     canvas->stroke_color = color;
     guiCanvasDrawPolyline(canvas, points, CF_ARRAY_SIZE(points));
     canvas->stroke_color = prev_color;
@@ -502,7 +502,7 @@ fxTangentCircles(void)
     Vec2 lens_end = {.x = lens_center.x - crib_x, .y = lens_center.y - crib / 2};
     F32 lens_angle = mAtan2(crib / 2, crib_x);
 
-    fxDrawArc(&canvas, lens_center, lens_start, lens_end, lens_radius, RGBA32_FUCHSIA);
+    fxDrawArc(&canvas, lens_center, lens_start, lens_end, lens_radius, SRGB32_FUCHSIA);
 
     Vec2 cutter_center = {.x = lens_end.x - mCos(lens_angle) * cutter_radius,
                           .y = lens_end.y - mSin(lens_angle) * cutter_radius};
@@ -520,7 +520,7 @@ fxTangentCircles(void)
     cutter_start_p = vecAdd(cutter_center, rotateFwd(cutter_start_p, dcos, dsin));
     cutter_end_p = vecAdd(cutter_center, rotateFwd(cutter_end_p, dcos, dsin));
 
-    fxDrawArc(&canvas, cutter_center, cutter_start_p, cutter_end_p, cutter_radius, RGBA32_YELLOW);
+    fxDrawArc(&canvas, cutter_center, cutter_start_p, cutter_end_p, cutter_radius, SRGB32_YELLOW);
 
     guiCanvasEnd(&canvas);
 
