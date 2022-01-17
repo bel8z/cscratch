@@ -177,7 +177,7 @@ gfxProc(GfxState *gfx, CfLog *log)
 {
     CF_UNUSED(log); // at the moment
 
-    shaderBegin(gfx->shader);
+    shaderBind(gfx->shader);
     glBindVertexArray(gfx->VAO);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
