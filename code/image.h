@@ -1,8 +1,38 @@
-#include "image.h"
+#pragma once
 
-#include "foundation/io.h"
-#include "foundation/memory.h"
-#include "foundation/strings.h"
+#include "foundation/core.h"
+
+typedef struct IoFileApi IoFileApi;
+
+// TODO (Matteo):
+// * Keep image bits around (for querying/manipulation)?
+// * Implement image view navigation (scale/offset)
+// * Implement a file queue for browsing
+// * Implement image rotation
+
+typedef struct Image
+{
+    union
+    {
+        Srgb32 *pixels;
+        U8 *bytes;
+    };
+    I32 width;
+    I32 height;
+} Image;
+
+void imageInit(MemAllocator alloc);
+
+// TODO (Matteo): Migrate to Str?
+bool imageLoadFromFile(Image *image, Cstr filename, IoFileApi *api);
+bool imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size);
+void imageUnload(Image *image);
+
+#if defined(IMAGE_IMPL)
+
+#    include "foundation/io.h"
+#    include "foundation/memory.h"
+#    include "foundation/strings.h"
 
 // NOTE (Matteo): On memory allocation
 //
@@ -14,7 +44,7 @@
 // application load.
 
 // Custom assertions for stbi
-#define STBI_ASSERT(x) CF_ASSERT(x, "stb image assert")
+#    define STBI_ASSERT(x) CF_ASSERT(x, "stb image assert")
 
 // Custom memory management for stbi
 static MemAllocator g_alloc;
@@ -22,29 +52,29 @@ static void *stbiAlloc(Usize size);
 static void *stbiRealloc(void *memory, Usize size);
 static void stbiFree(void *memory);
 
-#define STBI_MALLOC stbiAlloc
-#define STBI_REALLOC stbiRealloc
-#define STBI_FREE stbiFree
+#    define STBI_MALLOC stbiAlloc
+#    define STBI_REALLOC stbiRealloc
+#    define STBI_FREE stbiFree
 
-#define STBI_NO_STDIO
+#    define STBI_NO_STDIO
 
 // Include stbi implementation
-#if CF_COMPILER_CLANG
-#    pragma clang diagnostic push
-#    pragma clang diagnostic ignored "-Wsign-conversion"
-#    pragma clang diagnostic ignored "-Wsign-compare"
-#    pragma clang diagnostic ignored "-Wimplicit-int-conversion"
-#    pragma clang diagnostic ignored "-Wdouble-promotion"
-#    pragma clang diagnostic ignored "-Wcast-align"
-#endif
+#    if CF_COMPILER_CLANG
+#        pragma clang diagnostic push
+#        pragma clang diagnostic ignored "-Wsign-conversion"
+#        pragma clang diagnostic ignored "-Wsign-compare"
+#        pragma clang diagnostic ignored "-Wimplicit-int-conversion"
+#        pragma clang diagnostic ignored "-Wdouble-promotion"
+#        pragma clang diagnostic ignored "-Wcast-align"
+#    endif
 
-#define STB_IMAGE_IMPLEMENTATION
+#    define STB_IMAGE_IMPLEMENTATION
 
-#include <stb_image.h>
+#    include <stb_image.h>
 
-#if CF_COMPILER_CLANG
-#    pragma clang diagnostic pop
-#endif
+#    if CF_COMPILER_CLANG
+#        pragma clang diagnostic pop
+#    endif
 
 //------------------------------------------------------------------------------
 // Memory management
@@ -195,3 +225,5 @@ imageUnload(Image *image)
 }
 
 //------------------------------------------------------------------------------
+
+#endif

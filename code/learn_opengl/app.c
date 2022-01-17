@@ -4,6 +4,9 @@
 #define SHADER_IMPL
 #include "shader.h"
 
+#define IMAGE_IMPL
+#include "image.h"
+
 #include "gl/gload.h"
 
 #include "gui/gui.h"
@@ -12,6 +15,7 @@
 #include "foundation/error.h"
 #include "foundation/log.h"
 #include "foundation/math.inl"
+#include "foundation/paths.h"
 #include "foundation/strings.h"
 
 //------------------------------------------------------------------------------
@@ -22,6 +26,11 @@ typedef struct GfxState
     U32 VBO, EBO, VAO;
 } GfxState;
 
+typedef struct Images
+{
+    Image container;
+} Images;
+
 struct AppState
 {
     Platform *plat;
@@ -29,6 +38,8 @@ struct AppState
     GfxState gfx;
 
     CfLog log;
+
+    Images images;
 
     // Output
     Srgb32 clear_color;
@@ -72,6 +83,9 @@ Cstr pix_shader_src = //
 
 //------------------------------------------------------------------------------
 
+static void imagesLoad(Images *images, Paths *paths, IoFileApi *file);
+static void imagesUnload(Images *images);
+
 static void gfxInit(GfxState *state, CfLog *log);
 
 //------------------------------------------------------------------------------
@@ -88,6 +102,8 @@ APP_API APP_CREATE_PROC(appCreate)
     app->log = cfLogCreate(plat->vm, CF_MB(1));
 
     appLoad(app);
+
+    imagesLoad(&app->images, plat->paths, plat->file);
 
     gfxInit(&app->gfx, &app->log);
 
@@ -109,6 +125,9 @@ APP_API APP_PROC(appLoad)
         // TODO (Matteo): Log using IMGUI
         cfLogAppendF(&app->log, "OpenGL 3.3 is not supported!");
     }
+
+    // Init image library
+    imageInit(app->plat->heap);
 }
 
 APP_API APP_PROC(appUnload)
@@ -121,8 +140,27 @@ APP_API APP_PROC(appDestroy)
     CF_ASSERT_NOT_NULL(app);
     CF_ASSERT_NOT_NULL(app->plat);
 
+    imagesUnload(&app->images);
+
     cfLogDestroy(&app->log, app->plat->vm);
     memFree(app->plat->heap, app, sizeof(*app));
+}
+
+//------------------------------------------------------------------------------
+
+void
+imagesLoad(Images *images, Paths *paths, IoFileApi *file)
+{
+    Char8 buffer[1024] = {0};
+
+    pathJoin(paths->data, strLiteral("container.jpeg"), buffer, CF_ARRAY_SIZE(buffer));
+    imageLoadFromFile(&images->container, buffer, file);
+}
+
+void
+imagesUnload(Images *images)
+{
+    imageUnload(&images->container);
 }
 
 //------------------------------------------------------------------------------

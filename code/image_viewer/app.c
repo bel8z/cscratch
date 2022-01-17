@@ -17,9 +17,9 @@
 
 #include "app.h"
 #include "platform.h"
-
-#include "image.h"
 #include "version.h"
+#define IMAGE_IMPL
+#include "image.h"
 
 #include "gui/gui.h"
 
