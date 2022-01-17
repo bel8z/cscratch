@@ -52,6 +52,7 @@ target_include_directories(${GUI_NAME}
     PRIVATE 
         ${IMGUI_DIR}
         ${IMGUI_DIR}/misc/freetype
+        ${EXT_DIR}/stb
     PUBLIC
         ${CODE_DIR})
 

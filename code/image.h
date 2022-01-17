@@ -62,10 +62,8 @@ static void stbiFree(void *memory);
 #    if CF_COMPILER_CLANG
 #        pragma clang diagnostic push
 #        pragma clang diagnostic ignored "-Wsign-conversion"
-#        pragma clang diagnostic ignored "-Wsign-compare"
 #        pragma clang diagnostic ignored "-Wimplicit-int-conversion"
 #        pragma clang diagnostic ignored "-Wdouble-promotion"
-#        pragma clang diagnostic ignored "-Wcast-align"
 #    endif
 
 #    define STB_IMAGE_IMPLEMENTATION

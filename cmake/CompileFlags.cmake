@@ -48,6 +48,9 @@ function(set_c_compile_flags project_name)
         
         # Allow variadic macros to be called without an argument in place of the ellipsis
         -Wno-gnu-zero-variadic-macro-arguments
+
+        # Converting int to float by default seems
+        -Wno-implicit-int-float-conversion
     )
 
     if (WARNINGS_AS_ERRORS)

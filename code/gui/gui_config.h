@@ -28,10 +28,6 @@
 // NOTE (Matteo): Suppress some warnings for Imgui compilation
 #if CF_COMPILER_CLANG
 #    pragma clang diagnostic ignored "-Wsign-conversion"
-#    pragma clang diagnostic ignored "-Wimplicit-int-float-conversion"
-#    pragma clang diagnostic ignored "-Wunused-function"
-#    pragma clang diagnostic ignored "-Wfloat-conversion"
-#elif CF_COMPILER_MSVC
 #endif
 
 // NOTE (Matteo): Core Dear Imgui has a C++ Api, while backends have a C API
@@ -133,13 +129,13 @@
 // By default the embedded implementations are declared static and not available outside of Dear
 // ImGui sources files.
 
-//#define IMGUI_STB_TRUETYPE_FILENAME   "my_folder/stb_truetype.h"
+#define IMGUI_STB_TRUETYPE_FILENAME <stb_truetype.h>
 
-//#define IMGUI_STB_RECT_PACK_FILENAME  "my_folder/stb_rect_pack.h"
+#define IMGUI_STB_RECT_PACK_FILENAME <stb_rect_pack.h>
 
-//#define IMGUI_DISABLE_STB_TRUETYPE_IMPLEMENTATION
+#define IMGUI_DISABLE_STB_TRUETYPE_IMPLEMENTATION
 
-//#define IMGUI_DISABLE_STB_RECT_PACK_IMPLEMENTATION
+#define IMGUI_DISABLE_STB_RECT_PACK_IMPLEMENTATION
 
 //---- Use stb_printf's faster implementation of vsnprintf instead of the one from libc (unless
 // IMGUI_DISABLE_DEFAULT_FORMAT_FUNCTIONS is defined)

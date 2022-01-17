@@ -7,10 +7,23 @@
 // Restore warnings disabled for DearImgui compilation
 #if CF_COMPILER_CLANG
 #    pragma clang diagnostic warning "-Wsign-conversion"
-#    pragma clang diagnostic warning "-Wimplicit-int-float-conversion"
-#    pragma clang diagnostic warning "-Wunused-function"
-#    pragma clang diagnostic warning "-Wfloat-conversion"
 #elif CF_COMPILER_MSVC
+#endif
+
+// Include stb implementation
+#if CF_COMPILER_CLANG
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wsign-conversion"
+#endif
+
+#define STB_RECT_PACK_IMPLEMENTATION
+#define STB_TRUETYPE_IMPLEMENTATION
+
+#include <stb_rect_pack.h>
+#include <stb_truetype.h>
+
+#if CF_COMPILER_CLANG
+#    pragma clang diagnostic pop
 #endif
 
 static ImFont *
