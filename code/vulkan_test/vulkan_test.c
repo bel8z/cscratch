@@ -268,7 +268,7 @@ vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT de
 
 #define VK_CHECK(res) appCheckResult(app, res)
 
-CF_PRINTF_LIKE(1, 2)
+CF_PRINTF_LIKE(1)
 static void
 appDiagnostic(App *app, Cstr format, ...)
 {
@@ -277,13 +277,13 @@ appDiagnostic(App *app, Cstr format, ...)
 
     va_list args;
     va_start(args, format);
-    I32 len = strPrintfV(buffer, CF_ARRAY_SIZE(buffer), format, args);
+    I32 len = strPrintV(buffer, CF_ARRAY_SIZE(buffer), format, args);
     va_end(args);
 
     if (len > 0) file->write(file->std_err, (U8 const *)buffer, (Usize)len);
 }
 
-CF_PRINTF_LIKE(1, 2)
+CF_PRINTF_LIKE(1)
 static void
 appTerminate(App *app, Cstr format, ...)
 {
@@ -292,7 +292,7 @@ appTerminate(App *app, Cstr format, ...)
 
     va_list args;
     va_start(args, format);
-    I32 len = strPrintfV(buffer, CF_ARRAY_SIZE(buffer), format, args);
+    I32 len = strPrintV(buffer, CF_ARRAY_SIZE(buffer), format, args);
     va_end(args);
 
     if (len > 0) file->write(file->std_err, (U8 const *)buffer, (Usize)len);

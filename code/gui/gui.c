@@ -17,7 +17,7 @@ static ImFont *
 gui_LoadCustomFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
 {
     Char8 buffer[1024] = {0};
-    strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
+    strPrint(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
     return guiLoadFont(fonts, buffer, font_size);
 }
 

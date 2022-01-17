@@ -404,7 +404,7 @@ fxDraw(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     guiCanvasDrawRect(canvas, canvas->p0, canvas->p1);
 
     Char8 buffer[1024];
-    strPrintf(buffer, CF_ARRAY_SIZE(buffer), "%f", time);
+    strPrint(buffer, CF_ARRAY_SIZE(buffer), "%f", time);
     guiCanvasDrawText(canvas, strFromCstr(buffer), canvas->p0, SRGB32_RED);
 
     // fxSine(canvas, mouse_data, time);

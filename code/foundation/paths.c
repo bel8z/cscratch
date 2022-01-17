@@ -84,6 +84,14 @@ pathJoin(Str root, Str leaf, Char8 *buffer, Usize buffer_size)
 }
 
 Usize
+pathJoinBuf(Str root, Str leaf, StrBuffer *buffer)
+{
+    Usize req_len = pathJoin(root, leaf, buffer->data, CF_ARRAY_SIZE(buffer->data));
+    if (req_len != USIZE_MAX) buffer->str.len = req_len;
+    return req_len;
+}
+
+Usize
 pathChangeExt(Str path, Str new_ext, Char8 *out)
 {
     Str ext = pathSplitExt(path);

@@ -26,10 +26,18 @@ typedef struct GfxState
     U32 VBO, EBO, VAO;
 } GfxState;
 
-typedef struct Images
+typedef struct Texture
 {
-    Image container;
-} Images;
+    I32 width;
+    I32 height;
+    U32 id;
+} Texture;
+
+typedef struct Assets
+{
+    Texture container;
+    Texture wall;
+} Assets;
 
 struct AppState
 {
@@ -39,7 +47,7 @@ struct AppState
 
     CfLog log;
 
-    Images images;
+    Assets assets;
 
     // Output
     Srgb32 clear_color;
@@ -83,9 +91,7 @@ Cstr pix_shader_src = //
 
 //------------------------------------------------------------------------------
 
-static void imagesLoad(Images *images, Paths *paths, IoFileApi *file);
-static void imagesUnload(Images *images);
-
+static void assetsLoad(Assets *assets, Paths *paths, IoFileApi *file);
 static void gfxInit(GfxState *state, CfLog *log);
 
 //------------------------------------------------------------------------------
@@ -102,8 +108,7 @@ APP_API APP_CREATE_PROC(appCreate)
     app->log = cfLogCreate(plat->vm, CF_MB(1));
 
     appLoad(app);
-
-    imagesLoad(&app->images, plat->paths, plat->file);
+    assetsLoad(&app->assets, plat->paths, plat->file);
 
     gfxInit(&app->gfx, &app->log);
 
@@ -140,27 +145,57 @@ APP_API APP_PROC(appDestroy)
     CF_ASSERT_NOT_NULL(app);
     CF_ASSERT_NOT_NULL(app->plat);
 
-    imagesUnload(&app->images);
-
     cfLogDestroy(&app->log, app->plat->vm);
     memFree(app->plat->heap, app, sizeof(*app));
 }
 
 //------------------------------------------------------------------------------
 
-void
-imagesLoad(Images *images, Paths *paths, IoFileApi *file)
+static bool
+textureLoad(Texture *tex, Str filename, IoFileApi *file)
 {
-    Char8 buffer[1024] = {0};
+    Image image = {0};
+    if (!imageLoadFromFile(&image, filename, file)) return false;
 
-    pathJoin(paths->data, strLiteral("container.jpeg"), buffer, CF_ARRAY_SIZE(buffer));
-    imageLoadFromFile(&images->container, buffer, file);
+    tex->width = image.width;
+    tex->height = image.height;
+
+    glGenTextures(1, &tex->id);
+    glBindTexture(GL_TEXTURE_2D, tex->id);
+
+    // set the texture wrapping/filtering options (on the currently bound texture object)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Generate the texture (default mimpmap)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->width, tex->height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 image.bytes);
+
+    // Let OpenGL generate the mipmaps for the current texture
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    imageUnload(&image);
+
+    return true;
 }
 
 void
-imagesUnload(Images *images)
+assetsLoad(Assets *assets, Paths *paths, IoFileApi *file)
 {
-    imageUnload(&images->container);
+    StrBuffer filename = {0};
+    strBufferInit(&filename);
+    strBufferAppendStr(&filename, paths->data);
+    Usize pos = filename.str.len;
+
+    filename.str.len = pos;
+    strBufferAppendStr(&filename, strLiteral("container.jpg"));
+    textureLoad(&assets->container, filename.str, file);
+
+    filename.str.len = pos;
+    strBufferAppendStr(&filename, strLiteral("wall.jpg"));
+    textureLoad(&assets->wall, filename.str, file);
 }
 
 //------------------------------------------------------------------------------

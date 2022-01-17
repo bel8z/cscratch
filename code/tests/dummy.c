@@ -270,9 +270,9 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     Char8 *buff = memAlloc(alloc, BUFF_SIZE);
 
-    strPrintf(buff, BUFF_SIZE, "USIZE_MAX = %zu", USIZE_MAX);
+    strPrint(buff, BUFF_SIZE, "USIZE_MAX = %zu", USIZE_MAX);
     Str dummy = strFromCstr(buff);
-    strPrintf(buff, BUFF_SIZE, "%.*s", (I32)dummy.len, dummy.buf);
+    strPrint(buff, BUFF_SIZE, "%.*s", (I32)dummy.len, dummy.buf);
     printf("%.*s\n", (I32)dummy.len, dummy.buf);
 
     memFree(alloc, buff, BUFF_SIZE);
@@ -284,9 +284,9 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     StrBuilder sb = {0};
 
     strBuilderInit(&sb, alloc);
-    strBuilderPrintf(&sb, "%s", "This is");
-    strBuilderAppend(&sb, strFromCstr(" a"));
-    strBuilderAppendf(&sb, " %s %s", "string", "buffer");
+    strBuilderPrint(&sb, "%s", "This is");
+    strBuilderAppendStr(&sb, strFromCstr(" a"));
+    strBuilderAppend(&sb, " %s %s", "string", "buffer");
     printf("%s\n", strBuilderCstr(&sb));
 
     strBuilderShutdown(&sb);

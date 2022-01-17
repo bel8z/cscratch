@@ -10,6 +10,7 @@ CF_API Str pathSplitExt(Str path);
 CF_API Str pathSplitNameExt(Str path, Str *ext);
 
 CF_API Usize pathJoin(Str root, Str leaf, Char8 *buffer, Usize buffer_size);
+CF_API Usize pathJoinBuf(Str root, Str leaf, StrBuffer *buffer);
 
 CF_API Usize pathChangeExt(Str path, Str new_ext, Char8 *out);
 

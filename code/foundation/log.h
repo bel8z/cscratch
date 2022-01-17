@@ -19,4 +19,4 @@ CF_API void cfLogClear(CfLog *log);
 
 CF_API void cfLogAppend(CfLog *log, Str string);
 CF_API void cfLogAppendC(CfLog *log, Cstr cstring);
-CF_API void cfLogAppendF(CfLog *log, Cstr format, ...) CF_PRINTF_LIKE(1, 2);
+CF_API void cfLogAppendF(CfLog *log, Cstr format, ...) CF_PRINTF_LIKE(1);

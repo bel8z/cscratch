@@ -193,10 +193,12 @@
 #define CF_MACRO_VAR(prefix) CF_CONCAT(prefix, CF_CONCAT(_, CF_LINE))
 
 #if CF_COMPILER_CLANG
-#    define CF_PRINTF_LIKE(fmt_argno, variadic_argno) \
-        __attribute__((__format__(__printf__, fmt_argno + 1, variadic_argno + 1)))
+#    define CF_PRINTF_LIKE(fmt_argno) \
+        __attribute__((__format__(__printf__, fmt_argno + 1, fmt_argno + 2)))
+#    define CF_VPRINTF_LIKE(fmt_argno) __attribute__((__format__(__printf__, fmt_argno + 1, 0)))
 #else
-#    define CF_PRINTF_LIKE(fmt_argno, variadic_argno)
+#    define CF_PRINTF_LIKE(fmt_argno)
+#    define CF_VPRINTF_LIKE(fmt_argno)
 #endif
 
 //-----------------------//
@@ -491,7 +493,7 @@ typedef struct StrBuilder
 typedef struct StrBuffer
 {
     Char8 data[1024];
-    Usize size;
+    Str str;
 } StrBuffer;
 
 //-------------//

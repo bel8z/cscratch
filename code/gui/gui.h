@@ -190,7 +190,8 @@ CF_API bool guiCheckbox(Cstr label, bool *checked);
 
 CF_API bool guiSlider(Cstr label, F32 *value, F32 min_value, F32 max_value);
 
-CF_API void guiText(Cstr fmt, ...) CF_PRINTF_LIKE(0, 1);
+CF_API void guiText(Cstr fmt, ...) CF_PRINTF_LIKE(0);
+CF_API void guiTextV(Cstr fmt, va_list args) CF_VPRINTF_LIKE(0);
 
 CF_API bool guiBeginMainMenuBar(void);
 CF_API void guiEndMainMenuBar(void);

@@ -158,7 +158,7 @@ TASK_QUEUE_PROC(loadFileTask)
     {
         file->state = ImageFileState_Loading;
 
-        if (!(*canceled) && imageLoadFromFile(&file->image, file->filename, g_file))
+        if (!(*canceled) && imageLoadFromFile(&file->image, strFromCstr(file->filename), g_file))
         {
             file->state = ImageFileState_Loaded;
         }
@@ -394,8 +394,8 @@ appPushFile(AppState *app, Cstr root_name, Str filename)
     ImageFile *file = app->files + app->num_files++;
     file->state = ImageFileState_Idle;
 
-    bool ok = strPrintf(file->filename, FILENAME_SIZE, "%s%.*s", root_name, (I32)filename.len,
-                        filename.buf);
+    bool ok = strPrint(file->filename, FILENAME_SIZE, "%s%.*s", root_name, (I32)filename.len,
+                       filename.buf);
     CF_ASSERT(ok, "path is too long!");
 }
 

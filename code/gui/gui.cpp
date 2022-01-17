@@ -999,8 +999,14 @@ guiText(Cstr fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    ImGui::TextV(fmt, args);
+    guiTextV(fmt, args);
     va_end(args);
+}
+
+CF_API void
+guiTextV(Cstr fmt, va_list args)
+{
+    ImGui::TextV(fmt, args);
 }
 
 bool

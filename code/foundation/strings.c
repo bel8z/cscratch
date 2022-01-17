@@ -27,7 +27,7 @@ strToCstr(Str str, Char8 *buffer, Usize size)
 
 // NOTE (Matteo): This returns the length of the written string, ignoring the null terminator
 I32
-strPrintfV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
+strPrintV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
 {
     va_list args_copy;
 
@@ -45,13 +45,13 @@ strPrintfV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
 }
 
 bool
-strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...)
+strPrint(Char8 *buffer, Usize buffer_size, Cstr fmt, ...)
 {
     va_list args;
 
     va_start(args, fmt);
 
-    I32 len = strPrintfV(buffer, buffer_size, fmt, args);
+    I32 len = strPrintV(buffer, buffer_size, fmt, args);
 
     va_end(args);
 
@@ -59,20 +59,61 @@ strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...)
 }
 
 bool
-strBufferPrintf(StrBuffer *str, Cstr fmt, ...)
+strBufferPrint(StrBuffer *buf, Cstr fmt, ...)
 {
     va_list args;
 
     va_start(args, fmt);
 
-    I32 len = strPrintfV(str->data, str->size, fmt, args);
+    I32 len = strPrintV(buf->data, buf->str.len, fmt, args);
 
     va_end(args);
 
     if (len < 0) return false;
 
     // TODO (Matteo): Should account for the null terminator?
-    str->size = len;
+    buf->str.len = len;
+
+    return true;
+}
+
+CF_API bool
+strBufferAppendStr(StrBuffer *buf, Str what)
+{
+    Usize avail = CF_ARRAY_SIZE(buf->data) - buf->str.len;
+    if (avail < what.len) return false;
+
+    memCopy(what.buf, buf->data + buf->str.len, what.len);
+    buf->str.len += what.len;
+
+    return true;
+}
+
+CF_API bool
+strBufferAppend(StrBuffer *buf, Cstr fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    bool result = strBufferAppendV(buf, fmt, args);
+    va_end(args);
+    return result;
+}
+
+CF_API bool
+strBufferAppendV(StrBuffer *buf, Cstr fmt, va_list args)
+{
+    va_list args_copy;
+    va_copy(args_copy, args);
+    I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+    va_end(args_copy);
+
+    if (len < 0) return false;
+
+    Usize avail = CF_ARRAY_SIZE(buf->data) - buf->str.len;
+    if (avail < len) return false;
+
+    vsnprintf(buf->data + buf->str.len, avail, fmt, args); // NOLINT
+    buf->str.len += len;
 
     return true;
 }
@@ -235,7 +276,7 @@ strBuilderClear(StrBuilder *sb)
 }
 
 void
-strBuilderAppend(StrBuilder *sb, Str what)
+strBuilderAppendStr(StrBuilder *sb, Str what)
 {
     _sbValidate(sb);
 
@@ -251,30 +292,36 @@ strBuilderAppend(StrBuilder *sb, Str what)
 }
 
 bool
-strBuilderPrintf(StrBuilder *sb, Cstr fmt, ...)
+strBuilderPrint(StrBuilder *sb, Cstr fmt, ...)
 {
     _sbValidate(sb);
 
-    va_list args, args_copy;
-
+    va_list args;
     va_start(args, fmt);
+    bool result = strBuilderPrintV(sb, fmt, args);
+    va_end(args);
+
+    return result;
+}
+
+bool
+strBuilderPrintV(StrBuilder *sb, Cstr fmt, va_list args)
+{
+    _sbValidate(sb);
+
+    va_list args_copy;
     va_copy(args_copy, args);
 
     I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
 
     va_end(args_copy);
 
-    if (len < 0)
-    {
-        va_end(args);
-        return false;
-    };
+    if (len < 0) return false;
 
     // Keep room for the null terminator
     strBuilderResize(sb, len + 1);
 
     vsnprintf(sb->data, sb->size, fmt, args); // NOLINT
-    va_end(args);
 
     CF_ASSERT(sb->data && sb->data[sb->size - 1] == 0, "Missing null terminator");
 
@@ -282,24 +329,31 @@ strBuilderPrintf(StrBuilder *sb, Cstr fmt, ...)
 }
 
 bool
-strBuilderAppendf(StrBuilder *sb, Cstr fmt, ...)
+strBuilderAppend(StrBuilder *sb, Cstr fmt, ...)
 {
     _sbValidate(sb);
 
-    va_list args, args_copy;
-
+    va_list args;
     va_start(args, fmt);
+    bool result = strBuilderAppendV(sb, fmt, args);
+    va_end(args);
+
+    return result;
+}
+
+bool
+strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args)
+{
+    _sbValidate(sb);
+
+    va_list args_copy;
     va_copy(args_copy, args);
 
     I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
 
     va_end(args_copy);
 
-    if (len < 0)
-    {
-        va_end(args);
-        return false;
-    };
+    if (len < 0) return false;
 
     // Write over the previous null terminator
     Usize nul_pos = sb->size - 1;
@@ -308,7 +362,6 @@ strBuilderAppendf(StrBuilder *sb, Cstr fmt, ...)
     CF_ASSERT(sb->size >= len + 1, "Buffer not extended correctly");
 
     vsnprintf(sb->data + nul_pos, len + 1, fmt, args); // NOLINT
-    va_end(args);
 
     // Null terminate again
     sb->data[sb->size - 1] = 0;

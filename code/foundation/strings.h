@@ -52,19 +52,33 @@ strFromCstr(Cstr cstr)
 /// size if NULL
 CF_API Usize strToCstr(Str str, Char8 *buffer, Usize size);
 
+static inline void
+strBufferInit(StrBuffer *buffer)
+{
+    buffer->str.len = 0;
+    buffer->str.buf = (Char8 const *)buffer->data;
+}
+
 //-----------------------//
 //   String formatting   //
 //-----------------------//
 
-I32 strPrintfV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args);
+/// Print formatted string on the given static buffer
+/// This does not take a Str because it represents a string view more than a char buffer.
+/// You can use a Str by explicitly calling strPrintV(str.buf, str.len, ...).
+CF_API I32 strPrintV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args) CF_VPRINTF_LIKE(2);
 
 /// Print formatted string on the given static buffer
 /// This does not take a Str because it represents a string view more than a char buffer.
-/// You can use a Str by explicitly calling strPrintf(str.buf, str.len, ...).
-CF_API bool strPrintf(Char8 *buffer, Usize buffer_size, Cstr fmt, ...) CF_PRINTF_LIKE(2, 3);
+/// You can use a Str by explicitly calling strPrint(str.buf, str.len, ...).
+CF_API bool strPrint(Char8 *buffer, Usize buffer_size, Cstr fmt, ...) CF_PRINTF_LIKE(2);
 
 /// Print formatted string on the given dynamic buffer
-CF_API bool strBufferPrintf(StrBuffer *str, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
+CF_API bool strBufferPrint(StrBuffer *buf, Cstr fmt, ...) CF_PRINTF_LIKE(1);
+
+CF_API bool strBufferAppendStr(StrBuffer *buf, Str what);
+CF_API bool strBufferAppend(StrBuffer *buf, Cstr fmt, ...) CF_PRINTF_LIKE(1);
+CF_API bool strBufferAppendV(StrBuffer *buf, Cstr fmt, va_list args) CF_VPRINTF_LIKE(1);
 
 //------------------------------//
 //   String (view) comparison   //
@@ -93,9 +107,11 @@ CF_API void strBuilderInitWith(StrBuilder *sb, MemAllocator alloc, Usize cap);
 CF_API void strBuilderShutdown(StrBuilder *sb);
 
 CF_API void strBuilderClear(StrBuilder *sb);
-CF_API void strBuilderAppend(StrBuilder *sb, Str what);
-CF_API bool strBuilderAppendf(StrBuilder *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
-CF_API bool strBuilderPrintf(StrBuilder *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1, 2);
+CF_API void strBuilderAppendStr(StrBuilder *sb, Str what);
+CF_API bool strBuilderAppend(StrBuilder *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1);
+CF_API bool strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args) CF_VPRINTF_LIKE(1);
+CF_API bool strBuilderPrint(StrBuilder *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1);
+CF_API bool strBuilderPrintV(StrBuilder *sb, Cstr fmt, va_list args) CF_VPRINTF_LIKE(1);
 
 CF_API Str strBuilderView(StrBuilder *sb);
 CF_API Cstr strBuilderCstr(StrBuilder *sb);

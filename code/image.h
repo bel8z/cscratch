@@ -24,7 +24,7 @@ typedef struct Image
 void imageInit(MemAllocator alloc);
 
 // TODO (Matteo): Migrate to Str?
-bool imageLoadFromFile(Image *image, Cstr filename, IoFileApi *api);
+bool imageLoadFromFile(Image *image, Str filename, IoFileApi *api);
 bool imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size);
 void imageUnload(Image *image);
 
@@ -172,15 +172,15 @@ imageInit(MemAllocator alloc)
 }
 
 bool
-imageLoadFromFile(Image *image, Cstr filename, IoFileApi *api)
+imageLoadFromFile(Image *image, Str filename, IoFileApi *api)
 {
     CF_ASSERT_NOT_NULL(image);
-    CF_ASSERT_NOT_NULL(filename);
+    CF_ASSERT(strValid(filename), "Invalid filename");
     CF_ASSERT(!image->bytes, "overwriting valid image");
 
     FileReader reader = {
         .api = api,
-        .file = api->open(strFromCstr(filename), IoOpenMode_Read),
+        .file = api->open(filename, IoOpenMode_Read),
     };
     stbi_io_callbacks cb = {
         .eof = stbiEof,
