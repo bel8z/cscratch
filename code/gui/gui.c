@@ -2,6 +2,7 @@
 
 #include "foundation/array.h"
 #include "foundation/math.inl"
+#include "foundation/memory.h"
 #include "foundation/strings.h"
 
 // Restore warnings disabled for DearImgui compilation
@@ -16,10 +17,25 @@
 #    pragma clang diagnostic ignored "-Wsign-conversion"
 #endif
 
-#define STB_RECT_PACK_IMPLEMENTATION
-#define STB_TRUETYPE_IMPLEMENTATION
+#include <stdlib.h>
 
+#define STBRP_ASSERT(x) CF_ASSERT(x, "[STBRP] assertion failed")
+#define STBRP_SORT qsort
+#define STB_RECT_PACK_IMPLEMENTATION
 #include <stb_rect_pack.h>
+
+#define STBTT_assert(x) CF_ASSERT(x, "[STBTT] assertion failed")
+#define STBTT_memcpy(dst, src, size) memCopy(src, dst, size)
+#define STBTT_memset(dst, val, size) memWrite((U8 *)dst, val, size)
+#define STBTT_sqrt mSqrt
+#define STBTT_pow mPow
+#define STBTT_fmod mFmod
+#define STBTT_fabs mAbs
+#define STBTT_cos(x) mCos(x)
+#define STBTT_acos(x) mAcos(x)
+#define STBTT_ifloor(x) ((int)mFloor(x))
+#define STBTT_iceil(x) ((int)mCeil(x))
+#define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
 
 #if CF_COMPILER_CLANG
