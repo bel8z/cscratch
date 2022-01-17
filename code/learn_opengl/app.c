@@ -50,7 +50,7 @@ float vertices[] = {
     0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f  // top
 };
 
-Cstr vtx_shader_src =
+Cstr vtx_shader_src = //
     "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"   // the position variable has attribute position 0
     "layout (location = 1) in vec3 aColor;\n" // the color  variable has attribute position 1
@@ -61,13 +61,14 @@ Cstr vtx_shader_src =
     "     ourColor = aColor;\n" // set ourColor to the input color we got from the vertex data
     "}\n";
 
-Cstr pix_shader_src = "#version 330 core\n"
-                      "out vec4 FragColor;\n"
-                      "in vec3 ourColor;\n" // we set this variable in the OpenGL code.
-                      "void main()\n"
-                      "{\n"
-                      "    FragColor = vec4(ourColor, 1.0);\n"
-                      "}\n";
+Cstr pix_shader_src = //
+    "#version 330 core\n"
+    "out vec4 FragColor;\n"
+    "in vec3 ourColor;\n" // we set this variable in the OpenGL code.
+    "void main()\n"
+    "{\n"
+    "    FragColor = vec4(ourColor, 1.0);\n"
+    "}\n";
 
 //------------------------------------------------------------------------------
 

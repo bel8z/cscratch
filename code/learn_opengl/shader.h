@@ -11,18 +11,21 @@
 //   Interface   //
 //===============//
 
+#define INVALID_UNIFORM -1
+
 typedef struct Shader
 {
     U32 program;
 } Shader;
 
-Shader shaderLoadFiles(IoFileContent vtx, IoFileContent pix, CfLog *log);
-Shader shaderLoadStrings(Str vtx, Str pix, CfLog *log);
-
 void shaderBind(Shader shader);
 void shaderClear(void);
 
+Shader shaderLoadFiles(IoFileContent vtx, IoFileContent pix, CfLog *log);
+Shader shaderLoadStrings(Str vtx, Str pix, CfLog *log);
+
 I32 shaderGetUniform(Shader shader, Cstr uniform_name);
+bool shaderSetUniform(Shader shader, I32 id, I32 value);
 
 //====================//
 //   Implementation   //
@@ -117,6 +120,7 @@ shaderBind(Shader shader)
 void
 shaderClear(void)
 {
+
     glUseProgram(0);
 }
 
