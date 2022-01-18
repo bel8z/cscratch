@@ -70,9 +70,9 @@ struct AppState
 // NOTE (Matteo): CW vertices
 
 Vertex vertices[] = {
-    {0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1, 0},   // top right
-    {0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1, 1},  // bottom right
-    {-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0, 1}, // bottom left
+    {0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 2, 0},   // top right
+    {0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 2, 2},  // bottom right
+    {-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0, 2}, // bottom left
     {-0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0, 0},  // top left
 };
 
@@ -112,8 +112,8 @@ Cstr pix_shader_src = //
     "\n"
     "void main()\n"
     "{\n"
-    // "    FragColor = texture(tex1, texCoord) * vec4(vtxColor, 1.0);\n"
-    "    FragColor = mix(texture(tex1, texCoord), texture(tex2, texCoord), blend);\n"
+    "    vec4 texColor = mix(texture(tex1, texCoord), texture(tex2, texCoord), blend);\n"
+    "    FragColor = texColor * vec4(vtxColor, 1.0);\n"
     "}\n";
 
 //------------------------------------------------------------------------------
@@ -133,6 +133,7 @@ APP_API APP_CREATE_PROC(appCreate)
     app->plat = plat;
     app->clear_color = SRGB32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
     app->log = cfLogCreate(plat->vm, CF_MB(1));
+    app->log_box = true;
 
     appLoad(app);
 
@@ -192,8 +193,8 @@ textureLoad(Texture *tex, Str filename, IoFileApi *file)
     glBindTexture(GL_TEXTURE_2D, tex->id);
 
     // set the texture wrapping/filtering options (on the currently bound texture object)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -316,6 +317,16 @@ gfxProc(GfxState *gfx, CfLog *log)
 {
     CF_UNUSED(log); // at the moment
 
+    // Tweak some parameters
+
+    guiBeginAutoResize("Tool", NULL);
+    guiSlider("Blend", &gfx->blend, 0, 1);
+    guiEnd();
+
+    glPolygonMode(GL_FRONT, GL_LINE);
+
+    // Bind the pipeline
+
     shaderBind(gfx->shader);
 
     glActiveTexture(GL_TEXTURE0);
@@ -325,6 +336,8 @@ gfxProc(GfxState *gfx, CfLog *log)
     glBindTexture(GL_TEXTURE_2D, gfx->face.id);
 
     glUniform1f(shaderGetUniform(gfx->shader, "blend"), gfx->blend);
+
+    // Draw vertices
 
     glBindVertexArray(gfx->VAO);
     glDrawElements(GL_TRIANGLES, CF_ARRAY_SIZE(indices), GL_UNSIGNED_INT, 0);
@@ -391,10 +404,6 @@ APP_API APP_UPDATE_PROC(appUpdate)
     {
         guiMetricsWindow(&state->metrics);
     }
-
-    guiBeginAutoResize("Tool", NULL);
-    guiSlider("Blend", &state->gfx.blend, 0, 1);
-    guiEnd();
 
     gfxProc(&state->gfx, &state->log);
 }
