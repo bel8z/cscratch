@@ -99,14 +99,13 @@ Cstr pix_shader_src = //
     "in vec3 vtxColor;\n"
     "in vec2 texCoord;\n"
     "\n"
-    "uniform sampler2D ourTexture;\n"
+    "uniform sampler2D currTexture;\n"
     "\n"
     "out vec4 FragColor;\n"
     "\n"
     "void main()\n"
     "{\n"
-    // "    FragColor = vec4(vtxColor, 1.0);\n"
-    "    FragColor = texture(ourTexture, texCoord);\n"
+    "    FragColor = texture(currTexture, texCoord) * vec4(vtxColor, 1.0);\n"
     "}\n";
 
 //------------------------------------------------------------------------------
