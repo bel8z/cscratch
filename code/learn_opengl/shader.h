@@ -23,6 +23,7 @@ void shaderClear(void);
 
 Shader shaderLoadFiles(IoFileContent vtx, IoFileContent pix, CfLog *log);
 Shader shaderLoadStrings(Str vtx, Str pix, CfLog *log);
+void shaderUnload(Shader *shader);
 
 I32 shaderGetUniform(Shader shader, Cstr uniform_name);
 bool shaderSetUniform(Shader shader, I32 id, I32 value);
@@ -32,6 +33,19 @@ bool shaderSetUniform(Shader shader, I32 id, I32 value);
 //====================//
 
 #if defined SHADER_IMPL
+
+void
+shaderBind(Shader shader)
+{
+    glUseProgram(shader.program);
+}
+
+void
+shaderClear(void)
+{
+
+    glUseProgram(0);
+}
 
 Shader
 shaderLoadStrings(Str vtx, Str pix, CfLog *log)
@@ -112,16 +126,10 @@ shaderLoadFiles(IoFileContent vtx, IoFileContent pix, CfLog *log)
 }
 
 void
-shaderBind(Shader shader)
+shaderUnload(Shader *shader)
 {
-    glUseProgram(shader.program);
-}
-
-void
-shaderClear(void)
-{
-
-    glUseProgram(0);
+    glDeleteProgram(shader->program);
+    shader->program = 0;
 }
 
 I32

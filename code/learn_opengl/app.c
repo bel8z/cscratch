@@ -24,6 +24,7 @@ typedef struct Vertex
 {
     F32 x, y, z;
     F32 r, g, b;
+    F32 u, v;
 } Vertex;
 
 typedef struct Texture
@@ -61,19 +62,26 @@ struct AppState
 
 //------------------------------------------------------------------------------
 
+// NOTE (Matteo): CW vertices
+
 Vertex vertices[] = {
-    {0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f},  // bottom right
-    {-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f}, // bottom left
-    {0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f}    // top
+    {0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1, 1},   // top right
+    {0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1, 0},  // bottom right
+    {-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0, 0}, // bottom left
+    {-0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0, 1},  // top left
 };
 
-U32 indices[] = {0, 1, 2};
+U32 indices[] = {
+    0, 1, 3, //
+    1, 2, 3,
+};
 
 Cstr vtx_shader_src = //
     "#version 330 core\n"
     "\n"
     "layout (location = 0) in vec3 vtxPos;\n"
     "layout (location = 1) in vec3 vtxColorIn;\n"
+    "layout (location = 2) in vec2 vtxTexCoord;\n"
     "\n"
     "out vec3 vtxColorOut;\n"
     "\n"
@@ -98,6 +106,7 @@ Cstr pix_shader_src = //
 //------------------------------------------------------------------------------
 
 static void gfxInit(GfxState *state, CfLog *log, Paths *paths, IoFileApi *file);
+static void gfxShutdown(GfxState *gfx);
 
 //------------------------------------------------------------------------------
 
@@ -113,7 +122,6 @@ APP_API APP_CREATE_PROC(appCreate)
     app->log = cfLogCreate(plat->vm, CF_MB(1));
 
     appLoad(app);
-    gfxInit(&app->gfx, &app->log, plat->paths, plat->file);
 
     return app;
 }
@@ -136,11 +144,15 @@ APP_API APP_PROC(appLoad)
 
     // Init image library
     imageInit(app->plat->heap);
+
+    // Init graphics state
+    gfxInit(&app->gfx, &app->log, app->plat->paths, app->plat->file);
 }
 
 APP_API APP_PROC(appUnload)
 {
     CF_ASSERT_NOT_NULL(app);
+    gfxShutdown(&app->gfx);
 }
 
 APP_API APP_PROC(appDestroy)
@@ -214,6 +226,10 @@ gfxInit(GfxState *gfx, CfLog *log, Paths *paths, IoFileApi *file)
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, r));
     glEnableVertexAttribArray(1);
 
+    // Texcoord attribute
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, u));
+    glEnableVertexAttribArray(2);
+
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex
     // attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -244,6 +260,22 @@ gfxInit(GfxState *gfx, CfLog *log, Paths *paths, IoFileApi *file)
     filename.str.len = pos;
     strBufferAppendStr(&filename, strLiteral("wall.jpg"));
     textureLoad(&gfx->wall, filename.str, file);
+}
+
+static void
+gfxShutdown(GfxState *gfx)
+{
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDeleteTextures(1, &gfx->container.id);
+    glDeleteTextures(1, &gfx->wall.id);
+
+    glBindVertexArray(0);
+    glDeleteBuffers(1, &gfx->EBO);
+    glDeleteBuffers(1, &gfx->VBO);
+    glDeleteVertexArrays(1, &gfx->VAO);
+
+    shaderClear();
+    shaderUnload(&gfx->shader);
 }
 
 static void
