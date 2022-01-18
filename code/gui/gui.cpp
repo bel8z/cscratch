@@ -1,34 +1,23 @@
 #include "gui.h"
 
-// Restore warnings disabled for DearImgui compilation
-#if CF_COMPILER_CLANG
-#    pragma clang diagnostic warning "-Wsign-conversion"
-#    pragma clang diagnostic warning "-Wimplicit-int-float-conversion"
-#    pragma clang diagnostic warning "-Wunused-function"
-#    pragma clang diagnostic warning "-Wfloat-conversion"
-#elif CF_COMPILER_MSVC
-#endif
-
 #include "gui_config.h"
 
-#if CF_COMPILER_MSVC
-#    pragma warning(push)
-#    pragma warning(disable : 4201)
-#    pragma warning(disable : 4214)
-#elif CF_COMPILER_CLANG
-#    pragma clang diagnostic push
-#    pragma clang diagnostic ignored "-Wlanguage-extension-token"
-#endif
+// Restore warnings disabled for DearImgui compilation
+CF_DIAGNOSTIC_RESTORE_CLANG("-Wsign-conversion")
+CF_DIAGNOSTIC_RESTORE_CLANG("-Wimplicit-int-float-conversion")
+CF_DIAGNOSTIC_RESTORE_CLANG("-Wunused-function")
+CF_DIAGNOSTIC_RESTORE_CLANG("-Wfloat-conversion")
+
+CF_DIAGNOSTIC_PUSH()
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wlanguage-extension-token")
+CF_DIAGNOSTIC_IGNORE_MSVC(4201)
+CF_DIAGNOSTIC_IGNORE_MSVC(4214)
 
 #include "imgui.h"
 #include "imgui_freetype.h"
 #include "imgui_internal.h"
 
-#if CF_COMPILER_MSVC
-#    pragma warning(pop)
-#elif CF_COMPILER_CLANG
-#    pragma clang diagnostic pop
-#endif
+CF_DIAGNOSTIC_POP()
 
 #include "foundation/colors.h"
 #include "foundation/log.h"
@@ -1044,21 +1033,14 @@ guiColorEdit(Cstr label, Srgb32 *color)
 {
     // TODO (Matteo): Fix redundant label
 
-#if CF_COMPILER_CLANG
-#    pragma clang diagnostic push
-#    pragma clang diagnostic ignored "-Wc99-designator"
-#else
-// TODO (Matteo): MSVC Diagnostics
-#endif
+    CF_DIAGNOSTIC_PUSH()
+    CF_DIAGNOSTIC_IGNORE_CLANG("-Wc99-designator")
+    // TODO (Matteo): MSVC Diagnostics
 
     static Srgb32 const colors[] = CF_COLOR_VALUES;
     static Cstr const names[] = CF_COLOR_NAMES;
 
-#if CF_COMPILER_CLANG
-#    pragma clang diagnostic pop
-#else
-// TODO (Matteo): MSVC Diagnostics
-#endif
+    CF_DIAGNOSTIC_POP()
 
     bool color_changed = false;
     Usize color_index = USIZE_MAX;

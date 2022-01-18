@@ -248,12 +248,12 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     clockStart(&platform->clock);
     platform->gl = gl;
 
-// NOTE (Matteo): Custom IMGUI ini file
-// TODO (Matteo): Clean up!
-#if CF_COMPILER_MSVC
-#    pragma warning(push)
-#    pragma warning(disable : 4221)
-#endif
+    // NOTE (Matteo): Custom IMGUI ini file
+    // TODO (Matteo): Clean up!
+
+    CF_DIAGNOSTIC_PUSH()
+    CF_DIAGNOSTIC_IGNORE_MSVC(4221)
+
     Char8 gui_ini[Paths_Size] = {0};
     CF_ASSERT(paths->base.len + paths->exe_name.len < Paths_Size, "IMGUI ini file name too long");
     memCopy(paths->base.buf, gui_ini, paths->base.len);
@@ -266,9 +266,8 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         .ini_filename = gui_ini,
     };
     guiInit(platform->gui);
-#if CF_COMPILER_MSVC
-#    pragma warning(pop)
-#endif
+
+    CF_DIAGNOSTIC_POP()
 
     // Setup application
     AppApi app_api = {0};

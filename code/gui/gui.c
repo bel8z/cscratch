@@ -6,16 +6,11 @@
 #include "foundation/strings.h"
 
 // Restore warnings disabled for DearImgui compilation
-#if CF_COMPILER_CLANG
-#    pragma clang diagnostic warning "-Wsign-conversion"
-#elif CF_COMPILER_MSVC
-#endif
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wsign-conversion")
 
 // Include stb implementation
-#if CF_COMPILER_CLANG
-#    pragma clang diagnostic push
-#    pragma clang diagnostic ignored "-Wsign-conversion"
-#endif
+CF_DIAGNOSTIC_PUSH()
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wsign-conversion")
 
 #include <stdlib.h>
 
@@ -38,9 +33,7 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
 
-#if CF_COMPILER_CLANG
-#    pragma clang diagnostic pop
-#endif
+CF_DIAGNOSTIC_POP()
 
 static ImFont *
 gui_LoadCustomFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)

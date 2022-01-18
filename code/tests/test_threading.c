@@ -93,8 +93,8 @@ static CF_THREAD_PROC(consumerProc)
     }
 }
 
-#pragma warning(push)
-#pragma warning(disable : 4221)
+CF_DIAGNOSTIC_PUSH()
+CF_DIAGNOSTIC_IGNORE_MSVC(4221)
 
 I32
 platformMain(Platform *platform, CommandLine *cmd_line)
@@ -121,4 +121,4 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     return 0;
 }
 
-#pragma warning(pop)
+CF_DIAGNOSTIC_POP()

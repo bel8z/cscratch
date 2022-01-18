@@ -18,6 +18,8 @@
 #include "app.h"
 #include "platform.h"
 #include "version.h"
+
+#define IMAGE_STATIC
 #define IMAGE_IMPL
 #include "image.h"
 
@@ -414,10 +416,9 @@ appLoadFromFile(AppState *state, Str full_name)
         memCopy(full_name.buf, root_name, full_name.len - file_name.len);
         strToCstr(full_name, file.filename, FILENAME_SIZE);
 
-#if CF_COMPILER_MSVC
-#    pragma warning(push)
-#    pragma warning(disable : 4221) // cannot be initialized using address of automatic variable
-#endif
+        CF_DIAGNOSTIC_PUSH()
+        CF_DIAGNOSTIC_IGNORE_MSVC(4221)
+
         IoFileApi *io = state->plat->file;
         IoDirectory it = {0};
         if (io->dirOpen(&it, strFromCstr(root_name)))
@@ -433,9 +434,8 @@ appLoadFromFile(AppState *state, Str full_name)
 
             it.close(&it);
         }
-#if CF_COMPILER_MSVC
-#    pragma warning(pop)
-#endif
+
+        CF_DIAGNOSTIC_POP()
 
         for (U32 file_no = 0; file_no < state->num_files; ++file_no)
         {

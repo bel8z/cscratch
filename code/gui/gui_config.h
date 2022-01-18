@@ -26,9 +26,7 @@
 #include IMGUI_IMPL_OPENGL_LOADER_CUSTOM
 
 // NOTE (Matteo): Suppress some warnings for Imgui compilation
-#if CF_COMPILER_CLANG
-#    pragma clang diagnostic ignored "-Wsign-conversion"
-#endif
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wsign-conversion")
 
 // NOTE (Matteo): Core Dear Imgui has a C++ Api, while backends have a C API
 #define IMGUI_API CF_DLL_EXPORT

@@ -178,6 +178,42 @@
 #define CF_API CF_EXTERN_C CF_DLL_EXPORT
 
 //-------------------//
+//   Compiler diagnostics   //
+//-------------------//
+
+// NOTE (Matteo): Clang macros apply also to GCC
+
+#if CF_COMPILER_CLANG
+#    define CF_DIAGNOSTIC_PUSH() _Pragma("clang diagnostic push")
+#    define CF_DIAGNOSTIC_POP() _Pragma("clang diagnostic pop")
+#    define CF_DIAGNOSTIC_IGNORE_CLANG(x) _Pragma(CF_STRINGIFY(clang diagnostic ignored x))
+#    define CF_DIAGNOSTIC_IGNORE_MSVC(x)
+#    define CF_DIAGNOSTIC_RESTORE_CLANG(x) _Pragma(CF_STRINGIFY(clang diagnostic warning x))
+#    define CF_DIAGNOSTIC_RESTORE_MSVC(x)
+#elif CF_COMPILER_MSVC
+#    define CF_DIAGNOSTIC_PUSH() _Pragma("warning(push)")
+#    define CF_DIAGNOSTIC_POP() _Pragma("warning(pop)")
+#    define CF_DIAGNOSTIC_IGNORE_CLANG(x)
+#    define CF_DIAGNOSTIC_IGNORE_MSVC(x) _Pragma(warning(disable : x))
+#    define CF_DIAGNOSTIC_RESTORE_CLANG(x)
+#    define CF_DIAGNOSTIC_RESTORE_MSVC(x) _Pragma(warning(default : x))
+#elif CF_COMPILER_GCC
+#    define CF_DIAGNOSTIC_PUSH() _Pragma("gcc diagnostic push")
+#    define CF_DIAGNOSTIC_POP() _Pragma("gcc diagnostic pop")
+#    define CF_DIAGNOSTIC_IGNORE_CLANG(x) _Pragma(CF_STRINGIFY(gcc diagnostic ignored x))
+#    define CF_DIAGNOSTIC_IGNORE_MSVC(x)
+#    define CF_DIAGNOSTIC_RESTORE_CLANG(x) _Pragma(CF_STRINGIFY(gcc diagnostic warning x))
+#    define CF_DIAGNOSTIC_RESTORE_MSVC(x)
+#else
+#    define CF_DIAGNOSTIC_PUSH()
+#    define CF_DIAGNOSTIC_POP()
+#    define CF_DIAGNOSTIC_IGNORE_CLANG(x)
+#    define CF_DIAGNOSTIC_IGNORE_MSVC(x)
+#    define CF_DIAGNOSTIC_RESTORE_CLANG(x)
+#    define CF_DIAGNOSTIC_RESTORE_MSVC(x)
+#endif
+
+//-------------------//
 //   Macro helpers   //
 //-------------------//
 
@@ -241,10 +277,8 @@
 //------------------------------------------------------------------------------
 
 #if defined(__cplusplus)
-#    if CF_COMPILER_CLANG
-#        pragma clang diagnostic push
-#        pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
-#    endif
+CF_DIAGNOSTIC_PUSH()
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wgnu-anonymous-struct")
 #endif
 
 /// Foundation types that can be used in API headers
@@ -648,9 +682,7 @@ typedef struct ClipSpace
 //------------------------------------------------------------------------------
 
 #if defined(__cplusplus)
-#    if CF_COMPILER_CLANG
-#        pragma clang diagnostic pop
-#    endif
+CF_DIAGNOSTIC_POP()
 #endif
 
 //------------------------------------------------------------------------------

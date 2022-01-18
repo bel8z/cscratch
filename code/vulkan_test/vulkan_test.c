@@ -1138,11 +1138,11 @@ static void
 appInitGui(App *app, Platform *platform)
 {
     // NOTE (Matteo): Custom IMGUI ini file
-// TODO (Matteo): Clean up!
-#if CF_COMPILER_MSVC
-#    pragma warning(push)
-#    pragma warning(disable : 4221)
-#endif
+    // TODO (Matteo): Clean up!
+
+    CF_DIAGNOSTIC_PUSH()
+    CF_DIAGNOSTIC_IGNORE_MSVC(4221)
+
     Paths *paths = platform->paths;
     Char8 gui_ini[Paths_Size] = {0};
     CF_ASSERT(paths->base.len + paths->exe_name.len < Paths_Size, "IMGUI ini file name too long");
@@ -1157,9 +1157,8 @@ appInitGui(App *app, Platform *platform)
         .user_data = app,
     };
     guiInit(platform->gui);
-#if CF_COMPILER_MSVC
-#    pragma warning(pop)
-#endif
+
+    CF_DIAGNOSTIC_POP()
 
     // Setup DPI handling
     F32 win_x_scale, win_y_scale;

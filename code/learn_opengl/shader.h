@@ -1,38 +1,51 @@
-#pragma once
+#if !defined(SHADER_DECL)
 
-#include "foundation/core.h"
-#include "foundation/io.h"
-#include "foundation/log.h"
-#include "foundation/strings.h"
+#    if defined(SHADER_STATIC)
+#        define SHADER_API static
+#    else
+#        define SHADER_API extern
+#    endif
 
-#include "gl/gload.h"
+#    include "foundation/core.h"
+#    include "foundation/io.h"
+#    include "foundation/log.h"
+#    include "foundation/strings.h"
+
+#    include "gl/gload.h"
 
 //===============//
 //   Interface   //
 //===============//
 
-#define INVALID_UNIFORM -1
+#    define INVALID_UNIFORM -1
 
 typedef struct Shader
 {
     U32 program;
 } Shader;
 
-void shaderBind(Shader shader);
-void shaderClear(void);
+SHADER_API void shaderBind(Shader shader);
+SHADER_API void shaderClear(void);
 
-Shader shaderLoadFiles(IoFileContent vtx, IoFileContent pix, CfLog *log);
-Shader shaderLoadStrings(Str vtx, Str pix, CfLog *log);
-void shaderUnload(Shader *shader);
+SHADER_API Shader shaderLoadFiles(IoFileContent vtx, IoFileContent pix, CfLog *log);
+SHADER_API Shader shaderLoadStrings(Str vtx, Str pix, CfLog *log);
+SHADER_API void shaderUnload(Shader *shader);
 
-I32 shaderGetUniform(Shader shader, Cstr uniform_name);
-bool shaderSetUniform(Shader shader, I32 id, I32 value);
+SHADER_API I32 shaderGetUniform(Shader shader, Cstr uniform_name);
+
+#    define SHADER_DECL
+#endif
 
 //====================//
 //   Implementation   //
 //====================//
 
 #if defined SHADER_IMPL
+
+#    if defined SHADER_STATIC
+CF_DIAGNOSTIC_PUSH()
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wunused-function")
+#    endif
 
 void
 shaderBind(Shader shader)
@@ -43,7 +56,6 @@ shaderBind(Shader shader)
 void
 shaderClear(void)
 {
-
     glUseProgram(0);
 }
 
@@ -137,5 +149,9 @@ shaderGetUniform(Shader shader, Cstr uniform_name)
 {
     return glGetUniformLocation(shader.program, uniform_name);
 }
+
+#    if defined SHADER_STATIC
+CF_DIAGNOSTIC_POP()
+#    endif
 
 #endif

@@ -2,8 +2,10 @@
 
 #pragma once
 
-#pragma warning(push)
-#pragma warning(disable : 5105)
+#include "core.h"
+
+CF_DIAGNOSTIC_PUSH()
+CF_DIAGNOSTIC_IGNORE_MSVC(5105)
 
 #if !defined(NOMINMAX)
 #    define NOMINMAX 1
@@ -20,9 +22,8 @@
 #include <process.h>
 #include <shellapi.h>
 
-#pragma warning(pop)
+CF_DIAGNOSTIC_POP()
 
-#include "core.h"
 #include "error.h"
 
 typedef Char16 const *Cstr16;

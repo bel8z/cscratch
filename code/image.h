@@ -1,6 +1,16 @@
-#pragma once
+#if !defined(IMAGE_DECL)
 
-#include "foundation/core.h"
+//===============//
+//   Interface   //
+//===============//
+
+#    include "foundation/core.h"
+
+#    if defined(IMAGE_STATIC)
+#        define IMAGE_API static
+#    else
+#        define IMAGE_API extern
+#    endif
 
 typedef struct IoFileApi IoFileApi;
 
@@ -21,14 +31,26 @@ typedef struct Image
     I32 height;
 } Image;
 
-void imageInit(MemAllocator alloc);
+IMAGE_API void imageInit(MemAllocator alloc);
 
 // TODO (Matteo): Migrate to Str?
-bool imageLoadFromFile(Image *image, Str filename, IoFileApi *api);
-bool imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size);
-void imageUnload(Image *image);
+IMAGE_API bool imageLoadFromFile(Image *image, Str filename, IoFileApi *api);
+IMAGE_API bool imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size);
+IMAGE_API void imageUnload(Image *image);
+
+#    define IMAGE_DECL
+#endif
+
+//====================//
+//   Implementation   //
+//====================//
 
 #if defined(IMAGE_IMPL)
+
+#    if defined IMAGE_STATIC
+CF_DIAGNOSTIC_PUSH()
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wunused-function")
+#    endif
 
 #    include "foundation/io.h"
 #    include "foundation/memory.h"
@@ -59,20 +81,13 @@ static void stbiFree(void *memory);
 #    define STBI_NO_STDIO
 
 // Include stbi implementation
-#    if CF_COMPILER_CLANG
-#        pragma clang diagnostic push
-#        pragma clang diagnostic ignored "-Wsign-conversion"
-#        pragma clang diagnostic ignored "-Wimplicit-int-conversion"
-#        pragma clang diagnostic ignored "-Wdouble-promotion"
-#    endif
-
+CF_DIAGNOSTIC_PUSH()
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wsign-conversion")
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wimplicit-int-conversion")
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wdouble-promotion")
 #    define STB_IMAGE_IMPLEMENTATION
-
 #    include <stb_image.h>
-
-#    if CF_COMPILER_CLANG
-#        pragma clang diagnostic pop
-#    endif
+CF_DIAGNOSTIC_POP()
 
 //------------------------------------------------------------------------------
 // Memory management
@@ -224,4 +239,10 @@ imageUnload(Image *image)
 
 //------------------------------------------------------------------------------
 
-#endif
+#    if defined IMAGE_STATIC
+CF_DIAGNOSTIC_POP()
+#    endif
+
+#endif // IMAGE_IMPL
+
+//====================//
