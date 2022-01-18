@@ -71,22 +71,28 @@ U32 indices[] = {0, 1, 2};
 
 Cstr vtx_shader_src = //
     "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"   // the position variable has attribute position 0
-    "layout (location = 1) in vec3 aColor;\n" // the color  variable has attribute position 1
-    "out vec3 ourColor;\n"                    // output a color to the fragment shader
+    "\n"
+    "layout (location = 0) in vec3 vtxPos;\n"
+    "layout (location = 1) in vec3 vtxColorIn;\n"
+    "\n"
+    "out vec3 vtxColorOut;\n"
+    "\n"
     "void main()\n"
     "{\n"
-    "     gl_Position = vec4(aPos.xyz, 1.0);\n"
-    "     ourColor = aColor;\n" // set ourColor to the input color we got from the vertex data
+    "     gl_Position = vec4(vtxPos, 1.0);\n"
+    "     vtxColorOut = vtxColorIn;\n"
     "}\n";
 
 Cstr pix_shader_src = //
     "#version 330 core\n"
+    "\n"
+    "in vec3 vtxColorOut;\n"
+    "\n"
     "out vec4 FragColor;\n"
-    "in vec3 ourColor;\n" // we set this variable in the OpenGL code.
+    "\n"
     "void main()\n"
     "{\n"
-    "    FragColor = vec4(ourColor, 1.0);\n"
+    "    FragColor = vec4(vtxColorOut, 1.0);\n"
     "}\n";
 
 //------------------------------------------------------------------------------
