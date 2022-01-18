@@ -1,9 +1,11 @@
 #include "app.h"
 #include "platform.h"
 
+#define SHADER_STATIC
 #define SHADER_IMPL
 #include "shader.h"
 
+#define IMAGE_STATIC
 #define IMAGE_IMPL
 #include "image.h"
 
@@ -19,6 +21,8 @@
 #include "foundation/strings.h"
 
 //------------------------------------------------------------------------------
+
+#define MAX_ACTIVE_TEXTURES 2
 
 typedef struct Vertex
 {
@@ -38,7 +42,7 @@ typedef struct GfxState
 {
     Shader shader;
     U32 VBO, EBO, VAO;
-    Texture container, wall;
+    Texture container, wall, face;
 } GfxState;
 
 struct AppState
@@ -65,10 +69,10 @@ struct AppState
 // NOTE (Matteo): CW vertices
 
 Vertex vertices[] = {
-    {0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1, 1},   // top right
-    {0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1, 0},  // bottom right
-    {-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0, 0}, // bottom left
-    {-0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0, 1},  // top left
+    {0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1, 0},   // top right
+    {0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1, 1},  // bottom right
+    {-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0, 1}, // bottom left
+    {-0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0, 0},  // top left
 };
 
 U32 indices[] = {
@@ -99,13 +103,15 @@ Cstr pix_shader_src = //
     "in vec3 vtxColor;\n"
     "in vec2 texCoord;\n"
     "\n"
-    "uniform sampler2D currTexture;\n"
+    "uniform sampler2D tex1;\n"
+    "uniform sampler2D tex2;\n"
     "\n"
     "out vec4 FragColor;\n"
     "\n"
     "void main()\n"
     "{\n"
-    "    FragColor = texture(currTexture, texCoord) * vec4(vtxColor, 1.0);\n"
+    // "    FragColor = texture(tex1, texCoord) * vec4(vtxColor, 1.0);\n"
+    "    FragColor = mix(texture(tex1, texCoord), texture(tex2, texCoord), 0.5);\n"
     "}\n";
 
 //------------------------------------------------------------------------------
@@ -265,20 +271,40 @@ gfxInit(GfxState *gfx, CfLog *log, Paths *paths, IoFileApi *file)
     filename.str.len = pos;
     strBufferAppendStr(&filename, strLiteral("wall.jpg"));
     textureLoad(&gfx->wall, filename.str, file);
+
+    filename.str.len = pos;
+    strBufferAppendStr(&filename, strLiteral("awesomeface.png"));
+    textureLoad(&gfx->face, filename.str, file);
+
+    // Assign texture units
+    shaderBind(gfx->shader);
+    glUniform1i(shaderGetUniform(gfx->shader, "tex1"), 0);
+    glUniform1i(shaderGetUniform(gfx->shader, "tex2"), 1);
+    shaderClear();
 }
 
 static void
 gfxShutdown(GfxState *gfx)
 {
-    glBindTexture(GL_TEXTURE_2D, 0);
+    // Unbind all used textures
+    for (U32 i = 0; i < MAX_ACTIVE_TEXTURES; i++)
+    {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    // Delete all textures
     glDeleteTextures(1, &gfx->container.id);
     glDeleteTextures(1, &gfx->wall.id);
+    glDeleteTextures(1, &gfx->face.id);
 
+    // Unbind and delete buffers
     glBindVertexArray(0);
     glDeleteBuffers(1, &gfx->EBO);
     glDeleteBuffers(1, &gfx->VBO);
     glDeleteVertexArrays(1, &gfx->VAO);
 
+    // Unbind and delete shader
     shaderClear();
     shaderUnload(&gfx->shader);
 }
@@ -289,7 +315,13 @@ gfxProc(GfxState *gfx, CfLog *log)
     CF_UNUSED(log); // at the moment
 
     shaderBind(gfx->shader);
+
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, gfx->container.id);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, gfx->face.id);
+
     glBindVertexArray(gfx->VAO);
     glDrawElements(GL_TRIANGLES, CF_ARRAY_SIZE(indices), GL_UNSIGNED_INT, 0);
 }
