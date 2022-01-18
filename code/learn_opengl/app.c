@@ -83,24 +83,30 @@ Cstr vtx_shader_src = //
     "layout (location = 1) in vec3 vtxColorIn;\n"
     "layout (location = 2) in vec2 vtxTexCoord;\n"
     "\n"
-    "out vec3 vtxColorOut;\n"
+    "out vec3 vtxColor;\n"
+    "out vec2 texCoord;\n"
     "\n"
     "void main()\n"
     "{\n"
     "     gl_Position = vec4(vtxPos, 1.0);\n"
-    "     vtxColorOut = vtxColorIn;\n"
+    "     vtxColor = vtxColorIn;\n"
+    "     texCoord = vtxTexCoord;\n"
     "}\n";
 
 Cstr pix_shader_src = //
     "#version 330 core\n"
     "\n"
-    "in vec3 vtxColorOut;\n"
+    "in vec3 vtxColor;\n"
+    "in vec2 texCoord;\n"
+    "\n"
+    "uniform sampler2D ourTexture;\n"
     "\n"
     "out vec4 FragColor;\n"
     "\n"
     "void main()\n"
     "{\n"
-    "    FragColor = vec4(vtxColorOut, 1.0);\n"
+    // "    FragColor = vec4(vtxColor, 1.0);\n"
+    "    FragColor = texture(ourTexture, texCoord);\n"
     "}\n";
 
 //------------------------------------------------------------------------------
@@ -284,6 +290,7 @@ gfxProc(GfxState *gfx, CfLog *log)
     CF_UNUSED(log); // at the moment
 
     shaderBind(gfx->shader);
+    glBindTexture(GL_TEXTURE_2D, gfx->container.id);
     glBindVertexArray(gfx->VAO);
     glDrawElements(GL_TRIANGLES, CF_ARRAY_SIZE(indices), GL_UNSIGNED_INT, 0);
 }
