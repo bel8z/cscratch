@@ -20,6 +20,12 @@
 
 //------------------------------------------------------------------------------
 
+typedef struct Vertex
+{
+    F32 x, y, z;
+    F32 r, g, b;
+} Vertex;
+
 typedef struct Texture
 {
     I32 width;
@@ -55,11 +61,10 @@ struct AppState
 
 //------------------------------------------------------------------------------
 
-F32 vertices[] = {
-    // positions        // colors
-    0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom right
-    -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom left
-    0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f  // top
+Vertex vertices[] = {
+    {0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f},  // bottom right
+    {-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f}, // bottom left
+    {0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f}    // top
 };
 
 U32 indices[] = {0, 1, 2};
@@ -195,15 +200,12 @@ gfxInit(GfxState *gfx, CfLog *log, Paths *paths, IoFileApi *file)
     glBindBuffer(GL_ARRAY_BUFFER, gfx->VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    I32 stride = 6 * sizeof(float);
-    Iptr color_offset = stride / 2;
-
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
     glEnableVertexAttribArray(0);
 
     // Color attribure
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void *)color_offset);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, r));
     glEnableVertexAttribArray(1);
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex
