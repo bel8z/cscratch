@@ -62,12 +62,14 @@ struct AppState
 
 //------------------------------------------------------------------------------
 
-float vertices[] = {
+F32 vertices[] = {
     // positions        // colors
     0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom right
     -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom left
     0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f  // top
 };
+
+U32 indices[] = {0, 1, 2};
 
 Cstr vtx_shader_src = //
     "#version 330 core\n"
@@ -233,8 +235,8 @@ gfxInit(GfxState *gfx, CfLog *log)
     // attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gfx->EBO);
-    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gfx->EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but
     // this rarely happens.
@@ -253,7 +255,7 @@ gfxProc(GfxState *gfx, CfLog *log)
 
     shaderBind(gfx->shader);
     glBindVertexArray(gfx->VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawElements(GL_TRIANGLES, CF_ARRAY_SIZE(indices), GL_UNSIGNED_INT, 0);
 }
 
 APP_API APP_UPDATE_PROC(appUpdate)
