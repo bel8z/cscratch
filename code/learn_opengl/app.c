@@ -20,12 +20,6 @@
 
 //------------------------------------------------------------------------------
 
-typedef struct GfxState
-{
-    Shader shader;
-    U32 VBO, EBO, VAO;
-} GfxState;
-
 typedef struct Texture
 {
     I32 width;
@@ -33,11 +27,12 @@ typedef struct Texture
     U32 id;
 } Texture;
 
-typedef struct Assets
+typedef struct GfxState
 {
-    Texture container;
-    Texture wall;
-} Assets;
+    Shader shader;
+    U32 VBO, EBO, VAO;
+    Texture container, wall;
+} GfxState;
 
 struct AppState
 {
@@ -46,8 +41,6 @@ struct AppState
     GfxState gfx;
 
     CfLog log;
-
-    Assets assets;
 
     // Output
     Srgb32 clear_color;
@@ -93,8 +86,7 @@ Cstr pix_shader_src = //
 
 //------------------------------------------------------------------------------
 
-static void assetsLoad(Assets *assets, Paths *paths, IoFileApi *file);
-static void gfxInit(GfxState *state, CfLog *log);
+static void gfxInit(GfxState *state, CfLog *log, Paths *paths, IoFileApi *file);
 
 //------------------------------------------------------------------------------
 
@@ -110,9 +102,7 @@ APP_API APP_CREATE_PROC(appCreate)
     app->log = cfLogCreate(plat->vm, CF_MB(1));
 
     appLoad(app);
-    assetsLoad(&app->assets, plat->paths, plat->file);
-
-    gfxInit(&app->gfx, &app->log);
+    gfxInit(&app->gfx, &app->log, plat->paths, plat->file);
 
     return app;
 }
@@ -183,31 +173,16 @@ textureLoad(Texture *tex, Str filename, IoFileApi *file)
     return true;
 }
 
-void
-assetsLoad(Assets *assets, Paths *paths, IoFileApi *file)
-{
-    StrBuffer filename = {0};
-    strBufferInit(&filename);
-    strBufferAppendStr(&filename, paths->data);
-    Usize pos = filename.str.len;
-
-    filename.str.len = pos;
-    strBufferAppendStr(&filename, strLiteral("container.jpg"));
-    textureLoad(&assets->container, filename.str, file);
-
-    filename.str.len = pos;
-    strBufferAppendStr(&filename, strLiteral("wall.jpg"));
-    textureLoad(&assets->wall, filename.str, file);
-}
-
-//------------------------------------------------------------------------------
-
 static void
-gfxInit(GfxState *gfx, CfLog *log)
+gfxInit(GfxState *gfx, CfLog *log, Paths *paths, IoFileApi *file)
 {
+    //=== Shaders ==//
+
     gfx->shader = shaderLoadStrings(strFromCstr(vtx_shader_src), //
                                     strFromCstr(pix_shader_src), //
                                     log);
+
+    //=== Buffers ==//
 
     glGenVertexArrays(1, &gfx->VAO);
     glGenBuffers(1, &gfx->VBO);
@@ -246,6 +221,21 @@ gfxInit(GfxState *gfx, CfLog *log)
 
     // The EBO must be unbound AFTER unbinding the VAO in order to keep it recorded
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    //=== Textures ==//
+
+    StrBuffer filename = {0};
+    strBufferInit(&filename);
+    strBufferAppendStr(&filename, paths->data);
+    Usize pos = filename.str.len;
+
+    filename.str.len = pos;
+    strBufferAppendStr(&filename, strLiteral("container.jpg"));
+    textureLoad(&gfx->container, filename.str, file);
+
+    filename.str.len = pos;
+    strBufferAppendStr(&filename, strLiteral("wall.jpg"));
+    textureLoad(&gfx->wall, filename.str, file);
 }
 
 static void
