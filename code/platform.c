@@ -47,7 +47,7 @@
 extern bool ImGui_ImplOpenGL3_Init(const char *glsl_version);
 extern void ImGui_ImplOpenGL3_Shutdown();
 extern void ImGui_ImplOpenGL3_NewFrame();
-extern void ImGui_ImplOpenGL3_RenderDrawData(ImDrawData *draw_data);
+extern void ImGui_ImplOpenGL3_RenderDrawData(GuiDrawData *draw_data);
 extern bool ImGui_ImplOpenGL3_CreateFontsTexture();
 extern void ImGui_ImplOpenGL3_DestroyFontsTexture();
 extern bool ImGui_ImplOpenGL3_CreateDeviceObjects();
@@ -368,7 +368,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         // Rendering //
         //-----------//
 
-        ImDrawData *draw_data = guiRender();
+        GuiDrawData *draw_data = guiRender();
         ImGui_ImplOpenGL3_RenderDrawData(draw_data);
 
         // Update and Render additional Platform Windows

@@ -43,6 +43,7 @@ typedef struct GfxState
     Shader shader;
     U32 VBO, EBO, VAO;
     Texture container, wall, face;
+    F32 blend;
 } GfxState;
 
 struct AppState
@@ -105,13 +106,14 @@ Cstr pix_shader_src = //
     "\n"
     "uniform sampler2D tex1;\n"
     "uniform sampler2D tex2;\n"
+    "uniform float blend;\n"
     "\n"
     "out vec4 FragColor;\n"
     "\n"
     "void main()\n"
     "{\n"
     // "    FragColor = texture(tex1, texCoord) * vec4(vtxColor, 1.0);\n"
-    "    FragColor = mix(texture(tex1, texCoord), texture(tex2, texCoord), 0.5);\n"
+    "    FragColor = mix(texture(tex1, texCoord), texture(tex2, texCoord), blend);\n"
     "}\n";
 
 //------------------------------------------------------------------------------
@@ -322,6 +324,8 @@ gfxProc(GfxState *gfx, CfLog *log)
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, gfx->face.id);
 
+    glUniform1f(shaderGetUniform(gfx->shader, "blend"), gfx->blend);
+
     glBindVertexArray(gfx->VAO);
     glDrawElements(GL_TRIANGLES, CF_ARRAY_SIZE(indices), GL_UNSIGNED_INT, 0);
 }
@@ -387,6 +391,10 @@ APP_API APP_UPDATE_PROC(appUpdate)
     {
         guiMetricsWindow(&state->metrics);
     }
+
+    guiBeginAutoResize("Tool", NULL);
+    guiSlider("Blend", &state->gfx.blend, 0, 1);
+    guiEnd();
 
     gfxProc(&state->gfx, &state->log);
 }

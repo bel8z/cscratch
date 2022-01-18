@@ -2,15 +2,15 @@
 
 #include "foundation/core.h"
 
-// Forward declared types
+// NOTE (Matteo): Here i forward declare some Imgui internal types, while
+// also "importing" them into the Gui namespace
 
-typedef struct ImGuiContext ImGuiContext;
-typedef struct ImFontAtlas ImFontAtlas;
-typedef struct ImDrawList ImDrawList;
-typedef struct ImDrawData ImDrawData;
-typedef struct ImFont ImFont;
-typedef struct ImFontAtlas ImFontAtlas;
-typedef struct ImGuiDockNode ImGuiDockNode;
+typedef struct ImGuiContext GuiContext;
+typedef struct ImFontAtlas GuiFontAtlas;
+typedef struct ImDrawList GuiDrawList;
+typedef struct ImDrawData GuiDrawData;
+typedef struct ImFont GuiFont;
+typedef struct ImGuiDockNode GuiDockNode;
 
 // Enums
 
@@ -79,8 +79,8 @@ typedef struct Gui
 {
     MemAllocator alloc;
 
-    ImGuiContext *ctx;
-    ImFontAtlas *shared_atlas;
+    GuiContext *ctx;
+    GuiFontAtlas *shared_atlas;
 
     Cstr ini_filename;
     void *user_data;
@@ -96,7 +96,7 @@ CF_API GuiMemory guiMemoryInfo(void);
 CF_API void *guiUserData(void);
 
 CF_API void guiNewFrame(void);
-CF_API ImDrawData *guiRender(void);
+CF_API GuiDrawData *guiRender(void);
 CF_API void guiUpdateViewports(bool render);
 
 //=== Themes & styling ===//
@@ -146,7 +146,7 @@ CF_API F32 guiGetMouseDownDuration(GuiMouseButton button);
 
 typedef struct GuiDockLayout
 {
-    ImGuiDockNode *node;
+    GuiDockNode *node;
     U32 id;
     bool open;
 } GuiDockLayout;
@@ -161,6 +161,7 @@ CF_API bool guiDockWindow(GuiDockLayout *layout, Cstr name, U32 dock_id);
 CF_API void guiSetNextWindowSize(Vec2 size, GuiCond cond);
 
 CF_API bool guiBegin(Cstr name, bool *p_open);
+CF_API bool guiBeginAutoResize(Cstr name, bool *p_open);
 CF_API bool guiBeginLayout(Cstr name, GuiDockLayout *layout);
 CF_API void guiEnd(void);
 
@@ -222,14 +223,14 @@ typedef struct GuiFontOptions
 /// Widget for the editing of font options
 CF_API bool guiFontOptionsEdit(GuiFontOptions *state);
 /// Update the given atlas with the given options
-CF_API void guiUpdateAtlas(ImFontAtlas *fonts, GuiFontOptions *font_opts);
+CF_API void guiUpdateAtlas(GuiFontAtlas *fonts, GuiFontOptions *font_opts);
 /// Update the current font atlas with the given options
 #define guiUpdateFonts(font_opts) guiUpdateAtlas(igGetIO()->Fonts, font_opts)
 
-CF_API ImFontAtlas *guiFonts(void);
-CF_API ImFont *guiLoadFont(ImFontAtlas *fonts, Cstr file_name, F32 font_size);
-CF_API ImFont *guiLoadDefaultFont(ImFontAtlas *fonts);
-CF_API bool guiLoadCustomFonts(ImFontAtlas *fonts, F32 scale, Str data_path);
+CF_API GuiFontAtlas *guiFonts(void);
+CF_API GuiFont *guiLoadFont(GuiFontAtlas *fonts, Cstr file_name, F32 font_size);
+CF_API GuiFont *guiLoadDefaultFont(GuiFontAtlas *fonts);
+CF_API bool guiLoadCustomFonts(GuiFontAtlas *fonts, F32 scale, Str data_path);
 
 //=== File dialogs ===//
 
@@ -290,7 +291,7 @@ enum
 typedef struct GuiCanvas
 {
     Vec2 size, p0, p1;
-    ImDrawList *draw_list;
+    GuiDrawList *draw_list;
     Srgb32 stroke_color, fill_color;
     F32 stroke_thick;
 } GuiCanvas;

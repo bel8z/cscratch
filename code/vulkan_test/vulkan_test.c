@@ -204,7 +204,7 @@ typedef struct ImGui_ImplVulkan_InitInfo
 extern bool ImGui_ImplVulkan_Init(ImGui_ImplVulkan_InitInfo *info, VkRenderPass render_pass);
 extern void ImGui_ImplVulkan_Shutdown();
 extern void ImGui_ImplVulkan_NewFrame();
-extern void ImGui_ImplVulkan_RenderDrawData(ImDrawData *draw_data, VkCommandBuffer command_buffer,
+extern void ImGui_ImplVulkan_RenderDrawData(GuiDrawData *draw_data, VkCommandBuffer command_buffer,
                                             VkPipeline pipeline);
 extern bool ImGui_ImplVulkan_CreateFontsTexture(VkCommandBuffer command_buffer);
 extern void ImGui_ImplVulkan_DestroyFontUploadObjects();
@@ -1170,7 +1170,7 @@ appInitGui(App *app, Platform *platform)
     guiSetupStyle(GuiTheme_Dark, dpi_scale);
 
     // Setup Dear ImGui fonts
-    ImFontAtlas *fonts = guiFonts();
+    GuiFontAtlas *fonts = guiFonts();
     if (!guiLoadCustomFonts(fonts, dpi_scale, paths->data)) guiLoadDefaultFont(fonts);
 
     ImGui_ImplGlfw_InitForVulkan(app->window, true);
@@ -1528,7 +1528,7 @@ appDrawFrame(App *app, Frame *frame)
                          0  // First instance - lowest value for 'gl_InstanceIndex'
         );
 
-        ImDrawData *draw_data = guiRender();
+        GuiDrawData *draw_data = guiRender();
 #if RENDER_GUI
         ImGui_ImplVulkan_RenderDrawData(draw_data, frame->cmd, VK_NULL_HANDLE);
 #else

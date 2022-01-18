@@ -35,8 +35,8 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wsign-conversion")
 
 CF_DIAGNOSTIC_POP()
 
-static ImFont *
-gui_LoadCustomFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
+static GuiFont *
+gui_LoadCustomFont(GuiFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
 {
     Char8 buffer[1024] = {0};
     strPrint(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
@@ -44,7 +44,7 @@ gui_LoadCustomFont(ImFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
 }
 
 bool
-guiLoadCustomFonts(ImFontAtlas *atlas, F32 dpi_scale, Str data_path)
+guiLoadCustomFonts(GuiFontAtlas *atlas, F32 dpi_scale, Str data_path)
 {
     // TODO (Matteo): Make font list available to the application?
 
@@ -58,7 +58,7 @@ guiLoadCustomFonts(ImFontAtlas *atlas, F32 dpi_scale, Str data_path)
     // display an error and quit).
     // - The fonts will be rasterized at a given size (w/ oversampling) and
     // stored into a texture when calling
-    // ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame
+    // GuiFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame
     // below will call.
     // - Read 'docs/FONTS.md' for more instructions and details.
     // - Remember that in C/C++ if you want to include a backslash \ in a string
@@ -67,7 +67,7 @@ guiLoadCustomFonts(ImFontAtlas *atlas, F32 dpi_scale, Str data_path)
     F32 const scale = dpi_scale * GUI_PLATFORM_DPI / GUI_TRUETYPE_DPI;
 
     // NOTE (Matteo): This ensure the proper loading order even in optimized release builds
-    ImFont const *fonts[4] = {
+    GuiFont const *fonts[4] = {
         gui_LoadCustomFont(atlas, data_path, "NotoSans", mRound(13.0f * scale)),
         gui_LoadCustomFont(atlas, data_path, "OpenSans", mRound(13.5f * scale)),
         gui_LoadCustomFont(atlas, data_path, "SourceSansPro", mRound(13.5f * scale)),

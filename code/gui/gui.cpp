@@ -654,6 +654,12 @@ guiBegin(Cstr name, bool *p_open)
 }
 
 bool
+guiBeginAutoResize(Cstr name, bool *p_open)
+{
+    return ImGui::Begin(name, p_open, ImGuiWindowFlags_AlwaysAutoResize);
+}
+
+bool
 guiBeginLayout(Cstr name, GuiDockLayout *layout)
 {
     if (layout->open)
