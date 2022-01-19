@@ -13,10 +13,12 @@
 #include "foundation/win32.inl"
 
 //  NOTE (Matteo): Link to relevant win32 libs
-#pragma comment(lib, "kernel32")
-#pragma comment(lib, "user32")
-#pragma comment(lib, "gdi32")
-#pragma comment(lib, "mincore")
+#if CF_COMPILER_MSVC
+#    pragma comment(lib, "kernel32")
+#    pragma comment(lib, "user32")
+#    pragma comment(lib, "gdi32")
+#    pragma comment(lib, "mincore")
+#endif
 
 //------------------------------------------------------------------------------
 // API interface

@@ -22,6 +22,9 @@
 #if !defined(__cplusplus)
 #    define alignof _Alignof
 #    define alignas _Alignas
+#    if !defined(static_assert)
+#        define static_assert _Static_assert
+#    endif
 #endif
 
 #define CF_UNUSED(var) (void)(var)
