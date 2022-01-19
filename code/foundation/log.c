@@ -4,9 +4,9 @@
 #include "strings.h"
 
 CfLog
-cfLogCreate(CfVirtualMemory *vm, Usize buffer_size)
+cfLogCreate(VMemApi *vmem, Usize buffer_size)
 {
-    VmMirrorBuffer buffer = vmMirrorAllocate(vm, buffer_size);
+    VMemMirrorBuffer buffer = vmemMirrorAllocate(vmem, buffer_size);
     return (CfLog){
         .os_handle = buffer.os_handle,
         .buffer = buffer.data,
@@ -15,14 +15,14 @@ cfLogCreate(CfVirtualMemory *vm, Usize buffer_size)
 }
 
 void
-cfLogDestroy(CfLog *log, CfVirtualMemory *vm)
+cfLogDestroy(CfLog *log, VMemApi *vmem)
 {
-    VmMirrorBuffer buffer = {
+    VMemMirrorBuffer buffer = {
         .os_handle = log->os_handle,
         .data = log->buffer,
         .size = log->size,
     };
-    vmMirrorFree(vm, &buffer);
+    vmemMirrorFree(vmem, &buffer);
     memClearStruct(log);
 }
 

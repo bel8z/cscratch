@@ -750,9 +750,9 @@ APP_API APP_CREATE_PROC(appCreate)
 {
     // NOTE (Matteo): Memory comes cleared to 0
     Usize const storage_size = CF_GB(1);
-    void *storage = vmReserve(plat->vm, storage_size);
+    void *storage = vmemReserve(plat->vmem, storage_size);
 
-    MemArena *main = memArenaBootstrapFromVm(plat->vm, storage, storage_size);
+    MemArena *main = memArenaBootstrapFromVmem(plat->vmem, storage, storage_size);
     AppState *app = memArenaAllocStruct(main, AppState);
 
     app->base_pointer = storage;
@@ -801,7 +801,7 @@ APP_API APP_PROC(appDestroy)
     memArenaClear(app->scratch);
     memArenaClear(app->main);
 
-    vmRelease(app->plat->vm, app->base_pointer, app->storage_size);
+    vmemRelease(app->plat->vmem, app->base_pointer, app->storage_size);
 }
 
 APP_API APP_PROC(appLoad)

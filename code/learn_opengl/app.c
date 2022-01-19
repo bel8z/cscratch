@@ -132,7 +132,7 @@ APP_API APP_CREATE_PROC(appCreate)
 
     app->plat = plat;
     app->clear_color = SRGB32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
-    app->log = cfLogCreate(plat->vm, CF_MB(1));
+    app->log = cfLogCreate(plat->vmem, CF_MB(1));
     app->log_box = true;
 
     appLoad(app);
@@ -174,7 +174,7 @@ APP_API APP_PROC(appDestroy)
     CF_ASSERT_NOT_NULL(app);
     CF_ASSERT_NOT_NULL(app->plat);
 
-    cfLogDestroy(&app->log, app->plat->vm);
+    cfLogDestroy(&app->log, app->plat->vmem);
     memFree(app->plat->heap, app, sizeof(*app));
 }
 

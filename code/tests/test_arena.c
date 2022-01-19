@@ -13,9 +13,9 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     MemArena arena;
     Usize const storage_size = 1024 * 1024 * 1024;
-    void *storage = vmReserve(platform->vm, storage_size);
+    void *storage = vmemReserve(platform->vmem, storage_size);
 
-    if (!memArenaInitOnVm(&arena, platform->vm, storage, storage_size))
+    if (!memArenaInitOnVmem(&arena, platform->vmem, storage, storage_size))
     {
         printf("Cannot init memory arena");
         return -1;
@@ -51,7 +51,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         CF_ASSERT(ints[i] == i, "");
     }
 
-    vmRelease(platform->vm, storage, storage_size);
+    vmemRelease(platform->vmem, storage, storage_size);
 
     return 0;
 }

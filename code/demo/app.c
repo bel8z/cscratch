@@ -53,7 +53,7 @@ APP_API APP_CREATE_PROC(appCreate)
     app->clear_color = SRGB32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
     app->windows.stats = true;
 
-    app->log = cfLogCreate(plat->vm, 128);
+    app->log = cfLogCreate(plat->vmem, 128);
 
     while (app->log.write_pos < app->log.size)
     {
@@ -70,7 +70,7 @@ APP_API APP_CREATE_PROC(appCreate)
 APP_API APP_PROC(appDestroy)
 {
     appUnload(app);
-    cfLogDestroy(&app->log, app->plat->vm);
+    cfLogDestroy(&app->log, app->plat->vmem);
     memFree(app->alloc, app, sizeof(*app));
 }
 

@@ -28,13 +28,13 @@ I32 platformMain(Platform *platform, CommandLine *cmd_line);
 
 //---- Virtual memory ----//
 
-static VM_RESERVE_FUNC(win32VmReserve);
-static VM_COMMIT_FUNC(win32VmCommit);
-static VM_REVERT_FUNC(win32VmDecommit);
-static VM_RELEASE_FUNC(win32VmRelease);
+static VMEM_RESERVE_FUNC(win32VmReserve);
+static VMEM_COMMIT_FUNC(win32VmCommit);
+static VMEM_DECOMMIT_FUNC(win32VmDecommit);
+static VMEM_RELEASE_FUNC(win32VmRelease);
 
-static VM_MIRROR_ALLOCATE(win32MirrorAllocate);
-static VM_MIRROR_FREE(win32MirrorFree);
+static VMEM_MIRROR_ALLOCATE(win32MirrorAllocate);
+static VMEM_MIRROR_FREE(win32MirrorFree);
 
 //---- Heap allocation ----//
 
@@ -66,12 +66,12 @@ static void *win32libLoadProc(Library *restrict lib, Cstr restrict name);
 
 // NOTE (Matteo): a global here should be quite safe
 static Platform g_platform = {
-    .vm =
-        &(CfVirtualMemory){
+    .vmem =
+        &(VMemApi){
             .reserve = win32VmReserve,
             .release = win32VmRelease,
             .commit = win32VmCommit,
-            .revert = win32VmDecommit,
+            .decommit = win32VmDecommit,
             .mirrorAllocate = win32MirrorAllocate,
             .mirrorFree = win32MirrorFree,
         },
@@ -188,12 +188,12 @@ win32PlatformInit(void)
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
 
-    g_platform.vm->page_size = sysinfo.dwPageSize;
-    g_platform.vm->address_granularity = sysinfo.dwAllocationGranularity;
+    g_platform.vmem->page_size = sysinfo.dwPageSize;
+    g_platform.vmem->address_granularity = sysinfo.dwAllocationGranularity;
 
 #if CF_MEMORY_PROTECTION
     CF_UNUSED(win32Alloc);
-    g_platform.heap = memEndOfPageAllocator(g_platform.vm);
+    g_platform.heap = memEndOfPageAllocator(g_platform.vmem);
 #else
     g_platform.heap.state = &g_platform;
     g_platform.heap.func = win32Alloc;
@@ -266,7 +266,7 @@ main(I32 argc, Cstr argv[])
 //   Memory   //
 //------------//
 
-VM_RESERVE_FUNC(win32VmReserve)
+VMEM_RESERVE_FUNC(win32VmReserve)
 {
     void *mem = VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_NOACCESS);
 
@@ -278,7 +278,7 @@ VM_RESERVE_FUNC(win32VmReserve)
     return mem;
 }
 
-VM_COMMIT_FUNC(win32VmCommit)
+VMEM_COMMIT_FUNC(win32VmCommit)
 {
     void *committed = VirtualAlloc(memory, size, MEM_COMMIT, PAGE_READWRITE);
 
@@ -292,7 +292,7 @@ VM_COMMIT_FUNC(win32VmCommit)
     return false;
 }
 
-VM_REVERT_FUNC(win32VmDecommit)
+VMEM_DECOMMIT_FUNC(win32VmDecommit)
 {
     bool result = VirtualFree(memory, size, MEM_DECOMMIT);
     if (result)
@@ -306,7 +306,7 @@ VM_REVERT_FUNC(win32VmDecommit)
     }
 }
 
-VM_RELEASE_FUNC(win32VmRelease)
+VMEM_RELEASE_FUNC(win32VmRelease)
 {
     // NOTE (Matteo): VirtualFree(..., MEM_RELEASE) requires the base pointer
     // returned by VirtualFree(..., MEM_RESERVE) and a size of 0 to succeed.
@@ -324,14 +324,14 @@ VM_RELEASE_FUNC(win32VmRelease)
     }
 }
 
-VM_MIRROR_ALLOCATE(win32MirrorAllocate)
+VMEM_MIRROR_ALLOCATE(win32MirrorAllocate)
 {
     // NOTE (Matteo): Size is rounded to virtual memory granularity because the mapping addresses
     // must be aligned as such.
-    Usize granularity = g_platform.vm->address_granularity;
+    Usize granularity = g_platform.vmem->address_granularity;
     Usize buffer_size = (size + granularity - 1) & ~(granularity - 1);
 
-    VmMirrorBuffer buffer = {0};
+    VMemMirrorBuffer buffer = {0};
 
 #if (CF_PTR_SIZE == 8)
     HANDLE mapping =
@@ -412,7 +412,7 @@ VM_MIRROR_ALLOCATE(win32MirrorAllocate)
     return buffer;
 }
 
-VM_MIRROR_FREE(win32MirrorFree)
+VMEM_MIRROR_FREE(win32MirrorFree)
 {
     if (buffer->data)
     {

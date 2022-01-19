@@ -2,7 +2,7 @@
 
 #include "core.h"
 
-typedef struct CfVirtualMemory CfVirtualMemory;
+typedef struct VMemApi VMemApi;
 
 typedef struct CfLog
 {
@@ -12,8 +12,8 @@ typedef struct CfLog
     Usize write_pos;
 } CfLog;
 
-CF_API CfLog cfLogCreate(CfVirtualMemory *vm, Usize buffer_size);
-CF_API void cfLogDestroy(CfLog *log, CfVirtualMemory *vm);
+CF_API CfLog cfLogCreate(VMemApi *vmem, Usize buffer_size);
+CF_API void cfLogDestroy(CfLog *log, VMemApi *vmem);
 
 CF_API Str cfLogString(CfLog *log);
 CF_API Cstr cfLogCstring(CfLog *log);

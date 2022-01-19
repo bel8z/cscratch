@@ -66,20 +66,20 @@ U8 const *memAlignForward(U8 const *address, Usize alignment);
 // NOTE (Matteo): The implementation of this API must be provided by the platform layer
 // TODO (Matteo): Improve mirror buffer API (and naming)
 
-#define VM_RESERVE_FUNC(name) void *name(Usize size)
-#define VM_RELEASE_FUNC(name) void name(void *memory, Usize size)
+#define VMEM_RESERVE_FUNC(name) void *name(Usize size)
+#define VMEM_RELEASE_FUNC(name) void name(void *memory, Usize size)
 
-#define VM_COMMIT_FUNC(name) bool name(void *memory, Usize size)
-#define VM_REVERT_FUNC(name) void name(void *memory, Usize size)
+#define VMEM_COMMIT_FUNC(name) bool name(void *memory, Usize size)
+#define VMEM_DECOMMIT_FUNC(name) void name(void *memory, Usize size)
 
-#define VM_MIRROR_ALLOCATE(name) VmMirrorBuffer name(Usize size)
-#define VM_MIRROR_FREE(name) void name(VmMirrorBuffer *buffer)
+#define VMEM_MIRROR_ALLOCATE(name) VMemMirrorBuffer name(Usize size)
+#define VMEM_MIRROR_FREE(name) void name(VMemMirrorBuffer *buffer)
 
 /// Buffer built upon two adjacent virtual memory blocks that map to the same physical memory.
 /// The memory is thus "mirrored" between the two blocks, hence the name.
 /// Access is safe in the range [0, 2 * size), where the memory in [0, size) is exactly the same as
 /// in [size, 2 * size)
-typedef struct VmMirrorBuffer
+typedef struct VMemMirrorBuffer
 {
     // Size of the buffer (it may be greater than requested to match address granularity)
     Usize size;
@@ -87,37 +87,37 @@ typedef struct VmMirrorBuffer
     void *data;
     // OS specific handle
     void *os_handle;
-} VmMirrorBuffer;
+} VMemMirrorBuffer;
 
 /// Virtual memory access API
-typedef struct CfVirtualMemory
+typedef struct VMemApi
 {
     // Reserve a block of virtual memory, without committing it (memory can't be accessed)
-    VM_RESERVE_FUNC((*reserve));
+    VMEM_RESERVE_FUNC((*reserve));
     // Release a block of reserved virtual memory
-    VM_RELEASE_FUNC((*release));
+    VMEM_RELEASE_FUNC((*release));
     // Commit a portion of reserved virtual memory
-    VM_COMMIT_FUNC((*commit));
+    VMEM_COMMIT_FUNC((*commit));
     // Decommit a portion of reserved virtual memory
-    VM_REVERT_FUNC((*revert));
+    VMEM_DECOMMIT_FUNC((*decommit));
 
     // Allocate a "mirror buffer" (single block of physical memory mapped to two adjacent blocks of
     // virtual memory)
-    VM_MIRROR_ALLOCATE((*mirrorAllocate));
+    VMEM_MIRROR_ALLOCATE((*mirrorAllocate));
     // Release a "mirror buffer"
-    VM_MIRROR_FREE((*mirrorFree));
+    VMEM_MIRROR_FREE((*mirrorFree));
 
     Usize page_size;
     Usize address_granularity;
-} CfVirtualMemory;
+} VMemApi;
 
-#define vmReserve(vm, size) (vm)->reserve(size)
-#define vmRelease(vm, mem, size) (vm)->release(mem, size)
-#define vmCommit(vm, mem, size) (vm)->commit(mem, size)
-#define vmRevert(vm, mem, size) (vm)->revert(mem, size)
+#define vmemReserve(vmem, size) (vmem)->reserve(size)
+#define vmemRelease(vmem, mem, size) (vmem)->release(mem, size)
+#define vmemCommit(vmem, mem, size) (vmem)->commit(mem, size)
+#define vmemDecommit(vmem, mem, size) (vmem)->decommit(mem, size)
 
-#define vmMirrorAllocate(vm, size) (vm)->mirrorAllocate(size)
-#define vmMirrorFree(vm, buff) (vm)->mirrorFree(buff)
+#define vmemMirrorAllocate(vmem, size) (vmem)->mirrorAllocate(size)
+#define vmemMirrorFree(vmem, buff) (vmem)->mirrorFree(buff)
 
 //---------------------------//
 //   End-of-page allocator   //
@@ -126,7 +126,7 @@ typedef struct CfVirtualMemory
 // NOTE (Matteo): This allocator is useful for out-of-bounds access since it allocates
 // blocks at the end of virtual memory pages.
 
-MemAllocator memEndOfPageAllocator(CfVirtualMemory *vm);
+MemAllocator memEndOfPageAllocator(VMemApi *vmem);
 
 //------------------//
 //   Memory arena   //
@@ -138,12 +138,12 @@ typedef struct MemArena
 {
     // TODO (Matteo): Use U64 explicitly for sizes?
 
-    Usize reserved;      // Reserved block size in bytes
-    Usize allocated;     // Allocated (used) bytes count
-    Usize committed;     // VM only - committed size in bytes
-    Usize save_stack;    // Stack of saved states, as a progressive state ID.
-    U8 *memory;          // Pointer to the reserved block
-    CfVirtualMemory *vm; // VM only - API for VM operations
+    Usize reserved;   // Reserved block size in bytes
+    Usize allocated;  // Allocated (used) bytes count
+    Usize committed;  // VMem only - committed virtual memory in bytes
+    Usize save_stack; // Stack of saved states, as a progressive state ID.
+    U8 *memory;       // Pointer to the reserved block
+    VMemApi *vmem;    // VMem only - API for virtual memory operations
 } MemArena;
 
 /// Arena state, used for recovery after temporary allocations
@@ -166,15 +166,15 @@ typedef struct MemArenaState
 
 /// Initialize the arena using a reserved block of virtual memory, from which actual pages can be
 /// committed
-CF_API bool memArenaInitOnVm(MemArena *arena, CfVirtualMemory *vm, void *reserved_block,
-                             Usize reserved_size);
+CF_API bool memArenaInitOnVmem(MemArena *arena, VMemApi *vmem, void *reserved_block,
+                               Usize reserved_size);
 
 /// Initialize the arena using a pre-allocated memory buffer
 CF_API void memArenaInitOnBuffer(MemArena *arena, U8 *buffer, Usize buffer_size);
 
 /// Allocate a block of virtual memory and initialize an arena directly in it
-CF_API MemArena *memArenaBootstrapFromVm(CfVirtualMemory *vm, void *reserved_block,
-                                         Usize reserved_size);
+CF_API MemArena *memArenaBootstrapFromVmem(VMemApi *vmem, void *reserved_block,
+                                           Usize reserved_size);
 
 // TODO (Matteo): Bootstrap from buffer
 CF_API MemArena *memArenaBootstrapFromBuffer(U8 *buffer, Usize buffer_size);

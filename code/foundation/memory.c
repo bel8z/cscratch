@@ -68,7 +68,7 @@ memRoundSize(Usize req_size, Usize page_size)
 
 static MEM_ALLOCATOR_FUNC(memEndOfPageAlloc)
 {
-    CfVirtualMemory *vm = state;
+    VMemApi *vmem = state;
 
     // NOTE (Matteo): This function cannot guarantee the required alignment
     // because of the stricter requirement to align the block at the end of
@@ -81,11 +81,11 @@ static MEM_ALLOCATOR_FUNC(memEndOfPageAlloc)
 
     if (new_size)
     {
-        Usize block_size = memRoundSize(new_size, vm->page_size);
-        U8 *base = vmReserve(vm, block_size);
+        Usize block_size = memRoundSize(new_size, vmem->page_size);
+        U8 *base = vmemReserve(vmem, block_size);
         if (!base) return NULL;
 
-        vmCommit(vm, base, block_size);
+        vmemCommit(vmem, base, block_size);
 
         new_mem = base + block_size - new_size;
     }
@@ -99,11 +99,11 @@ static MEM_ALLOCATOR_FUNC(memEndOfPageAlloc)
             memCopy(memory, new_mem, cfMin(old_size, new_size));
         }
 
-        Usize block_size = memRoundSize(old_size, vm->page_size);
+        Usize block_size = memRoundSize(old_size, vmem->page_size);
         U8 *base = (U8 *)memory + old_size - block_size;
 
-        vmRevert(vm, base, block_size);
-        vmRelease(vm, base, block_size);
+        vmemDecommit(vmem, base, block_size);
+        vmemRelease(vmem, base, block_size);
 
         memory = NULL;
     }
@@ -112,9 +112,9 @@ static MEM_ALLOCATOR_FUNC(memEndOfPageAlloc)
 }
 
 MemAllocator
-memEndOfPageAllocator(CfVirtualMemory *vm)
+memEndOfPageAllocator(VMemApi *vmem)
 {
-    return (MemAllocator){.func = memEndOfPageAlloc, .state = vm};
+    return (MemAllocator){.func = memEndOfPageAlloc, .state = vmem};
 }
 
 //------------------//
@@ -122,52 +122,52 @@ memEndOfPageAllocator(CfVirtualMemory *vm)
 //------------------//
 
 static void
-arenaCommitVm(MemArena *arena)
+mem_arenaCommitVMem(MemArena *arena)
 {
     CF_ASSERT_NOT_NULL(arena);
 
-    if (arena->vm && arena->allocated > arena->committed)
+    if (arena->vmem && arena->allocated > arena->committed)
     {
         // NOTE (Matteo): Align memory commits to page boundaries
         U8 const *next_pos =
-            memAlignForward(arena->memory + arena->allocated, arena->vm->page_size);
+            memAlignForward(arena->memory + arena->allocated, arena->vmem->page_size);
         U8 *curr_pos = arena->memory + arena->committed;
 
         Usize max_commit_size = arena->reserved - arena->allocated;
         Usize commit_size = cfMin(next_pos - curr_pos, max_commit_size);
 
-        vmCommit(arena->vm, curr_pos, commit_size);
+        vmemCommit(arena->vmem, curr_pos, commit_size);
         arena->committed += commit_size;
     }
 }
 
 static void
-arenaDecommitVm(MemArena *arena)
+mem_arenaDecommitVm(MemArena *arena)
 {
-    if (arena->vm && arena->committed > arena->allocated)
+    if (arena->vmem && arena->committed > arena->allocated)
     {
         // NOTE (Matteo): Since VM decommit acts on full pages, I need to align the block to be
         // decommitted 1 page up in order to preserve the last page which is partially filled
 
         // Align base pointer forward
         U8 const *base = arena->memory + arena->allocated;
-        Usize offset = memAlignForward(base, arena->vm->page_size) - arena->memory;
+        Usize offset = memAlignForward(base, arena->vmem->page_size) - arena->memory;
 
         if (offset < arena->committed)
         {
             Usize decommit_size = arena->committed - offset;
-            vmRevert(arena->vm, arena->memory + offset, decommit_size);
+            vmemDecommit(arena->vmem, arena->memory + offset, decommit_size);
             arena->committed -= decommit_size;
         }
     }
 }
 
 bool
-memArenaInitOnVm(MemArena *arena, CfVirtualMemory *vm, void *reserved_block, Usize reserved_size)
+memArenaInitOnVmem(MemArena *arena, VMemApi *vmem, void *reserved_block, Usize reserved_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
-    arena->vm = vm;
+    arena->vmem = vmem;
     arena->memory = reserved_block;
     arena->reserved = reserved_size;
     arena->allocated = 0;
@@ -182,7 +182,7 @@ memArenaInitOnBuffer(MemArena *arena, U8 *buffer, Usize buffer_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
-    arena->vm = NULL;
+    arena->vmem = NULL;
     arena->memory = buffer;
     arena->reserved = buffer_size;
     arena->allocated = 0;
@@ -191,7 +191,7 @@ memArenaInitOnBuffer(MemArena *arena, U8 *buffer, Usize buffer_size)
 }
 
 MemArena *
-memArenaBootstrapFromVm(CfVirtualMemory *vm, void *reserved_block, Usize reserved_size)
+memArenaBootstrapFromVmem(VMemApi *vmem, void *reserved_block, Usize reserved_size)
 {
     MemArena *arena = NULL;
 
@@ -199,11 +199,11 @@ memArenaBootstrapFromVm(CfVirtualMemory *vm, void *reserved_block, Usize reserve
     {
         CF_ASSERT(reserved_size > sizeof(*arena), "Cannot bootstrap arena from smaller allocation");
 
-        Usize commit_size = cfMin(reserved_size, cfRoundUp(sizeof(*arena), vm->page_size));
-        vmCommit(vm, reserved_block, commit_size);
+        Usize commit_size = cfMin(reserved_size, cfRoundUp(sizeof(*arena), vmem->page_size));
+        vmemCommit(vmem, reserved_block, commit_size);
 
         arena = reserved_block;
-        arena->vm = vm;
+        arena->vmem = vmem;
         arena->memory = (U8 *)arena;
         arena->reserved = reserved_size;
         arena->allocated = sizeof(*arena);
@@ -224,7 +224,7 @@ memArenaBootstrapFromBuffer(U8 *buffer, Usize buffer_size)
         CF_ASSERT(buffer_size > sizeof(*arena), "Cannot bootstrap arena from smaller allocation");
 
         arena = (MemArena *)buffer;
-        arena->vm = NULL;
+        arena->vmem = NULL;
         arena->memory = buffer;
         arena->reserved = buffer_size;
         arena->allocated = sizeof(*arena);
@@ -250,7 +250,7 @@ memArenaClear(MemArena *arena)
         arena->allocated = 0;
     }
 
-    arenaDecommitVm(arena);
+    mem_arenaDecommitVm(arena);
 }
 
 Usize
@@ -282,7 +282,7 @@ memArenaAllocAlign(MemArena *arena, Usize size, Usize align)
         result = arena->memory + offset;
         arena->allocated = offset + size;
 
-        arenaCommitVm(arena);
+        mem_arenaCommitVMem(arena);
 
         // NOTE (Matteo): For simplicity every allocation is cleared, even it can be
         // avoided for freshly committed VM pages
@@ -327,7 +327,7 @@ memArenaReallocAlign(MemArena *arena, void *memory, Usize old_size, Usize new_si
             result = block;
             if (new_size > old_size)
             {
-                arenaCommitVm(arena);
+                mem_arenaCommitVMem(arena);
                 memClear(result + old_size, new_size - old_size);
             }
         }
@@ -367,7 +367,7 @@ memArenaFree(MemArena *arena, void *memory, Usize size)
             arena->allocated -= size;
 #if CF_MEMORY_PROTECTION
             // NOTE (Matteo): Decommit unused memory to trigger access violations
-            arenaDecommitVm(arena);
+            mem_arenaDecommitVm(arena);
 #endif
         }
     }
@@ -402,7 +402,7 @@ memArenaRestore(MemArenaState state)
 
 #if CF_MEMORY_PROTECTION
     // NOTE (Matteo): Decommit unused memory to trigger access violations
-    arenaDecommitVm(arena);
+    mem_arenaDecommitVm(arena);
 #endif
 }
 
@@ -415,24 +415,24 @@ memArenaSplit(MemArena *arena, MemArena *split, Usize size)
 
     Usize new_reserved = arena->reserved - size;
 
-    if (arena->vm)
+    if (arena->vmem)
     {
         // NOTE (Matteo): When VM is involved, split must occur on page boundaries
         Uptr new_end = (Uptr)(arena->memory + new_reserved);
-        Uptr modulo = new_end & (arena->vm->page_size - 1);
+        Uptr modulo = new_end & (arena->vmem->page_size - 1);
         new_reserved -= modulo;
     }
 
     if (new_reserved < arena->allocated) return false;
 
-    split->vm = arena->vm;
+    split->vmem = arena->vmem;
     split->memory = arena->memory + new_reserved;
     split->reserved = arena->reserved - new_reserved;
     split->allocated = 0;
     split->committed = 0;
     split->save_stack = 0;
 
-    if (arena->vm && arena->committed > new_reserved)
+    if (arena->vmem && arena->committed > new_reserved)
     {
         split->committed = arena->committed - new_reserved;
         arena->committed = new_reserved;

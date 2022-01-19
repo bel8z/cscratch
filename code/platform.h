@@ -9,7 +9,7 @@
 
 //=== Foundation interfaces ===//
 
-typedef struct CfVirtualMemory CfVirtualMemory;
+typedef struct VMemApi VMemApi;
 typedef struct IoFileApi IoFileApi;
 
 //=== Dynamic library loading ===//
@@ -55,7 +55,7 @@ typedef struct Gui Gui;
 typedef struct Platform
 {
     /// Virtual memory services
-    CfVirtualMemory *vm;
+    VMemApi *vmem;
     /// Reserved VM size in bytes
     // TODO (Matteo): Should be a pointer?
     Usize reserved_size;
