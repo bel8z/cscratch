@@ -3,7 +3,7 @@
 !.vscode/cmake-variants.yaml
 
 #clangd stuff
-.cache/ 
+.cache/
 
 .vs/*
 

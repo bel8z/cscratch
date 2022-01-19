@@ -128,6 +128,9 @@ foreach(APP ${APP_LIST})
     target_link_libraries(${EXE_NAME} PRIVATE foundation gui_backend)
     target_link_libraries(${LIB_NAME} PRIVATE foundation gui ${OPENGL_gl_LIBRARY}) 
 
+    target_link_libraries(${EXE_NAME} PUBLIC Imm32)
+    target_link_libraries(${LIB_NAME} PUBLIC Imm32)
+
     set_c_compile_flags(${EXE_NAME})
     set_c_compile_flags(${LIB_NAME})
 

@@ -250,7 +250,8 @@ guiGl3Init(GlVersion version)
     Usize l = strLength(version.glsl);
     CF_ASSERT((l + 2) < CF_ARRAY_SIZE(bd->GlslVersionString), "");
     strncpy_s(bd->GlslVersionString, version.glsl, CF_ARRAY_SIZE(bd->GlslVersionString));
-    strncat_s(bd->GlslVersionString, "\n", CF_ARRAY_SIZE(bd->GlslVersionString) - l);
+    strncat_s(bd->GlslVersionString, CF_ARRAY_SIZE(bd->GlslVersionString), "\n",
+              CF_ARRAY_SIZE(bd->GlslVersionString) - l);
 
     // Make an arbitrary GL call (we don't actually need the result)
     // IF YOU GET A CRASH HERE: it probably means the OpenGL function loader didn't do its job. Let
