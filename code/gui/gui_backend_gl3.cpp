@@ -99,6 +99,8 @@ struct GlRenderState
 
     GlRenderState(GuiGl3 *bd)
     {
+        this->bd = bd;
+
         glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint *)&active_texture);
         glActiveTexture(GL_TEXTURE0);
         glGetIntegerv(GL_CURRENT_PROGRAM, (GLint *)&shader);
@@ -114,6 +116,7 @@ struct GlRenderState
         glGetIntegerv(GL_BLEND_DST_ALPHA, (GLint *)&blend_dst_alpha);
         glGetIntegerv(GL_BLEND_EQUATION_RGB, (GLint *)&blend_equation_rgb);
         glGetIntegerv(GL_BLEND_EQUATION_ALPHA, (GLint *)&blend_equation_alpha);
+
         enable_blend = glIsEnabled(GL_BLEND);
         enable_cull_face = glIsEnabled(GL_CULL_FACE);
         enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
@@ -622,11 +625,11 @@ guiGl3CreateDeviceObjects()
         "out vec4 Out_Color;\n"
         "void main()\n"
         "{\n"
-#if FONT_TEXTURE_BYTE
+#if FONT_TEXTURE_RGBA
+        "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
+#else
         "    vec4 sampled = vec4(1.0, 1.0, 1.0, texture(Texture, Frag_UV.st).r);"
         "    Out_Color = Frag_Color * sampled;\n"
-#else
-        "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
 #endif
         "}\n";
 
@@ -726,5 +729,6 @@ guiGl3RenderWindow(ImGuiViewport *viewport, void *)
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT);
     }
+
     guiGl3Render(viewport->DrawData);
 }
