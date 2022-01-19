@@ -41,7 +41,7 @@ static Clock *g_clock = NULL;
 
 //------------------------------------------------------------------------------
 
-APP_API APP_CREATE_PROC(appCreate)
+APP_API APP_CREATE_FN(appCreate)
 {
     CF_UNUSED(cmd_line);
 
@@ -67,14 +67,14 @@ APP_API APP_CREATE_PROC(appCreate)
     return app;
 }
 
-APP_API APP_PROC(appDestroy)
+APP_API APP_FN(appDestroy)
 {
     appUnload(app);
     cfLogDestroy(&app->log, app->plat->vmem);
     memFree(app->alloc, app, sizeof(*app));
 }
 
-APP_API APP_PROC(appLoad)
+APP_API APP_FN(appLoad)
 {
     CF_ASSERT_NOT_NULL(app);
     CF_ASSERT_NOT_NULL(app->plat);
@@ -90,7 +90,7 @@ APP_API APP_PROC(appLoad)
     gloadInit(app->plat->gl);
 }
 
-APP_API APP_PROC(appUnload)
+APP_API APP_FN(appUnload)
 {
     CF_ASSERT_NOT_NULL(app);
     g_log = NULL;
@@ -543,7 +543,7 @@ guiClock(Duration time)
     guiText("%02lld:%02lld:%02lld.%09u", hours, mins, final_secs, time.nanos);
 }
 
-APP_API APP_UPDATE_PROC(appUpdate)
+APP_API APP_UPDATE_FN(appUpdate)
 {
     Platform *plat = state->plat;
 

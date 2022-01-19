@@ -28,17 +28,17 @@ I32 platformMain(Platform *platform, CommandLine *cmd_line);
 
 //---- Virtual memory ----//
 
-static VMEM_RESERVE_FUNC(win32VmReserve);
-static VMEM_COMMIT_FUNC(win32VmCommit);
-static VMEM_DECOMMIT_FUNC(win32VmDecommit);
-static VMEM_RELEASE_FUNC(win32VmRelease);
+static VMEM_RESERVE_FN(win32VmReserve);
+static VMEM_COMMIT_FN(win32VmCommit);
+static VMEM_DECOMMIT_FN(win32VmDecommit);
+static VMEM_RELEASE_FN(win32VmRelease);
 
-static VMEM_MIRROR_ALLOCATE(win32MirrorAllocate);
-static VMEM_MIRROR_FREE(win32MirrorFree);
+static VMEM_MIRROR_ALLOCATE_FN(win32MirrorAllocate);
+static VMEM_MIRROR_FREE_FN(win32MirrorFree);
 
 //---- Heap allocation ----//
 
-static MEM_ALLOCATOR_FUNC(win32Alloc);
+static MEM_ALLOCATOR_FN(win32Alloc);
 
 //---- File system ----//
 
@@ -266,7 +266,7 @@ main(I32 argc, Cstr argv[])
 //   Memory   //
 //------------//
 
-VMEM_RESERVE_FUNC(win32VmReserve)
+VMEM_RESERVE_FN(win32VmReserve)
 {
     void *mem = VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_NOACCESS);
 
@@ -278,7 +278,7 @@ VMEM_RESERVE_FUNC(win32VmReserve)
     return mem;
 }
 
-VMEM_COMMIT_FUNC(win32VmCommit)
+VMEM_COMMIT_FN(win32VmCommit)
 {
     void *committed = VirtualAlloc(memory, size, MEM_COMMIT, PAGE_READWRITE);
 
@@ -292,7 +292,7 @@ VMEM_COMMIT_FUNC(win32VmCommit)
     return false;
 }
 
-VMEM_DECOMMIT_FUNC(win32VmDecommit)
+VMEM_DECOMMIT_FN(win32VmDecommit)
 {
     bool result = VirtualFree(memory, size, MEM_DECOMMIT);
     if (result)
@@ -306,7 +306,7 @@ VMEM_DECOMMIT_FUNC(win32VmDecommit)
     }
 }
 
-VMEM_RELEASE_FUNC(win32VmRelease)
+VMEM_RELEASE_FN(win32VmRelease)
 {
     // NOTE (Matteo): VirtualFree(..., MEM_RELEASE) requires the base pointer
     // returned by VirtualFree(..., MEM_RESERVE) and a size of 0 to succeed.
@@ -324,7 +324,7 @@ VMEM_RELEASE_FUNC(win32VmRelease)
     }
 }
 
-VMEM_MIRROR_ALLOCATE(win32MirrorAllocate)
+VMEM_MIRROR_ALLOCATE_FN(win32MirrorAllocate)
 {
     // NOTE (Matteo): Size is rounded to virtual memory granularity because the mapping addresses
     // must be aligned as such.
@@ -412,7 +412,7 @@ VMEM_MIRROR_ALLOCATE(win32MirrorAllocate)
     return buffer;
 }
 
-VMEM_MIRROR_FREE(win32MirrorFree)
+VMEM_MIRROR_FREE_FN(win32MirrorFree)
 {
     if (buffer->data)
     {
@@ -440,7 +440,7 @@ VMEM_MIRROR_FREE(win32MirrorFree)
     buffer->os_handle = 0;
 }
 
-MEM_ALLOCATOR_FUNC(win32Alloc)
+MEM_ALLOCATOR_FN(win32Alloc)
 {
     CF_UNUSED(state);
 

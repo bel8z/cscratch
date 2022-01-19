@@ -29,7 +29,7 @@ randF32(void)
     return (F32)rand() / (F32)RAND_MAX;
 }
 
-static CF_THREAD_PROC(testArEventWork)
+static CF_THREAD_FN(testArEventWork)
 {
     ThreadData *data = args;
     TestArEventState *test = data->test;

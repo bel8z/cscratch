@@ -11,7 +11,7 @@ io_fillCondition(IoReader *self)
     CF_ASSERT(self->cursor == self->end, "Only an exhausted buffer can be refilled");
 }
 
-static IO_FILL_FUNC(io_fillZero)
+static IO_FILL_FN(io_fillZero)
 {
     io_fillCondition(self);
 
@@ -31,7 +31,7 @@ io_readFail(IoReader *self, IoError32 cause)
     return self->error_code;
 }
 
-// static IO_FILL_FUNC(io_fillFromFile)
+// static IO_FILL_FN(io_fillFromFile)
 // {
 //     io_fillCondition(self);
 
@@ -66,7 +66,7 @@ io_readFail(IoReader *self, IoError32 cause)
 //     return self->error_code;
 // }
 
-static IO_FILL_FUNC(io_fillFromMemory)
+static IO_FILL_FN(io_fillFromMemory)
 {
     io_fillCondition(self);
 

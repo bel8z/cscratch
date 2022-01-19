@@ -14,10 +14,10 @@ typedef struct TaskQueueConfig
     Usize footprint;
 } TaskQueueConfig;
 
-#define TASK_QUEUE_PROC(name) void name(void *data, bool *canceled)
+#define TASK_QUEUE_FN(name) void name(void *data, bool *canceled)
 
 /// Type of the task procedure
-typedef TASK_QUEUE_PROC((*TaskProc));
+typedef TASK_QUEUE_FN((*TaskFn));
 
 /// Task identifier
 typedef Usize TaskId;
@@ -42,7 +42,7 @@ bool taskStartProcessing(TaskQueue *queue);
 bool taskStopProcessing(TaskQueue *queue, bool flush);
 
 /// Enqueue a task for processing
-TaskId taskEnqueue(TaskQueue *queue, TaskProc proc, void *data);
+TaskId taskEnqueue(TaskQueue *queue, TaskFn fn, void *data);
 
 /// Assist the task queue by performing a pending task, if present, on the current thread
 bool taskTryWork(TaskQueue *queue);

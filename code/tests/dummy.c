@@ -81,7 +81,7 @@ freeListAllocGetBlock(FreeListAlloc *alloc, Usize size)
     return free_block;
 }
 
-MEM_ALLOCATOR_FUNC(freeListAllocProc)
+MEM_ALLOCATOR_FN(freeListAllocProc)
 {
     CF_ASSERT(align <= CF_MAX_ALIGN, "Unsupported alignment request");
 

@@ -123,7 +123,7 @@ static void gfxShutdown(GfxState *gfx);
 
 //------------------------------------------------------------------------------
 
-APP_API APP_CREATE_PROC(appCreate)
+APP_API APP_CREATE_FN(appCreate)
 {
     CF_UNUSED(cmd_line);
 
@@ -140,7 +140,7 @@ APP_API APP_CREATE_PROC(appCreate)
     return app;
 }
 
-APP_API APP_PROC(appLoad)
+APP_API APP_FN(appLoad)
 {
     CF_ASSERT_NOT_NULL(app);
     CF_ASSERT_NOT_NULL(app->plat);
@@ -163,13 +163,13 @@ APP_API APP_PROC(appLoad)
     gfxInit(&app->gfx, &app->log, app->plat->paths, app->plat->file);
 }
 
-APP_API APP_PROC(appUnload)
+APP_API APP_FN(appUnload)
 {
     CF_ASSERT_NOT_NULL(app);
     gfxShutdown(&app->gfx);
 }
 
-APP_API APP_PROC(appDestroy)
+APP_API APP_FN(appDestroy)
 {
     CF_ASSERT_NOT_NULL(app);
     CF_ASSERT_NOT_NULL(app->plat);
@@ -343,7 +343,7 @@ gfxProc(GfxState *gfx, CfLog *log)
     glDrawElements(GL_TRIANGLES, CF_ARRAY_SIZE(indices), GL_UNSIGNED_INT, 0);
 }
 
-APP_API APP_UPDATE_PROC(appUpdate)
+APP_API APP_UPDATE_FN(appUpdate)
 {
     if (guiBeginMainMenuBar())
     {

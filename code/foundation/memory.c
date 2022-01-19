@@ -66,7 +66,7 @@ memRoundSize(Usize req_size, Usize page_size)
     return page_count * page_size;
 }
 
-static MEM_ALLOCATOR_FUNC(memEndOfPageAlloc)
+static MEM_ALLOCATOR_FN(memEndOfPageAlloc)
 {
     VMemApi *vmem = state;
 
@@ -443,7 +443,7 @@ memArenaSplit(MemArena *arena, MemArena *split, Usize size)
     return true;
 }
 
-static MEM_ALLOCATOR_FUNC(arenaAllocProc)
+static MEM_ALLOCATOR_FN(mem_arenaAllocFn)
 {
     CF_ASSERT(memory || !old_size, "Invalid allocation request");
 
@@ -467,6 +467,6 @@ memArenaAllocator(MemArena *arena)
 {
     return (MemAllocator){
         .state = arena,
-        .func = arenaAllocProc,
+        .func = mem_arenaAllocFn,
     };
 }

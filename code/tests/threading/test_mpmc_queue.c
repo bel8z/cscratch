@@ -137,7 +137,7 @@ mpmcDequeue(MpmcQueue *queue, Usize *data)
 #define ITER_COUNT 2000000
 AtomBool g_start;
 
-CF_THREAD_PROC(thread_func)
+CF_THREAD_FN(thread_func)
 {
     MpmcQueue *queue = args;
     Usize data;

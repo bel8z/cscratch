@@ -24,7 +24,7 @@ enum
 
 //=== IO buffered reader ===//
 
-#define IO_FILL_FUNC(name) IoError32 name(IoReader *self)
+#define IO_FILL_FN(name) IoError32 name(IoReader *self)
 
 /// Offers buffered read over a generic underlying source
 typedef struct IoReader IoReader;
@@ -39,7 +39,7 @@ struct IoReader
     /// Current reading position in the buffer
     U8 *cursor;
     /// Refills the reader buffer from the underlying source
-    IO_FILL_FUNC((*fill));
+    IO_FILL_FN((*fill));
     /// "Sticky" error code
     IoError32 error_code;
 };

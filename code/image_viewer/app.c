@@ -149,7 +149,7 @@ struct AppState
 //   Async file loading   //
 //------------------------//
 
-TASK_QUEUE_PROC(loadFileTask)
+TASK_QUEUE_FN(loadFileTask)
 {
     CF_ASSERT_NOT_NULL(data);
     CF_ASSERT_NOT_NULL(g_file);
@@ -746,7 +746,7 @@ appMainWindow(AppState *state)
 //     Application API implementation    //
 //---------------------------------------//
 
-APP_API APP_CREATE_PROC(appCreate)
+APP_API APP_CREATE_FN(appCreate)
 {
     // NOTE (Matteo): Memory comes cleared to 0
     Usize const storage_size = CF_GB(1);
@@ -791,7 +791,7 @@ APP_API APP_CREATE_PROC(appCreate)
     return app;
 }
 
-APP_API APP_PROC(appDestroy)
+APP_API APP_FN(appDestroy)
 {
     appUnload(app);
     taskShutdown(app->queue);
@@ -804,7 +804,7 @@ APP_API APP_PROC(appDestroy)
     vmemRelease(app->plat->vmem, app->base_pointer, app->storage_size);
 }
 
-APP_API APP_PROC(appLoad)
+APP_API APP_FN(appLoad)
 {
     CF_ASSERT_NOT_NULL(app);
     CF_ASSERT_NOT_NULL(app->plat);
@@ -819,12 +819,12 @@ APP_API APP_PROC(appLoad)
     taskStartProcessing(app->queue);
 }
 
-APP_API APP_PROC(appUnload)
+APP_API APP_FN(appUnload)
 {
     taskStopProcessing(app->queue, true);
 }
 
-APP_API APP_UPDATE_PROC(appUpdate)
+APP_API APP_UPDATE_FN(appUpdate)
 {
     Platform *plat = state->plat;
 

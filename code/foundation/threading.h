@@ -46,15 +46,15 @@ typedef struct CfThread
 } CfThread;
 
 /// Macro to generate a thread procedure signature
-#define CF_THREAD_PROC(name) void name(void *args)
+#define CF_THREAD_FN(name) void name(void *args)
 
 /// Pointer to thread procedure
-typedef CF_THREAD_PROC((*CfThreadProc));
+typedef CF_THREAD_FN((*CfThreadFn));
 
 /// Thread creation parameters
 typedef struct CfThreadParms
 {
-    CfThreadProc proc;
+    CfThreadFn fn;
     void *args;
     Char8 const *debug_name;
     Usize stack_size;
@@ -68,8 +68,7 @@ CF_API bool cfThreadWaitAll(CfThread *threads, Usize num_threads, Duration durat
 
 /// Wrapper around threadCreate that allows a more convenient syntax for optional
 /// parameters
-#define cfThreadStart(thread_proc, ...) \
-    cfThreadCreate(&(CfThreadParms){.proc = thread_proc, __VA_ARGS__})
+#define cfThreadStart(thread_fn, ...) cfThreadCreate(&(CfThreadParms){.fn = thread_fn, __VA_ARGS__})
 
 //-----------//
 //   Mutex   //

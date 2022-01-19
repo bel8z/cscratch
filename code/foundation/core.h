@@ -464,7 +464,7 @@ typedef U64 SystemTime;
 //---------------//
 
 /// Definition of the main allocation function
-#define MEM_ALLOCATOR_FUNC(name) \
+#define MEM_ALLOCATOR_FN(name) \
     void *name(void *state, void *memory, Usize old_size, Usize new_size, Usize align)
 
 /// Generic allocator interface
@@ -472,7 +472,7 @@ typedef U64 SystemTime;
 typedef struct MemAllocator
 {
     void *state;
-    MEM_ALLOCATOR_FUNC((*func));
+    MEM_ALLOCATOR_FN((*func));
 } MemAllocator;
 
 //-------------------//

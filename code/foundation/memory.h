@@ -66,14 +66,14 @@ U8 const *memAlignForward(U8 const *address, Usize alignment);
 // NOTE (Matteo): The implementation of this API must be provided by the platform layer
 // TODO (Matteo): Improve mirror buffer API (and naming)
 
-#define VMEM_RESERVE_FUNC(name) void *name(Usize size)
-#define VMEM_RELEASE_FUNC(name) void name(void *memory, Usize size)
+#define VMEM_RESERVE_FN(name) void *name(Usize size)
+#define VMEM_RELEASE_FN(name) void name(void *memory, Usize size)
 
-#define VMEM_COMMIT_FUNC(name) bool name(void *memory, Usize size)
-#define VMEM_DECOMMIT_FUNC(name) void name(void *memory, Usize size)
+#define VMEM_COMMIT_FN(name) bool name(void *memory, Usize size)
+#define VMEM_DECOMMIT_FN(name) void name(void *memory, Usize size)
 
-#define VMEM_MIRROR_ALLOCATE(name) VMemMirrorBuffer name(Usize size)
-#define VMEM_MIRROR_FREE(name) void name(VMemMirrorBuffer *buffer)
+#define VMEM_MIRROR_ALLOCATE_FN(name) VMemMirrorBuffer name(Usize size)
+#define VMEM_MIRROR_FREE_FN(name) void name(VMemMirrorBuffer *buffer)
 
 /// Buffer built upon two adjacent virtual memory blocks that map to the same physical memory.
 /// The memory is thus "mirrored" between the two blocks, hence the name.
@@ -93,19 +93,19 @@ typedef struct VMemMirrorBuffer
 typedef struct VMemApi
 {
     // Reserve a block of virtual memory, without committing it (memory can't be accessed)
-    VMEM_RESERVE_FUNC((*reserve));
+    VMEM_RESERVE_FN((*reserve));
     // Release a block of reserved virtual memory
-    VMEM_RELEASE_FUNC((*release));
+    VMEM_RELEASE_FN((*release));
     // Commit a portion of reserved virtual memory
-    VMEM_COMMIT_FUNC((*commit));
+    VMEM_COMMIT_FN((*commit));
     // Decommit a portion of reserved virtual memory
-    VMEM_DECOMMIT_FUNC((*decommit));
+    VMEM_DECOMMIT_FN((*decommit));
 
     // Allocate a "mirror buffer" (single block of physical memory mapped to two adjacent blocks of
     // virtual memory)
-    VMEM_MIRROR_ALLOCATE((*mirrorAllocate));
+    VMEM_MIRROR_ALLOCATE_FN((*mirrorAllocate));
     // Release a "mirror buffer"
-    VMEM_MIRROR_FREE((*mirrorFree));
+    VMEM_MIRROR_FREE_FN((*mirrorFree));
 
     Usize page_size;
     Usize address_granularity;

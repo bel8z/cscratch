@@ -52,7 +52,7 @@ static_assert(alignof(CfThread) == alignof(HANDLE), "Thread must be aligned as H
 
 typedef struct Win32ThreadData
 {
-    CfThreadProc proc;
+    CfThreadFn proc;
     void *args;
     // Data for synchronization with the creation routine
     SRWLOCK sync;
@@ -67,7 +67,7 @@ win32threadProc(void *data_ptr)
     Win32ThreadData *data = data_ptr;
 
     // NOTE (Matteo): Copy persistent data locally, so that the containing struct can be freed.
-    CfThreadProc proc = data->proc;
+    CfThreadFn proc = data->proc;
     void *args = data->args;
 
     // NOTE (Matteo): Signal that the thread is started so the creation routine can complete
@@ -91,7 +91,7 @@ cfThreadCreate(CfThreadParms *parms)
     CfThread thread = {0};
 
     Win32ThreadData data = {
-        .proc = parms->proc,
+        .proc = parms->fn,
         .args = parms->args,
     };
 

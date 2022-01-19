@@ -30,7 +30,7 @@ nextPowerOf2(Usize x)
 typedef struct
 {
     TaskId id;
-    TaskProc proc;
+    TaskFn fn;
     void *data;
     bool canceled;
 } Task;
@@ -79,7 +79,7 @@ struct TaskQueue
 
 static bool taskDequeue(TaskQueue *queue, Task *out_task);
 
-static CF_THREAD_PROC(taskThreadProc)
+static CF_THREAD_FN(taskThreadProc)
 {
     TaskWorkerSlot *slot = args;
     TaskQueue *queue = slot->queue;
@@ -90,7 +90,7 @@ static CF_THREAD_PROC(taskThreadProc)
 
         if (taskDequeue(queue, task))
         {
-            task->proc(task->data, &task->canceled);
+            task->fn(task->data, &task->canceled);
         }
         else
         {
@@ -242,7 +242,7 @@ taskStopProcessing(TaskQueue *queue, bool flush)
 // Enqueue/dequeue logic
 
 TaskId
-taskEnqueue(TaskQueue *queue, TaskProc proc, void *data)
+taskEnqueue(TaskQueue *queue, TaskFn fn, void *data)
 {
     TaskQueueCell *cell = NULL;
     Usize pos = atomRead(&queue->enqueue_pos);
@@ -271,7 +271,7 @@ taskEnqueue(TaskQueue *queue, TaskProc proc, void *data)
     CF_ASSERT_NOT_NULL(cell);
 
     cell->task.id = ~pos;
-    cell->task.proc = proc;
+    cell->task.fn = fn;
     cell->task.data = data;
     cell->task.canceled = false;
     atomReleaseFence();
@@ -331,7 +331,7 @@ taskTryWork(TaskQueue *queue)
     if (taskDequeue(queue, &task))
     {
         // TODO (Matteo): This task cannot be canceled after it is dequeued
-        task.proc(task.data, &task.canceled);
+        task.fn(task.data, &task.canceled);
         return true;
     }
 

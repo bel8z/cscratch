@@ -151,9 +151,9 @@ typedef struct AppApi
     Char8 dst_file[Paths_Size];
 } AppApi;
 
-static APP_PROC(appProcStub);
-static APP_CREATE_PROC(appCreateStub);
-static APP_UPDATE_PROC(appUpdateStub);
+static APP_FN(appProcStub);
+static APP_CREATE_FN(appCreateStub);
+static APP_UPDATE_FN(appUpdateStub);
 
 static void appApiLoad(AppApi *api, Paths *paths, LibraryApi *library, IoFileApi *file);
 static void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
@@ -414,19 +414,19 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 // Internal functions
 //------------------------------------------------------------------------------
 
-static APP_PROC(appProcStub)
+static APP_FN(appProcStub)
 {
     CF_UNUSED(app);
 }
 
-static APP_CREATE_PROC(appCreateStub)
+static APP_CREATE_FN(appCreateStub)
 {
     CF_UNUSED(plat);
     CF_UNUSED(cmd_line);
     return NULL;
 }
 
-static APP_UPDATE_PROC(appUpdateStub)
+static APP_UPDATE_FN(appUpdateStub)
 {
     CF_UNUSED(state);
     io->quit = true;

@@ -31,13 +31,13 @@ typedef struct AppIo
 
 // Application function signatures
 
-#define APP_PROC(name) void name(AppState *app)
-#define APP_CREATE_PROC(name) AppState *name(Platform *plat, CommandLine *cmd_line)
-#define APP_UPDATE_PROC(name) void name(AppState *state, AppIo *io)
+#define APP_FN(name) void name(AppState *app)
+#define APP_CREATE_FN(name) AppState *name(Platform *plat, CommandLine *cmd_line)
+#define APP_UPDATE_FN(name) void name(AppState *state, AppIo *io)
 
-typedef APP_PROC((*AppProc));
-typedef APP_CREATE_PROC((*AppCreateProc));
-typedef APP_UPDATE_PROC((*AppUpdateProc));
+typedef APP_FN((*AppProc));
+typedef APP_CREATE_FN((*AppCreateProc));
+typedef APP_UPDATE_FN((*AppUpdateProc));
 
 // Application library exports
 
@@ -47,8 +47,8 @@ typedef APP_UPDATE_PROC((*AppUpdateProc));
 #    define APP_API
 #endif
 
-APP_API APP_CREATE_PROC(appCreate);
-APP_API APP_PROC(appDestroy);
-APP_API APP_PROC(appLoad);
-APP_API APP_PROC(appUnload);
-APP_API APP_UPDATE_PROC(appUpdate);
+APP_API APP_CREATE_FN(appCreate);
+APP_API APP_FN(appDestroy);
+APP_API APP_FN(appLoad);
+APP_API APP_FN(appUnload);
+APP_API APP_UPDATE_FN(appUpdate);
