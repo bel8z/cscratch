@@ -74,3 +74,10 @@
 #else
 #    define CF_DEBUG_ASSERT(expr, msg) CF_UNUSED(expr)
 #endif
+
+/// CF_DEBUG_ASSERT: Assertion failure enabled in debug builds only
+#if CF_DEBUG
+#    define CF_DEBUG_FAIL(msg) CF_ASSERT_FAIL(msg)
+#else
+#    define CF_DEBUG_FAIL(msg)
+#endif
