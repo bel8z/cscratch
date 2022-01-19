@@ -1,7 +1,7 @@
 #include "gui.h"
 
-#include "foundation/array.h"
 #include "foundation/math.inl"
+#include "foundation/mem_array.inl"
 #include "foundation/memory.h"
 #include "foundation/strings.h"
 
@@ -102,7 +102,7 @@ static StrBuf16
 win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAllocator alloc)
 {
     StrBuf16 out_filter = {0};
-    cfArrayInitCap(&out_filter, alloc, 1024);
+    memArrayInitCap(&out_filter, alloc, 1024);
 
     if (num_filters == 0) return out_filter;
 
@@ -112,9 +112,9 @@ win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAlloc
         Str filter_name = strFromCstr(filter->name);
         Usize name_size = win32Utf8To16(filter_name, NULL, 0) + 1;
 
-        cfArrayReserve(&out_filter, name_size);
-        win32Utf8To16(filter_name, cfArrayEnd(&out_filter), name_size);
-        cfArrayExtend(&out_filter, name_size);
+        memArrayReserve(&out_filter, name_size);
+        win32Utf8To16(filter_name, memArrayEnd(&out_filter), name_size);
+        memArrayExtend(&out_filter, name_size);
 
         for (Usize ext_no = 0; ext_no < filter->num_extensions; ++ext_no)
         {
@@ -122,19 +122,19 @@ win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAlloc
             Usize ext_size = win32Utf8To16(ext, NULL, 0) + 1;
 
             // Prepend '*' to the extension - not documented but actually required
-            cfArrayPush(&out_filter, L'*');
-            cfArrayReserve(&out_filter, ext_size);
-            win32Utf8To16(ext, cfArrayEnd(&out_filter), ext_size);
-            cfArrayExtend(&out_filter, ext_size);
+            memArrayPush(&out_filter, L'*');
+            memArrayReserve(&out_filter, ext_size);
+            win32Utf8To16(ext, memArrayEnd(&out_filter), ext_size);
+            memArrayExtend(&out_filter, ext_size);
 
             // Replace null terminator with ';' to separate extensions
-            *cfArrayLast(&out_filter) = L';';
+            *memArrayLast(&out_filter) = L';';
         }
 
         // Append 2 null terminators (required since null terminators are used
         // internally to separate filters)
-        cfArrayPush(&out_filter, 0);
-        cfArrayPush(&out_filter, 0);
+        memArrayPush(&out_filter, 0);
+        memArrayPush(&out_filter, 0);
     }
 
     return out_filter;
@@ -190,7 +190,7 @@ guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc)
         result.code = GuiFileDialogResult_Cancel;
     }
 
-    cfArrayShutdown(&filt);
+    memArrayShutdown(&filt);
 
     return result;
 }

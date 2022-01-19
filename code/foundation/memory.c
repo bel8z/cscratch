@@ -253,6 +253,18 @@ memArenaClear(MemArena *arena)
     arenaDecommitVm(arena);
 }
 
+Usize
+memArenaAvailable(MemArena *arena)
+{
+    return arena->reserved - arena->allocated;
+}
+
+void *
+memArenaAlloc(MemArena *arena, Usize size)
+{
+    return memArenaAllocAlign(arena, size, CF_MAX_ALIGN);
+}
+
 void *
 memArenaAllocAlign(MemArena *arena, Usize size, Usize align)
 {
@@ -278,6 +290,12 @@ memArenaAllocAlign(MemArena *arena, Usize size, Usize align)
     }
 
     return result;
+}
+
+void *
+memArenaRealloc(MemArena *arena, void *memory, Usize old_size, Usize new_size)
+{
+    return memArenaReallocAlign(arena, memory, old_size, new_size, CF_MAX_ALIGN);
 }
 
 void *

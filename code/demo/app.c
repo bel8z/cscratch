@@ -4,6 +4,7 @@
 #include "foundation/colors.h"
 #include "foundation/log.h"
 #include "foundation/math.inl"
+#include "foundation/memory.h"
 #include "foundation/strings.h"
 #include "foundation/time.h"
 
@@ -54,7 +55,7 @@ APP_API APP_CREATE_PROC(appCreate)
 
     app->log = cfLogCreate(plat->vm, 128);
 
-    while (app->log.write_pos < app->log.buffer.size)
+    while (app->log.write_pos < app->log.size)
     {
         cfLogAppendC(&app->log, "Filling log buffer\n");
     }

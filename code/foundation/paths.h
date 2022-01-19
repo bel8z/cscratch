@@ -5,8 +5,8 @@
 
 #include "core.h"
 
-CF_API Str pathSplitName(Str path);
-CF_API Str pathSplitExt(Str path);
+CF_INLINE_API Str pathSplitName(Str path);
+CF_INLINE_API Str pathSplitExt(Str path);
 CF_API Str pathSplitNameExt(Str path, Str *ext);
 
 CF_API Usize pathJoin(Str root, Str leaf, Char8 *buffer, Usize buffer_size);
@@ -20,5 +20,5 @@ typedef struct PathSplitIter
     Str path;
 } PathSplitIter;
 
-CF_API void pathSplitStart(PathSplitIter *iter, Str path);
+CF_INLINE_API void pathSplitStart(PathSplitIter *iter, Str path);
 CF_API bool pathSplitNext(PathSplitIter *iter);

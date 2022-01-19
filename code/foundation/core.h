@@ -166,7 +166,7 @@
 #if defined(__cplusplus)
 #    define CF_EXTERN_C extern "C"
 #else
-#    define CF_EXTERN_C
+#    define CF_EXTERN_C extern
 #endif
 
 #if CF_OS_WIN32
@@ -175,7 +175,11 @@
 #    define CF_DLL_EXPORT
 #endif
 
+// Exported function
 #define CF_API CF_EXTERN_C CF_DLL_EXPORT
+
+// Function with both inline and exported out-of-line declaration
+#define CF_INLINE_API CF_EXTERN_C inline CF_DLL_EXPORT
 
 //-------------------//
 //   Compiler diagnostics   //
@@ -479,8 +483,8 @@ typedef struct MemAllocator
 
 /// Macro to define a typed, dynamically allocated array
 /// Can be used as an anonymous struct or member, or as a typedef for building a specific API.
-/// Functionality is implemented in array.h
-#define CfArray(Type)                                                                    \
+/// Functionality is implemented in mem_array.inl
+#define MemArray(Type)                                                                   \
     struct                                                                               \
     {                                                                                    \
         /* Allocator used for growing the array dynamically */                           \
@@ -495,7 +499,7 @@ typedef struct MemAllocator
     }
 
 /// Dynamic buffer for raw memory
-typedef CfArray(U8) MemBuffer;
+typedef MemArray(U8) MemBuffer;
 
 //-------------//
 //   Strings   //
@@ -519,7 +523,7 @@ typedef struct StrBuilder
 {
     // NOTE (Matteo): Including a dynamic array as an anonymous struct allows for
     // both extension and easy usage of the array API
-    CfArray(Char8);
+    MemArray(Char8);
 } StrBuilder;
 
 /// Fixed size string buffer, useful for temporary string allocation or for storing
@@ -529,6 +533,13 @@ typedef struct StrBuffer
     Char8 data[1024];
     Str str;
 } StrBuffer;
+
+#define strValid(str) (!!(str).buf)
+#define strEnd(str) ((str).buf + (str).len)
+
+/// Build a string view from a string literal (static C string)
+#define strLiteral(lit) \
+    (Str) { .buf = (lit), .len = CF_ARRAY_SIZE(lit) - 1, }
 
 //-------------//
 //   Vectors   //

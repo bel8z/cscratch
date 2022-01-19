@@ -48,7 +48,7 @@ U8 const *memAlignForward(U8 const *address, Usize alignment);
 #define memFree(a, mem, size) (a).func((a).state, (void *)(mem), size, 0, 0)
 
 // NOTE (Matteo): Those are the very basics required to implement a dynamic array
-// and are offered in case the full-fledged CfArray is not needed or suitable.
+// and are offered in case the full-fledged MemArray is not needed or suitable.
 
 #define memAllocArray(allocator, Type, cap) memRealloc(allocator, NULL, 0, (cap) * sizeof(Type))
 
@@ -183,34 +183,23 @@ CF_API MemArena *memArenaBootstrapFromBuffer(U8 *buffer, Usize buffer_size);
 /// store, the memory is decommitted (returned to the OS)
 CF_API void memArenaClear(MemArena *arena);
 
-inline Usize
-memArenaRemaining(MemArena *arena)
-{
-    return arena->reserved - arena->allocated;
-}
+/// Return the amount of remaining memory available for allocation
+CF_INLINE_API Usize memArenaAvailable(MemArena *arena);
+
+/// Allocate a block of the given size and default alignment from the top of the arena stack
+CF_INLINE_API void *memArenaAlloc(MemArena *arena, Usize size);
 
 /// Allocate a block of the given size and alignment from the top of the arena stack
 CF_API void *memArenaAllocAlign(MemArena *arena, Usize size, Usize alignment);
 
-/// Allocate a block of the given size and default alignment from the top of the arena stack
-inline void *
-memArenaAlloc(MemArena *arena, Usize size)
-{
-    return memArenaAllocAlign(arena, size, CF_MAX_ALIGN);
-}
+/// Try reallocating a block of the given size and default alignment at the top of the arena stack
+/// If the block does not match the last allocation, a new block is allocated
+CF_INLINE_API void *memArenaRealloc(MemArena *arena, void *memory, Usize old_size, Usize new_size);
 
 /// Try reallocating a block of the given size and alignment at the top of the arena stack
 /// If the block does not match the last allocation, a new block is allocated
 CF_API void *memArenaReallocAlign(MemArena *arena, void *memory, Usize old_size, Usize new_size,
                                   Usize alignment);
-
-/// Try reallocating a block of the given size and default alignment at the top of the arena stack
-/// If the block does not match the last allocation, a new block is allocated
-inline void *
-memArenaRealloc(MemArena *arena, void *memory, Usize old_size, Usize new_size)
-{
-    return memArenaReallocAlign(arena, memory, old_size, new_size, CF_MAX_ALIGN);
-}
 
 /// Returns a block of the given size to the top of the arena stack; this is
 /// effective only if the block matches with the last allocation

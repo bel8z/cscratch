@@ -1,11 +1,14 @@
 #pragma once
 
 #include "core.h"
-#include "memory.h"
+
+typedef struct CfVirtualMemory CfVirtualMemory;
 
 typedef struct CfLog
 {
-    VmMirrorBuffer buffer;
+    void *os_handle;
+    void *buffer;
+    Usize size;
     Usize write_pos;
 } CfLog;
 

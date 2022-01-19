@@ -1,14 +1,14 @@
 
 #include "platform.h"
 
-#include "foundation/array.h"
 #include "foundation/core.h"
 #include "foundation/error.h"
+#include "foundation/mem_array.inl"
 
 #include <stdio.h>
 
 typedef I32 MyType;
-typedef CfArray(MyType) MyArray;
+typedef MemArray(MyType) MyArray;
 
 void
 arrayPrint(MyArray *a)
@@ -34,11 +34,11 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     MemAllocator std_alloc = platform->heap;
 
     MyArray array = {0};
-    cfArrayInit(&array, std_alloc);
+    memArrayInit(&array, std_alloc);
 
-    cfArrayPush(&array, 0);
-    cfArrayPush(&array, 1);
-    cfArrayPush(&array, 2);
+    memArrayPush(&array, 0);
+    memArrayPush(&array, 1);
+    memArrayPush(&array, 2);
 
     arrayPrint(&array);
 
@@ -47,19 +47,19 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         CF_ASSERT(array.data[i] == (MyType)i, "Array push FAILED");
     }
 
-    CF_ASSERT(cfArrayPop(&array) == 2, "Array pop FAILED");
-    CF_ASSERT(cfArrayPop(&array) == 1, "Array pop FAILED");
-    CF_ASSERT(cfArrayPop(&array) == 0, "Array pop FAILED");
+    CF_ASSERT(memArrayPop(&array) == 2, "Array pop FAILED");
+    CF_ASSERT(memArrayPop(&array) == 1, "Array pop FAILED");
+    CF_ASSERT(memArrayPop(&array) == 0, "Array pop FAILED");
 
     arrayPrint(&array);
 
-    CF_ASSERT(cfArrayEmpty(&array), "Array should be empty");
+    CF_ASSERT(memArrayEmpty(&array), "Array should be empty");
 
-    cfArrayPush(&array, 0);
-    cfArrayPush(&array, 1);
-    cfArrayPush(&array, 2);
-    cfArrayPush(&array, 3);
-    cfArrayPush(&array, 4);
+    memArrayPush(&array, 0);
+    memArrayPush(&array, 1);
+    memArrayPush(&array, 2);
+    memArrayPush(&array, 3);
+    memArrayPush(&array, 4);
 
     arrayPrint(&array);
 
@@ -68,7 +68,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         CF_ASSERT(array.data[i] == (MyType)i, "");
     }
 
-    cfArrayRemove(&array, 1);
+    memArrayRemove(&array, 1);
 
     arrayPrint(&array);
 
@@ -79,7 +79,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         CF_ASSERT(array.data[i] == test_remove[i], "Array remove FAILED");
     }
 
-    cfArraySwapRemove(&array, 1);
+    memArraySwapRemove(&array, 1);
 
     arrayPrint(&array);
 
@@ -90,7 +90,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         CF_ASSERT(array.data[i] == test_swap_remove[i], "Array swap remove FAILED");
     }
 
-    cfArrayInsert(&array, 1, 8);
+    memArrayInsert(&array, 1, 8);
 
     arrayPrint(&array);
 
@@ -101,7 +101,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         CF_ASSERT(array.data[i] == test_insert[i], "Array insert FAILED");
     }
 
-    cfArrayShutdown(&array);
+    memArrayShutdown(&array);
 
     return 0;
 }

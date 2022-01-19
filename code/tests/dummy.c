@@ -1,5 +1,6 @@
 #include "platform.h"
 
+#include "foundation/error.h"
 #include "foundation/io.h"
 #include "foundation/list.h"
 #include "foundation/memory.h"

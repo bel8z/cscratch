@@ -10,54 +10,26 @@
 //------------------------------------------------------------------------------
 
 #include "core.h"
-#include "error.h"
-
-#define strValid(str) (!!(str).buf)
-#define strEnd(str) ((str).buf + (str).len)
 
 //----------------------//
 //   C string helpers   //
 //----------------------//
 
-/// Build a string view from a string literal (static C string)
-#define strLiteral(lit) \
-    (Str) { .buf = (lit), .len = CF_ARRAY_SIZE(lit) - 1, }
-
 /// Compute the length of the C string (null terminator ignored)
-static inline Usize
-strLength(Cstr cstr)
-{
-    CF_ASSERT_NOT_NULL(cstr);
-    U32 size = 0;
-    while (cstr[size]) size++;
-    return size;
-}
+CF_INLINE_API Usize strLength(Cstr cstr);
 
 /// Compute the full size of the C string (null terminator included)
-static inline Usize
-strSize(Cstr cstr)
-{
-    return strLength(cstr) + 1;
-}
+CF_INLINE_API Usize strSize(Cstr cstr);
 
 /// Build a string view from a C string
-static inline Str
-strFromCstr(Cstr cstr)
-{
-    return (Str){.buf = (cstr), .len = strLength(cstr)};
-}
+CF_INLINE_API Str strFromCstr(Cstr cstr);
 
 /// Writes the string slice as a null-terminated C string on the given buffer
 /// Returns the number of bytes written, including the null terminator, or the required buffer
 /// size if NULL
-CF_API Usize strToCstr(Str str, Char8 *buffer, Usize size);
+CF_INLINE_API Usize strToCstr(Str str, Char8 *buffer, Usize size);
 
-static inline void
-strBufferInit(StrBuffer *buffer)
-{
-    buffer->str.len = 0;
-    buffer->str.buf = (Char8 const *)buffer->data;
-}
+CF_INLINE_API void strBufferInit(StrBuffer *buffer);
 
 //-----------------------//
 //   String formatting   //

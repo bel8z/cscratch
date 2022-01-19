@@ -55,6 +55,7 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wunused-function")
 #    include "foundation/io.h"
 #    include "foundation/memory.h"
 #    include "foundation/strings.h"
+#    include "foundation/error.h"
 
 // NOTE (Matteo): On memory allocation
 //

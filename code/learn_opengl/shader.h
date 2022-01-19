@@ -1,23 +1,21 @@
 #if !defined(SHADER_DECL)
 
+//===============//
+//   Interface   //
+//===============//
+
+#    include "foundation/core.h"
+#    include "foundation/io.h"
+
 #    if defined(SHADER_STATIC)
 #        define SHADER_API static
 #    else
 #        define SHADER_API extern
 #    endif
 
-#    include "foundation/core.h"
-#    include "foundation/io.h"
-#    include "foundation/log.h"
-#    include "foundation/strings.h"
-
-#    include "gl/gload.h"
-
-//===============//
-//   Interface   //
-//===============//
-
 #    define INVALID_UNIFORM -1
+
+typedef struct CfLog CfLog;
 
 typedef struct Shader
 {
@@ -41,6 +39,11 @@ SHADER_API I32 shaderGetUniform(Shader shader, Cstr uniform_name);
 //====================//
 
 #if defined SHADER_IMPL
+
+#    include "foundation/log.h"
+#    include "foundation/strings.h"
+
+#    include "gl/gload.h"
 
 #    if defined SHADER_STATIC
 CF_DIAGNOSTIC_PUSH()

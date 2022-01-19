@@ -10,6 +10,27 @@
 //----------------------//
 
 Usize
+strLength(Cstr cstr)
+{
+    CF_ASSERT_NOT_NULL(cstr);
+    U32 size = 0;
+    while (cstr[size]) size++;
+    return size;
+}
+
+Usize
+strSize(Cstr cstr)
+{
+    return strLength(cstr) + 1;
+}
+
+Str
+strFromCstr(Cstr cstr)
+{
+    return (Str){.buf = (cstr), .len = strLength(cstr)};
+}
+
+Usize
 strToCstr(Str str, Char8 *buffer, Usize size)
 {
     Usize len = cfMin(str.len, size);
@@ -19,6 +40,13 @@ strToCstr(Str str, Char8 *buffer, Usize size)
         buffer[len] = 0;
     }
     return len + 1;
+}
+
+void
+strBufferInit(StrBuffer *buffer)
+{
+    buffer->str.len = 0;
+    buffer->str.buf = (Char8 const *)buffer->data;
 }
 
 //-----------------------//

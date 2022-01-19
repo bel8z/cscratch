@@ -21,27 +21,23 @@ struct CfList
 #define cfListPrevItem(node, Type, member) cfListItem((node)->prev, Type, member)
 #define cfListNextItem(node, Type, member) cfListItem((node)->next, Type, member)
 
-inline void
-cfListInit(CfList *list)
-{
-    list->next = list->prev = list;
-}
+CF_INLINE_API void cfListInit(CfList *list);
 
-CF_API bool cfListEmpty(CfList const *head);
+CF_INLINE_API bool cfListEmpty(CfList const *head);
 
-CF_API int cfListIsHead(CfList const *list, CfList const *node);
-CF_API int cfListIsTail(CfList const *list, CfList const *node);
+CF_INLINE_API int cfListIsHead(CfList const *list, CfList const *node);
+CF_INLINE_API int cfListIsTail(CfList const *list, CfList const *node);
 
-CF_API CfList const *cfListHead(CfList const *list);
-CF_API CfList const *cfListTail(CfList const *list);
+CF_INLINE_API CfList const *cfListHead(CfList const *list);
+CF_INLINE_API CfList const *cfListTail(CfList const *list);
 
-CF_API void cfListInsert(CfList *node, CfList *prev, CfList *next);
-CF_API void cfListRemove(CfList *node);
+CF_INLINE_API void cfListInsert(CfList *node, CfList *prev, CfList *next);
+CF_INLINE_API void cfListRemove(CfList *node);
 
-CF_API void cfListPushHead(CfList *list, CfList *node);
-CF_API void cfListPushTail(CfList *list, CfList *node);
+CF_INLINE_API void cfListPushHead(CfList *list, CfList *node);
+CF_INLINE_API void cfListPushTail(CfList *list, CfList *node);
 
-CF_API CfList *cfListPopHead(CfList *list);
-CF_API CfList *cfListPopTail(CfList *list);
+CF_INLINE_API CfList *cfListPopHead(CfList *list);
+CF_INLINE_API CfList *cfListPopTail(CfList *list);
 
 // TODO (Matteo): Implement iteration safely in case of sentinel nodes

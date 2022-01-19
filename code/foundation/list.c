@@ -1,5 +1,11 @@
 #include "list.h"
 
+void
+cfListInit(CfList *list)
+{
+    list->next = list->prev = list;
+}
+
 bool
 cfListEmpty(CfList const *head)
 {

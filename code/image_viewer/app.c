@@ -763,7 +763,7 @@ APP_API APP_CREATE_PROC(appCreate)
 
     // NOTE (Matteo): Split scratch storage from main allocation
     app->scratch = memArenaAllocStruct(main, MemArena);
-    memArenaSplit(main, app->scratch, memArenaRemaining(main) / 2);
+    memArenaSplit(main, app->scratch, memArenaAvailable(main) / 2);
 
     // Init file list management
     app->filter.name = "Image files";
