@@ -3,6 +3,7 @@
 
 // Gui library
 #include "gui/gui.h"
+#include "gui/gui_backend_gl3.h"
 
 // Backend libraries
 #include "gl/gload.h"
@@ -39,26 +40,6 @@
 
 // TODO (Matteo): Better logging
 #define logError(...) fprintf(stderr, __VA_ARGS__)
-
-//------------------------------------------------------------------------------
-// OpenGL3 backend declarations
-//------------------------------------------------------------------------------
-
-extern bool ImGui_ImplOpenGL3_Init(const char *glsl_version);
-extern void ImGui_ImplOpenGL3_Shutdown();
-extern void ImGui_ImplOpenGL3_NewFrame();
-extern void ImGui_ImplOpenGL3_RenderDrawData(GuiDrawData *draw_data);
-extern bool ImGui_ImplOpenGL3_CreateFontsTexture();
-extern void ImGui_ImplOpenGL3_DestroyFontsTexture();
-extern bool ImGui_ImplOpenGL3_CreateDeviceObjects();
-extern void ImGui_ImplOpenGL3_DestroyDeviceObjects();
-
-typedef struct GlVersion
-{
-    I32 major, minor;
-    /// Shader version for Dear Imgui OpenGL backend
-    Cstr glsl;
-} GlVersion;
 
 //------------------------------------------------------------------------------
 // GLFW backend declarations
@@ -289,7 +270,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init(gl_ver.glsl);
+    guiGl3Init(gl_ver);
 
     // Main loop
     IVec2 win_pos, win_size;
@@ -339,8 +320,8 @@ platformMain(Platform *platform, CommandLine *cmd_line)
             app_io.rebuild_fonts = false;
             guiUpdateAtlas(guiFonts(), app_io.font_opts);
             // Re-upload font texture on the GPU
-            ImGui_ImplOpenGL3_DestroyDeviceObjects();
-            ImGui_ImplOpenGL3_CreateDeviceObjects();
+            guiGl3DeleteDeviceObjects();
+            guiGl3CreateDeviceObjects();
         }
 
         //--------------//
@@ -348,7 +329,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         //--------------//
 
         // Start the Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
+        guiGl3NewFrame();
         ImGui_ImplGlfw_NewFrame();
         guiNewFrame();
 
@@ -369,7 +350,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         //-----------//
 
         GuiDrawData *draw_data = guiRender();
-        ImGui_ImplOpenGL3_RenderDrawData(draw_data);
+        guiGl3Render(draw_data);
 
         // Update and Render additional Platform Windows
         // (Platform functions may change the current OpenGL context, so we save/restore it
@@ -398,7 +379,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     }
 
     // Cleanup
-    ImGui_ImplOpenGL3_Shutdown();
+    guiGl3Shutdown();
     ImGui_ImplGlfw_Shutdown();
     guiShutdown(platform->gui);
 
