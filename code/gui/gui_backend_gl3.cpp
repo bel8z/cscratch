@@ -1,5 +1,8 @@
 // Forked from Dear ImGui Renderer Backend for modern OpenGL with shaders / programmatic pipeline
 
+#define GUI_BACKEND_CUSTOM 0
+#define GUI_BACKEND_FONT_TEXTURE_RGBA 1
+
 //----------------------------------------
 // OpenGL    GLSL      GLSL
 // version   version   string
@@ -20,17 +23,17 @@
 
 #include "gui_backend_gl3.h"
 
-#include "foundation/core.h"
-#include "foundation/memory.h"
-#include "foundation/strings.h"
+#if GUI_BACKEND_CUSTOM
 
-#include "imgui.h"
+#    include "foundation/core.h"
+#    include "foundation/memory.h"
+#    include "foundation/strings.h"
 
-#include <stdio.h>
+#    include "imgui.h"
 
-#define FONT_TEXTURE_RGBA 1
+#    include <stdio.h>
 
-#if !defined(IMGUI_IMPL_OPENGL_LOADER_CUSTOM)
+#    if !defined(IMGUI_IMPL_OPENGL_LOADER_CUSTOM)
 // Modern desktop OpenGL doesn't have a standard portable header file to load OpenGL function
 // pointers. Helper libraries are often used for this purpose! Here we are using our own minimal
 // custom loader based on gl3w. In the rest of your app/engine, you can use another loader of your
@@ -41,9 +44,9 @@
 // - You can temporarily use an unstripped version. See
 // https://github.com/dearimgui/gl3w_stripped/releases Changes to this backend using new APIs should
 // be accompanied by a regenerated stripped loader version.
-#    define IMGl3W_IMPL
-#    include "imgui_impl_opengl3_loader.h"
-#endif
+#        define IMGl3W_IMPL
+#        include "imgui_impl_opengl3_loader.h"
+#    endif
 
 // OpenGL Data
 struct GuiGl3
@@ -124,12 +127,12 @@ struct GlRenderState
         enable_stencil_test = glIsEnabled(GL_STENCIL_TEST);
         enable_scissor_test = glIsEnabled(GL_SCISSOR_TEST);
 
-#ifdef GL_VERSION_3_1
+#    ifdef GL_VERSION_3_1
         enable_primitive_restart =
             (bd->GlVersion >= 310) ? glIsEnabled(GL_PRIMITIVE_RESTART) : GL_FALSE;
-#endif
+#    endif
 
-#if defined(GL_VERSION_3_3)
+#    if defined(GL_VERSION_3_3)
         if (bd->GlVersion >= 330)
         {
             glGetIntegerv(GL_SAMPLER_BINDING, (GLint *)&sampler);
@@ -138,7 +141,7 @@ struct GlRenderState
         {
             sampler = 0;
         }
-#endif
+#    endif
     }
 
     ~GlRenderState()
@@ -164,7 +167,7 @@ struct GlRenderState
         if (enable_scissor_test) glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
             // clang-format on
 
-#ifdef GL_VERSION_3_1
+#    ifdef GL_VERSION_3_1
         if (bd->GlVersion >= 310)
         {
             if (enable_primitive_restart)
@@ -172,11 +175,11 @@ struct GlRenderState
             else
                 glDisable(GL_PRIMITIVE_RESTART);
         }
-#endif
+#    endif
 
-#if defined(GL_VERSION_3_3)
+#    if defined(GL_VERSION_3_3)
         if (bd->GlVersion >= 330) glBindSampler(0, sampler);
-#endif
+#    endif
     }
 };
 
@@ -200,13 +203,13 @@ guiGl3Init(GlVersion version)
     CF_ASSERT(io.BackendRendererUserData == NULL, "Already initialized a renderer backend!");
 
     // Initialize our loader
-#if !defined(IMGUI_IMPL_OPENGL_LOADER_CUSTOM)
+#    if !defined(IMGUI_IMPL_OPENGL_LOADER_CUSTOM)
     if (imgl3wInit() != 0)
     {
         fprintf(stderr, "Failed to initialize OpenGL loader!\n");
         return false;
     }
-#endif
+#    endif
 
     // Setup backend capabilities flags
     GuiGl3 *bd = IM_NEW(GuiGl3)();
@@ -227,12 +230,12 @@ guiGl3Init(GlVersion version)
     bd->GlVersion = (GLuint)(major * 100 + minor * 10);
 
 // Desktop GL 3.2+ has glDrawElementsBaseVertex()
-#if defined(GL_VERSION_3_2)
+#    if defined(GL_VERSION_3_2)
     if (bd->GlVersion >= 320)
         io.BackendFlags |=
             ImGuiBackendFlags_RendererHasVtxOffset; // We can honor the ImDrawCmd::VtxOffset field,
                                                     // allowing for large meshes.
-#endif
+#    endif
     io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports; // We can create multi-viewports on
                                                                // the Renderer side (optional)
 
@@ -241,11 +244,11 @@ guiGl3Init(GlVersion version)
     if (version.glsl == NULL)
     {
 
-#if defined(__APPLE__)
+#    if defined(__APPLE__)
         version.glsl = "#version 150";
-#else
+#    else
         version.glsl = "#version 130";
-#endif
+#    endif
     }
 
     Usize l = strLength(version.glsl);
@@ -319,13 +322,13 @@ guiGl3SetupRenderState(ImDrawData *draw_data, int fb_width, int fb_height, GLuin
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_STENCIL_TEST);
     glEnable(GL_SCISSOR_TEST);
-#ifdef GL_VERSION_3_1
+#    ifdef GL_VERSION_3_1
     if (bd->GlVersion >= 310) glDisable(GL_PRIMITIVE_RESTART);
-#endif
+#    endif
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     // Support for GL 4.5 rarely used glClipControl(GL_UPPER_LEFT)
-#if defined(GL_CLIP_ORIGIN)
+#    if defined(GL_CLIP_ORIGIN)
     bool clip_origin_lower_left = true;
     if (bd->HasClipOrigin)
     {
@@ -333,7 +336,7 @@ guiGl3SetupRenderState(ImDrawData *draw_data, int fb_width, int fb_height, GLuin
         glGetIntegerv(GL_CLIP_ORIGIN, (GLint *)&current_clip_origin);
         if (current_clip_origin == GL_UPPER_LEFT) clip_origin_lower_left = false;
     }
-#endif
+#    endif
 
     // Setup viewport, orthographic projection matrix
     // Our visible imgui space lies from draw_data->DisplayPos (top left) to
@@ -344,14 +347,14 @@ guiGl3SetupRenderState(ImDrawData *draw_data, int fb_width, int fb_height, GLuin
     float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
     float T = draw_data->DisplayPos.y;
     float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
-#if defined(GL_CLIP_ORIGIN)
+#    if defined(GL_CLIP_ORIGIN)
     if (!clip_origin_lower_left)
     {
         float tmp = T;
         T = B;
         B = tmp;
     } // Swap top and bottom if origin is upper left
-#endif
+#    endif
     const float ortho_projection[4][4] = {
         {2.0f / (R - L), 0.0f, 0.0f, 0.0f},
         {0.0f, 2.0f / (T - B), 0.0f, 0.0f},
@@ -362,11 +365,11 @@ guiGl3SetupRenderState(ImDrawData *draw_data, int fb_width, int fb_height, GLuin
     glUniform1i(bd->AttribLocationTex, 0);
     glUniformMatrix4fv(bd->AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
 
-#ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
+#    ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
     if (bd->GlVersion >= 330)
         glBindSampler(0, 0); // We use combined texture/sampler state. Applications using GL 3.3 may
                              // set that otherwise.
-#endif
+#    endif
 
     glBindVertexArray(vao);
 
@@ -470,7 +473,7 @@ guiGl3Render(ImDrawData *draw_data)
                 glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->GetTexID());
 
 // Desktop GL 3.2+ has glDrawElementsBaseVertex()
-#if defined(GL_VERSION_3_2)
+#    if defined(GL_VERSION_3_2)
                 if (bd->GlVersion >= 320)
                     glDrawElementsBaseVertex(
                         GL_TRIANGLES, (GLsizei)pcmd->ElemCount,
@@ -478,7 +481,7 @@ guiGl3Render(ImDrawData *draw_data)
                         (void *)(intptr_t)(pcmd->IdxOffset * sizeof(ImDrawIdx)),
                         (GLint)pcmd->VtxOffset);
                 else
-#endif
+#    endif
                     glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount,
                                    sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT,
                                    (void *)(intptr_t)(pcmd->IdxOffset * sizeof(ImDrawIdx)));
@@ -504,25 +507,25 @@ guiGl3CreateFontsTexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-#ifdef GL_UNPACK_ROW_LENGTH // Not on WebGL/ES
+#    ifdef GL_UNPACK_ROW_LENGTH // Not on WebGL/ES
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-#endif
+#    endif
 
     // Build texture atlas
     U8 *pixels;
     I32 width, height;
-#if FONT_TEXTURE_RGBA
+#    if GUI_BACKEND_FONT_TEXTURE_RGBA
     // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small)
     // because it is more likely to be compatible with user's existing shaders. If
     // your ImTextureId represent a higher-level concept than just a GL texture id,
     // consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-#else
+#    else
     io.Fonts->GetTexDataAsAlpha8(&pixels, &width, &height);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, pixels);
-#endif
+#    endif
 
     // Store our identifier
     io.Fonts->SetTexID((ImTextureID)(intptr_t)bd->font_tex);
@@ -638,12 +641,12 @@ guiGl3CreateDeviceObjects()
         "out vec4 Out_Color;\n"
         "void main()\n"
         "{\n"
-#if FONT_TEXTURE_RGBA
+#    if GUI_BACKEND_FONT_TEXTURE_RGBA
         "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
-#else
+#    else
         "    vec4 sampled = vec4(1.0, 1.0, 1.0, texture(Texture, Frag_UV.st).r);"
         "    Out_Color = Frag_Color * sampled;\n"
-#endif
+#    endif
         "}\n";
 
     // Select shaders matching our GLSL versions
@@ -745,3 +748,62 @@ guiGl3RenderWindow(ImGuiViewport *viewport, void *)
 
     guiGl3Render(viewport->DrawData);
 }
+
+#else
+
+CF_DIAGNOSTIC_PUSH()
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wdeprecated-declarations")
+#    include <backends/imgui_impl_opengl3.h>
+#    include <backends/imgui_impl_opengl3.cpp>
+CF_DIAGNOSTIC_POP()
+
+// Backend API
+bool
+guiGl3Init(GlVersion version)
+{
+    return ImGui_ImplOpenGL3_Init(version.glsl);
+}
+
+void
+guiGl3Shutdown()
+{
+    ImGui_ImplOpenGL3_Shutdown();
+}
+
+void
+guiGl3NewFrame()
+{
+    ImGui_ImplOpenGL3_NewFrame();
+}
+
+void
+guiGl3Render(GuiDrawData *draw_data)
+{
+    ImGui_ImplOpenGL3_RenderDrawData(draw_data);
+}
+
+void
+guiGl3CreateFontsTexture()
+{
+    ImGui_ImplOpenGL3_CreateFontsTexture();
+}
+
+void
+guiGl3DeleteFontsTexture()
+{
+    ImGui_ImplOpenGL3_DestroyFontsTexture();
+}
+
+bool
+guiGl3CreateDeviceObjects()
+{
+    return ImGui_ImplOpenGL3_CreateDeviceObjects();
+}
+
+void
+guiGl3DeleteDeviceObjects()
+{
+    ImGui_ImplOpenGL3_DestroyDeviceObjects();
+}
+
+#endif
