@@ -37,6 +37,10 @@ struct GuiData
 #    define GUI_SRGB_COLORS 0
 #endif // GUI_SRGB_COLORS
 
+#if !defined GUI_VIEWPORTS
+#    define GUI_VIEWPORTS 0
+#endif // GUI_VIEWPORTS
+
 //=== Type conversions ===//
 
 CF_STATIC_ASSERT(sizeof(Vec2) == sizeof(ImVec2), "Vec2 not compatible with ImVec2");
@@ -126,10 +130,13 @@ guiInit(Gui *gui)
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         // Enable Docking
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-        // Enable Multi-Viewport / Platform Windows
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
         // Reduce visual noise while docking, also has a benefit for out-of-sync viewport rendering
         io.ConfigDockingTransparentPayload = true;
+
+#if GUI_VIEWPORTS
+        // Enable Multi-Viewport / Platform Windows
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+#endif
 
         guiSetTheme(GuiTheme_Dark);
     }
