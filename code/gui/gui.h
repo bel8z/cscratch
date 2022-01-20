@@ -369,11 +369,6 @@ CF_API void guiLogBox(CfLog *log, bool readonly);
 
 //=== Canvas ===//
 
-enum
-{
-    GuiCanvas_StackSize = 16
-};
-
 typedef struct GuiCanvas
 {
     Vec2 size, p0, p1;
