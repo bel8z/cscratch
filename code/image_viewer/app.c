@@ -63,8 +63,8 @@ enum Constants
     NumTextures = 2,
 };
 
-static_assert(BrowseWidth & 1, "Browse width must be odd");
-static_assert(BrowseWidth > 1, "Browse width must be > 1");
+CF_STATIC_ASSERT(BrowseWidth & 1, "Browse width must be odd");
+CF_STATIC_ASSERT(BrowseWidth > 1, "Browse width must be > 1");
 
 //----------------------//
 //     Data structs     //

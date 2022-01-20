@@ -136,7 +136,7 @@ typedef struct Win32Clock
     U64 freq;
 } Win32Clock;
 
-static_assert(sizeof(Clock) == sizeof(Win32Clock), "Clock type is too small on Win32");
+CF_STATIC_ASSERT(sizeof(Clock) == sizeof(Win32Clock), "Clock type is too small on Win32");
 
 static CalendarTime
 win32CalendarTime(SYSTEMTIME const *out)

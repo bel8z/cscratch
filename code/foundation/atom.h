@@ -55,13 +55,13 @@ typedef AtomI32 AtomBool;
 #    endif
 
 #    if CF_PTR_SIZE == 4
-static_assert(sizeof(Isize) == 4 && sizeof(Usize) == 4, "Invalid size types");
+CF_STATIC_ASSERT(sizeof(Isize) == 4 && sizeof(Usize) == 4, "Invalid size types");
 
 typedef AtomI32 AtomIsize;
 typedef AtomU32 AtomUsize;
 
 #    elif CF_PTR_SIZE == 8
-static_assert(sizeof(Isize) == 8 && sizeof(Usize) == 8, "Invalid size types");
+CF_STATIC_ASSERT(sizeof(Isize) == 8 && sizeof(Usize) == 8, "Invalid size types");
 
 typedef AtomI64 AtomIsize;
 typedef AtomU64 AtomUsize;

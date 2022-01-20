@@ -82,6 +82,8 @@ glfwCreateWinAndContext(Cstr title, I32 width, I32 height, GlVersion *gl_version
 {
     GLFWwindow *window = NULL;
 
+    glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
+
     for (Usize i = 0; i < CF_ARRAY_SIZE(g_gl_versions); ++i)
     {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, g_gl_versions[i].major);
@@ -144,7 +146,7 @@ static void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
 //------------------------------------------------------------------------------
 
 static void
-platformUpdateFullscreen(GLFWwindow *window, bool fullscreen, IVec2 *win_pos, IVec2 *win_size)
+platformUpdateFullscreen(GLFWwindow *window, bool fullscreen, IVec2 win_pos, IVec2 win_size)
 {
     // TODO (Matteo): Investigate freeze when leaving fullscreen mode
     GLFWmonitor *monitor = glfwGetWindowMonitor(window);
@@ -153,14 +155,12 @@ platformUpdateFullscreen(GLFWwindow *window, bool fullscreen, IVec2 *win_pos, IV
     {
         if (is_fullscreen)
         {
-            glfwSetWindowMonitor(window, NULL,           //
-                                 win_pos->x, win_pos->y, //
-                                 win_size->width, win_size->height, 0);
+            glfwSetWindowMonitor(window, NULL,         //
+                                 win_pos.x, win_pos.y, //
+                                 win_size.width, win_size.height, 0);
         }
         else
         {
-            glfwGetWindowPos(window, &win_pos->x, &win_pos->y);
-            glfwGetWindowSize(window, &win_size->width, &win_size->height);
             monitor = glfwGetPrimaryMonitor();
             GLFWvidmode const *vidmode = glfwGetVideoMode(monitor);
             glfwSetWindowMonitor(window, monitor, 0, 0, vidmode->width, vidmode->height,
@@ -312,7 +312,15 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         // NOTE (Matteo): Auto reloading of application library
         appApiUpdate(&app_api, platform, app_state);
 
-        platformUpdateFullscreen(window, app_io.fullscreen, &win_pos, &win_size);
+        // Update window info
+        glfwGetWindowPos(window, &win_pos.x, &win_pos.y);
+        glfwGetWindowSize(window, &win_size.width, &win_size.height);
+        glfwGetWindowContentScale(window, &win_x_scale, &win_y_scale);
+
+        IVec2 display = {0};
+        glfwGetFramebufferSize(window, &display.width, &display.height);
+
+        platformUpdateFullscreen(window, app_io.fullscreen, win_pos, win_size);
 
         // Rebuild font atlas if required
         if (app_io.rebuild_fonts)
@@ -336,8 +344,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         // NOTE (Matteo): Setup GL viewport and clear buffers BEFORE app update in order to allow
         // the application code to draw directly using OpenGL
         LinearColor clear_color = colorToLinearMultiplied(app_io.back_color);
-        IVec2 display = {0};
-        glfwGetFramebufferSize(window, &display.width, &display.height);
+
         glViewport(0, 0, display.width, display.height);
         glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
         glClear(GL_COLOR_BUFFER_BIT);

@@ -22,9 +22,9 @@
 #if !defined(__cplusplus)
 #    define alignof _Alignof
 #    define alignas _Alignas
-#    if !defined(static_assert)
-#        define static_assert _Static_assert
-#    endif
+#    define CF_STATIC_ASSERT _Static_assert
+#else
+#    define CF_STATIC_ASSERT static_assert
 #endif
 
 #define CF_UNUSED(var) (void)(var)
@@ -701,6 +701,6 @@ CF_DIAGNOSTIC_POP()
 
 //------------------------------------------------------------------------------
 
-static_assert(CF_PTR_SIZE == sizeof(void *), "Invalid pointer size detected");
-static_assert(CF_PTR_SIZE == sizeof(Uptr), "Invalid pointer size detected");
-static_assert(CF_PTR_SIZE == sizeof(Iptr), "Invalid pointer size detected");
+CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(void *), "Invalid pointer size detected");
+CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(Uptr), "Invalid pointer size detected");
+CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(Iptr), "Invalid pointer size detected");

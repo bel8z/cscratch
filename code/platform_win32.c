@@ -12,11 +12,9 @@
 #include "foundation/math.inl"
 #include "foundation/win32.inl"
 
-//  NOTE (Matteo): Link to relevant win32 libs
-#if CF_COMPILER_MSVC
-#    pragma comment(lib, "kernel32")
-#    pragma comment(lib, "user32")
-#    pragma comment(lib, "gdi32")
+#define WIN32_PLACEHOLDER_API NTDDI_VERSION >= NTDDI_WIN10_RS4
+
+#if WIN32_PLACEHOLDER_API
 #    pragma comment(lib, "mincore")
 #endif
 
@@ -262,8 +260,6 @@ main(I32 argc, Cstr argv[])
 // API implementation
 //------------------------------------------------------------------------------
 
-#define WIN32_PLACEHOLDER_API NTDDI_VERSION >= NTDDI_WIN10_RS4
-
 //------------//
 //   Memory   //
 //------------//
@@ -340,7 +336,7 @@ VMEM_MIRROR_ALLOCATE_FN(win32MirrorAllocate)
         CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, (DWORD)(buffer_size >> 32),
                            (DWORD)(buffer_size & 0xffffffff), NULL);
 #else
-    static_assert(sizeof(DWORD) == sizeof(buffer_size), "Unexpected pointer size");
+    CF_STATIC_ASSERT(sizeof(DWORD) == sizeof(buffer_size), "Unexpected pointer size");
     HANDLE mapping = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0,
                                         (DWORD)(buffer_size), NULL);
 #endif
@@ -500,8 +496,8 @@ typedef struct Win32DirIterator
 } Win32DirIterator;
 
 // NOTE (Matteo): Ensure that there is room for a reasonably sized buffer
-static_assert(sizeof(((Win32DirIterator *)0)->buffer) >= 512,
-              "FsIterator buffer size is too small");
+CF_STATIC_ASSERT(sizeof(((Win32DirIterator *)0)->buffer) >= 512,
+                 "FsIterator buffer size is too small");
 
 static inline U64
 win32MergeWords(DWORD high, DWORD low)

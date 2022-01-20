@@ -1654,7 +1654,8 @@ appMainLoop(App *app)
 
         appAnimate(app);
 
-        static_assert(cfIsPowerOf2(CF_ARRAY_SIZE(app->frames)), "Frame count is not a power of 2!");
+        CF_STATIC_ASSERT(cfIsPowerOf2(CF_ARRAY_SIZE(app->frames)),
+                         "Frame count is not a power of 2!");
 
         Usize frame_mask = CF_ARRAY_SIZE(app->frames) - 1;
         Frame *frame = app->frames + (app->frame_index & frame_mask);

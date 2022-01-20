@@ -39,8 +39,8 @@ struct GuiData
 
 //=== Type conversions ===//
 
-static_assert(sizeof(Vec2) == sizeof(ImVec2), "Vec2 not compatible with ImVec2");
-static_assert(sizeof(LinearColor) == sizeof(ImVec4), "LinearColor not compatible with ImVec4");
+CF_STATIC_ASSERT(sizeof(Vec2) == sizeof(ImVec2), "Vec2 not compatible with ImVec2");
+CF_STATIC_ASSERT(sizeof(LinearColor) == sizeof(ImVec4), "LinearColor not compatible with ImVec4");
 
 //=== Memory management ===//
 
