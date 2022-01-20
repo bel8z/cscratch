@@ -51,6 +51,7 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wsign-conversion")
 // Consider enabling from time to time after updating to avoid using soon-to-be obsolete
 // function/names.
 #define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
+#define IMGUI_DISABLE_OBSOLETE_KEYIO
 
 //---- Disable all of Dear ImGui or don't implement standard windows.
 

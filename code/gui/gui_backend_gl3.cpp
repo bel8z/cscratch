@@ -28,7 +28,7 @@
 
 #include <stdio.h>
 
-#define FONT_TEXTURE_RGBA 0
+#define FONT_TEXTURE_RGBA 1
 
 #if !defined(IMGUI_IMPL_OPENGL_LOADER_CUSTOM)
 // Modern desktop OpenGL doesn't have a standard portable header file to load OpenGL function

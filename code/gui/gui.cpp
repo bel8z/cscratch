@@ -819,7 +819,7 @@ guiGetFramerate(void)
 bool
 guiKeyPressed(GuiKey key)
 {
-    return ImGui::IsKeyPressed(ImGui::GetIO().KeyMap[key], true);
+    return ImGui::IsKeyPressed(key, true);
 }
 
 bool
