@@ -82,8 +82,6 @@ glfwCreateWinAndContext(Cstr title, I32 width, I32 height, GlVersion *gl_version
 {
     GLFWwindow *window = NULL;
 
-    glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
-
     for (Usize i = 0; i < CF_ARRAY_SIZE(g_gl_versions); ++i)
     {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, g_gl_versions[i].major);

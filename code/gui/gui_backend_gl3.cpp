@@ -63,7 +63,8 @@ struct GuiGl3
     GLuint AttribLocationVtxPos; // Vertex attributes location
     GLuint AttribLocationVtxUV;
     GLuint AttribLocationVtxColor;
-
+    GLsizeiptr VertexBufferSize;
+    GLsizeiptr IndexBufferSize;
     bool HasClipOrigin;
 
     GuiGl3() { memClearStruct(this); }
@@ -421,12 +422,23 @@ guiGl3Render(ImDrawData *draw_data)
         const ImDrawList *cmd_list = draw_data->CmdLists[n];
 
         // Upload vertex/index buffers
-        glBufferData(GL_ARRAY_BUFFER,
-                     (GLsizeiptr)cmd_list->VtxBuffer.Size * (int)sizeof(ImDrawVert),
-                     (const GLvoid *)cmd_list->VtxBuffer.Data, GL_STREAM_DRAW);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     (GLsizeiptr)cmd_list->IdxBuffer.Size * (int)sizeof(ImDrawIdx),
-                     (const GLvoid *)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW);
+        GLsizeiptr vtx_buffer_size = (GLsizeiptr)cmd_list->VtxBuffer.Size * (int)sizeof(ImDrawVert);
+        GLsizeiptr idx_buffer_size = (GLsizeiptr)cmd_list->IdxBuffer.Size * (int)sizeof(ImDrawIdx);
+
+        if (bd->VertexBufferSize < vtx_buffer_size)
+        {
+            bd->VertexBufferSize = vtx_buffer_size;
+            glBufferData(GL_ARRAY_BUFFER, bd->VertexBufferSize, NULL, GL_STREAM_DRAW);
+        }
+        if (bd->IndexBufferSize < idx_buffer_size)
+        {
+            bd->IndexBufferSize = idx_buffer_size;
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, bd->IndexBufferSize, NULL, GL_STREAM_DRAW);
+        }
+        glBufferSubData(GL_ARRAY_BUFFER, 0, vtx_buffer_size,
+                        (const GLvoid *)cmd_list->VtxBuffer.Data);
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, idx_buffer_size,
+                        (const GLvoid *)cmd_list->IdxBuffer.Data);
 
         for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
         {
@@ -448,7 +460,7 @@ guiGl3Render(ImDrawData *draw_data)
                                 (pcmd->ClipRect.y - clip_off.y) * clip_scale.y);
                 ImVec2 clip_max((pcmd->ClipRect.z - clip_off.x) * clip_scale.x,
                                 (pcmd->ClipRect.w - clip_off.y) * clip_scale.y);
-                if (clip_max.x < clip_min.x || clip_max.y < clip_min.y) continue;
+                if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) continue;
 
                 // Apply scissor/clipping rectangle (Y is inverted in OpenGL)
                 glScissor((int)clip_min.x, (int)(fb_height - clip_max.y),

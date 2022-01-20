@@ -13,14 +13,14 @@ set(EXT_DIR ${PARENT_DIR}/ext)
 set(IMGUI_DIR ${EXT_DIR}/imgui)
 set(BACKEND_DIR ${IMGUI_DIR}/backends)
 set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
-set(GLFW_DIR ${EXT_DIR}/glfw-3)
+set(GLFW_DIR ${EXT_DIR}/glfw-3.3.6)
 
 #----------------------#
 # Dependency libraries #
 #----------------------#
 
 # TODO (Matteo): Find a better way to handle out of tree builds
-add_subdirectory(${GLFW_DIR} ${CMAKE_BINARY_DIR}/glfw-3)
+add_subdirectory(${GLFW_DIR} ${CMAKE_BINARY_DIR}/glfw-3.3.6)
 
 find_package(OpenGL REQUIRED)
 find_package(freetype REQUIRED PATHS ${FREETYPE_DIR})
