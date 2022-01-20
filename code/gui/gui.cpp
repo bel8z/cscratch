@@ -582,25 +582,6 @@ guiLoadDefaultFont(ImFontAtlas *fonts)
 
 //=== Windows ===//
 
-GuiDockLayout
-guiDockLayout(void)
-{
-    // NOTE (Matteo): Setup docking layout on first run (if the dockspace node is already split
-    // the layout has been setup and maybe modified by the user). This code is partially copied
-    // from github since the DockBuilder API is not documented - understand it better!
-
-    ImGuiDockNodeFlags const dock_flags = ImGuiDockNodeFlags_NoDockingInCentralNode;
-    ImGuiViewport const *viewport = ImGui::GetMainViewport();
-
-    GuiDockLayout layout{};
-
-    layout.id = ImGui::DockSpaceOverViewport(viewport, dock_flags, NULL);
-    layout.node = ImGui::DockBuilderGetNode(layout.id);
-    layout.open = (!layout.node || !layout.node->IsSplitNode());
-
-    return layout;
-}
-
 static U32
 gui_DockSplit(GuiDockLayout *layout, ImGuiDir dir, F32 size_ratio)
 {
@@ -610,6 +591,50 @@ gui_DockSplit(GuiDockLayout *layout, ImGuiDir dir, F32 size_ratio)
         id = ImGui::DockBuilderSplitNode(layout->id, dir, size_ratio, NULL, &layout->id);
     }
     return id;
+}
+
+static U32
+gui_DockSpaceOnMainViewport(ImGuiDockNodeFlags dock_flags)
+{
+    ImGuiViewport const *viewport = ImGui::GetMainViewport();
+    return ImGui::DockSpaceOverViewport(viewport, dock_flags, NULL);
+}
+
+CF_API void
+guiDockSpace(GuiDockStyle style)
+{
+    CF_STATIC_ASSERT(ImGuiDockNodeFlags_PassthruCentralNode == GuiDockStyle_Transparent,
+                     "ImGuiDockNodeFlags changed");
+    CF_STATIC_ASSERT(ImGuiDockNodeFlags_NoDockingInCentralNode == GuiDockStyle_CentralViewport,
+                     "ImGuiDockNodeFlags changed");
+
+    gui_DockSpaceOnMainViewport(style);
+}
+
+void
+guiTransparentDockSpace(bool can_fill)
+{
+    ImGuiDockNodeFlags dock_flags = ImGuiDockNodeFlags_PassthruCentralNode;
+    if (!can_fill) dock_flags |= ImGuiDockNodeFlags_NoDockingInCentralNode;
+    gui_DockSpaceOnMainViewport(dock_flags);
+}
+
+GuiDockLayout
+guiDockLayout(void)
+{
+    // NOTE (Matteo): Setup docking layout on first run (if the dockspace node is already split
+    // the layout has been setup and maybe modified by the user). This code is partially copied
+    // from github since the DockBuilder API is not documented - understand it better!
+
+    ImGuiDockNodeFlags const dock_flags = ImGuiDockNodeFlags_NoDockingInCentralNode;
+
+    GuiDockLayout layout{};
+
+    layout.id = gui_DockSpaceOnMainViewport(dock_flags);
+    layout.node = ImGui::DockBuilderGetNode(layout.id);
+    layout.open = (!layout.node || !layout.node->IsSplitNode());
+
+    return layout;
 }
 
 U32

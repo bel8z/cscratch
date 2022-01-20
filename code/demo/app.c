@@ -566,6 +566,8 @@ APP_API APP_UPDATE_FN(appUpdate)
         guiEndMainMenuBar();
     }
 
+    guiDockSpace(GuiDockStyle_Transparent);
+
     if (state->windows.demo) guiDemoWindow(&state->windows.demo);
 
     if (state->windows.fonts)

@@ -230,12 +230,22 @@ CF_API F32 guiGetMouseDownDuration(GuiMouseButton button);
 
 //=== Windows ===//
 
+typedef U8 GuiDockStyle;
+enum GuiDockStyle_
+{
+    GuiDockStyle_Default = 0,
+    GuiDockStyle_Transparent = 8,
+    GuiDockStyle_CentralViewport = 4,
+};
+
 typedef struct GuiDockLayout
 {
     GuiDockNode *node;
     U32 id;
     bool open;
 } GuiDockLayout;
+
+CF_API void guiDockSpace(GuiDockStyle style);
 
 CF_API GuiDockLayout guiDockLayout(void);
 CF_API U32 guiDockSplitUp(GuiDockLayout *layout, F32 size_ratio);
