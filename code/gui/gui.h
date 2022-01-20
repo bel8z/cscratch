@@ -400,9 +400,6 @@ CF_API void guiCanvasDrawImage(GuiCanvas *canvas, U32 texture, //
                                Vec2 image_min, Vec2 image_max, //
                                Vec2 uv_min, Vec2 uv_max);
 
-CF_API void guiCanvasPushStrokeColor(GuiCanvas *canvas, Srgb32 color);
-CF_API void guiCanvasPopStrokeColor(GuiCanvas *canvas);
-
 //=== Miscellanea ===//
 
 CF_API void guiSameLine(void);
