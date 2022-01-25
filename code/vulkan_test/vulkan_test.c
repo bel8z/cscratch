@@ -22,7 +22,6 @@
 
 #define RENDER_GUI true
 #define BLEND_ENABLED false
-#define VSYNC false
 
 // TODO (Matteo): Fix this. Dear Imgui builds platform window surfaces with
 // VK_FORMAT_B8G8R8A8_UNORM, making them incompatible with the main window format if it is _SRGB.
@@ -42,6 +41,16 @@ static VkDynamicState const DYNAMIC_PIPELINE_STATES[] = {
 //----------//
 //   Data   //
 //----------//
+
+typedef enum FrameRate
+{
+    FrameRate_Unthrottled = -1,
+    FrameRate_Vsync = 0,
+    FrameRate_30Hz = 30,
+    FrameRate_60Hz = 60,
+    FrameRate_120Hz = 120,
+    FrameRate_240Hz = 240,
+} FrameRate;
 
 enum QueueType
 {
@@ -106,6 +115,8 @@ typedef struct App
     MemAllocator allocator;
     GLFWwindow *window;
 
+    FrameRate framerate;
+
     VkAllocationCallbacks *vkalloc;
     VkInstance inst;
     VkDebugUtilsMessengerEXT debug;
@@ -137,7 +148,7 @@ typedef struct App
     UniformBufferObject ubo;
 } App;
 
-const Vertex g_vertices[] = {
+static const Vertex g_vertices[] = {
     {.pos = {{-0.5f, -0.5f, 0.0f}}, .color = {{1.0f, 0.0f, 0.0f}}},
     {.pos = {{0.5f, -0.5f, 0.0f}}, .color = {{0.0f, 1.0f, 0.0f}}},
     {.pos = {{0.5f, 0.5f, 0.0f}}, .color = {{0.0f, 0.0f, 1.0f}}},
@@ -145,7 +156,7 @@ const Vertex g_vertices[] = {
     // {.pos = {{0.0f, 0.0f, 1.0f}}, .color = {{1.0f, 1.0f, 1.0f}}},
 };
 
-const U16 g_indices[] = {
+static const U16 g_indices[] = {
     0, 1, 2, 2, 3, 0, //
     // 0, 4, 1, 3, 4, 2, //
 };
@@ -628,7 +639,7 @@ appCreateSwapchain(App *app)
     // MAILBOX requires at least 3 images to be of any value
     info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-    if (!VSYNC && max_image_count > 2)
+    if (app->framerate != FrameRate_Vsync && max_image_count > 2)
     {
         U32 num_modes;
 
@@ -641,14 +652,20 @@ appCreateSwapchain(App *app)
         VkPresentModeKHR *modes = memAllocArray(app->allocator, VkPresentModeKHR, num_modes);
         vkGetPhysicalDeviceSurfacePresentModesKHR(app->gpu, app->surface, &num_modes, modes);
 
-        for (U32 index = 0; index < num_modes; ++index)
+        U32 found = U32_MAX;
+
+        for (U32 index = 0; found == U32_MAX && index < num_modes; ++index)
         {
-            if (modes[index] == VK_PRESENT_MODE_MAILBOX_KHR)
-            {
-                info.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-                break;
-            }
+            if (modes[index] == VK_PRESENT_MODE_MAILBOX_KHR) found = index;
         }
+
+        for (U32 index = 0; found == U32_MAX && index < num_modes; ++index)
+        {
+            if (modes[index] == VK_PRESENT_MODE_IMMEDIATE_KHR) found = index;
+        }
+
+        if (found != U32_MAX) info.presentMode = modes[found];
+
         memFreeArray(app->allocator, modes, num_modes);
     }
 
@@ -1276,6 +1293,8 @@ appInit(App *app, Platform *platform)
     app->allocator = platform->heap;
     app->vkalloc = NULL; // TODO (Matteo): Implement
 
+    app->framerate = FrameRate_Vsync;
+
     //=== Initialize GLFW and create window  ===//
 
     glfwInit();
@@ -1612,6 +1631,34 @@ appAnimate(App *app)
 }
 
 void
+appToolWindow(App *app)
+{
+    static const Cstr names[] = {"Unthrottled", "Vsync", "30 Hz", "60 Hz", "120 Hz", "240 Hz"};
+    static const FrameRate values[] = {FrameRate_Unthrottled, FrameRate_Vsync, FrameRate_30Hz,
+                                       FrameRate_60Hz,        FrameRate_120Hz, FrameRate_240Hz};
+
+    if (guiBeginAutoResize("Tool", NULL))
+    {
+        F64 fps = (F64)guiGetFramerate();
+        guiText("Application average %.3f ms/frame (%.1f FPS)", 1000.0 / fps, fps);
+        guiSeparator();
+
+        Usize selected = 0;
+        for (; selected < CF_ARRAY_SIZE(values); ++selected)
+        {
+            if (app->framerate == values[selected]) break;
+        }
+        if (guiCombo("Framerate", names[selected], names, CF_ARRAY_SIZE(names), &selected))
+        {
+            app->framerate = values[selected];
+            app->rebuild_swapchain = true;
+        }
+
+        guiEnd();
+    }
+}
+
+void
 appMainLoop(App *app)
 {
     // NOTE (Matteo): Ensure swapchain setup on first loop
@@ -1635,7 +1682,16 @@ appMainLoop(App *app)
 
     while (!glfwWindowShouldClose(app->window))
     {
-        glfwPollEvents();
+        if (app->framerate > FrameRate_Vsync)
+        {
+            // TODO (Matteo): Compensate for frame computation time
+            F64 period = 1.0 / (F64)app->framerate;
+            glfwWaitEventsTimeout(period);
+        }
+        else
+        {
+            glfwPollEvents();
+        }
 
         if (app->rebuild_swapchain)
         {
@@ -1660,6 +1716,7 @@ appMainLoop(App *app)
         ImGui_ImplGlfw_NewFrame();
         guiNewFrame();
         guiDemoWindow(NULL);
+        appToolWindow(app);
 
         appAnimate(app);
 
