@@ -21,15 +21,13 @@
 //-------------------//
 
 #define RENDER_GUI true
-
 #define BLEND_ENABLED false
+#define VSYNC false
 
-#define PREFERRED_PRESENT_MODE ((VkPresentModeKHR)VK_PRESENT_MODE_MAILBOX_KHR)
-
-// TODO (Matteo): Can this be fixed? Separate render passes for GUI and app?
-// In order to render IMGUI inside the main render pass, the format must be
-// VK_FORMAT_B8G8R8A8_UNORM.
-#if 0 && RENDER_GUI
+// TODO (Matteo): Fix this. Dear Imgui builds platform window surfaces with
+// VK_FORMAT_B8G8R8A8_UNORM, making them incompatible with the main window format if it is _SRGB.
+// Also, in case of _SRGB, gui colors must be gamma corrected.
+#if RENDER_GUI
 #    define PREFERRED_FORMAT VK_FORMAT_B8G8R8A8_UNORM
 #else
 #    define PREFERRED_FORMAT VK_FORMAT_B8G8R8A8_SRGB
@@ -614,8 +612,23 @@ appCreateSwapchain(App *app)
         swapchain->format = info.imageFormat;
     }
 
-    // Retrieve best presentation mode
+    // Ensure that at least 2 swapchain images are avaialble
+    if (caps.minImageCount > 2)
+    {
+        appTerminate(app, "Swapchain min image count is too high (%u)\n", caps.minImageCount);
+    }
+
+    U32 max_image_count = (caps.maxImageCount) ? caps.maxImageCount : 3;
+    if (max_image_count < 2)
+    {
+        appTerminate(app, "Swapchain max image count is too low (%u)\n", max_image_count);
+    }
+
+    // Select the best available presentation mode between FIFO and MAILBOX
+    // MAILBOX requires at least 3 images to be of any value
     info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+    if (!VSYNC && max_image_count > 2)
     {
         U32 num_modes;
 
@@ -630,22 +643,18 @@ appCreateSwapchain(App *app)
 
         for (U32 index = 0; index < num_modes; ++index)
         {
-            if (modes[index] == PREFERRED_PRESENT_MODE)
+            if (modes[index] == VK_PRESENT_MODE_MAILBOX_KHR)
             {
-                info.presentMode = PREFERRED_PRESENT_MODE;
+                info.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
                 break;
             }
         }
         memFreeArray(app->allocator, modes, num_modes);
     }
 
-    // NOTE (Matteo): Request one image more than the minimum to avoid excessive waiting on the
-    // driver
-    info.minImageCount = caps.minImageCount + 1;
-    if (caps.maxImageCount > 0 && info.minImageCount > caps.maxImageCount)
-    {
-        info.minImageCount = caps.maxImageCount;
-    }
+    info.minImageCount = (info.presentMode == VK_PRESENT_MODE_FIFO_KHR) ? 2 : 3;
+
+    CF_ASSERT(info.minImageCount <= max_image_count, "Logic error");
 
     VK_CHECK(vkCreateSwapchainKHR(app->device, &info, app->vkalloc, &swapchain->handle));
 }
