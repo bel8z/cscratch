@@ -1067,6 +1067,30 @@ guiMenuItem(Cstr label, bool *p_selected)
 }
 
 bool
+guiCombo(Cstr label, Cstr preview, Cstr const *values, Usize count, Usize *selected_index)
+{
+    bool changed = false;
+
+    if (ImGui::BeginCombo(label, preview, 0))
+    {
+        for (Usize i = 0; i < count; ++i)
+        {
+            bool const selected = (i == *selected_index);
+            if (ImGui::Selectable(values[i], selected) && !selected)
+            {
+                changed = true;
+                *selected_index = i;
+            }
+            if (selected) ImGui::SetItemDefaultFocus();
+        }
+
+        ImGui::EndCombo();
+    }
+
+    return changed;
+}
+
+bool
 guiColorEdit(Cstr label, Srgb32 *color)
 {
     // TODO (Matteo): Fix redundant label
@@ -1086,7 +1110,6 @@ guiColorEdit(Cstr label, Srgb32 *color)
     Char8 label_buffer[1024];
 
     // Test if the color is a known named one
-
     for (Usize i = 0; i < CF_ARRAY_SIZE(colors) && color_index == USIZE_MAX; ++i)
     {
         if (colors[i] == *color)
@@ -1098,25 +1121,13 @@ guiColorEdit(Cstr label, Srgb32 *color)
 
     // Combo box with named colors
     ImFormatString(label_buffer, CF_ARRAY_SIZE(label_buffer), "%s##Combo", label);
-
-    if (ImGui::BeginCombo(label_buffer, color_name, 0))
+    if (guiCombo(label_buffer, color_name, names, CF_ARRAY_SIZE(colors), &color_index))
     {
-        for (Usize i = 0; i < CF_ARRAY_SIZE(colors); ++i)
-        {
-            bool const selected = i == color_index;
-            if (ImGui::Selectable(names[i], selected))
-            {
-                color_changed = color_index != i;
-                *color = colors[i];
-            }
-            if (selected) ImGui::SetItemDefaultFocus();
-        }
-
-        ImGui::EndCombo();
+        color_changed = true;
+        *color = colors[color_index];
     }
 
     // Free color editing
-
     ImFormatString(label_buffer, CF_ARRAY_SIZE(label_buffer), "%s##Picker", label);
 
     // TODO (Matteo): Color picker works best in sRGB space?

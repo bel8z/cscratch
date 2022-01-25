@@ -296,6 +296,9 @@ CF_API bool guiBeginMenu(Cstr label, bool enabled);
 CF_API void guiEndMenu(void);
 CF_API bool guiMenuItem(Cstr label, bool *p_selected);
 
+CF_API bool guiCombo(Cstr label, Cstr preview, Cstr const *values, Usize count,
+                     Usize *selected_index);
+
 /// Custom color edit with an additional combobox for choosing X11 named colors
 CF_API bool guiColorEdit(Cstr label, Srgb32 *color);
 
