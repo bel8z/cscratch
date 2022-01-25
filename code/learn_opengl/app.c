@@ -23,6 +23,13 @@
 //------------------------------------------------------------------------------
 
 #define MAX_ACTIVE_TEXTURES 2
+#define SRGB_COLOR_SPACE 0
+
+#if SRGB_COLOR_SPACE
+#    define TEX_FORMAT GL_SRGB8_ALPHA8
+#else
+#    define TEX_FORMAT GL_RGBA
+#endif
 
 typedef struct Vertex
 {
@@ -161,6 +168,12 @@ APP_API APP_FN(appLoad)
 
     // Init graphics state
     gfxInit(&app->gfx, &app->log, app->plat->paths, app->plat->file);
+
+#if SRGB_COLOR_SPACE
+    glEnable(GL_FRAMEBUFFER_SRGB);
+#else
+    glDisable(GL_FRAMEBUFFER_SRGB);
+#endif
 }
 
 APP_API APP_FN(appUnload)
@@ -199,8 +212,9 @@ textureLoad(Texture *tex, Str filename, IoFileApi *file)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // Generate the texture (default mimpmap)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->width, tex->height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
-                 image.bytes);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, TEX_FORMAT, tex->width, tex->height, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, image.bytes);
 
     // Let OpenGL generate the mipmaps for the current texture
     glGenerateMipmap(GL_TEXTURE_2D);
