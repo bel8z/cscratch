@@ -44,6 +44,7 @@ static VkDynamicState const DYNAMIC_PIPELINE_STATES[] = {
 
 typedef enum FrameRate
 {
+    FrameRate_Reactive = -2,
     FrameRate_Unthrottled = -1,
     FrameRate_Vsync = 0,
     FrameRate_30Hz = 30,
@@ -659,9 +660,14 @@ appCreateSwapchain(App *app)
             if (modes[index] == VK_PRESENT_MODE_MAILBOX_KHR) found = index;
         }
 
-        for (U32 index = 0; found == U32_MAX && index < num_modes; ++index)
+        // NOTE (Matteo): Use immediate mode as a (poor) fallback in case mailbox is not available,
+        // except for reactive mode (in which case it wastes CPU power)
+        if (app->framerate != FrameRate_Reactive)
         {
-            if (modes[index] == VK_PRESENT_MODE_IMMEDIATE_KHR) found = index;
+            for (U32 index = 0; found == U32_MAX && index < num_modes; ++index)
+            {
+                if (modes[index] == VK_PRESENT_MODE_IMMEDIATE_KHR) found = index;
+            }
         }
 
         if (found != U32_MAX) info.presentMode = modes[found];
@@ -1293,8 +1299,6 @@ appInit(App *app, Platform *platform)
     app->allocator = platform->heap;
     app->vkalloc = NULL; // TODO (Matteo): Implement
 
-    app->framerate = FrameRate_Vsync;
-
     //=== Initialize GLFW and create window  ===//
 
     glfwInit();
@@ -1633,9 +1637,11 @@ appAnimate(App *app)
 void
 appToolWindow(App *app)
 {
-    static const Cstr names[] = {"Unthrottled", "Vsync", "30 Hz", "60 Hz", "120 Hz", "240 Hz"};
-    static const FrameRate values[] = {FrameRate_Unthrottled, FrameRate_Vsync, FrameRate_30Hz,
-                                       FrameRate_60Hz,        FrameRate_120Hz, FrameRate_240Hz};
+    static const Cstr names[] = {"Reactive", "Unthrottled", "Vsync", "30 Hz",
+                                 "60 Hz",    "120 Hz",      "240 Hz"};
+    static const FrameRate values[] = {FrameRate_Reactive, FrameRate_Unthrottled, FrameRate_Vsync,
+                                       FrameRate_30Hz,     FrameRate_60Hz,        FrameRate_120Hz,
+                                       FrameRate_240Hz};
 
     if (guiBeginAutoResize("Tool", NULL))
     {
@@ -1682,9 +1688,16 @@ appMainLoop(App *app)
 
     while (!glfwWindowShouldClose(app->window))
     {
-        if (app->framerate > FrameRate_Vsync)
+        // Handle input
+        if (app->framerate == FrameRate_Reactive)
         {
-            // TODO (Matteo): Compensate for frame computation time
+            glfwWaitEvents();
+        }
+        else if (app->framerate > FrameRate_Vsync)
+        {
+            // TODO (Matteo): This does not work as expected because input events resume execution.
+            // A real frame limiter would wait the entire interval (and adjusts for actual frame
+            // computation time).
             F64 period = 1.0 / (F64)app->framerate;
             glfwWaitEventsTimeout(period);
         }
