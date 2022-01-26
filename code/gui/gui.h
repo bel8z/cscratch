@@ -2,6 +2,10 @@
 
 #include "foundation/core.h"
 
+#if !defined(GUI_FREETYPE)
+#    define GUI_FREETYPE 1
+#endif
+
 // NOTE (Matteo): Here i forward declare some Imgui internal types, while
 // also "importing" them into the Gui namespace
 
@@ -311,12 +315,16 @@ typedef struct GuiFontOptions
 {
     I32 tex_glyph_padding;
     F32 rasterizer_multiply;
+
     // Stb only
     I32 oversample_h;
     I32 oversample_v;
+
     // Freetype only
+#if GUI_FREETYPE
     U32 freetype_flags;
-    bool freetype_enabled;
+    bool freetype_disabled;
+#endif
 } GuiFontOptions;
 
 /// Widget for the editing of font options

@@ -1,5 +1,4 @@
 #include "gui.h"
-
 #include "gui_config.h"
 
 // Restore warnings disabled for DearImgui compilation
@@ -14,8 +13,10 @@ CF_DIAGNOSTIC_IGNORE_MSVC(4201)
 CF_DIAGNOSTIC_IGNORE_MSVC(4214)
 
 #include "imgui.h"
-#include "imgui_freetype.h"
 #include "imgui_internal.h"
+#if defined(IMGUI_ENABLE_FREETYPE)
+#    include "imgui_freetype.h"
+#endif
 
 CF_DIAGNOSTIC_POP()
 
@@ -481,17 +482,19 @@ guiFontOptionsEdit(GuiFontOptions *state)
 
     ImGui::ShowFontSelector("Fonts");
 
-    if (ImGui::RadioButton("FreeType", state->freetype_enabled))
+#if GUI_FREETYPE
+    if (ImGui::RadioButton("FreeType", !state->freetype_disabled))
     {
-        state->freetype_enabled = true;
+        state->freetype_disabled = false;
         rebuild_fonts = true;
     }
     guiSameLine();
-    if (ImGui::RadioButton("Stb (Default)", !state->freetype_enabled))
+    if (ImGui::RadioButton("Stb (Default)", state->freetype_disabled))
     {
-        state->freetype_enabled = false;
+        state->freetype_disabled = true;
         rebuild_fonts = true;
     }
+#endif
 
     rebuild_fonts |= ImGui::DragInt("TexGlyphPadding", &state->tex_glyph_padding, 0.1f, 1, 16, NULL,
                                     ImGuiSliderFlags_None);
@@ -501,7 +504,8 @@ guiFontOptionsEdit(GuiFontOptions *state)
 
     ImGui::Separator();
 
-    if (state->freetype_enabled)
+#if GUI_FREETYPE
+    if (!state->freetype_disabled)
     {
 
         rebuild_fonts |= ImGui::CheckboxFlags("NoHinting", &state->freetype_flags,
@@ -522,6 +526,7 @@ guiFontOptionsEdit(GuiFontOptions *state)
                                               ImGuiFreeTypeBuilderFlags_Monochrome);
     }
     else
+#endif
     {
         rebuild_fonts |= ImGui::DragInt("Oversample H", &state->oversample_h, 0.1f, 1, 5, NULL,
                                         ImGuiSliderFlags_None);
@@ -535,6 +540,9 @@ guiFontOptionsEdit(GuiFontOptions *state)
 void
 guiUpdateAtlas(ImFontAtlas *fonts, GuiFontOptions *font_opts)
 {
+    if (font_opts->oversample_h < 1) font_opts->oversample_h = 2;
+    if (font_opts->oversample_v < 1) font_opts->oversample_v = 2;
+
     if (font_opts->tex_glyph_padding != 0)
     {
         fonts->TexGlyphPadding = font_opts->tex_glyph_padding;
@@ -547,12 +555,14 @@ guiUpdateAtlas(ImFontAtlas *fonts, GuiFontOptions *font_opts)
         fonts->ConfigData.Data[i].OversampleV = font_opts->oversample_v;
     }
 
-    if (font_opts->freetype_enabled)
+#if GUI_FREETYPE
+    if (!font_opts->freetype_disabled)
     {
         fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
         fonts->FontBuilderFlags = (U32)font_opts->freetype_flags;
     }
     else
+#endif
     {
         fonts->FontBuilderIO = ImFontAtlasGetBuilderForStbTruetype();
     }

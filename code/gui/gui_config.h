@@ -21,6 +21,7 @@
 
 #include "foundation/core.h"
 #include "foundation/error.h"
+#include "gui.h"
 
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM <gl/gload.h>
 #include IMGUI_IMPL_OPENGL_LOADER_CUSTOM
@@ -129,11 +130,8 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wsign-conversion")
 // ImGui sources files.
 
 #define IMGUI_STB_TRUETYPE_FILENAME <stb_truetype.h>
-
 #define IMGUI_STB_RECT_PACK_FILENAME <stb_rect_pack.h>
-
 #define IMGUI_DISABLE_STB_TRUETYPE_IMPLEMENTATION
-
 #define IMGUI_DISABLE_STB_RECT_PACK_IMPLEMENTATION
 
 //---- Use stb_printf's faster implementation of vsnprintf instead of the one from libc (unless
@@ -151,7 +149,9 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wsign-conversion")
 // provided). On Windows you may use vcpkg with 'vcpkg install freetype --triplet=x64-windows' +
 // 'vcpkg integrate install'.
 
-#define IMGUI_ENABLE_FREETYPE
+#if GUI_FREETYPE
+#    define IMGUI_ENABLE_FREETYPE
+#endif
 
 //---- Use stb_truetype to build and rasterize the font atlas (default)
 // The only purpose of this define is if you want force compilation of the stb_truetype backend

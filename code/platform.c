@@ -276,13 +276,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     // Main loop
     IVec2 win_pos, win_size;
     AppIo app_io = {
-        .font_opts =
-            &(GuiFontOptions){
-                .freetype_enabled = true,
-                .oversample_h = 1,
-                .oversample_v = 1,
-                .rasterizer_multiply = 1.0f,
-            },
+        .font_opts = &(GuiFontOptions){.rasterizer_multiply = 1.0f},
         // NOTE (Matteo): Ensure font rebuild before first frame
         .rebuild_fonts = true,
         // NOTE (Matteo): Ensure fast first update
