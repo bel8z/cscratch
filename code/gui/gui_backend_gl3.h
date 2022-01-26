@@ -8,7 +8,7 @@ typedef struct GlVersion
 {
     I32 major, minor;
     /// Shader version for Dear Imgui OpenGL backend
-    Cstr glsl;
+    I32 glsl;
 } GlVersion;
 
 // Backend API
@@ -18,6 +18,7 @@ CF_API void guiGl3NewFrame();
 CF_API void guiGl3Render(GuiDrawData *draw_data);
 
 // (Optional) Called by Init/NewFrame/Shutdown
+CF_API void guiGl3UpdateFontsTexture();
 CF_API void guiGl3CreateFontsTexture();
 CF_API void guiGl3DeleteFontsTexture();
 CF_API bool guiGl3CreateDeviceObjects();

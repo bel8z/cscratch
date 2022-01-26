@@ -67,14 +67,14 @@ glfwErrorCallback(int error, Cstr description)
 // order (one per year or release), in order to benefit of the latest features available.
 
 static const GlVersion g_gl_versions[8] = {
-    {.major = 4, .minor = 6, .glsl = "#version 150"}, // 2017
-    {.major = 4, .minor = 5, .glsl = "#version 150"}, // 2014
-    {.major = 4, .minor = 4, .glsl = "#version 150"}, // 2013
-    {.major = 4, .minor = 3, .glsl = "#version 150"}, // 2012
-    {.major = 4, .minor = 2, .glsl = "#version 150"}, // 2011
-    {.major = 4, .minor = 1, .glsl = "#version 150"}, // 2010
-    {.major = 3, .minor = 2, .glsl = "#version 150"}, // 2009
-    {.major = 3, .minor = 0, .glsl = "#version 130"}, // 2008
+    {.major = 4, .minor = 6, .glsl = 430}, // 2017
+    {.major = 4, .minor = 5, .glsl = 430}, // 2014
+    {.major = 4, .minor = 4, .glsl = 430}, // 2013
+    {.major = 4, .minor = 3, .glsl = 430}, // 2012
+    {.major = 4, .minor = 2, .glsl = 420}, // 2011
+    {.major = 4, .minor = 1, .glsl = 410}, // 2010
+    {.major = 3, .minor = 2, .glsl = 150}, // 2009
+    {.major = 3, .minor = 0, .glsl = 130}, // 2008
 };
 
 static GLFWwindow *
@@ -323,8 +323,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
             app_io.rebuild_fonts = false;
             guiUpdateAtlas(guiFonts(), app_io.font_opts);
             // Re-upload font texture on the GPU
-            guiGl3DeleteFontsTexture();
-            guiGl3CreateFontsTexture();
+            guiGl3UpdateFontsTexture();
         }
 
         //--------------//
