@@ -329,8 +329,8 @@ platformMain(Platform *platform, CommandLine *cmd_line)
             app_io.rebuild_fonts = false;
             guiUpdateAtlas(guiFonts(), app_io.font_opts);
             // Re-upload font texture on the GPU
-            guiGl3DeleteDeviceObjects();
-            guiGl3CreateDeviceObjects();
+            guiGl3DeleteFontsTexture();
+            guiGl3CreateFontsTexture();
         }
 
         //--------------//
