@@ -26,9 +26,6 @@
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM <gl/gload.h>
 #include IMGUI_IMPL_OPENGL_LOADER_CUSTOM
 
-// NOTE (Matteo): Suppress some warnings for Imgui compilation
-CF_DIAGNOSTIC_IGNORE_CLANG("-Wsign-conversion")
-
 // NOTE (Matteo): Core Dear Imgui has a C++ Api, while backends have a C API
 #define IMGUI_API CF_DLL_EXPORT
 #define IMGUI_IMPL_API CF_API

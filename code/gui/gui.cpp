@@ -1,12 +1,6 @@
 #include "gui.h"
 #include "gui_config.h"
 
-// Restore warnings disabled for DearImgui compilation
-CF_DIAGNOSTIC_RESTORE_CLANG("-Wsign-conversion")
-CF_DIAGNOSTIC_RESTORE_CLANG("-Wimplicit-int-float-conversion")
-CF_DIAGNOSTIC_RESTORE_CLANG("-Wunused-function")
-CF_DIAGNOSTIC_RESTORE_CLANG("-Wfloat-conversion")
-
 CF_DIAGNOSTIC_PUSH()
 CF_DIAGNOSTIC_IGNORE_CLANG("-Wlanguage-extension-token")
 CF_DIAGNOSTIC_IGNORE_MSVC(4201)
@@ -33,10 +27,6 @@ struct GuiData
 
     void *user_data;
 };
-
-#if !defined GUI_SRGB_COLORS
-#    define GUI_SRGB_COLORS 0
-#endif // GUI_SRGB_COLORS
 
 #if !defined GUI_VIEWPORTS
 #    define GUI_VIEWPORTS 0
@@ -139,7 +129,7 @@ guiInit(Gui *gui)
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 #endif
 
-        guiSetTheme(GuiTheme_Dark);
+        guiSetTheme(GuiTheme_EmeraldDark);
     }
 }
 
@@ -196,6 +186,46 @@ guiUpdateViewports(bool render)
 
 //=== Themes & styling ===//
 
+// TODO (Matteo): Handle SRGB colorspace correctly
+
+static ImVec4
+guiColor(F32 r, F32 g, F32 b, F32 a)
+{
+    return {r, g, b, a};
+}
+
+static ImVec4
+guiNegativeColor(ImVec4 in)
+{
+    // NOTE (Matteo): Here I should apply a linear->HSV->linear transformation
+    // but currently IMGUI colors are handled as in a SRGB colorspace, so I
+    // treat them as such without gamma correction.
+
+    Srgb32 const srgb_in =
+        SRGB32(ImClamp(in.x * 255.0f, 0.0f, 255.0f), ImClamp(in.y * 255.0f, 0.0f, 255.0f),
+               ImClamp(in.z * 255.0f, 0.0f, 255.0f), ImClamp(in.w * 255.0f, 0.0f, 255.0f));
+
+    HsvColor hsv = colorSrgbToHsv(srgb_in);
+
+    if (hsv.s == 0)
+    {
+        hsv.v = 1.0 - hsv.v;
+    }
+    else
+    {
+        hsv.h = ImFmod(hsv.h + 180, 360);
+    }
+
+    Srgb32 const srgb_out = colorHsvToSrgb(hsv);
+    F32 const f = 1.0f / 255.0f;
+
+    return {
+        ImClamp(SRGB32_R(srgb_out) * f, 0.0f, 1.0f),
+        ImClamp(SRGB32_G(srgb_out) * f, 0.0f, 1.0f),
+        ImClamp(SRGB32_B(srgb_out) * f, 0.0f, 1.0f),
+        ImClamp(SRGB32_A(srgb_out) * f, 0.0f, 1.0f),
+    };
+}
 void
 guiThemeSelector(Cstr label)
 {
@@ -237,16 +267,6 @@ guiGetBackColor(void)
     return ImGui::GetColorU32(ImGuiCol_WindowBg, 1.0f);
 }
 
-static ImVec4
-guiColor(F32 r, F32 g, F32 b, F32 a)
-{
-#if GUI_SRGB_COLORS
-    return {ImPow(r, 2.2f), ImPow(g, 2.2f), ImPow(b, 2.2f), a};
-#else
-    return {r, g, b, a};
-#endif
-}
-
 void
 guiSetTheme(GuiTheme theme)
 {
@@ -254,7 +274,8 @@ guiSetTheme(GuiTheme theme)
 
     switch (theme)
     {
-        case GuiTheme_Dark:
+        case GuiTheme_EmeraldDark:
+        case GuiTheme_EmeraldLight:
         {
             ImGui::StyleColorsClassic(NULL);
             ImGuiStyle &style = ImGui::GetStyle();
@@ -424,6 +445,15 @@ guiSetTheme(GuiTheme theme)
         break;
 
         default: CF_INVALID_CODE_PATH(); break;
+    }
+
+    if (theme == GuiTheme_EmeraldLight)
+    {
+        ImGuiStyle &style = ImGui::GetStyle();
+        for (U32 i = 0; i < ImGuiCol_COUNT; ++i)
+        {
+            style.Colors[i] = guiNegativeColor(style.Colors[i]);
+        }
     }
 }
 
@@ -612,9 +642,12 @@ gui_DockSpaceOnMainViewport(ImGuiDockNodeFlags dock_flags)
 CF_API void
 guiDockSpace(GuiDockStyle style)
 {
-    CF_STATIC_ASSERT(ImGuiDockNodeFlags_PassthruCentralNode == GuiDockStyle_Transparent,
+    CF_STATIC_ASSERT(ImGuiDockNodeFlags_PassthruCentralNode ==
+                         (GuiDockStyle)GuiDockStyle_Transparent,
                      "ImGuiDockNodeFlags changed");
-    CF_STATIC_ASSERT(ImGuiDockNodeFlags_NoDockingInCentralNode == GuiDockStyle_CentralViewport,
+
+    CF_STATIC_ASSERT(ImGuiDockNodeFlags_NoDockingInCentralNode ==
+                         (GuiDockStyle)GuiDockStyle_CentralViewport,
                      "ImGuiDockNodeFlags changed");
 
     gui_DockSpaceOnMainViewport(style);

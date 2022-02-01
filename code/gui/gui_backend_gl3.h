@@ -6,9 +6,9 @@ typedef struct ImDrawData GuiDrawData;
 
 typedef struct GlVersion
 {
-    I32 major, minor;
+    U32 major, minor;
     /// Shader version for Dear Imgui OpenGL backend
-    I32 glsl;
+    U32 glsl;
 } GlVersion;
 
 // Backend API

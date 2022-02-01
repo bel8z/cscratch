@@ -87,8 +87,8 @@ glfwCreateWinAndContext(Cstr title, I32 width, I32 height, GlVersion *gl_version
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(g_gl_versions); ++i)
     {
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, g_gl_versions[i].major);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, g_gl_versions[i].minor);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, (I32)g_gl_versions[i].major);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, (I32)g_gl_versions[i].minor);
 
         if (g_gl_versions[i].major >= 3)
         {
@@ -219,7 +219,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     glfwSwapInterval(1); // Enable vsync
 
     // Initialize OpenGL loader
-    if (!gloadInit(NULL) || !gloadIsSupported(gl_ver.major, gl_ver.minor))
+    if (!gloadInit(NULL) || !gloadIsSupported((I32)gl_ver.major, (I32)gl_ver.minor))
     {
         logError("Failed to initialize OpenGL loader!\n");
         return -2;
@@ -263,7 +263,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     F32 dpi_scale = win_x_scale > win_y_scale ? win_y_scale : win_x_scale;
 
     // Setup Dear ImGui style
-    guiSetupStyle(GuiTheme_Dark, dpi_scale);
+    guiSetupStyle(GuiTheme_EmeraldDark, dpi_scale);
     if (!guiLoadCustomFonts(guiFonts(), dpi_scale, paths->data))
     {
         guiLoadDefaultFont(guiFonts());

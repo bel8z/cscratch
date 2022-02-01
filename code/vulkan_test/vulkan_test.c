@@ -1199,7 +1199,7 @@ appInitGui(App *app, Platform *platform)
     F32 dpi_scale = win_x_scale > win_y_scale ? win_y_scale : win_x_scale;
 
     // Setup Dear ImGui style
-    guiSetupStyle(GuiTheme_Dark, dpi_scale);
+    guiSetupStyle(GuiTheme_EmeraldDark, dpi_scale);
 
     // Setup Dear ImGui fonts
     GuiFontAtlas *fonts = guiFonts();

@@ -195,7 +195,8 @@ CF_API void guiUpdateViewports(bool render);
 typedef Usize GuiTheme;
 
 #define GUI_THEMES(X) \
-    X(Dark)           \
+    X(EmeraldDark)    \
+    X(EmeraldLight)   \
     X(Light)          \
     X(Dummy)
 

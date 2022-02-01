@@ -10,10 +10,9 @@ message(STATUS "Vulkan_INCLUDE_DIRS: ${Vulkan_INCLUDE_DIRS}")
 message(STATUS "Vulkan_LIBRARIES: ${Vulkan_LIBRARIES}")
 
 set(APP_SOURCES)
-file(GLOB_RECURSE APP_SOURCES ${CODE_DIR}/${APP}/*.c)
-set_source_files_properties(${APP_SOURCES} PROPERTIES LANGUAGE C)
-
-set(BACKEND_SOURCES ${BACKEND_DIR}/imgui_impl_vulkan.cpp)
+file(GLOB_RECURSE APP_SOURCES 
+    ${CODE_DIR}/${APP}/*.c
+    ${CODE_DIR}/${APP}/*.cpp)
 
 set(APP_RESOURCES)
 file(GLOB_RECURSE APP_RESOURCES ${CODE_DIR}/${APP}/*.rc)
@@ -22,7 +21,7 @@ set_source_files_properties(${APP_RESOURCES} PROPERTIES LANGUAGE RC)
 add_executable(${EXE_NAME} WIN32 ${APP_SOURCES} ${BACKEND_SOURCES} ${APP_RESOURCES})
 
 target_compile_features(${EXE_NAME} PUBLIC c_std_11)
-target_include_directories(${EXE_NAME} PUBLIC ${CODE_DIR} ${Vulkan_INCLUDE_DIRS} ${IMGUI_DIR})
+target_include_directories(${EXE_NAME} PUBLIC ${CODE_DIR} ${Vulkan_INCLUDE_DIRS} ${IMGUI_DIR} PRIVATE ${BACKEND_DIR})
 target_link_libraries(${EXE_NAME} PRIVATE foundation gui_backend ${Vulkan_LIBRARIES})
 
 set_c_compile_flags(${EXE_NAME})

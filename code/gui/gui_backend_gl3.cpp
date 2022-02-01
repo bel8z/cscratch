@@ -29,6 +29,7 @@
 
 CF_DIAGNOSTIC_PUSH()
 CF_DIAGNOSTIC_IGNORE_CLANG("-Wdeprecated-declarations")
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wsign-conversion")
 #    include <backends/imgui_impl_opengl3.cpp>
 CF_DIAGNOSTIC_POP()
 
@@ -369,7 +370,8 @@ guiGl3Init(GlVersion version)
         CF_ASSERT_FAIL("Failed to query OpenGL version");
     }
 
-    CF_ASSERT(version.major == major && version.minor == minor, "Invalid OpenGL version");
+    CF_ASSERT((GLint)version.major == major && (GLint)version.minor == minor,
+              "Invalid OpenGL version");
 
     bd->GlVersion = (GLuint)(major * 100 + minor * 10);
     bd->GlslVersion = version.glsl;
@@ -396,7 +398,7 @@ guiGl3Init(GlVersion version)
     glGetIntegerv(GL_NUM_EXTENSIONS, &num_extensions);
     for (GLint i = 0; i < num_extensions; i++)
     {
-        const char *extension = (const char *)glGetStringi(GL_EXTENSIONS, i);
+        const char *extension = (const char *)glGetStringi(GL_EXTENSIONS, (GLuint)i);
         if (extension != NULL && strcmp(extension, "GL_ARB_clip_control") == 0)
             bd->has_clip_origin = true;
     }
@@ -684,7 +686,7 @@ guiGl3CreateFontsTexture()
     io.Fonts->SetTexID((ImTextureID)(intptr_t)bd->font_tex);
 
     // Restore state
-    glBindTexture(GL_TEXTURE_2D, last_texture);
+    glBindTexture(GL_TEXTURE_2D, (GLuint)last_texture);
 }
 
 void
@@ -885,10 +887,10 @@ guiGl3CreateDeviceObjects()
     guiGl3CreateFontsTexture();
 
     // Restore modified GL state
-    glBindTexture(GL_TEXTURE_2D, last_texture);
-    glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
+    glBindTexture(GL_TEXTURE_2D, (GLuint)last_texture);
+    glBindBuffer(GL_ARRAY_BUFFER, (GLuint)last_array_buffer);
 #    ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
-    glBindVertexArray(last_vertex_array);
+    glBindVertexArray((GLuint)last_vertex_array);
 #    endif
 
     return true;
