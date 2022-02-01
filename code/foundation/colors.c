@@ -7,10 +7,10 @@ colorToSrgb(LinearColor in)
 {
     F32 exp = 1.0f / 2.2f;
 
-    return ((Srgb32)cfClamp(mPow(in.r, exp) * 255.0f, 0.0f, 255.0f)) << SRGB32_R_SHIFT |
-           ((Srgb32)cfClamp(mPow(in.g, exp) * 255.0f, 0.0f, 255.0f)) << SRGB32_G_SHIFT |
-           ((Srgb32)cfClamp(mPow(in.b, exp) * 255.0f, 0.0f, 255.0f)) << SRGB32_B_SHIFT |
-           ((Srgb32)cfClamp(in.a * 255.0f, 0.0f, 255.0f)) << SRGB32_A_SHIFT;
+    return SRGB32(cfClamp(mPow(in.r, exp) * 255.0f, 0.0f, 255.0f),
+                  cfClamp(mPow(in.g, exp) * 255.0f, 0.0f, 255.0f),
+                  cfClamp(mPow(in.b, exp) * 255.0f, 0.0f, 255.0f),
+                  cfClamp(in.a * 255.0f, 0.0f, 255.0f));
 }
 
 LinearColor
