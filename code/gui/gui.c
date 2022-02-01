@@ -66,15 +66,21 @@ guiLoadCustomFonts(GuiFontAtlas *atlas, F32 dpi_scale, Str data_path)
 
     F32 const scale = dpi_scale * GUI_PLATFORM_DPI / GUI_TRUETYPE_DPI;
 
+#if CF_OS_WIN32
+    Str const system_path = strLiteral("C:/Windows/Fonts/");
+#endif
+
     // NOTE (Matteo): This ensure the proper loading order even in optimized release builds
-    GuiFont const *fonts[4] = {
-        gui_LoadCustomFont(atlas, data_path, "NotoSans", mRound(13.0f * scale)),
-        gui_LoadCustomFont(atlas, data_path, "OpenSans", mRound(13.5f * scale)),
-        gui_LoadCustomFont(atlas, data_path, "SourceSansPro", mRound(13.5f * scale)),
+    GuiFont const *fonts[] = {
+#if CF_OS_WIN32
+        gui_LoadCustomFont(atlas, system_path, "SegoeUI", mRound(14.0f * scale)),
+        gui_LoadCustomFont(atlas, system_path, "Arial", mRound(12.0f * scale)),
+#endif
+        gui_LoadCustomFont(atlas, data_path, "NotoSans", mRound(13.5f * scale)),
         gui_LoadCustomFont(atlas, data_path, "DroidSans", mRound(12.0f * scale)),
+        gui_LoadCustomFont(atlas, data_path, "SourceSansPro", mRound(14.0f * scale)),
     };
 
-    // NOTE (Matteo): Load default IMGUI font only if no custom font has been loaded
     for (Usize i = 0; i < CF_ARRAY_SIZE(fonts); ++i)
     {
         if (fonts[i]) return true;
