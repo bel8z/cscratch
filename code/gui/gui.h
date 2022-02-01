@@ -197,7 +197,12 @@ typedef Usize GuiTheme;
 #define GUI_THEMES(X) \
     X(EmeraldDark)    \
     X(EmeraldLight)   \
-    X(Light)          \
+    X(LightBlue)      \
+    X(LightGreen)     \
+    X(Rugged)         \
+    X(ImguiDark)      \
+    X(ImguiLight)     \
+    X(ImguiClassic)   \
     X(Dummy)
 
 enum GuiTheme_

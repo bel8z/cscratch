@@ -263,7 +263,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     F32 dpi_scale = win_x_scale > win_y_scale ? win_y_scale : win_x_scale;
 
     // Setup Dear ImGui style
-    guiSetupStyle(GuiTheme_EmeraldDark, dpi_scale);
+    guiSetupStyle(GuiTheme_EmeraldLight, dpi_scale);
     if (!guiLoadCustomFonts(guiFonts(), dpi_scale, paths->data))
     {
         guiLoadDefaultFont(guiFonts());

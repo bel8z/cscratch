@@ -201,9 +201,10 @@ guiNegativeColor(ImVec4 in)
     // but currently IMGUI colors are handled as in a SRGB colorspace, so I
     // treat them as such without gamma correction.
 
-    Srgb32 const srgb_in =
-        SRGB32(ImClamp(in.x * 255.0f, 0.0f, 255.0f), ImClamp(in.y * 255.0f, 0.0f, 255.0f),
-               ImClamp(in.z * 255.0f, 0.0f, 255.0f), ImClamp(in.w * 255.0f, 0.0f, 255.0f));
+    Srgb32 const srgb_in = SRGB32(ImClamp(in.x * 255.0f, 0.0f, 255.0f), //
+                                  ImClamp(in.y * 255.0f, 0.0f, 255.0f), //
+                                  ImClamp(in.z * 255.0f, 0.0f, 255.0f), //
+                                  ImClamp(in.w * 255.0f, 0.0f, 255.0f));
 
     HsvColor hsv = colorSrgbToHsv(srgb_in);
 
@@ -274,6 +275,10 @@ guiSetTheme(GuiTheme theme)
 
     switch (theme)
     {
+        case GuiTheme_ImguiClassic: ImGui::StyleColorsClassic(NULL); break;
+        case GuiTheme_ImguiDark: ImGui::StyleColorsDark(NULL); break;
+        case GuiTheme_ImguiLight: ImGui::StyleColorsLight(NULL); break;
+
         case GuiTheme_EmeraldDark:
         case GuiTheme_EmeraldLight:
         {
@@ -339,7 +344,7 @@ guiSetTheme(GuiTheme theme)
         }
         break;
 
-        case GuiTheme_Light:
+        case GuiTheme_LightBlue:
         {
             ImGui::StyleColorsClassic(NULL);
             ImGuiStyle &style = ImGui::GetStyle();
@@ -403,6 +408,56 @@ guiSetTheme(GuiTheme theme)
         }
         break;
 
+        case GuiTheme_LightGreen:
+        {
+            ImGuiStyle &style = ImGui::GetStyle();
+
+            // clang-format off
+            style.Colors[ImGuiCol_Text]                  = guiColor(0.00f, 0.00f, 0.00f, 1.00f);
+            style.Colors[ImGuiCol_TextDisabled]          = guiColor(0.60f, 0.60f, 0.60f, 1.00f);
+            style.Colors[ImGuiCol_WindowBg]              = guiColor(0.86f, 0.86f, 0.86f, 1.00f);
+            style.Colors[ImGuiCol_ChildBg]               = guiColor(0.00f, 0.00f, 0.00f, 0.00f);
+            style.Colors[ImGuiCol_PopupBg]               = guiColor(0.93f, 0.93f, 0.93f, 0.98f);
+            style.Colors[ImGuiCol_Border]                = guiColor(0.71f, 0.71f, 0.71f, 0.08f);
+            style.Colors[ImGuiCol_BorderShadow]          = guiColor(0.00f, 0.00f, 0.00f, 0.04f);
+            style.Colors[ImGuiCol_FrameBg]               = guiColor(0.71f, 0.71f, 0.71f, 0.55f);
+            style.Colors[ImGuiCol_FrameBgHovered]        = guiColor(0.94f, 0.94f, 0.94f, 0.55f);
+            style.Colors[ImGuiCol_FrameBgActive]         = guiColor(0.71f, 0.78f, 0.69f, 0.98f);
+            style.Colors[ImGuiCol_TitleBg]               = guiColor(0.85f, 0.85f, 0.85f, 1.00f);
+            style.Colors[ImGuiCol_TitleBgCollapsed]      = guiColor(0.82f, 0.78f, 0.78f, 0.51f);
+            style.Colors[ImGuiCol_TitleBgActive]         = guiColor(0.78f, 0.78f, 0.78f, 1.00f);
+            style.Colors[ImGuiCol_MenuBarBg]             = guiColor(0.86f, 0.86f, 0.86f, 1.00f);
+            style.Colors[ImGuiCol_ScrollbarBg]           = guiColor(0.20f, 0.25f, 0.30f, 0.61f);
+            style.Colors[ImGuiCol_ScrollbarGrab]         = guiColor(0.90f, 0.90f, 0.90f, 0.30f);
+            style.Colors[ImGuiCol_ScrollbarGrabHovered]  = guiColor(0.92f, 0.92f, 0.92f, 0.78f);
+            style.Colors[ImGuiCol_ScrollbarGrabActive]   = guiColor(1.00f, 1.00f, 1.00f, 1.00f);
+            style.Colors[ImGuiCol_CheckMark]             = guiColor(0.184f, 0.407f, 0.193f, 1.00f);
+            style.Colors[ImGuiCol_SliderGrab]            = guiColor(0.26f, 0.59f, 0.98f, 0.78f);
+            style.Colors[ImGuiCol_SliderGrabActive]      = guiColor(0.26f, 0.59f, 0.98f, 1.00f);
+            style.Colors[ImGuiCol_Button]                = guiColor(0.71f, 0.78f, 0.69f, 0.40f);
+            style.Colors[ImGuiCol_ButtonHovered]         = guiColor(0.725f, 0.805f, 0.702f, 1.00f);
+            style.Colors[ImGuiCol_ButtonActive]          = guiColor(0.793f, 0.900f, 0.836f, 1.00f);
+            style.Colors[ImGuiCol_Header]                = guiColor(0.71f, 0.78f, 0.69f, 0.31f);
+            style.Colors[ImGuiCol_HeaderHovered]         = guiColor(0.71f, 0.78f, 0.69f, 0.80f);
+            style.Colors[ImGuiCol_HeaderActive]          = guiColor(0.71f, 0.78f, 0.69f, 1.00f);
+            style.Colors[ImGuiCol_Separator]             = guiColor(0.39f, 0.39f, 0.39f, 1.00f);
+            style.Colors[ImGuiCol_SeparatorHovered]      = guiColor(0.14f, 0.44f, 0.80f, 0.78f);
+            style.Colors[ImGuiCol_SeparatorActive]       = guiColor(0.14f, 0.44f, 0.80f, 1.00f);
+            style.Colors[ImGuiCol_ResizeGrip]            = guiColor(1.00f, 1.00f, 1.00f, 0.00f);
+            style.Colors[ImGuiCol_ResizeGripHovered]     = guiColor(0.26f, 0.59f, 0.98f, 0.45f);
+            style.Colors[ImGuiCol_ResizeGripActive]      = guiColor(0.26f, 0.59f, 0.98f, 0.78f);
+            style.Colors[ImGuiCol_PlotLines]             = guiColor(0.39f, 0.39f, 0.39f, 1.00f);
+            style.Colors[ImGuiCol_PlotLinesHovered]      = guiColor(1.00f, 0.43f, 0.35f, 1.00f);
+            style.Colors[ImGuiCol_PlotHistogram]         = guiColor(0.90f, 0.70f, 0.00f, 1.00f);
+            style.Colors[ImGuiCol_PlotHistogramHovered]  = guiColor(1.00f, 0.60f, 0.00f, 1.00f);
+            style.Colors[ImGuiCol_TextSelectedBg]        = guiColor(0.26f, 0.59f, 0.98f, 0.35f);
+            style.Colors[ImGuiCol_DragDropTarget]        = guiColor(0.26f, 0.59f, 0.98f, 0.95f);
+            style.Colors[ImGuiCol_NavHighlight]          = style.Colors[ImGuiCol_HeaderHovered];
+            style.Colors[ImGuiCol_NavWindowingHighlight] = guiColor(0.70f, 0.70f, 0.70f, 0.70f);
+            // clang-format on
+        }
+        break;
+
         case GuiTheme_Dummy:
         {
             ImGui::StyleColorsLight(NULL);
@@ -440,6 +495,64 @@ guiSetTheme(GuiTheme theme)
             // colors[ImGuiCol_CloseButton] = LinearColor(0.41f, 0.75f, 0.98f, 0.50f);
             // colors[ImGuiCol_CloseButtonHovered] = LinearColor(1.00f, 0.47f, 0.41f, 0.60f);
             // colors[ImGuiCol_CloseButtonActive] = LinearColor(1.00f, 0.16f, 0.00f, 1.00f);
+            // clang-format on
+        }
+        break;
+
+        case GuiTheme_Rugged:
+        {
+            ImGuiStyle &style = ImGui::GetStyle();
+            // clang-format off
+            style.Colors[ImGuiCol_Text]                  = guiColor(1.00f, 1.00f, 1.00f, 1.00f);
+            style.Colors[ImGuiCol_TextDisabled]          = guiColor(0.50f, 0.50f, 0.50f, 1.00f);
+            style.Colors[ImGuiCol_WindowBg]              = guiColor(0.29f, 0.34f, 0.26f, 1.00f);
+            style.Colors[ImGuiCol_ChildBg]               = guiColor(0.29f, 0.34f, 0.26f, 1.00f);
+            style.Colors[ImGuiCol_PopupBg]               = guiColor(0.24f, 0.27f, 0.20f, 1.00f);
+            style.Colors[ImGuiCol_Border]                = guiColor(0.54f, 0.57f, 0.51f, 0.50f);
+            style.Colors[ImGuiCol_BorderShadow]          = guiColor(0.14f, 0.16f, 0.11f, 0.52f);
+            style.Colors[ImGuiCol_FrameBg]               = guiColor(0.24f, 0.27f, 0.20f, 1.00f);
+            style.Colors[ImGuiCol_FrameBgHovered]        = guiColor(0.27f, 0.30f, 0.23f, 1.00f);
+            style.Colors[ImGuiCol_FrameBgActive]         = guiColor(0.30f, 0.34f, 0.26f, 1.00f);
+            style.Colors[ImGuiCol_TitleBg]               = guiColor(0.24f, 0.27f, 0.20f, 1.00f);
+            style.Colors[ImGuiCol_TitleBgActive]         = guiColor(0.29f, 0.34f, 0.26f, 1.00f);
+            style.Colors[ImGuiCol_TitleBgCollapsed]      = guiColor(0.00f, 0.00f, 0.00f, 0.51f);
+            style.Colors[ImGuiCol_MenuBarBg]             = guiColor(0.24f, 0.27f, 0.20f, 1.00f);
+            style.Colors[ImGuiCol_ScrollbarBg]           = guiColor(0.35f, 0.42f, 0.31f, 1.00f);
+            style.Colors[ImGuiCol_ScrollbarGrab]         = guiColor(0.28f, 0.32f, 0.24f, 1.00f);
+            style.Colors[ImGuiCol_ScrollbarGrabHovered]  = guiColor(0.25f, 0.30f, 0.22f, 1.00f);
+            style.Colors[ImGuiCol_ScrollbarGrabActive]   = guiColor(0.23f, 0.27f, 0.21f, 1.00f);
+            style.Colors[ImGuiCol_CheckMark]             = guiColor(0.59f, 0.54f, 0.18f, 1.00f);
+            style.Colors[ImGuiCol_SliderGrab]            = guiColor(0.35f, 0.42f, 0.31f, 1.00f);
+            style.Colors[ImGuiCol_SliderGrabActive]      = guiColor(0.54f, 0.57f, 0.51f, 0.50f);
+            style.Colors[ImGuiCol_Button]                = guiColor(0.29f, 0.34f, 0.26f, 0.40f);
+            style.Colors[ImGuiCol_ButtonHovered]         = guiColor(0.35f, 0.42f, 0.31f, 1.00f);
+            style.Colors[ImGuiCol_ButtonActive]          = guiColor(0.54f, 0.57f, 0.51f, 0.50f);
+            style.Colors[ImGuiCol_Header]                = guiColor(0.35f, 0.42f, 0.31f, 1.00f);
+            style.Colors[ImGuiCol_HeaderHovered]         = guiColor(0.35f, 0.42f, 0.31f, 0.6f);
+            style.Colors[ImGuiCol_HeaderActive]          = guiColor(0.54f, 0.57f, 0.51f, 0.50f);
+            style.Colors[ImGuiCol_Separator]             = guiColor(0.14f, 0.16f, 0.11f, 1.00f);
+            style.Colors[ImGuiCol_SeparatorHovered]      = guiColor(0.54f, 0.57f, 0.51f, 1.00f);
+            style.Colors[ImGuiCol_SeparatorActive]       = guiColor(0.59f, 0.54f, 0.18f, 1.00f);
+            style.Colors[ImGuiCol_ResizeGrip]            = guiColor(0.19f, 0.23f, 0.18f, 0.00f); // grip invis
+            style.Colors[ImGuiCol_ResizeGripHovered]     = guiColor(0.54f, 0.57f, 0.51f, 1.00f);
+            style.Colors[ImGuiCol_ResizeGripActive]      = guiColor(0.59f, 0.54f, 0.18f, 1.00f);
+            style.Colors[ImGuiCol_Tab]                   = guiColor(0.35f, 0.42f, 0.31f, 1.00f);
+            style.Colors[ImGuiCol_TabHovered]            = guiColor(0.54f, 0.57f, 0.51f, 0.78f);
+            style.Colors[ImGuiCol_TabActive]             = guiColor(0.59f, 0.54f, 0.18f, 1.00f);
+            style.Colors[ImGuiCol_TabUnfocused]          = guiColor(0.24f, 0.27f, 0.20f, 1.00f);
+            style.Colors[ImGuiCol_TabUnfocusedActive]    = guiColor(0.35f, 0.42f, 0.31f, 1.00f);
+            style.Colors[ImGuiCol_DockingPreview]        = guiColor(0.59f, 0.54f, 0.18f, 1.00f);
+            style.Colors[ImGuiCol_DockingEmptyBg]        = guiColor(0.20f, 0.20f, 0.20f, 1.00f);
+            style.Colors[ImGuiCol_PlotLines]             = guiColor(0.61f, 0.61f, 0.61f, 1.00f);
+            style.Colors[ImGuiCol_PlotLinesHovered]      = guiColor(0.59f, 0.54f, 0.18f, 1.00f);
+            style.Colors[ImGuiCol_PlotHistogram]         = guiColor(1.00f, 0.78f, 0.28f, 1.00f);
+            style.Colors[ImGuiCol_PlotHistogramHovered]  = guiColor(1.00f, 0.60f, 0.00f, 1.00f);
+            style.Colors[ImGuiCol_TextSelectedBg]        = guiColor(0.59f, 0.54f, 0.18f, 1.00f);
+            style.Colors[ImGuiCol_DragDropTarget]        = guiColor(0.73f, 0.67f, 0.24f, 1.00f);
+            style.Colors[ImGuiCol_NavHighlight]          = guiColor(0.59f, 0.54f, 0.18f, 1.00f);
+            style.Colors[ImGuiCol_NavWindowingHighlight] = guiColor(1.00f, 1.00f, 1.00f, 0.70f);
+            style.Colors[ImGuiCol_NavWindowingDimBg]     = guiColor(0.80f, 0.80f, 0.80f, 0.20f);
+            style.Colors[ImGuiCol_ModalWindowDimBg]      = guiColor(0.80f, 0.80f, 0.80f, 0.35f);
             // clang-format on
         }
         break;
