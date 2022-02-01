@@ -443,12 +443,11 @@ guiSetSizes(ImGuiStyle *style)
     // Rounding
     style->WindowRounding = 0.0f;
     style->ChildRounding = 0.0f;
-    style->FrameRounding = 2.0f;
+    style->FrameRounding = 0.0f;
     style->PopupRounding = 2.0f;
-    style->ScrollbarRounding = 4.0f;
-    style->GrabRounding = style->FrameRounding;
+    style->ScrollbarRounding = style->GrabRounding = 1.0f;
     style->LogSliderDeadzone = 3.0f;
-    style->TabRounding = 4.0f;
+    style->TabRounding = 2.0f;
 
     // Alignment
     // **DEFAULT**
