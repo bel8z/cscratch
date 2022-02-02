@@ -1,18 +1,11 @@
 #pragma once
 
-#include "foundation/core.h"
+#include "gui.h"
 
 typedef struct ImDrawData GuiDrawData;
 
-typedef struct GlVersion
-{
-    U32 major, minor;
-    /// Shader version for Dear Imgui OpenGL backend
-    U32 glsl;
-} GlVersion;
-
 // Backend API
-CF_API bool guiGl3Init(GlVersion version);
+CF_API bool guiGl3Init(GuiOpenGLVersion version);
 CF_API void guiGl3Shutdown();
 CF_API void guiGl3NewFrame();
 CF_API void guiGl3Render(GuiDrawData *draw_data);

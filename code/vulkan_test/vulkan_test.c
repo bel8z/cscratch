@@ -1,14 +1,10 @@
 #include "platform.h"
 
+// Backend libraries
+#include <vulkan/vulkan.h>
+
 // Gui library
 #include "gui/gui.h"
-#include "gui/gui_backend_glfw.h"
-
-// Backend libraries
-#define GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#include <vulkan/vulkan.h>
 
 // Foundation libraries
 #include "foundation/error.h"
@@ -115,7 +111,6 @@ typedef struct App
     Clock clock;
 
     MemAllocator allocator;
-    GLFWwindow *window;
 
     FrameRate framerate;
 
@@ -362,8 +357,10 @@ extentClamp(VkExtent2D value, VkExtent2D min, VkExtent2D max)
 static VkExtent2D
 appGetFrameSize(App *app)
 {
-    I32 width, height;
-    glfwGetFramebufferSize(app->window, &width, &height);
+    CF_UNUSED(app);
+
+    I32 width = 0, height = 0;
+    // glfwGetFramebufferSize(app->window, &width, &height);
     return (VkExtent2D){.height = (U32)height, .width = (U32)width};
 }
 
@@ -1154,14 +1151,14 @@ appCreateAndFillBuffer(App *app, void const *data, Usize data_size, VkBufferUsag
     appDestroyBuffer(app, &staging);
 }
 
-static void
-framebufferResizeCallback(GLFWwindow *window, int width, int height)
-{
-    CF_UNUSED(width);
-    CF_UNUSED(height);
-    App *app = glfwGetWindowUserPointer(window);
-    app->rebuild_swapchain = true;
-}
+// static void
+// framebufferResizeCallback(GLFWwindow *window, int width, int height)
+// {
+//     CF_UNUSED(width);
+//     CF_UNUSED(height);
+//     App *app = glfwGetWindowUserPointer(window);
+//     app->rebuild_swapchain = true;
+// }
 
 static void
 appInitGui(App *app, Platform *platform)
@@ -1180,28 +1177,20 @@ appInitGui(App *app, Platform *platform)
     pathChangeExt(strFromCstr(gui_ini), strLiteral(".gui"), gui_ini);
 
     // Setup Dear ImGui context
-    platform->gui = guiInit(&(GuiInitInfo){
-        .alloc = platform->heap,
-        .ini_filename = gui_ini,
-        .user_data = app,
-    });
+    platform->gui = guiInit(
+        &(GuiInitInfo){
+            .alloc = platform->heap,
+            .ini_filename = gui_ini,
+            .user_data = app,
+            .client_api = GuiClientApi_Vulkan,
+            .data_path = paths->data,
+        },
+        NULL);
 
     CF_DIAGNOSTIC_POP()
 
-    // Setup DPI handling
-    F32 win_x_scale, win_y_scale;
-    glfwGetWindowContentScale(app->window, &win_x_scale, &win_y_scale);
-    // HACK How do I get the platform base DPI?
-    F32 dpi_scale = win_x_scale > win_y_scale ? win_y_scale : win_x_scale;
-
-    // Setup Dear ImGui style
-    guiSetupStyle(GuiTheme_EmeraldDark, dpi_scale);
-
-    // Setup Dear ImGui fonts
-    GuiFontAtlas *fonts = guiFonts();
-    if (!guiLoadCustomFonts(fonts, dpi_scale, paths->data)) guiLoadDefaultFont(fonts);
-
-    guiGlfwInit(app->window, GlfwClientApi_Vulkan);
+    // glfwSetWindowUserPointer(app->window, app);
+    // glfwSetFramebufferSizeCallback(app->window, framebufferResizeCallback);
 }
 
 static void
@@ -1295,16 +1284,7 @@ appInit(App *app, Platform *platform)
     app->allocator = platform->heap;
     app->vkalloc = NULL; // TODO (Matteo): Implement
 
-    //=== Initialize GLFW and create window  ===//
-
-    glfwInit();
-    // NOTE (Matteo): Don't require OpenGL
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-    app->window = glfwCreateWindow(800, 600, "Vulkan window", NULL, NULL);
-
-    glfwSetWindowUserPointer(app->window, app);
-    glfwSetFramebufferSizeCallback(app->window, framebufferResizeCallback);
+    //=== Initialize GUI  ===//
 
     appInitGui(app, platform);
 
@@ -1322,8 +1302,8 @@ appInit(App *app, Platform *platform)
     Cstr extensions[16] = {0};
     U32 num_extensions = 0;
 
-    // Get the required extensions from GLFW
-    Cstr const *glfw_extensions = glfwGetRequiredInstanceExtensions(&num_extensions);
+    // Get the required extensions from gui
+    Cstr const *glfw_extensions = guiRequiredVulkanExtensions(&num_extensions);
     CF_ASSERT(num_extensions < CF_ARRAY_SIZE(extensions), "Too many required extensions");
     memCopy(glfw_extensions, extensions, num_extensions * sizeof(*extensions));
 
@@ -1356,7 +1336,7 @@ appInit(App *app, Platform *platform)
     VK_CHECK(vkCreateDebugUtilsMessengerEXT(app->inst, &debug_info, app->vkalloc, &app->debug));
 
     // Retrieve a Vulkan surface from GLFW window
-    VK_CHECK(glfwCreateWindowSurface(app->inst, app->window, app->vkalloc, &app->surface));
+    VK_CHECK(guiCreateVulkanSurface(app->inst, app->vkalloc, &app->surface));
 
     // Choose a suitable GPU for rendering
     appPickGpu(app);
@@ -1401,8 +1381,6 @@ void
 appShutdown(App *app)
 {
     ImGui_ImplVulkan_Shutdown();
-    guiGlfwShutdown();
-    guiShutdown(app->platform->gui);
 
     appDestroyBuffer(app, &app->index);
     appDestroyBuffer(app, &app->vertex);
@@ -1418,8 +1396,7 @@ appShutdown(App *app)
     vkDestroyDebugUtilsMessengerEXT(app->inst, app->debug, app->vkalloc);
     vkDestroyInstance(app->inst, app->vkalloc);
 
-    glfwDestroyWindow(app->window);
-    glfwTerminate();
+    guiShutdown(app->platform->gui);
 }
 
 //---------------//
@@ -1556,7 +1533,7 @@ appDrawFrame(App *app, Frame *frame)
                          0  // First instance - lowest value for 'gl_InstanceIndex'
         );
 
-        GuiDrawData *draw_data = guiRender();
+        GuiDrawData *draw_data = guiRender(RENDER_GUI);
 #if RENDER_GUI
         ImGui_ImplVulkan_RenderDrawData(draw_data, frame->cmd, VK_NULL_HANDLE);
 #else
@@ -1682,33 +1659,43 @@ appMainLoop(App *app)
     // Start time tracking
     clockStart(&app->clock);
 
-    while (!glfwWindowShouldClose(app->window))
+    IVec2 prev_display = {0};
+    IVec2 curr_display = {0};
+
+    while (guiEventLoop(app->framerate == FrameRate_Reactive, false, &curr_display))
     {
-        // Handle input
-        if (app->framerate == FrameRate_Reactive)
+        // // Handle input
+        // if (app->framerate == FrameRate_Reactive)
+        // {
+        //     glfwWaitEvents();
+        // }
+        // else if (app->framerate > FrameRate_Vsync)
+        // {
+        //     // TODO (Matteo): This does not work as expected because input events resume
+        //     execution.
+        //     // A real frame limiter would wait the entire interval (and adjusts for actual frame
+        //     // computation time).
+        //     F64 period = 1.0 / (F64)app->framerate;
+        //     glfwWaitEventsTimeout(period);
+        // }
+        // else
+        // {
+        //     glfwPollEvents();
+        // }
+
+        if (curr_display.x != prev_display.x || curr_display.y != prev_display.y)
         {
-            glfwWaitEvents();
-        }
-        else if (app->framerate > FrameRate_Vsync)
-        {
-            // TODO (Matteo): This does not work as expected because input events resume execution.
-            // A real frame limiter would wait the entire interval (and adjusts for actual frame
-            // computation time).
-            F64 period = 1.0 / (F64)app->framerate;
-            glfwWaitEventsTimeout(period);
-        }
-        else
-        {
-            glfwPollEvents();
+            curr_display = prev_display;
+            app->rebuild_swapchain = true;
         }
 
         if (app->rebuild_swapchain)
         {
             // NOTE (Matteo): Minimization can render the swapchain out of date, but
             // it is useless to setup one, so we just sit here waiting.
-            while (glfwGetWindowAttrib(app->window, GLFW_ICONIFIED))
+            while (prev_display.x <= 0 || prev_display.y <= 0)
             {
-                glfwWaitEvents();
+                guiEventLoop(true, false, &prev_display);
             }
 
             appSetupSwapchain(app);
@@ -1722,7 +1709,6 @@ appMainLoop(App *app)
 
         appSetupGuiRendering(app);
         ImGui_ImplVulkan_NewFrame();
-        guiGlfwNewFrame();
         guiNewFrame();
         guiDemoWindow(NULL);
         appToolWindow(app);
@@ -1736,9 +1722,6 @@ appMainLoop(App *app)
         Frame *frame = app->frames + (app->frame_index & frame_mask);
         appDrawFrame(app, frame);
         app->frame_index++;
-
-        // Update and Render additional Platform Windows
-        if (guiViewportsEnabled()) guiUpdateViewports(RENDER_GUI);
     }
 
     VK_CHECK(vkDeviceWaitIdle(app->device));

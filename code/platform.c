@@ -4,11 +4,9 @@
 // Gui library
 #include "gui/gui.h"
 #include "gui/gui_backend_gl3.h"
-#include "gui/gui_backend_glfw.h"
 
 // Backend libraries
 #include "gl/gload.h"
-#include <GLFW/glfw3.h>
 
 // Foundation library
 #include "foundation/colors.h"
@@ -43,75 +41,6 @@
 #define logError(...) fprintf(stderr, __VA_ARGS__)
 
 //------------------------------------------------------------------------------
-// Backend declarations
-//------------------------------------------------------------------------------
-
-static void
-glfwErrorCallback(int error, Cstr description)
-{
-    logError("Glfw Error %d: %s\n", error, description);
-}
-
-// NOTE (Matteo):
-// The way GLFW initializes OpenGL context on windows is a bit peculiar.
-// To create a context of the most recent version supported by the driver, one must require
-// version 1.0 (which is also the default hint value); in this case the "forward compatibility" and
-// "core profile" flags are not supported, and window creation fails.
-// On the other side, setting a specific 3.0+ version is not merely an hint, because a context of
-// that same version is created (or window creation fails if not supported); not sure if this is a
-// GLFW or WGL bug (or feature? D: ).
-// Anyway, I work around this by trying some different versions in decreasing release
-// order (one per year or release), in order to benefit of the latest features available.
-
-static const GlVersion g_gl_versions[8] = {
-    {.major = 4, .minor = 6, .glsl = 430}, // 2017
-    {.major = 4, .minor = 5, .glsl = 430}, // 2014
-    {.major = 4, .minor = 4, .glsl = 430}, // 2013
-    {.major = 4, .minor = 3, .glsl = 430}, // 2012
-    {.major = 4, .minor = 2, .glsl = 420}, // 2011
-    {.major = 4, .minor = 1, .glsl = 410}, // 2010
-    {.major = 3, .minor = 2, .glsl = 150}, // 2009
-    {.major = 3, .minor = 0, .glsl = 130}, // 2008
-};
-
-static GLFWwindow *
-glfwCreateWinAndContext(Cstr title, I32 width, I32 height, GlVersion *gl_version)
-{
-    GLFWwindow *window = NULL;
-
-    glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
-    glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
-
-    for (Usize i = 0; i < CF_ARRAY_SIZE(g_gl_versions); ++i)
-    {
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, (I32)g_gl_versions[i].major);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, (I32)g_gl_versions[i].minor);
-
-        if (g_gl_versions[i].major >= 3)
-        {
-            // TODO (Matteo): Make this OS specific? It doesn't seem to bring any penalty
-            // 3.0+ only, required on MAC
-            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-            if (g_gl_versions[i].minor >= 2)
-            {
-                // 3.2+ only
-                glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-            }
-        }
-
-        window = glfwCreateWindow(width, height, title, NULL, NULL);
-        if (window)
-        {
-            *gl_version = g_gl_versions[i];
-            break;
-        }
-    }
-
-    return window;
-}
-
-//------------------------------------------------------------------------------
 // Application API
 //------------------------------------------------------------------------------
 
@@ -142,30 +71,6 @@ static void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
 //------------------------------------------------------------------------------
 // Main
 //------------------------------------------------------------------------------
-
-static void
-platformUpdateFullscreen(GLFWwindow *window, bool fullscreen, IVec2 win_pos, IVec2 win_size)
-{
-    // TODO (Matteo): Investigate freeze when leaving fullscreen mode
-    GLFWmonitor *monitor = glfwGetWindowMonitor(window);
-    bool is_fullscreen = (monitor != NULL);
-    if (fullscreen != is_fullscreen)
-    {
-        if (is_fullscreen)
-        {
-            glfwSetWindowMonitor(window, NULL,         //
-                                 win_pos.x, win_pos.y, //
-                                 win_size.width, win_size.height, 0);
-        }
-        else
-        {
-            monitor = glfwGetPrimaryMonitor();
-            GLFWvidmode const *vidmode = glfwGetVideoMode(monitor);
-            glfwSetWindowMonitor(window, monitor, 0, 0, vidmode->width, vidmode->height,
-                                 vidmode->refreshRate);
-        }
-    }
-}
 
 #if PLATFORM_DPI_HANDLING
 
@@ -204,28 +109,8 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 {
     Paths *paths = platform->paths;
 
-    // Setup window
-    glfwSetErrorCallback(glfwErrorCallback);
-    if (!glfwInit()) return 1;
-
-    // Create window with graphics context
-    GlVersion gl_ver = {0};
-    GLFWwindow *window = glfwCreateWinAndContext("Dear ImGui template", 1280, 720, &gl_ver);
-    if (window == NULL) return 1;
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
-
-    // Initialize OpenGL loader
-    if (!gloadInit(NULL) || !gloadIsSupported((I32)gl_ver.major, (I32)gl_ver.minor))
-    {
-        logError("Failed to initialize OpenGL loader!\n");
-        return -2;
-    }
-
     // Setup platform layer
-    CF_ASSERT_NOT_NULL(gl);
     clockStart(&platform->clock);
-    platform->gl = gl;
 
     // NOTE (Matteo): Custom IMGUI ini file
     // TODO (Matteo): Clean up!
@@ -240,37 +125,38 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     pathChangeExt(strFromCstr(gui_ini), strLiteral(".gui"), gui_ini);
 
     // Setup Dear ImGui context
-    platform->gui = guiInit(&(GuiInitInfo){
-        .alloc = platform->heap,
-        .ini_filename = gui_ini,
-    });
+    GuiOpenGLVersion gl_ver = {0};
+    platform->gui = guiInit(
+        &(GuiInitInfo){
+            .alloc = platform->heap,
+            .ini_filename = gui_ini,
+            .data_path = paths->data,
+            .client_api = GuiClientApi_OpenGL,
+        },
+        &gl_ver);
+
+    if (!platform->gui) return -1;
 
     CF_DIAGNOSTIC_POP()
+
+    // Initialize OpenGL loader
+    if (!gloadInit(NULL) || !gloadIsSupported((I32)gl_ver.major, (I32)gl_ver.minor))
+    {
+        logError("Failed to initialize OpenGL loader!\n");
+        return -2;
+    }
+    CF_ASSERT_NOT_NULL(gl);
+    platform->gl = gl;
 
     // Setup application
     AppApi app_api = {0};
     appApiLoad(&app_api, platform->paths, platform->library, platform->file);
     AppState *app_state = app_api.create(platform, cmd_line);
 
-    // Setup DPI handling
-    F32 win_x_scale, win_y_scale;
-    glfwGetWindowContentScale(window, &win_x_scale, &win_y_scale);
-    // HACK How do I get the platform base DPI?
-    F32 dpi_scale = win_x_scale > win_y_scale ? win_y_scale : win_x_scale;
-
-    // Setup Dear ImGui style
-    guiSetupStyle(GuiTheme_EmeraldLight, dpi_scale);
-    if (!guiLoadCustomFonts(guiFonts(), dpi_scale, paths->data))
-    {
-        guiLoadDefaultFont(guiFonts());
-    }
-
     // Setup Platform/Renderer backends
-    guiGlfwInit(window, GlfwClientApi_OpenGL);
     guiGl3Init(gl_ver);
 
     // Main loop
-    IVec2 win_pos, win_size;
     AppIo app_io = {
         .font_opts = &(GuiFontOptions){.rasterizer_multiply = 1.0f},
         // NOTE (Matteo): Ensure font rebuild before first frame
@@ -279,7 +165,8 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         .continuous_update = true,
     };
 
-    while (!glfwWindowShouldClose(window) && !app_io.quit)
+    IVec2 display = {0};
+    while (guiEventLoop(!app_io.continuous_update, app_io.fullscreen, &display) && !app_io.quit)
     {
         //------------------//
         // Event processing //
@@ -288,30 +175,11 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         // TODO (Matteo): Maybe improve a bit?
         if (app_io.window_title_changed)
         {
-            glfwSetWindowTitle(window, app_io.window_title);
-        }
-
-        if (app_io.continuous_update)
-        {
-            glfwPollEvents();
-        }
-        else
-        {
-            glfwWaitEvents();
+            guiSetTitle(app_io.window_title);
         }
 
         // NOTE (Matteo): Auto reloading of application library
         appApiUpdate(&app_api, platform, app_state);
-
-        // Update window info
-        glfwGetWindowPos(window, &win_pos.x, &win_pos.y);
-        glfwGetWindowSize(window, &win_size.width, &win_size.height);
-        glfwGetWindowContentScale(window, &win_x_scale, &win_y_scale);
-
-        IVec2 display = {0};
-        glfwGetFramebufferSize(window, &display.width, &display.height);
-
-        platformUpdateFullscreen(window, app_io.fullscreen, win_pos, win_size);
 
         // Rebuild font atlas if required
         if (app_io.rebuild_fonts)
@@ -328,7 +196,6 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
         // Start the Dear ImGui frame
         guiGl3NewFrame();
-        guiGlfwNewFrame();
         guiNewFrame();
 
         // NOTE (Matteo): Setup GL viewport and clear buffers BEFORE app update in order to allow
@@ -346,20 +213,8 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         // Rendering //
         //-----------//
 
-        GuiDrawData *draw_data = guiRender();
+        GuiDrawData *draw_data = guiRender(true);
         guiGl3Render(draw_data);
-
-        // Update and Render additional Platform Windows
-        // (Platform functions may change the current OpenGL context, so we save/restore it
-        // to make it easier to paste this code elsewhere.)
-        if (guiViewportsEnabled())
-        {
-            GLFWwindow *backup_current_context = glfwGetCurrentContext();
-            guiUpdateViewports(true);
-            glfwMakeContextCurrent(backup_current_context);
-        }
-
-        glfwSwapBuffers(window);
 
         //-----------------//
         // Post processing //
@@ -377,11 +232,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     // Cleanup
     guiGl3Shutdown();
-    guiGlfwShutdown();
     guiShutdown(platform->gui);
-
-    glfwDestroyWindow(window);
-    glfwTerminate();
 
     app_api.destroy(app_state);
 

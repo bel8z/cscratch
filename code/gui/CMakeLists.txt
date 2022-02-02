@@ -22,7 +22,6 @@ set(GLFW_DIR ${EXT_DIR}/glfw-3.3.6)
 # TODO (Matteo): Find a better way to handle out of tree builds
 add_subdirectory(${GLFW_DIR} ${CMAKE_BINARY_DIR}/glfw-3.3.6)
 
-find_package(OpenGL REQUIRED)
 find_package(freetype REQUIRED PATHS ${FREETYPE_DIR})
 
 # NOTE (Matteo): Custom imgui configuration (requires giving access to foundation include directory)
@@ -56,15 +55,16 @@ target_include_directories(${GUI_NAME}
     PUBLIC
         ${CODE_DIR})
 
-target_link_libraries(${GUI_NAME} PRIVATE freetype)
+target_link_libraries(${GUI_NAME} PRIVATE freetype glfw)
 
 #-----------------#
 # Backend library #
 #-----------------#
-set(BACKEND_NAME gui_backend)
+set(BACKEND_NAME gui_backend_gl3)
+
+find_package(OpenGL REQUIRED)
 
 set(BACKEND_SOURCES 
-    ${CODE_DIR}/gui/gui_backend_glfw.cpp
     ${CODE_DIR}/gui/gui_backend_gl3.cpp
     ${CODE_DIR}/gl/gload.c)
 
@@ -74,8 +74,7 @@ target_include_directories(${BACKEND_NAME} PRIVATE ${IMGUI_DIR})
 
 target_link_libraries(${BACKEND_NAME} PUBLIC 
     ${GUI_NAME} 
-    ${OPENGL_gl_LIBRARY}
-    glfw)
+    ${OPENGL_gl_LIBRARY})
 
 #----------------------------#
 # Common compilation options #

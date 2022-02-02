@@ -91,6 +91,8 @@ guiGl3DeleteDeviceObjects()
 }
 #else
 
+#    include "gui.h"
+
 #    include "imgui.h"
 
 #    include "foundation/memory.h"
@@ -341,7 +343,7 @@ CF_DIAGNOSTIC_POP()
 
 // Backend API
 bool
-guiGl3Init(GlVersion version)
+guiGl3Init(GuiOpenGLVersion version)
 {
     ImGuiIO &io = ImGui::GetIO();
     IM_ASSERT(io.BackendRendererUserData == NULL && "Already initialized a renderer backend!");

@@ -4,7 +4,6 @@
 //  [ ] Platform: Multi-viewport support: ParentViewportID not honored, and so
 //  io.ConfigViewportsNoDefaultParent has no effect (minor).
 
-#include "gui_backend_glfw.h"
 #include "gui.h"
 
 #include "imgui.h"
@@ -36,7 +35,7 @@ struct GuiGlfwData
     GLFWcursor *mouse_cursors[ImGuiMouseCursor_COUNT];
     GLFWwindow *key_owners[GLFW_KEY_LAST];
     double time;
-    GlfwClientApi client_api;
+    GuiClientApi client_api;
     bool update_monitors;
 
     GLFWwindowfocusfun focus_callback;
@@ -379,7 +378,7 @@ guiGlfw_MonitorCallback(GLFWmonitor *monitor, int event)
 }
 
 bool
-guiGlfwInit(GLFWwindow *window, GlfwClientApi client_api)
+guiGlfwInit(GLFWwindow *window, GuiClientApi client_api)
 {
     ImGuiIO &io = ImGui::GetIO();
     CF_ASSERT(io.BackendPlatformUserData == NULL, "Already initialized a platform backend!");
@@ -796,7 +795,7 @@ guiGlfw_CreateWindow(ImGuiViewport *viewport)
                    (viewport->Flags & ImGuiViewportFlags_NoDecoration) ? false : true);
     glfwWindowHint(GLFW_FLOATING, (viewport->Flags & ImGuiViewportFlags_TopMost) ? true : false);
 
-    GLFWwindow *share_window = (bd->client_api == GlfwClientApi_OpenGL) ? bd->main_window : NULL;
+    GLFWwindow *share_window = (bd->client_api == GuiClientApi_OpenGL) ? bd->main_window : NULL;
     vd->Window = glfwCreateWindow((int)viewport->Size.x, (int)viewport->Size.y, "No Title Yet",
                                   NULL, share_window);
     vd->WindowOwned = true;
@@ -819,7 +818,7 @@ guiGlfw_CreateWindow(ImGuiViewport *viewport)
     glfwSetWindowPosCallback(vd->Window, guiGlfw_WindowPosCallback);
     glfwSetWindowSizeCallback(vd->Window, guiGlfw_WindowSizeCallback);
 
-    if (bd->client_api == GlfwClientApi_OpenGL)
+    if (bd->client_api == GuiClientApi_OpenGL)
     {
         glfwMakeContextCurrent(vd->Window);
         glfwSwapInterval(0);
@@ -986,7 +985,7 @@ guiGlfw_RenderWindow(ImGuiViewport *viewport, void *)
 {
     GuiGlfwData *bd = guiGlfw_GetBackendData();
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
-    if (bd->client_api == GlfwClientApi_OpenGL) glfwMakeContextCurrent(vd->Window);
+    if (bd->client_api == GuiClientApi_OpenGL) glfwMakeContextCurrent(vd->Window);
 }
 
 static void
@@ -994,7 +993,7 @@ guiGlfw_SwapBuffers(ImGuiViewport *viewport, void *)
 {
     GuiGlfwData *bd = guiGlfw_GetBackendData();
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
-    if (bd->client_api == GlfwClientApi_OpenGL)
+    if (bd->client_api == GuiClientApi_OpenGL)
     {
         glfwMakeContextCurrent(vd->Window);
         glfwSwapBuffers(vd->Window);
@@ -1006,44 +1005,22 @@ guiGlfw_SwapBuffers(ImGuiViewport *viewport, void *)
 // surface)
 //--------------------------------------------------------------------------------------------------------
 
-// Avoid including <vulkan.h> so we can build without it
-#ifndef VULKAN_H_
-#    define VK_DEFINE_HANDLE(object) typedef struct object##_T *object;
-#    if defined(__LP64__) || defined(_WIN64) || defined(__x86_64__) || defined(_M_X64) || \
-        defined(__ia64) || defined(_M_IA64) || defined(__aarch64__) || defined(__powerpc64__)
-#        define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
-#    else
-#        define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef uint64_t object;
-#    endif
+CF_EXTERN_C GLFWAPI I32 glfwCreateWindowSurface(VkInstance instance, GLFWwindow *window,
+                                                const VkAllocationCallbacks *allocator,
+                                                VkSurfaceKHR *surface);
 
-VK_DEFINE_HANDLE(VkInstance)
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSurfaceKHR)
-
-typedef struct VkAllocationCallbacks VkAllocationCallbacks;
-enum VkResult
-{
-    VK_RESULT_MAX_ENUM = 0x7FFFFFFF
-};
-#endif // VULKAN_H_
-
-CF_EXTERN_C GLFWAPI VkResult glfwCreateWindowSurface(VkInstance instance, GLFWwindow *window,
-                                                     const VkAllocationCallbacks *allocator,
-                                                     VkSurfaceKHR *surface);
-
-static int
+static I32
 guiGlfw_CreateVkSurface(ImGuiViewport *viewport, ImU64 vk_instance, const void *vk_allocator,
                         ImU64 *out_vk_surface)
 {
     GuiGlfwData *bd = guiGlfw_GetBackendData();
     CF_UNUSED(bd);
-    CF_ASSERT(bd->client_api == GlfwClientApi_Vulkan, "Unexpected API");
+    CF_ASSERT(bd->client_api == GuiClientApi_Vulkan, "Unexpected API");
 
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
-    VkResult err = glfwCreateWindowSurface((VkInstance)vk_instance, vd->Window,
-                                           (const VkAllocationCallbacks *)vk_allocator,
-                                           (VkSurfaceKHR *)out_vk_surface);
-
-    return err;
+    return glfwCreateWindowSurface((VkInstance)vk_instance, vd->Window,
+                                   (const VkAllocationCallbacks *)vk_allocator,
+                                   (VkSurfaceKHR *)out_vk_surface);
 }
 
 static void
