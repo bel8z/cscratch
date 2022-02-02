@@ -4,6 +4,7 @@
 // Gui library
 #include "gui/gui.h"
 #include "gui/gui_backend_gl3.h"
+#include "gui/gui_backend_glfw.h"
 
 // Backend libraries
 #include "gl/gload.h"
@@ -42,12 +43,8 @@
 #define logError(...) fprintf(stderr, __VA_ARGS__)
 
 //------------------------------------------------------------------------------
-// GLFW backend declarations
+// Backend declarations
 //------------------------------------------------------------------------------
-
-extern bool ImGui_ImplGlfw_InitForOpenGL(GLFWwindow *window, bool install_callbacks);
-extern void ImGui_ImplGlfw_Shutdown();
-extern void ImGui_ImplGlfw_NewFrame();
 
 static void
 glfwErrorCallback(int error, Cstr description)
@@ -270,7 +267,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     }
 
     // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    guiGlfwInit(window, GlfwClientApi_OpenGL);
     guiGl3Init(gl_ver);
 
     // Main loop
@@ -332,7 +329,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
         // Start the Dear ImGui frame
         guiGl3NewFrame();
-        ImGui_ImplGlfw_NewFrame();
+        guiGlfwNewFrame();
         guiNewFrame();
 
         // NOTE (Matteo): Setup GL viewport and clear buffers BEFORE app update in order to allow
@@ -381,7 +378,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     // Cleanup
     guiGl3Shutdown();
-    ImGui_ImplGlfw_Shutdown();
+    guiGlfwShutdown();
     guiShutdown(platform->gui);
 
     glfwDestroyWindow(window);

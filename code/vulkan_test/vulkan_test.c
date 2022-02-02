@@ -2,6 +2,7 @@
 
 // Gui library
 #include "gui/gui.h"
+#include "gui/gui_backend_glfw.h"
 
 // Backend libraries
 #define GLFW_INCLUDE_NONE
@@ -221,10 +222,6 @@ extern void ImGui_ImplVulkan_DestroyFontUploadObjects();
 extern void ImGui_ImplVulkan_SetMinImageCount(
     uint32_t min_image_count); // To override MinImageCount after initialization (e.g. if swap chain
                                // is recreated)
-
-extern bool ImGui_ImplGlfw_InitForVulkan(GLFWwindow *window, bool install_callbacks);
-extern void ImGui_ImplGlfw_Shutdown();
-extern void ImGui_ImplGlfw_NewFrame();
 
 //------------------------//
 //   Vulkan debug layer   //
@@ -1205,7 +1202,7 @@ appInitGui(App *app, Platform *platform)
     GuiFontAtlas *fonts = guiFonts();
     if (!guiLoadCustomFonts(fonts, dpi_scale, paths->data)) guiLoadDefaultFont(fonts);
 
-    ImGui_ImplGlfw_InitForVulkan(app->window, true);
+    guiGlfwInit(app->window, GlfwClientApi_Vulkan);
 }
 
 static void
@@ -1405,7 +1402,7 @@ void
 appShutdown(App *app)
 {
     ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
+    guiGlfwShutdown();
     guiShutdown(app->platform->gui);
 
     appDestroyBuffer(app, &app->index);
@@ -1726,7 +1723,7 @@ appMainLoop(App *app)
 
         appSetupGuiRendering(app);
         ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
+        guiGlfwNewFrame();
         guiNewFrame();
         guiDemoWindow(NULL);
         appToolWindow(app);

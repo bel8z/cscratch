@@ -64,7 +64,7 @@ target_link_libraries(${GUI_NAME} PRIVATE freetype)
 set(BACKEND_NAME gui_backend)
 
 set(BACKEND_SOURCES 
-    ${BACKEND_DIR}/imgui_impl_glfw.cpp
+    ${CODE_DIR}/gui/gui_backend_glfw.cpp
     ${CODE_DIR}/gui/gui_backend_gl3.cpp
     ${CODE_DIR}/gl/gload.c)
 
