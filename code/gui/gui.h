@@ -165,20 +165,19 @@ typedef struct GuiMemory
 //=== Initialization ===//
 
 /// IMGUI state, used to initialize internal global variables
-typedef struct Gui
+typedef struct GuiInitInfo
 {
     MemAllocator alloc;
-
-    GuiContext *ctx;
     GuiFontAtlas *shared_atlas;
-
     Cstr ini_filename;
     void *user_data;
-} Gui;
+} GuiInitInfo;
 
 /// Initialize IMGUI global state
-CF_API void guiInit(Gui *gui);
-CF_API void guiShutdown(Gui *gui);
+CF_API GuiContext *guiInit(GuiInitInfo *info);
+CF_API void guiShutdown(GuiContext *ctx);
+
+CF_API void guiSetContext(GuiContext *ctx);
 
 CF_API bool guiViewportsEnabled(void);
 

@@ -240,11 +240,10 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     pathChangeExt(strFromCstr(gui_ini), strLiteral(".gui"), gui_ini);
 
     // Setup Dear ImGui context
-    platform->gui = &(Gui){
+    platform->gui = guiInit(&(GuiInitInfo){
         .alloc = platform->heap,
         .ini_filename = gui_ini,
-    };
-    guiInit(platform->gui);
+    });
 
     CF_DIAGNOSTIC_POP()
 

@@ -153,7 +153,7 @@ APP_API APP_FN(appLoad)
     CF_ASSERT_NOT_NULL(app->plat);
 
     // Init Dear Imgui
-    guiInit(app->plat->gui);
+    guiSetContext(app->plat->gui);
 
     // Init OpenGl
     gloadInit(app->plat->gl);

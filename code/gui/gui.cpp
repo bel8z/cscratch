@@ -87,58 +87,65 @@ guiData()
     return *(GuiData *)ImGui::GetIO().UserData;
 }
 
-void
-guiInit(Gui *gui)
+GuiContext *
+guiInit(GuiInitInfo *gui)
 {
     CF_ASSERT_NOT_NULL(gui);
 
     IMGUI_CHECKVERSION();
 
-    if (gui->ctx)
-    {
-        ImGui::SetCurrentContext(gui->ctx);
-        ImGui::SetAllocatorFunctions(guiAlloc, guiFree, &guiData());
-    }
-    else
-    {
-        // Configure custom user data
-        GuiData *gui_data = (GuiData *)memAlloc(gui->alloc, sizeof(*gui_data));
-        gui_data->allocator = gui->alloc;
-        gui_data->memory = {0};
-        gui_data->user_data = gui->user_data;
+    // Configure custom user data
+    GuiData *gui_data = (GuiData *)memAlloc(gui->alloc, sizeof(*gui_data));
+    gui_data->allocator = gui->alloc;
+    gui_data->memory = {0};
+    gui_data->user_data = gui->user_data;
 
-        ImGui::SetAllocatorFunctions(guiAlloc, guiFree, gui_data);
+    ImGui::SetAllocatorFunctions(guiAlloc, guiFree, gui_data);
 
-        gui->ctx = ImGui::CreateContext(gui->shared_atlas);
+    GuiContext *ctx = ImGui::CreateContext(gui->shared_atlas);
 
-        ImGuiIO &io = ImGui::GetIO();
+    ImGuiIO &io = ImGui::GetIO();
 
-        io.UserData = gui_data;
+    io.UserData = gui_data;
 
-        io.IniFilename = gui->ini_filename;
+    io.IniFilename = gui->ini_filename;
 
-        // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-        // Enable Docking
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-        // Reduce visual noise while docking, also has a benefit for out-of-sync viewport rendering
-        io.ConfigDockingTransparentPayload = true;
+    // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    // Reduce visual noise while docking, also has a benefit for out-of-sync viewport rendering
+    io.ConfigDockingTransparentPayload = true;
 
 #if GUI_VIEWPORTS
-        // Enable Multi-Viewport / Platform Windows
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    // Enable Multi-Viewport / Platform Windows
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 #endif
 
-        guiSetTheme(GuiTheme_EmeraldDark);
-    }
+    guiSetTheme(GuiTheme_EmeraldDark);
+
+    return ctx;
+}
+
+CF_API void
+guiSetContext(GuiContext *ctx)
+{
+    CF_ASSERT_NOT_NULL(ctx);
+
+    IMGUI_CHECKVERSION();
+
+    ImGui::SetCurrentContext(ctx);
+    ImGui::SetAllocatorFunctions(guiAlloc, guiFree, &guiData());
 }
 
 void
-guiShutdown(Gui *gui)
+guiShutdown(GuiContext *ctx)
 {
+    CF_ASSERT(ctx == ImGui::GetCurrentContext(), "Inconsistent contexts");
+
     GuiData *gui_data = (GuiData *)ImGui::GetIO().UserData;
 
-    ImGui::DestroyContext(gui->ctx);
+    ImGui::DestroyContext(ctx);
 
     CF_ASSERT(gui_data->memory.size == 0, "Possible GUI memory leak");
     CF_ASSERT(gui_data->memory.blocks == 0, "Possible GUI memory leak");

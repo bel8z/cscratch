@@ -48,7 +48,7 @@ typedef struct CommandLine
 //=== Optional platform interfaces (gfx apps) ===//
 
 typedef struct GlApi GlApi;
-typedef struct Gui Gui;
+typedef struct ImGuiContext GuiContext;
 
 //=== Main platform interface ===//
 
@@ -88,6 +88,6 @@ typedef struct Platform
     GlApi *gl;
 
     // Dear Imgui state [optional]
-    Gui *gui;
+    GuiContext *gui;
 
 } Platform;

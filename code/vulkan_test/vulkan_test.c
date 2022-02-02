@@ -1180,12 +1180,11 @@ appInitGui(App *app, Platform *platform)
     pathChangeExt(strFromCstr(gui_ini), strLiteral(".gui"), gui_ini);
 
     // Setup Dear ImGui context
-    platform->gui = &(Gui){
+    platform->gui = guiInit(&(GuiInitInfo){
         .alloc = platform->heap,
         .ini_filename = gui_ini,
         .user_data = app,
-    };
-    guiInit(platform->gui);
+    });
 
     CF_DIAGNOSTIC_POP()
 

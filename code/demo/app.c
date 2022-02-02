@@ -84,7 +84,7 @@ APP_API APP_FN(appLoad)
     g_clock = &app->plat->clock;
 
     // Init Dear Imgui
-    guiInit(app->plat->gui);
+    guiSetContext(app->plat->gui);
 
     // Init OpenGl
     gloadInit(app->plat->gl);
