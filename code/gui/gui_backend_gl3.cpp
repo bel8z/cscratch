@@ -1,7 +1,16 @@
 // Forked from Dear ImGui Renderer Backend for modern OpenGL with shaders / programmatic pipeline
 
-#define GUI_BACKEND_FONT_TEXTURE_RGBA 1
-#define GUI_BACKEND_CUSTOM 1
+#if !defined(GUI_BACKEND_FONT_TEXTURE_RGBA)
+#    define GUI_BACKEND_FONT_TEXTURE_RGBA 1
+#endif
+
+#if !defined(GUI_BACKEND_CUSTOM)
+#    define GUI_BACKEND_CUSTOM 1
+#endif
+
+#if !defined(GUI_BACKEND_BACKUP_STATE)
+#    define GUI_BACKEND_BACKUP_STATE 0
+#endif
 
 //--------------------------------------------------------------------------------------------------
 // OpenGL    GLSL      GLSL
@@ -96,9 +105,6 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wzero-as-null-pointer-constant")
 #        include "imgui_impl_opengl3_loader.h"
 #    endif
 
-#    define IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
-#    define IMGUI_IMPL_HAS_POLYGON_MODE
-
 // Desktop GL 3.2+ has glDrawElementsBaseVertex() which GL ES and WebGL don't have.
 #    if defined(GL_VERSION_3_2)
 #        define IMGUI_IMPL_OPENGL_MAY_HAVE_VTX_OFFSET
@@ -113,9 +119,6 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wzero-as-null-pointer-constant")
 #    if defined(GL_VERSION_3_1)
 #        define IMGUI_IMPL_OPENGL_MAY_HAVE_PRIMITIVE_RESTART
 #    endif
-
-// Desktop GL use extension detection
-#    define IMGUI_IMPL_OPENGL_MAY_HAVE_EXTENSIONS
 
 // OpenGL Data
 struct GuiGl3BackendData
@@ -176,9 +179,7 @@ guiGl3_SetupRenderState(ImDrawData *draw_data, int fb_width, int fb_height,
 #    ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_PRIMITIVE_RESTART
     if (bd->GlVersion >= 310) glDisable(GL_PRIMITIVE_RESTART);
 #    endif
-#    ifdef IMGUI_IMPL_HAS_POLYGON_MODE
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-#    endif
 
     // Support for GL 4.5 rarely used glClipControl(GL_UPPER_LEFT)
 #    if defined(GL_CLIP_ORIGIN)
@@ -220,14 +221,11 @@ guiGl3_SetupRenderState(ImDrawData *draw_data, int fb_width, int fb_height,
 
 #    ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
     if (bd->GlVersion >= 330)
-        glBindSampler(0, 0); // We use combined texture/sampler state. Applications using GL 3.3 may
-                             // set that otherwise.
+        // We use combined texture/sampler state. Applications using GL 3.3 may set that otherwise.
+        glBindSampler(0, 0);
 #    endif
 
-    (void)vertex_array_object;
-#    ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
     glBindVertexArray(vertex_array_object);
-#    endif
 
     // Bind vertex/index buffers and setup attributes for ImDrawVert
     glBindBuffer(GL_ARRAY_BUFFER, bd->vbo);
@@ -242,6 +240,22 @@ guiGl3_SetupRenderState(ImDrawData *draw_data, int fb_width, int fb_height,
     glVertexAttribPointer(bd->attr_color, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert),
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, col));
 }
+
+#    if !GUI_BACKEND_BACKUP_STATE
+static void
+guiGl3_ResetRenderState(void)
+{
+    glDisable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_SCISSOR_TEST);
+    glUseProgram(0);
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+#    endif
 
 // If you get an error please report on github. You may try different GL context version or GLSL
 // version. See GL<>GLSL version table at the top of this file.
@@ -354,10 +368,8 @@ guiGl3_CreateDeviceObjects()
     GLint last_texture, last_array_buffer;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
-#    ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
     GLint last_vertex_array;
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
-#    endif
 
     // Parse GLSL version string
 
@@ -532,9 +544,7 @@ guiGl3_CreateDeviceObjects()
     // Restore modified GL state
     glBindTexture(GL_TEXTURE_2D, (GLuint)last_texture);
     glBindBuffer(GL_ARRAY_BUFFER, (GLuint)last_array_buffer);
-#    ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
     glBindVertexArray((GLuint)last_vertex_array);
-#    endif
 
     return true;
 }
@@ -643,7 +653,7 @@ guiGl3Init(GuiOpenGLVersion version)
 
     // Detect extensions we support
     bd->has_clip_origin = (bd->GlVersion >= 450);
-#    ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_EXTENSIONS
+
     GLint num_extensions = 0;
     glGetIntegerv(GL_NUM_EXTENSIONS, &num_extensions);
     for (GLint i = 0; i < num_extensions; i++)
@@ -652,7 +662,6 @@ guiGl3Init(GuiOpenGLVersion version)
         if (extension != NULL && strcmp(extension, "GL_ARB_clip_control") == 0)
             bd->has_clip_origin = true;
     }
-#    endif
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
@@ -692,6 +701,7 @@ guiGl3Render(GuiDrawData *draw_data)
     GuiGl3BackendData *bd = guiGl3_BackendData();
 
     // Backup GL state
+#    if GUI_BACKEND_BACKUP_STATE
     GLenum last_active_texture;
     glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint *)&last_active_texture);
     glActiveTexture(GL_TEXTURE0);
@@ -699,7 +709,7 @@ guiGl3Render(GuiDrawData *draw_data)
     glGetIntegerv(GL_CURRENT_PROGRAM, (GLint *)&last_program);
     GLuint last_texture;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint *)&last_texture);
-#    ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
+#        ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
     GLuint last_sampler;
     if (bd->GlVersion >= 330)
     {
@@ -709,17 +719,13 @@ guiGl3Render(GuiDrawData *draw_data)
     {
         last_sampler = 0;
     }
-#    endif
+#        endif
     GLuint last_array_buffer;
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, (GLint *)&last_array_buffer);
-#    ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
     GLuint last_vertex_array_object;
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, (GLint *)&last_vertex_array_object);
-#    endif
-#    ifdef IMGUI_IMPL_HAS_POLYGON_MODE
     GLint last_polygon_mode[2];
     glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
-#    endif
     GLint last_viewport[4];
     glGetIntegerv(GL_VIEWPORT, last_viewport);
     GLint last_scissor_box[4];
@@ -741,9 +747,10 @@ guiGl3Render(GuiDrawData *draw_data)
     GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
     GLboolean last_enable_stencil_test = glIsEnabled(GL_STENCIL_TEST);
     GLboolean last_enable_scissor_test = glIsEnabled(GL_SCISSOR_TEST);
-#    ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_PRIMITIVE_RESTART
+#        ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_PRIMITIVE_RESTART
     GLboolean last_enable_primitive_restart =
         (bd->GlVersion >= 310) ? glIsEnabled(GL_PRIMITIVE_RESTART) : GL_FALSE;
+#        endif
 #    endif
 
     // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates !=
@@ -757,9 +764,7 @@ guiGl3Render(GuiDrawData *draw_data)
     // VAO are not shared among GL contexts) The renderer would actually work without any VAO bound,
     // but then our VertexAttrib calls would overwrite the default one currently bound.
     GLuint vertex_array_object = 0;
-#    ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
     glGenVertexArrays(1, &vertex_array_object);
-#    endif
     guiGl3_SetupRenderState(draw_data, fb_width, fb_height, vertex_array_object);
 
     // Will project scissor/clipping rectangles into framebuffer space
@@ -835,20 +840,19 @@ guiGl3Render(GuiDrawData *draw_data)
     }
 
     // Destroy the temporary VAO
-#    ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
     glDeleteVertexArrays(1, &vertex_array_object);
-#    endif
 
     // Restore modified GL state
+#    if !GUI_BACKEND_BACKUP_STATE
+    guiGl3_ResetRenderState();
+#    else
     glUseProgram(last_program);
     glBindTexture(GL_TEXTURE_2D, last_texture);
-#    ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
+#        ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
     if (bd->GlVersion >= 330) glBindSampler(0, last_sampler);
-#    endif
+#        endif
     glActiveTexture(last_active_texture);
-#    ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
     glBindVertexArray(last_vertex_array_object);
-#    endif
     glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
     glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
     glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha,
@@ -873,7 +877,7 @@ guiGl3Render(GuiDrawData *draw_data)
         glEnable(GL_SCISSOR_TEST);
     else
         glDisable(GL_SCISSOR_TEST);
-#    ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_PRIMITIVE_RESTART
+#        ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_PRIMITIVE_RESTART
     if (bd->GlVersion >= 310)
     {
         if (last_enable_primitive_restart)
@@ -881,15 +885,15 @@ guiGl3Render(GuiDrawData *draw_data)
         else
             glDisable(GL_PRIMITIVE_RESTART);
     }
-#    endif
+#        endif
 
-#    ifdef IMGUI_IMPL_HAS_POLYGON_MODE
     glPolygonMode(GL_FRONT_AND_BACK, (GLenum)last_polygon_mode[0]);
-#    endif
     glViewport(last_viewport[0], last_viewport[1], (GLsizei)last_viewport[2],
                (GLsizei)last_viewport[3]);
     glScissor(last_scissor_box[0], last_scissor_box[1], (GLsizei)last_scissor_box[2],
               (GLsizei)last_scissor_box[3]);
+
+#    endif
 }
 
 void
