@@ -3,10 +3,10 @@
 #define GUI_BACKEND_FONT_TEXTURE_RGBA 1
 #define GUI_BACKEND_CUSTOM 1
 
-//----------------------------------------
+//--------------------------------------------------------------------------------------------------
 // OpenGL    GLSL      GLSL
 // version   version   string
-//----------------------------------------
+//--------------------------------------------------------------------------------------------------
 //  2.0       110       "#version 110"
 //  2.1       120       "#version 120"
 //  3.0       130       "#version 130"
@@ -19,7 +19,7 @@
 //  4.3       430       "#version 430 core"
 //  ES 2.0    100       "#version 100"      = WebGL 1.0
 //  ES 3.0    300       "#version 300 es"   = WebGL 2.0
-//----------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 #include "gui_backend_gl3.h"
 
@@ -62,33 +62,10 @@ guiGl3Render(GuiDrawData *draw_data)
 void
 guiGl3UpdateFontsTexture()
 {
-    guiGl3DeleteFontsTexture();
-    guiGl3CreateFontsTexture();
+    guiGl3_DeleteFontsTexture();
+    guiGl3_CreateFontsTexture();
 }
 
-void
-guiGl3CreateFontsTexture()
-{
-    ImGui_ImplOpenGL3_CreateFontsTexture();
-}
-
-void
-guiGl3DeleteFontsTexture()
-{
-    ImGui_ImplOpenGL3_DestroyFontsTexture();
-}
-
-bool
-guiGl3CreateDeviceObjects()
-{
-    return ImGui_ImplOpenGL3_CreateDeviceObjects();
-}
-
-void
-guiGl3DeleteDeviceObjects()
-{
-    ImGui_ImplOpenGL3_DestroyDeviceObjects();
-}
 #else
 
 #    include "gui.h"
@@ -320,12 +297,280 @@ guiGl3_CheckProgram(GLuint handle, const char *desc)
     return (status == GL_TRUE);
 }
 
-//--------------------------------------------------------------------------------------------------------
+static void
+guiGl3_CreateFontsTexture()
+{
+    ImGuiIO &io = ImGui::GetIO();
+    GuiGl3BackendData *bd = guiGl3_BackendData();
+
+    // Build texture atlas
+    unsigned char *pixels;
+    int width, height;
+    io.Fonts->GetTexDataAsRGBA32(
+        &pixels, &width,
+        &height); // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small)
+                  // because it is more likely to be compatible with user's existing shaders. If
+                  // your ImTextureId represent a higher-level concept than just a GL texture id,
+                  // consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
+
+    // Upload texture to graphics system
+    GLint last_texture;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
+    glGenTextures(1, &bd->font_tex);
+    glBindTexture(GL_TEXTURE_2D, bd->font_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#    ifdef GL_UNPACK_ROW_LENGTH // Not on WebGL/ES
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#    endif
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+    // Store our identifier
+    io.Fonts->SetTexID((ImTextureID)(intptr_t)bd->font_tex);
+
+    // Restore state
+    glBindTexture(GL_TEXTURE_2D, (GLuint)last_texture);
+}
+
+static void
+guiGl3_DeleteFontsTexture()
+{
+    ImGuiIO &io = ImGui::GetIO();
+    GuiGl3BackendData *bd = guiGl3_BackendData();
+    if (bd->font_tex)
+    {
+        glDeleteTextures(1, &bd->font_tex);
+        io.Fonts->SetTexID(0);
+        bd->font_tex = 0;
+    }
+}
+
+static bool
+guiGl3_CreateDeviceObjects()
+{
+    GuiGl3BackendData *bd = guiGl3_BackendData();
+
+    // Backup GL state
+    GLint last_texture, last_array_buffer;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
+    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
+#    ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
+    GLint last_vertex_array;
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+#    endif
+
+    // Parse GLSL version string
+
+    const GLchar *vertex_shader_glsl_120 = //
+        "#version 120\n"
+        "uniform mat4 ProjMtx;\n"
+        "attribute vec2 Position;\n"
+        "attribute vec2 UV;\n"
+        "attribute vec4 Color;\n"
+        "varying vec2 Frag_UV;\n"
+        "varying vec4 Frag_Color;\n"
+        "void main()\n"
+        "{\n"
+        "    Frag_UV = UV;\n"
+        "    Frag_Color = Color;\n"
+        "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
+        "}\n";
+
+    const GLchar *vertex_shader_glsl_130 = //
+        "#version 130\n"
+        "uniform mat4 ProjMtx;\n"
+        "in vec2 Position;\n"
+        "in vec2 UV;\n"
+        "in vec4 Color;\n"
+        "out vec2 Frag_UV;\n"
+        "out vec4 Frag_Color;\n"
+        "void main()\n"
+        "{\n"
+        "    Frag_UV = UV;\n"
+        "    Frag_Color = Color;\n"
+        "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
+        "}\n";
+
+    const GLchar *vertex_shader_glsl_300_es = //
+        "#version 300 es\n"
+        "precision highp float;\n"
+        "layout (location = 0) in vec2 Position;\n"
+        "layout (location = 1) in vec2 UV;\n"
+        "layout (location = 2) in vec4 Color;\n"
+        "uniform mat4 ProjMtx;\n"
+        "out vec2 Frag_UV;\n"
+        "out vec4 Frag_Color;\n"
+        "void main()\n"
+        "{\n"
+        "    Frag_UV = UV;\n"
+        "    Frag_Color = Color;\n"
+        "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
+        "}\n";
+
+    const GLchar *vertex_shader_glsl_410_core = //
+        "#version 410 core\n"
+        "layout (location = 0) in vec2 Position;\n"
+        "layout (location = 1) in vec2 UV;\n"
+        "layout (location = 2) in vec4 Color;\n"
+        "uniform mat4 ProjMtx;\n"
+        "out vec2 Frag_UV;\n"
+        "out vec4 Frag_Color;\n"
+        "void main()\n"
+        "{\n"
+        "    Frag_UV = UV;\n"
+        "    Frag_Color = Color;\n"
+        "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
+        "}\n";
+
+    const GLchar *fragment_shader_glsl_120 =
+        "#version 120\n"
+        "#ifdef GL_ES\n"
+        "    precision mediump float;\n"
+        "#endif\n"
+        "uniform sampler2D Texture;\n"
+        "varying vec2 Frag_UV;\n"
+        "varying vec4 Frag_Color;\n"
+        "void main()\n"
+        "{\n"
+        "    gl_FragColor = Frag_Color * texture2D(Texture, Frag_UV.st);\n"
+        "}\n";
+
+    const GLchar *fragment_shader_glsl_130 =
+        "#version 130\n"
+        "uniform sampler2D Texture;\n"
+        "in vec2 Frag_UV;\n"
+        "in vec4 Frag_Color;\n"
+        "out vec4 Out_Color;\n"
+        "void main()\n"
+        "{\n"
+        "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
+        "}\n";
+
+    const GLchar *fragment_shader_glsl_300_es =
+        "#version 300 es\n"
+        "precision mediump float;\n"
+        "uniform sampler2D Texture;\n"
+        "in vec2 Frag_UV;\n"
+        "in vec4 Frag_Color;\n"
+        "layout (location = 0) out vec4 Out_Color;\n"
+        "void main()\n"
+        "{\n"
+        "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
+        "}\n";
+
+    const GLchar *fragment_shader_glsl_410_core =
+        "#version 410 core\n"
+        "in vec2 Frag_UV;\n"
+        "in vec4 Frag_Color;\n"
+        "uniform sampler2D Texture;\n"
+        "layout (location = 0) out vec4 Out_Color;\n"
+        "void main()\n"
+        "{\n"
+        "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
+        "}\n";
+
+    // Select shaders matching our GLSL versions
+    const GLchar *vertex_shader = NULL;
+    const GLchar *fragment_shader = NULL;
+
+    if (bd->GlslVersion < 130)
+    {
+        vertex_shader = vertex_shader_glsl_120;
+        fragment_shader = fragment_shader_glsl_120;
+    }
+    else if (bd->GlslVersion >= 410)
+    {
+        vertex_shader = vertex_shader_glsl_410_core;
+        fragment_shader = fragment_shader_glsl_410_core;
+    }
+    else if (bd->GlslVersion == 300)
+    {
+        vertex_shader = vertex_shader_glsl_300_es;
+        fragment_shader = fragment_shader_glsl_300_es;
+    }
+    else
+    {
+        vertex_shader = vertex_shader_glsl_130;
+        fragment_shader = fragment_shader_glsl_130;
+    }
+
+    // Create shaders
+    GLuint vert_handle = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vert_handle, 1, &vertex_shader, NULL);
+    glCompileShader(vert_handle);
+    guiGl3_CheckShader(vert_handle, "vertex shader");
+
+    GLuint frag_handle = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(frag_handle, 1, &fragment_shader, NULL);
+    glCompileShader(frag_handle);
+    guiGl3_CheckShader(frag_handle, "fragment shader");
+
+    // Link
+    bd->shader = glCreateProgram();
+    glAttachShader(bd->shader, vert_handle);
+    glAttachShader(bd->shader, frag_handle);
+    glLinkProgram(bd->shader);
+    guiGl3_CheckProgram(bd->shader, "shader program");
+
+    glDetachShader(bd->shader, vert_handle);
+    glDetachShader(bd->shader, frag_handle);
+    glDeleteShader(vert_handle);
+    glDeleteShader(frag_handle);
+
+    bd->uniform_text = glGetUniformLocation(bd->shader, "Texture");
+    bd->uniform_proj = glGetUniformLocation(bd->shader, "ProjMtx");
+    bd->attr_pos = (GLuint)glGetAttribLocation(bd->shader, "Position");
+    bd->attr_uv = (GLuint)glGetAttribLocation(bd->shader, "UV");
+    bd->attr_color = (GLuint)glGetAttribLocation(bd->shader, "Color");
+
+    // Create buffers
+    glGenBuffers(1, &bd->vbo);
+    glGenBuffers(1, &bd->ebo);
+
+    guiGl3_CreateFontsTexture();
+
+    // Restore modified GL state
+    glBindTexture(GL_TEXTURE_2D, (GLuint)last_texture);
+    glBindBuffer(GL_ARRAY_BUFFER, (GLuint)last_array_buffer);
+#    ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
+    glBindVertexArray((GLuint)last_vertex_array);
+#    endif
+
+    return true;
+}
+
+static void
+guiGl3_DeleteDeviceObjects()
+{
+    GuiGl3BackendData *bd = guiGl3_BackendData();
+
+    if (bd->vbo)
+    {
+        glDeleteBuffers(1, &bd->vbo);
+        bd->vbo = 0;
+    }
+
+    if (bd->ebo)
+    {
+        glDeleteBuffers(1, &bd->ebo);
+        bd->ebo = 0;
+    }
+
+    if (bd->shader)
+    {
+        glDeleteProgram(bd->shader);
+        bd->shader = 0;
+    }
+
+    guiGl3_DeleteFontsTexture();
+}
+
+//--------------------------------------------------------------------------------------------------
 // MULTI-VIEWPORT / PLATFORM INTERFACE SUPPORT
 // This is an _advanced_ and _optional_ feature, allowing the backend to create and handle multiple
 // viewports simultaneously. If you are new to dear imgui or creating a new binding for dear imgui,
 // it is recommended that you completely ignore this section first..
-//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 static void
 guiGl3_RenderWindow(ImGuiViewport *viewport, void *)
@@ -341,7 +586,10 @@ guiGl3_RenderWindow(ImGuiViewport *viewport, void *)
 
 CF_DIAGNOSTIC_POP()
 
+//--------------------------------------------------------------------------------------------------------
 // Backend API
+//--------------------------------------------------------------------------------------------------------
+
 bool
 guiGl3Init(GuiOpenGLVersion version)
 {
@@ -423,7 +671,7 @@ guiGl3Shutdown()
     ImGuiIO &io = ImGui::GetIO();
 
     ImGui::DestroyPlatformWindows();
-    guiGl3DeleteDeviceObjects();
+    guiGl3_DeleteDeviceObjects();
     io.BackendRendererName = NULL;
     io.BackendRendererUserData = NULL;
     IM_DELETE(bd);
@@ -435,7 +683,7 @@ guiGl3NewFrame()
     GuiGl3BackendData *bd = guiGl3_BackendData();
     IM_ASSERT(bd != NULL && "Did you call guiGl3Init()?");
 
-    if (!bd->shader) guiGl3CreateDeviceObjects();
+    if (!bd->shader) guiGl3_CreateDeviceObjects();
 }
 
 void
@@ -651,277 +899,9 @@ guiGl3UpdateFontsTexture()
 
     if (bd->shader)
     {
-        guiGl3DeleteFontsTexture();
-        guiGl3CreateFontsTexture();
+        guiGl3_DeleteFontsTexture();
+        guiGl3_CreateFontsTexture();
     }
-}
-
-void
-guiGl3CreateFontsTexture()
-{
-    ImGuiIO &io = ImGui::GetIO();
-    GuiGl3BackendData *bd = guiGl3_BackendData();
-
-    // Build texture atlas
-    unsigned char *pixels;
-    int width, height;
-    io.Fonts->GetTexDataAsRGBA32(
-        &pixels, &width,
-        &height); // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small)
-                  // because it is more likely to be compatible with user's existing shaders. If
-                  // your ImTextureId represent a higher-level concept than just a GL texture id,
-                  // consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
-
-    // Upload texture to graphics system
-    GLint last_texture;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
-    glGenTextures(1, &bd->font_tex);
-    glBindTexture(GL_TEXTURE_2D, bd->font_tex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-#    ifdef GL_UNPACK_ROW_LENGTH // Not on WebGL/ES
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-#    endif
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-
-    // Store our identifier
-    io.Fonts->SetTexID((ImTextureID)(intptr_t)bd->font_tex);
-
-    // Restore state
-    glBindTexture(GL_TEXTURE_2D, (GLuint)last_texture);
-}
-
-void
-guiGl3DeleteFontsTexture()
-{
-    ImGuiIO &io = ImGui::GetIO();
-    GuiGl3BackendData *bd = guiGl3_BackendData();
-    if (bd->font_tex)
-    {
-        glDeleteTextures(1, &bd->font_tex);
-        io.Fonts->SetTexID(0);
-        bd->font_tex = 0;
-    }
-}
-
-bool
-guiGl3CreateDeviceObjects()
-{
-    GuiGl3BackendData *bd = guiGl3_BackendData();
-
-    // Backup GL state
-    GLint last_texture, last_array_buffer;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
-#    ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
-    GLint last_vertex_array;
-    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
-#    endif
-
-    // Parse GLSL version string
-
-    const GLchar *vertex_shader_glsl_120 = //
-        "#version 120\n"
-        "uniform mat4 ProjMtx;\n"
-        "attribute vec2 Position;\n"
-        "attribute vec2 UV;\n"
-        "attribute vec4 Color;\n"
-        "varying vec2 Frag_UV;\n"
-        "varying vec4 Frag_Color;\n"
-        "void main()\n"
-        "{\n"
-        "    Frag_UV = UV;\n"
-        "    Frag_Color = Color;\n"
-        "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
-        "}\n";
-
-    const GLchar *vertex_shader_glsl_130 = //
-        "#version 130\n"
-        "uniform mat4 ProjMtx;\n"
-        "in vec2 Position;\n"
-        "in vec2 UV;\n"
-        "in vec4 Color;\n"
-        "out vec2 Frag_UV;\n"
-        "out vec4 Frag_Color;\n"
-        "void main()\n"
-        "{\n"
-        "    Frag_UV = UV;\n"
-        "    Frag_Color = Color;\n"
-        "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
-        "}\n";
-
-    const GLchar *vertex_shader_glsl_300_es = //
-        "#version 300 es\n"
-        "precision highp float;\n"
-        "layout (location = 0) in vec2 Position;\n"
-        "layout (location = 1) in vec2 UV;\n"
-        "layout (location = 2) in vec4 Color;\n"
-        "uniform mat4 ProjMtx;\n"
-        "out vec2 Frag_UV;\n"
-        "out vec4 Frag_Color;\n"
-        "void main()\n"
-        "{\n"
-        "    Frag_UV = UV;\n"
-        "    Frag_Color = Color;\n"
-        "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
-        "}\n";
-
-    const GLchar *vertex_shader_glsl_410_core = //
-        "#version 410 core\n"
-        "layout (location = 0) in vec2 Position;\n"
-        "layout (location = 1) in vec2 UV;\n"
-        "layout (location = 2) in vec4 Color;\n"
-        "uniform mat4 ProjMtx;\n"
-        "out vec2 Frag_UV;\n"
-        "out vec4 Frag_Color;\n"
-        "void main()\n"
-        "{\n"
-        "    Frag_UV = UV;\n"
-        "    Frag_Color = Color;\n"
-        "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
-        "}\n";
-
-    const GLchar *fragment_shader_glsl_120 =
-        "#version 120\n"
-        "#ifdef GL_ES\n"
-        "    precision mediump float;\n"
-        "#endif\n"
-        "uniform sampler2D Texture;\n"
-        "varying vec2 Frag_UV;\n"
-        "varying vec4 Frag_Color;\n"
-        "void main()\n"
-        "{\n"
-        "    gl_FragColor = Frag_Color * texture2D(Texture, Frag_UV.st);\n"
-        "}\n";
-
-    const GLchar *fragment_shader_glsl_130 =
-        "#version 130\n"
-        "uniform sampler2D Texture;\n"
-        "in vec2 Frag_UV;\n"
-        "in vec4 Frag_Color;\n"
-        "out vec4 Out_Color;\n"
-        "void main()\n"
-        "{\n"
-        "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
-        "}\n";
-
-    const GLchar *fragment_shader_glsl_300_es =
-        "#version 300 es\n"
-        "precision mediump float;\n"
-        "uniform sampler2D Texture;\n"
-        "in vec2 Frag_UV;\n"
-        "in vec4 Frag_Color;\n"
-        "layout (location = 0) out vec4 Out_Color;\n"
-        "void main()\n"
-        "{\n"
-        "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
-        "}\n";
-
-    const GLchar *fragment_shader_glsl_410_core =
-        "#version 410 core\n"
-        "in vec2 Frag_UV;\n"
-        "in vec4 Frag_Color;\n"
-        "uniform sampler2D Texture;\n"
-        "layout (location = 0) out vec4 Out_Color;\n"
-        "void main()\n"
-        "{\n"
-        "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
-        "}\n";
-
-    // Select shaders matching our GLSL versions
-    const GLchar *vertex_shader = NULL;
-    const GLchar *fragment_shader = NULL;
-
-    if (bd->GlslVersion < 130)
-    {
-        vertex_shader = vertex_shader_glsl_120;
-        fragment_shader = fragment_shader_glsl_120;
-    }
-    else if (bd->GlslVersion >= 410)
-    {
-        vertex_shader = vertex_shader_glsl_410_core;
-        fragment_shader = fragment_shader_glsl_410_core;
-    }
-    else if (bd->GlslVersion == 300)
-    {
-        vertex_shader = vertex_shader_glsl_300_es;
-        fragment_shader = fragment_shader_glsl_300_es;
-    }
-    else
-    {
-        vertex_shader = vertex_shader_glsl_130;
-        fragment_shader = fragment_shader_glsl_130;
-    }
-
-    // Create shaders
-    GLuint vert_handle = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vert_handle, 1, &vertex_shader, NULL);
-    glCompileShader(vert_handle);
-    guiGl3_CheckShader(vert_handle, "vertex shader");
-
-    GLuint frag_handle = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(frag_handle, 1, &fragment_shader, NULL);
-    glCompileShader(frag_handle);
-    guiGl3_CheckShader(frag_handle, "fragment shader");
-
-    // Link
-    bd->shader = glCreateProgram();
-    glAttachShader(bd->shader, vert_handle);
-    glAttachShader(bd->shader, frag_handle);
-    glLinkProgram(bd->shader);
-    guiGl3_CheckProgram(bd->shader, "shader program");
-
-    glDetachShader(bd->shader, vert_handle);
-    glDetachShader(bd->shader, frag_handle);
-    glDeleteShader(vert_handle);
-    glDeleteShader(frag_handle);
-
-    bd->uniform_text = glGetUniformLocation(bd->shader, "Texture");
-    bd->uniform_proj = glGetUniformLocation(bd->shader, "ProjMtx");
-    bd->attr_pos = (GLuint)glGetAttribLocation(bd->shader, "Position");
-    bd->attr_uv = (GLuint)glGetAttribLocation(bd->shader, "UV");
-    bd->attr_color = (GLuint)glGetAttribLocation(bd->shader, "Color");
-
-    // Create buffers
-    glGenBuffers(1, &bd->vbo);
-    glGenBuffers(1, &bd->ebo);
-
-    guiGl3CreateFontsTexture();
-
-    // Restore modified GL state
-    glBindTexture(GL_TEXTURE_2D, (GLuint)last_texture);
-    glBindBuffer(GL_ARRAY_BUFFER, (GLuint)last_array_buffer);
-#    ifdef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
-    glBindVertexArray((GLuint)last_vertex_array);
-#    endif
-
-    return true;
-}
-
-void
-guiGl3DeleteDeviceObjects()
-{
-    GuiGl3BackendData *bd = guiGl3_BackendData();
-
-    if (bd->vbo)
-    {
-        glDeleteBuffers(1, &bd->vbo);
-        bd->vbo = 0;
-    }
-
-    if (bd->ebo)
-    {
-        glDeleteBuffers(1, &bd->ebo);
-        bd->ebo = 0;
-    }
-
-    if (bd->shader)
-    {
-        glDeleteProgram(bd->shader);
-        bd->shader = 0;
-    }
-
-    guiGl3DeleteFontsTexture();
 }
 
 #endif
