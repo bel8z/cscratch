@@ -46,7 +46,7 @@ set(GUI_SOURCES
 add_library(${GUI_NAME} STATIC ${GUI_SOURCES})
 
 target_compile_definitions(${GUI_NAME} PUBLIC IMGUI_USER_CONFIG="${GUI_CONFIG}")
-
+target_link_libraries(${GUI_NAME} PRIVATE freetype)
 target_include_directories(${GUI_NAME} 
     PRIVATE 
         ${IMGUI_DIR}
@@ -55,11 +55,20 @@ target_include_directories(${GUI_NAME}
     PUBLIC
         ${CODE_DIR})
 
-target_link_libraries(${GUI_NAME} PRIVATE freetype glfw)
+#----------------#
+# Window library #
+#----------------#
+set(WIN_NAME gui_win)
+set(WIN_SOURCES ${CODE_DIR}/gui/win.cpp)
 
-#-----------------#
-# Backend library #
-#-----------------#
+add_library(${WIN_NAME} STATIC ${WIN_SOURCES})
+
+target_include_directories(${WIN_NAME} PRIVATE ${IMGUI_DIR} ${IMGUI_DIR}/misc/freetype)
+target_link_libraries(${WIN_NAME} PUBLIC ${GUI_NAME} PRIVATE glfw)
+
+#------------------------#
+# OpenGL backend library #
+#------------------------#
 set(BACKEND_NAME gui_backend_gl3)
 
 find_package(OpenGL REQUIRED)
@@ -71,9 +80,8 @@ set(BACKEND_SOURCES
 add_library(${BACKEND_NAME} STATIC ${BACKEND_SOURCES})
 
 target_include_directories(${BACKEND_NAME} PRIVATE ${IMGUI_DIR})
-
 target_link_libraries(${BACKEND_NAME} PUBLIC 
-    ${GUI_NAME} 
+    ${WIN_NAME} 
     ${OPENGL_gl_LIBRARY})
 
 #----------------------------#
@@ -82,6 +90,8 @@ target_link_libraries(${BACKEND_NAME} PUBLIC
 
 target_compile_features(${GUI_NAME}     PUBLIC c_std_11) 
 target_compile_features(${GUI_NAME}     PUBLIC cxx_std_14)
+target_compile_features(${WIN_NAME}     PUBLIC c_std_11) 
+target_compile_features(${WIN_NAME}     PUBLIC cxx_std_14)
 target_compile_features(${BACKEND_NAME} PUBLIC c_std_11) 
 target_compile_features(${BACKEND_NAME} PUBLIC cxx_std_14)
 
@@ -89,9 +99,4 @@ include(${PARENT_DIR}/cmake/CompileFlags.cmake)
 
 set_c_compile_flags(${GUI_NAME})
 set_c_compile_flags(${BACKEND_NAME})
-
-#-----------------------#
-# Unity build all  libs #
-#-----------------------#
-
-set_target_properties(${GUI_NAME} ${BACKEND_NAME} PROPERTIES UNITY_BUILD TRUE)
+set_c_compile_flags(${WIN_NAME})

@@ -4,6 +4,7 @@
 /// This is not an API header, include it in implementation files only
 
 #include "core.h"
+#include "error.h"
 #include "memory.h"
 
 static inline U32

@@ -686,20 +686,20 @@ guiGlfw_UpdateMonitors()
 }
 
 void
-guiGlfwNewFrame()
+guiGlfwNewFrame(IVec2 win_size, IVec2 display)
 {
     ImGuiIO &io = ImGui::GetIO();
     GuiGlfwData *bd = guiGlfw_GetBackendData();
     CF_ASSERT(bd != NULL, "Did you call guiGlfw_InitForXXX()?");
 
     // Setup display size (every frame to accommodate for window resizing)
-    int w, h;
-    int display_w, display_h;
-    glfwGetWindowSize(bd->main_window, &w, &h);
-    glfwGetFramebufferSize(bd->main_window, &display_w, &display_h);
-    io.DisplaySize = ImVec2((F32)w, (F32)h);
-    if (w > 0 && h > 0)
-        io.DisplayFramebufferScale = ImVec2((F32)display_w / (F32)w, (F32)display_h / (F32)h);
+
+    io.DisplaySize = ImVec2((F32)win_size.x, (F32)win_size.y);
+    if (win_size.x > 0 && win_size.y > 0)
+    {
+        io.DisplayFramebufferScale =
+            ImVec2((F32)display.x / (F32)win_size.x, (F32)display.y / (F32)win_size.y);
+    }
     if (bd->update_monitors) guiGlfw_UpdateMonitors();
 
     // TODO (Matteo): Use platform clock functionality

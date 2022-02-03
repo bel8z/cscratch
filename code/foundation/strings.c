@@ -1,5 +1,6 @@
 #include "strings.h"
 
+#include "error.h"
 #include "memory.h"
 
 #include <ctype.h>

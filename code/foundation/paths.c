@@ -1,6 +1,7 @@
 #include "paths.h"
 
 #include "core.h"
+#include "error.h"
 #include "memory.h"
 #include "strings.h"
 

@@ -1,38 +1,9 @@
 #include "gui.h"
-
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-
-CF_DIAGNOSTIC_PUSH()
-CF_DIAGNOSTIC_IGNORE_CLANG("-Wlanguage-extension-token")
-CF_DIAGNOSTIC_IGNORE_MSVC(4201)
-CF_DIAGNOSTIC_IGNORE_MSVC(4214)
-
-#include "imgui.h"
-#include "imgui_internal.h"
-#if defined(IMGUI_ENABLE_FREETYPE)
-#    include "imgui_freetype.h"
-#endif
-
-CF_DIAGNOSTIC_POP()
+#include "gui_internal.h"
 
 #include "foundation/colors.h"
 #include "foundation/log.h"
 #include "foundation/memory.h"
-
-#include "gui_backend_glfw.cpp"
-
-struct GuiData
-{
-    MemAllocator allocator;
-    GuiMemory memory;
-
-    GLFWwindow *main_window;
-
-    GuiTheme theme;
-
-    void *user_data;
-};
 
 #if !defined GUI_VIEWPORTS
 #    define GUI_VIEWPORTS 0
@@ -45,7 +16,7 @@ CF_STATIC_ASSERT(sizeof(LinearColor) == sizeof(ImVec4), "LinearColor not compati
 
 //=== Memory management ===//
 
-static void *
+void *
 guiAlloc(Usize size, void *state)
 {
     // TODO (Matteo: Check for misaligned access
@@ -66,7 +37,7 @@ guiAlloc(Usize size, void *state)
     return buf;
 }
 
-static void
+void
 guiFree(void *mem, void *state)
 {
     CF_ASSERT_NOT_NULL(state);
@@ -84,174 +55,12 @@ guiFree(void *mem, void *state)
         memFree(data->allocator, buf, total_size);
     }
 }
-
 //=== Initialization ===//
 
-static GuiData &
+GuiData &
 guiData()
 {
     return *(GuiData *)ImGui::GetIO().UserData;
-}
-
-static void
-glfwErrorCallback(int error, Cstr description)
-{
-    CF_UNUSED(error);
-    CF_UNUSED(description);
-    // logError("Glfw Error %d: %s\n", error, description);
-}
-
-// NOTE (Matteo):
-// The way GLFW initializes OpenGL context on windows is a bit peculiar.
-// To create a context of the most recent version supported by the driver, one must require
-// version 1.0 (which is also the default hint value); in this case the "forward compatibility" and
-// "core profile" flags are not supported, and window creation fails.
-// On the other side, setting a specific 3.0+ version is not merely an hint, because a context of
-// that same version is created (or window creation fails if not supported); not sure if this is a
-// GLFW or WGL bug (or feature? D: ).
-// Anyway, I work around this by trying some different versions in decreasing release
-// order (one per year or release), in order to benefit of the latest features available.
-
-static const GuiOpenGLVersion g_gl_versions[8] = {
-    {.major = 4, .minor = 6, .glsl = 430}, // 2017
-    {.major = 4, .minor = 5, .glsl = 430}, // 2014
-    {.major = 4, .minor = 4, .glsl = 430}, // 2013
-    {.major = 4, .minor = 3, .glsl = 430}, // 2012
-    {.major = 4, .minor = 2, .glsl = 420}, // 2011
-    {.major = 4, .minor = 1, .glsl = 410}, // 2010
-    {.major = 3, .minor = 2, .glsl = 150}, // 2009
-    {.major = 3, .minor = 0, .glsl = 130}, // 2008
-};
-
-static GLFWwindow *
-glfwCreateWinAndContext(Cstr title, I32 width, I32 height, GuiOpenGLVersion *gl_version)
-{
-    GLFWwindow *window = NULL;
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-    glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
-    glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
-
-    for (Usize i = 0; i < CF_ARRAY_SIZE(g_gl_versions); ++i)
-    {
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, (I32)g_gl_versions[i].major);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, (I32)g_gl_versions[i].minor);
-
-        if (g_gl_versions[i].major >= 3)
-        {
-            // TODO (Matteo): Make this OS specific? It doesn't seem to bring any penalty
-            // 3.0+ only, required on MAC
-            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-            if (g_gl_versions[i].minor >= 2)
-            {
-                // 3.2+ only
-                glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-            }
-        }
-
-        window = glfwCreateWindow(width, height, title, NULL, NULL);
-        if (window)
-        {
-            *gl_version = g_gl_versions[i];
-            break;
-        }
-    }
-
-    return window;
-}
-
-GuiContext *
-guiInit(GuiInitInfo *gui, GuiOpenGLVersion *out_gl_ver)
-{
-    CF_ASSERT_NOT_NULL(gui);
-
-    GLFWwindow *window = NULL;
-    GuiContext *ctx = NULL;
-
-    // Setup platform
-    {
-        // TODO (Matteo): proper error handling
-        glfwSetErrorCallback(glfwErrorCallback);
-        if (!glfwInit()) return NULL;
-
-        // Create window with graphics context
-        if (gui->gl_context)
-        {
-            GuiOpenGLVersion gl_ver = {0};
-            if (!out_gl_ver) out_gl_ver = &gl_ver;
-            window = glfwCreateWinAndContext("Dear ImGui template", 1280, 720, out_gl_ver);
-        }
-        else
-        {
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-            window = glfwCreateWindow(1280, 720, "Dear ImGui template", NULL, NULL);
-        }
-
-        if (window == NULL) return NULL;
-
-        if (gui->gl_context)
-        {
-            glfwMakeContextCurrent(window);
-            glfwSwapInterval(1); // Enable vsync
-        }
-    }
-
-    // Setup IMGUI
-    {
-        IMGUI_CHECKVERSION();
-
-        // Configure custom user data
-        GuiData *gui_data = (GuiData *)memAlloc(gui->alloc, sizeof(*gui_data));
-        gui_data->allocator = gui->alloc;
-        gui_data->memory = {0};
-        gui_data->user_data = gui->user_data;
-        gui_data->main_window = window;
-
-        ImGui::SetAllocatorFunctions(guiAlloc, guiFree, gui_data);
-
-        ctx = ImGui::CreateContext(gui->shared_atlas);
-
-        ImGuiIO &io = ImGui::GetIO();
-
-        io.UserData = gui_data;
-
-        io.IniFilename = gui->ini_filename;
-
-        // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-        // Enable Docking
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-        // Reduce visual noise while docking, also has a benefit for out-of-sync viewport rendering
-        io.ConfigDockingTransparentPayload = true;
-
-#if GUI_VIEWPORTS
-        // Enable Multi-Viewport / Platform Windows
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-#endif
-
-        guiSetTheme(GuiTheme_EmeraldDark);
-    }
-
-    // Setup DPI handling
-    F32 dpi_scale;
-    {
-        F32 win_x_scale, win_y_scale;
-        glfwGetWindowContentScale(window, &win_x_scale, &win_y_scale);
-        // HACK How do I get the platform base DPI?
-        dpi_scale = win_x_scale > win_y_scale ? win_y_scale : win_x_scale;
-    }
-
-    // Setup Dear ImGui style
-    guiSetupStyle(GuiTheme_EmeraldLight, dpi_scale);
-    if (!strValid(gui->data_path) || !guiLoadCustomFonts(guiFonts(), dpi_scale, gui->data_path))
-    {
-        guiLoadDefaultFont(guiFonts());
-    }
-
-    guiGlfwInit(window, gui->gl_context);
-
-    return ctx;
 }
 
 void
@@ -263,33 +72,6 @@ guiSetContext(GuiContext *ctx)
 
     ImGui::SetCurrentContext(ctx);
     ImGui::SetAllocatorFunctions(guiAlloc, guiFree, &guiData());
-}
-
-void
-guiShutdown(GuiContext *ctx)
-{
-    guiGlfwShutdown();
-
-    CF_ASSERT(ctx == ImGui::GetCurrentContext(), "Inconsistent contexts");
-
-    GuiData *gui_data = (GuiData *)ImGui::GetIO().UserData;
-
-    ImGui::DestroyContext(ctx);
-
-    CF_ASSERT(gui_data->memory.size == 0, "Possible GUI memory leak");
-    CF_ASSERT(gui_data->memory.blocks == 0, "Possible GUI memory leak");
-
-    glfwDestroyWindow(gui_data->main_window);
-
-    memFree(gui_data->allocator, gui_data, sizeof(*gui_data));
-
-    glfwTerminate();
-}
-
-void
-guiSetTitle(Cstr title)
-{
-    glfwSetWindowTitle(guiData().main_window, title);
 }
 
 GuiMemory
@@ -304,94 +86,16 @@ guiUserData(void)
     return guiData().user_data;
 }
 
-Cstr const *
-guiRequiredVulkanExtensions(U32 *count)
-{
-    return glfwGetRequiredInstanceExtensions(count);
-}
-
-CF_API I32
-guiCreateVulkanSurface(VkInstance vk_instance, const VkAllocationCallbacks *vk_allocator,
-                       VkSurfaceKHR *out_vk_surface)
-{
-    return glfwCreateWindowSurface(vk_instance, guiData().main_window, vk_allocator,
-                                   out_vk_surface);
-}
-
-bool
-guiEventLoop(bool blocking, bool fullscreen, IVec2 *display)
-{
-    GLFWwindow *window = guiData().main_window;
-
-    if (glfwWindowShouldClose(window)) return false;
-
-    glfwSwapBuffers(window);
-
-    if (blocking)
-    {
-        glfwWaitEvents();
-    }
-    else
-    {
-        glfwPollEvents();
-    }
-
-    // TODO (Matteo): Investigate freeze when leaving fullscreen mode
-    GLFWmonitor *monitor = glfwGetWindowMonitor(window);
-    bool is_fullscreen = (monitor != NULL);
-    if (fullscreen != is_fullscreen)
-    {
-        if (is_fullscreen)
-        {
-            IVec2 win_pos, win_size;
-            glfwGetWindowPos(window, &win_pos.x, &win_pos.y);
-            glfwGetWindowSize(window, &win_size.width, &win_size.height);
-            glfwSetWindowMonitor(window, NULL,         //
-                                 win_pos.x, win_pos.y, //
-                                 win_size.width, win_size.height, 0);
-        }
-        else
-        {
-            monitor = glfwGetPrimaryMonitor();
-            GLFWvidmode const *vidmode = glfwGetVideoMode(monitor);
-            glfwSetWindowMonitor(window, monitor, 0, 0, vidmode->width, vidmode->height,
-                                 vidmode->refreshRate);
-        }
-    }
-
-    glfwGetFramebufferSize(window, &display->width, &display->height);
-
-    return true;
-}
-
 void
 guiNewFrame(void)
 {
-    guiGlfwNewFrame();
     ImGui::NewFrame();
 }
 
-ImDrawData *
-guiRender(bool render_viewports)
+GuiDrawData *
+guiRender()
 {
     ImGui::Render();
-
-    // Update and Render additional Platform Windows
-    // (Platform functions may change the current OpenGL context, so we save/restore it
-    // to make it easier to paste this code elsewhere.)
-    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        GLFWwindow *backup_current_context = glfwGetCurrentContext();
-
-        ImGui::UpdatePlatformWindows();
-        if (render_viewports)
-        {
-            ImGui::RenderPlatformWindowsDefault(NULL, NULL);
-        }
-
-        glfwMakeContextCurrent(backup_current_context);
-    }
-
     return ImGui::GetDrawData();
 }
 

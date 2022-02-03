@@ -5,6 +5,7 @@
 
 // Gui library
 #include "gui/gui.h"
+#include "gui/win.h"
 
 // Foundation libraries
 #include "foundation/error.h"
@@ -259,7 +260,7 @@ vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT de
     if (func) func(instance, debugMessenger, pAllocator);
 #else
     CF_UNUSED(instance);
-    CF_UNUSED(pDebugMessenger);
+    CF_UNUSED(debugMessenger);
     CF_UNUSED(pAllocator);
 #endif
 }
@@ -300,7 +301,7 @@ appTerminate(App *app, Cstr format, ...)
     if (len > 0) file->write(file->std_err, (U8 const *)buffer, (Usize)len);
 
     appShutdown(app);
-    exit(EXIT_FAILURE);
+    exit(-1);
 }
 
 static void
@@ -1532,7 +1533,7 @@ appDrawFrame(App *app, Frame *frame)
                          0  // First instance - lowest value for 'gl_InstanceIndex'
         );
 
-        GuiDrawData *draw_data = guiRender(RENDER_GUI);
+        GuiDrawData *draw_data = guiRender();
 #if RENDER_GUI
         ImGui_ImplVulkan_RenderDrawData(draw_data, frame->cmd, VK_NULL_HANDLE);
 #else
@@ -1721,6 +1722,8 @@ appMainLoop(App *app)
         Frame *frame = app->frames + (app->frame_index & frame_mask);
         appDrawFrame(app, frame);
         app->frame_index++;
+
+        guiUpdateViewports(RENDER_GUI);
     }
 
     VK_CHECK(vkDeviceWaitIdle(app->device));

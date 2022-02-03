@@ -35,6 +35,8 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wsign-conversion")
 
 CF_DIAGNOSTIC_POP()
 
+//=== Font handling ===//
+
 static GuiFont *
 gui_LoadCustomFont(GuiFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
 {

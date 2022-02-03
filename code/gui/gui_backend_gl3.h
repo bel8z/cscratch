@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui.h"
+#include "win.h"
 
 typedef struct ImDrawData GuiDrawData;
 

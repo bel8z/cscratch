@@ -4,6 +4,7 @@
 // Gui library
 #include "gui/gui.h"
 #include "gui/gui_backend_gl3.h"
+#include "gui/win.h"
 
 // Backend libraries
 #include "gl/gload.h"
@@ -213,8 +214,9 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         // Rendering //
         //-----------//
 
-        GuiDrawData *draw_data = guiRender(true);
+        GuiDrawData *draw_data = guiRender();
         guiGl3Render(draw_data);
+        guiUpdateViewports(true);
 
         //-----------------//
         // Post processing //

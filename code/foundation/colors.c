@@ -1,4 +1,5 @@
 #include "colors.h"
+#include "error.h"
 #include "math.inl"
 #include "util.h"
 

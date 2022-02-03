@@ -1,5 +1,6 @@
 #include "threading.h"
 
+#include "error.h"
 #include "time.h"
 
 #include "atom.inl"

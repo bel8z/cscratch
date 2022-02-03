@@ -1,4 +1,5 @@
 #include "list.h"
+#include "error.h"
 
 void
 cfListInit(CfList *list)

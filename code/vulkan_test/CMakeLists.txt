@@ -21,7 +21,7 @@ add_executable(${EXE_NAME} WIN32 ${APP_SOURCES} ${APP_RESOURCES})
 
 target_compile_features(${EXE_NAME} PUBLIC c_std_11)
 target_include_directories(${EXE_NAME} PUBLIC ${CODE_DIR} ${Vulkan_INCLUDE_DIRS} ${IMGUI_DIR} PRIVATE ${IMGUI_DIR}/backends)
-target_link_libraries(${EXE_NAME} PRIVATE foundation gui ${Vulkan_LIBRARIES})
+target_link_libraries(${EXE_NAME} PRIVATE foundation gui_win ${Vulkan_LIBRARIES})
 
 set_c_compile_flags(${EXE_NAME})
 set_target_properties(${EXE_NAME} PROPERTIES UNITY_BUILD TRUE)
