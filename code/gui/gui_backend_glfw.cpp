@@ -35,7 +35,7 @@ struct GuiGlfwData
     GLFWcursor *mouse_cursors[ImGuiMouseCursor_COUNT];
     GLFWwindow *key_owners[GLFW_KEY_LAST];
     double time;
-    GuiClientApi client_api;
+    bool gl_context;
     bool update_monitors;
 
     GLFWwindowfocusfun focus_callback;
@@ -378,7 +378,7 @@ guiGlfw_MonitorCallback(GLFWmonitor *monitor, int event)
 }
 
 bool
-guiGlfwInit(GLFWwindow *window, GuiClientApi client_api)
+guiGlfwInit(GLFWwindow *window, bool gl_context)
 {
     ImGuiIO &io = ImGui::GetIO();
     CF_ASSERT(io.BackendPlatformUserData == NULL, "Already initialized a platform backend!");
@@ -444,7 +444,7 @@ guiGlfwInit(GLFWwindow *window, GuiClientApi client_api)
 #endif
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) guiGlfw_InitPlatformInterface();
 
-    bd->client_api = client_api;
+    bd->gl_context = gl_context;
     return true;
 }
 
@@ -795,7 +795,7 @@ guiGlfw_CreateWindow(ImGuiViewport *viewport)
                    (viewport->Flags & ImGuiViewportFlags_NoDecoration) ? false : true);
     glfwWindowHint(GLFW_FLOATING, (viewport->Flags & ImGuiViewportFlags_TopMost) ? true : false);
 
-    GLFWwindow *share_window = (bd->client_api == GuiClientApi_OpenGL) ? bd->main_window : NULL;
+    GLFWwindow *share_window = (bd->gl_context) ? bd->main_window : NULL;
     vd->Window = glfwCreateWindow((int)viewport->Size.x, (int)viewport->Size.y, "No Title Yet",
                                   NULL, share_window);
     vd->WindowOwned = true;
@@ -818,7 +818,7 @@ guiGlfw_CreateWindow(ImGuiViewport *viewport)
     glfwSetWindowPosCallback(vd->Window, guiGlfw_WindowPosCallback);
     glfwSetWindowSizeCallback(vd->Window, guiGlfw_WindowSizeCallback);
 
-    if (bd->client_api == GuiClientApi_OpenGL)
+    if (bd->gl_context)
     {
         glfwMakeContextCurrent(vd->Window);
         glfwSwapInterval(0);
@@ -985,7 +985,7 @@ guiGlfw_RenderWindow(ImGuiViewport *viewport, void *)
 {
     GuiGlfwData *bd = guiGlfw_GetBackendData();
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
-    if (bd->client_api == GuiClientApi_OpenGL) glfwMakeContextCurrent(vd->Window);
+    if (bd->gl_context) glfwMakeContextCurrent(vd->Window);
 }
 
 static void
@@ -993,7 +993,7 @@ guiGlfw_SwapBuffers(ImGuiViewport *viewport, void *)
 {
     GuiGlfwData *bd = guiGlfw_GetBackendData();
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
-    if (bd->client_api == GuiClientApi_OpenGL)
+    if (bd->gl_context)
     {
         glfwMakeContextCurrent(vd->Window);
         glfwSwapBuffers(vd->Window);
@@ -1015,7 +1015,7 @@ guiGlfw_CreateVkSurface(ImGuiViewport *viewport, ImU64 vk_instance, const void *
 {
     GuiGlfwData *bd = guiGlfw_GetBackendData();
     CF_UNUSED(bd);
-    CF_ASSERT(bd->client_api == GuiClientApi_Vulkan, "Unexpected API");
+    CF_ASSERT(!bd->gl_context, "Unexpected API");
 
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
     return glfwCreateWindowSurface((VkInstance)vk_instance, vd->Window,

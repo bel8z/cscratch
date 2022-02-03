@@ -176,7 +176,7 @@ guiInit(GuiInitInfo *gui, GuiOpenGLVersion *out_gl_ver)
         if (!glfwInit()) return NULL;
 
         // Create window with graphics context
-        if (gui->client_api == GuiClientApi_OpenGL)
+        if (gui->gl_context)
         {
             GuiOpenGLVersion gl_ver = {0};
             if (!out_gl_ver) out_gl_ver = &gl_ver;
@@ -190,7 +190,7 @@ guiInit(GuiInitInfo *gui, GuiOpenGLVersion *out_gl_ver)
 
         if (window == NULL) return NULL;
 
-        if (gui->client_api == GuiClientApi_OpenGL)
+        if (gui->gl_context)
         {
             glfwMakeContextCurrent(window);
             glfwSwapInterval(1); // Enable vsync
@@ -249,7 +249,7 @@ guiInit(GuiInitInfo *gui, GuiOpenGLVersion *out_gl_ver)
         guiLoadDefaultFont(guiFonts());
     }
 
-    guiGlfwInit(window, gui->client_api);
+    guiGlfwInit(window, gui->gl_context);
 
     return ctx;
 }

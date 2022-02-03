@@ -131,7 +131,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
             .alloc = platform->heap,
             .ini_filename = gui_ini,
             .data_path = paths->data,
-            .client_api = GuiClientApi_OpenGL,
+            .gl_context = true,
         },
         &gl_ver);
 

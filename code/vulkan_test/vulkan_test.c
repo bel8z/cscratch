@@ -1182,7 +1182,6 @@ appInitGui(App *app, Platform *platform)
             .alloc = platform->heap,
             .ini_filename = gui_ini,
             .user_data = app,
-            .client_api = GuiClientApi_Vulkan,
             .data_path = paths->data,
         },
         NULL);

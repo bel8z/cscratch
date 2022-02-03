@@ -164,13 +164,6 @@ typedef struct GuiMemory
 
 //=== Initialization ===//
 
-typedef enum GuiClientApi
-{
-    GuiClientApi_Unknown = 0,
-    GuiClientApi_OpenGL,
-    GuiClientApi_Vulkan
-} GuiClientApi;
-
 typedef struct GuiOpenGLVersion
 {
     U32 major, minor;
@@ -186,7 +179,7 @@ typedef struct GuiInitInfo
     Cstr ini_filename;
     void *user_data;
     Str data_path;
-    GuiClientApi client_api;
+    bool gl_context;
 } GuiInitInfo;
 
 /// Initialize IMGUI global state
