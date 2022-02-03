@@ -69,7 +69,7 @@ target_link_libraries(${WIN_NAME} PUBLIC ${GUI_NAME} PRIVATE glfw)
 #------------------------#
 # OpenGL backend library #
 #------------------------#
-set(BACKEND_NAME gui_backend_gl3)
+set(BACKEND_NAME gui_gl3)
 
 find_package(OpenGL REQUIRED)
 

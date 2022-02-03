@@ -125,7 +125,7 @@ foreach(APP ${APP_LIST})
     target_include_directories(${EXE_NAME} PUBLIC ${CODE_DIR})
     target_include_directories(${LIB_NAME} PUBLIC ${CODE_DIR} ${EXT_DIR}/stb)
 
-    target_link_libraries(${EXE_NAME} PRIVATE foundation gui_backend_gl3)
+    target_link_libraries(${EXE_NAME} PRIVATE foundation gui_gl3)
     target_link_libraries(${LIB_NAME} PRIVATE foundation gui ${OPENGL_gl_LIBRARY}) 
 
     target_link_libraries(${EXE_NAME} PUBLIC Imm32)
