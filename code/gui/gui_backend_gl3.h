@@ -11,4 +11,4 @@ CF_API void guiGl3NewFrame();
 CF_API void guiGl3Render(GuiDrawData *draw_data);
 
 // Utility
-CF_API void guiGl3UpdateFontsTexture();
+CF_API void guiGl3UpdateFontsTexture(void);
