@@ -2,6 +2,10 @@
 
 #include "gui.h"
 
+#if !defined(__cplusplus)
+#    error "This is a C++ header"
+#endif
+
 CF_DIAGNOSTIC_PUSH()
 CF_DIAGNOSTIC_IGNORE_CLANG("-Wlanguage-extension-token")
 CF_DIAGNOSTIC_IGNORE_MSVC(4201)
@@ -15,7 +19,7 @@ CF_DIAGNOSTIC_IGNORE_MSVC(4214)
 
 CF_DIAGNOSTIC_POP()
 
-typedef struct GuiData
+struct GuiData
 {
     MemAllocator allocator;
     GuiMemory memory;
@@ -24,7 +28,7 @@ typedef struct GuiData
     void *user_data;
 
     GuiTheme theme;
-} GuiData;
+};
 
 void *guiAlloc(Usize size, void *state);
 void guiFree(void *mem, void *state);

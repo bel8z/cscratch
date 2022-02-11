@@ -207,6 +207,8 @@ CF_API Srgb32 guiGetStyledColor(Srgb32 in);
 
 CF_API Srgb32 guiGetBackColor(void);
 
+CF_API void guiGammaCorrection(bool enabled);
+
 //=== IO ===//
 
 CF_API F32 guiGetFramerate(void);
