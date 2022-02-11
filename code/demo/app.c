@@ -29,6 +29,7 @@ struct AppState
 
     AppWindows windows;
     Srgb32 clear_color;
+    bool srgb_framebuffer;
 
     CfLog log;
     Duration log_time;
@@ -88,6 +89,8 @@ APP_API APP_FN(appLoad)
 
     // Init OpenGl
     gloadInit(app->plat->gl);
+
+    glDisable(GL_FRAMEBUFFER_SRGB);
 }
 
 APP_API APP_FN(appUnload)
@@ -628,6 +631,19 @@ APP_API APP_UPDATE_FN(appUpdate)
         guiCheckbox("Continuous update", &io->continuous_update);
         guiSameLine();
         guiCheckbox("Fullscreen", &io->fullscreen);
+        guiSameLine();
+        if (guiCheckbox("Srgb", &state->srgb_framebuffer))
+        {
+            if (state->srgb_framebuffer)
+            {
+                glEnable(GL_FRAMEBUFFER_SRGB);
+            }
+            else
+            {
+                glDisable(GL_FRAMEBUFFER_SRGB);
+            }
+            guiGammaCorrection(state->srgb_framebuffer);
+        }
         guiSeparator();
         guiText("%04d/%02d/%02d %02d:%02d:%02d.%03d", now.year, now.month, now.day, now.hour,
                 now.minute, now.second, now.milliseconds);
@@ -643,6 +659,15 @@ APP_API APP_UPDATE_FN(appUpdate)
         guiLogBox(&state->log, false);
     }
     guiEnd();
+
+    if (state->srgb_framebuffer)
+    {
+        glEnable(GL_FRAMEBUFFER_SRGB);
+    }
+    else
+    {
+        glDisable(GL_FRAMEBUFFER_SRGB);
+    }
 
     fxWindow();
     fxTangentCircles();
