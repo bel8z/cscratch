@@ -8,23 +8,9 @@
 // * buffered write
 // * standard io
 
-//=== Common data ===//
-
-/// Error codes for IO operations, can be expanded for custom implementation
-typedef U32 IoError32;
-enum
-{
-    IoError_None = 0,
-    IoError_EndOfStream,
-    IoError_StreamTooLong,
-    IoError_FileError,
-    /// Custom error codes must be greater than this one
-    IoError_Reserved,
-};
-
 //=== IO buffered reader ===//
 
-#define IO_FILL_FN(name) IoError32 name(IoReader *self)
+#define IO_FILL_FN(name) ErrorCode32 name(IoReader *self)
 
 /// Offers buffered read over a generic underlying source
 typedef struct IoReader IoReader;
@@ -41,7 +27,7 @@ struct IoReader
     /// Refills the reader buffer from the underlying source
     IO_FILL_FN((*fill));
     /// "Sticky" error code
-    IoError32 error_code;
+    ErrorCode32 error_code;
 };
 
 /// Initialize a buffered reader over a file
@@ -52,14 +38,14 @@ void ioReaderInitMemory(IoReader *reader, U8 *buffer, Usize buffer_size);
 
 /// Read at most 'count' bytes into the given buffer
 /// Buffer can be null (in the case the read bytes are consumed)
-IoError32 ioRead(IoReader *reader, Usize count, U8 *buffer, Usize *read);
+ErrorCode32 ioRead(IoReader *reader, Usize count, U8 *buffer, Usize *read);
 
-IoError32 ioReadByte(IoReader *reader, U8 *byte);
+ErrorCode32 ioReadByte(IoReader *reader, U8 *byte);
 
 /// Read a line of text, of at most 'count' bytes, into the given buffer.
 /// If the line length length exceeds the given 'count', the line is truncated and an error
 /// is returned.
-IoError32 ioReadLine(IoReader *reader, Usize count, U8 *buffer, Usize *length);
+ErrorCode32 ioReadLine(IoReader *reader, Usize count, U8 *buffer, Usize *length);
 
 //=== File IO ===//
 

@@ -23,8 +23,8 @@ static IO_FILL_FN(io_fillZero)
     return self->error_code;
 }
 
-static IoError32
-io_readFail(IoReader *self, IoError32 cause)
+static ErrorCode32
+io_readFail(IoReader *self, ErrorCode32 cause)
 {
     self->error_code = cause;
     self->fill = io_fillZero;
@@ -45,12 +45,12 @@ io_readFail(IoReader *self, IoError32 cause)
 //         {
 //             case USIZE_MAX:
 //                 CF_ASSERT(file->error, "File should report error if read failed");
-//                 io_readFail(self, IoError_FileError);
+//                 io_readFail(self, Error_FileError);
 //                 break;
 
 //             case 0:
 //                 CF_ASSERT(file->eof, "File should report end of file");
-//                 io_readFail(self, IoError_EndOfStream);
+//                 io_readFail(self, Error_EndOfStream);
 //                 break;
 
 //             default:
@@ -73,7 +73,7 @@ static IO_FILL_FN(io_fillFromMemory)
     if (!self->error_code)
     {
         self->fill = io_fillZero;
-        self->error_code = IoError_EndOfStream;
+        self->error_code = Error_EndOfStream;
     }
 
     return self->error_code;
@@ -82,7 +82,7 @@ static IO_FILL_FN(io_fillFromMemory)
 // void
 // ioReaderInitFile(IoReader *reader, File *file, U8 *buffer, Usize buffer_size)
 // {
-//     reader->error_code = IoError_None;
+//     reader->error_code = Error_None;
 //     reader->source = file;
 //     reader->fill = io_fillFromFile;
 //     reader->start = buffer;
@@ -94,14 +94,14 @@ static IO_FILL_FN(io_fillFromMemory)
 void
 ioReaderInitMemory(IoReader *reader, U8 *buffer, Usize buffer_size)
 {
-    reader->error_code = IoError_None;
+    reader->error_code = Error_None;
     reader->source = NULL;
     reader->fill = io_fillFromMemory;
     reader->start = reader->cursor = buffer;
     reader->end = buffer + buffer_size;
 }
 
-IoError32
+ErrorCode32
 ioRead(IoReader *reader, Usize count, U8 *buffer, Usize *read_size)
 {
     Usize read = 0;
@@ -130,7 +130,7 @@ ioRead(IoReader *reader, Usize count, U8 *buffer, Usize *read_size)
     return reader->error_code;
 }
 
-IoError32
+ErrorCode32
 ioReadByte(IoReader *reader, U8 *byte)
 {
     Usize read;
@@ -141,7 +141,7 @@ ioReadByte(IoReader *reader, U8 *byte)
     return reader->error_code;
 }
 
-IoError32
+ErrorCode32
 ioReadLine(IoReader *reader, Usize count, U8 *buffer, Usize *length)
 {
     Usize read = 0;
@@ -152,8 +152,8 @@ ioReadLine(IoReader *reader, Usize count, U8 *buffer, Usize *length)
     {
         *length = read;
 
-        if (found) return IoError_None;
-        if (read == count) return IoError_StreamTooLong;
+        if (found) return Error_None;
+        if (read == count) return Error_StreamTooLong;
 
         if (ioReadByte(reader, &byte)) break;
 

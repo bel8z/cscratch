@@ -445,6 +445,31 @@ typedef U32 Codepoint;
              F64: F64_MAX)
 // clang-format on
 
+//----------------//
+//   Error code   //
+//----------------//
+
+/// Error codes for IO operations, can be expanded for custom implementation
+typedef U32 ErrorCode32;
+enum
+{
+    Error_None = 0,
+
+    Error_OutOfMemory,
+
+    Error_OutOfRange,
+    Error_BufferFull,
+    Error_BufferEmpty,
+
+    // IO operations
+    Error_EndOfStream,
+    Error_StreamTooLong,
+    Error_FileError,
+
+    /// Custom error codes must be greater than this one
+    Error_Reserved,
+};
+
 //-----------------//
 //   Time values   //
 //-----------------//
