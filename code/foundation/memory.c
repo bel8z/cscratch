@@ -55,6 +55,44 @@ memAlignForward(U8 const *address, Usize alignment)
     return modulo ? address + alignment - modulo : address;
 }
 
+void *
+memAlloc(MemAllocator a, Usize size)
+{
+    return memAllocAlign(a, size, CF_MAX_ALIGN);
+}
+
+void *
+memAllocAlign(MemAllocator a, Usize size, Usize align)
+{
+    return a.func(a.state, NULL, 0, size, align);
+}
+
+void *
+memRealloc(MemAllocator a, void *mem, Usize old_size, Usize new_size)
+{
+    return memReallocAlign(a, mem, old_size, new_size, CF_MAX_ALIGN);
+}
+
+void *
+memReallocAlign(MemAllocator a, void *mem, Usize old_size, Usize new_size, Usize align)
+{
+    return a.func(a.state, mem, old_size, new_size, align);
+}
+
+void
+memFree(MemAllocator a, void *mem, Usize size)
+{
+
+    memFreeAlign(a, mem, size, CF_MAX_ALIGN);
+}
+
+void
+memFreeAlign(MemAllocator a, void *mem, Usize size, Usize align)
+{
+
+    a.func(a.state, mem, size, 0, align);
+}
+
 //---------------------------//
 //   End-of-page allocator   //
 //---------------------------//

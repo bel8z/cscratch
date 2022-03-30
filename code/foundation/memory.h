@@ -37,15 +37,15 @@ U8 const *memAlignForward(U8 const *address, Usize alignment);
 
 //=== Allocation ===//
 
-#define memAlloc(a, size) memAllocAlign(a, size, CF_MAX_ALIGN)
-#define memAllocAlign(a, size, align) (a).func((a).state, NULL, 0, (size), (align))
+CF_API void *memAlloc(MemAllocator a, Usize size);
+CF_API void *memAllocAlign(MemAllocator a, Usize size, Usize align);
 
-#define memRealloc(a, mem, old_size, new_size) \
-    memReallocAlign(a, mem, old_size, new_size, CF_MAX_ALIGN)
-#define memReallocAlign(a, mem, old_size, new_size, align) \
-    (a).func((a).state, mem, old_size, new_size, align)
+CF_API void *memRealloc(MemAllocator a, void *mem, Usize old_size, Usize new_size);
+CF_API void *memReallocAlign(MemAllocator a, void *mem, Usize old_size, Usize new_size,
+                             Usize align);
 
-#define memFree(a, mem, size) (a).func((a).state, (void *)(mem), size, 0, 0)
+CF_API void memFree(MemAllocator a, void *mem, Usize size);
+CF_API void memFreeAlign(MemAllocator a, void *mem, Usize size, Usize align);
 
 // NOTE (Matteo): Those are the very basics required to implement a dynamic array
 // and are offered in case the full-fledged MemArray is not needed or suitable.
