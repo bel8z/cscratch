@@ -113,8 +113,6 @@ typedef struct App
 
     MemAllocator allocator;
 
-    FrameRate framerate;
-
     VkAllocationCallbacks *vkalloc;
     VkInstance inst;
     VkDebugUtilsMessengerEXT debug;
@@ -127,6 +125,7 @@ typedef struct App
 
     Swapchain swapchain;
     bool rebuild_swapchain;
+    bool try_mailbox;
 
     VkRenderPass render_pass;
     VkDescriptorSetLayout desc_layout;
@@ -635,7 +634,7 @@ appCreateSwapchain(App *app)
     // MAILBOX requires at least 3 images to be of any value
     info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-    if (app->framerate != FrameRate_Vsync && max_image_count > 2)
+    if (app->try_mailbox && max_image_count > 2)
     {
         U32 num_modes;
 
@@ -648,29 +647,28 @@ appCreateSwapchain(App *app)
         VkPresentModeKHR *modes = memAllocArray(app->allocator, VkPresentModeKHR, num_modes);
         vkGetPhysicalDeviceSurfacePresentModesKHR(app->gpu, app->surface, &num_modes, modes);
 
-        U32 found = U32_MAX;
-
-        for (U32 index = 0; found == U32_MAX && index < num_modes; ++index)
+        for (U32 index = 0; index < num_modes; ++index)
         {
-            if (modes[index] == VK_PRESENT_MODE_MAILBOX_KHR) found = index;
-        }
-
-        // NOTE (Matteo): Use immediate mode as a (poor) fallback in case mailbox is not available,
-        // except for reactive mode (in which case it wastes CPU power)
-        if (app->framerate != FrameRate_Reactive)
-        {
-            for (U32 index = 0; found == U32_MAX && index < num_modes; ++index)
+            if (modes[index] == VK_PRESENT_MODE_MAILBOX_KHR)
             {
-                if (modes[index] == VK_PRESENT_MODE_IMMEDIATE_KHR) found = index;
+                info.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+                break;
             }
         }
-
-        if (found != U32_MAX) info.presentMode = modes[found];
 
         memFreeArray(app->allocator, modes, num_modes);
     }
 
-    info.minImageCount = (info.presentMode == VK_PRESENT_MODE_FIFO_KHR) ? 2 : 3;
+    if (info.presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+    {
+        CF_ASSERT(app->try_mailbox, "Logic error");
+        info.minImageCount = 3;
+    }
+    else
+    {
+        app->try_mailbox = false;
+        info.minImageCount = 2;
+    }
 
     CF_ASSERT(info.minImageCount <= max_image_count, "Logic error");
 
@@ -1610,29 +1608,17 @@ appAnimate(App *app)
 void
 appToolWindow(App *app)
 {
-    static const Cstr names[] = {"Reactive", "Unthrottled", "Vsync", "30 Hz",
-                                 "60 Hz",    "120 Hz",      "240 Hz"};
-    static const FrameRate values[] = {FrameRate_Reactive, FrameRate_Unthrottled, FrameRate_Vsync,
-                                       FrameRate_30Hz,     FrameRate_60Hz,        FrameRate_120Hz,
-                                       FrameRate_240Hz};
+    CF_UNUSED(app);
 
     if (guiBeginAutoResize("Tool", NULL))
     {
         F64 fps = (F64)guiGetFramerate();
         guiText("Application average %.3f ms/frame (%.1f FPS)", 1000.0 / fps, fps);
         guiSeparator();
-
-        Usize selected = 0;
-        for (; selected < CF_ARRAY_SIZE(values); ++selected)
+        if (guiCheckbox("Mailbox mode", &app->try_mailbox) && app->try_mailbox)
         {
-            if (app->framerate == values[selected]) break;
-        }
-        if (guiCombo("Framerate", names[selected], names, CF_ARRAY_SIZE(names), &selected))
-        {
-            app->framerate = values[selected];
             app->rebuild_swapchain = true;
         }
-
         guiEnd();
     }
 }
@@ -1642,6 +1628,7 @@ appMainLoop(App *app)
 {
     // NOTE (Matteo): Ensure swapchain setup on first loop
     app->rebuild_swapchain = (app->swapchain.handle == VK_NULL_HANDLE);
+    app->try_mailbox = false;
 
     // Setup static transforms
     UniformBufferObject *ubo = &app->ubo;
@@ -1662,7 +1649,7 @@ appMainLoop(App *app)
     IVec2 prev_display = {0};
     IVec2 curr_display = {0};
 
-    while (guiEventLoop(app->framerate == FrameRate_Reactive, false, &curr_display))
+    while (guiEventLoop(false, false, &curr_display))
     {
         // // Handle input
         // if (app->framerate == FrameRate_Reactive)
