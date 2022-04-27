@@ -36,13 +36,13 @@ typedef struct Str16
 
 typedef MemArray(Char16) StrBuf16;
 
-static inline Str16
+CF_INTERNAL inline Str16
 str16FromCstr(Cstr16 cstr)
 {
     return (Str16){.buf = (cstr), .len = wcslen(cstr)};
 }
 
-static inline void
+CF_INTERNAL inline void
 win32HandleLastError(void)
 {
     DWORD error = GetLastError();
@@ -64,7 +64,7 @@ win32HandleLastError(void)
 /// The string is not null terminated, and the function returns the length of the written string in
 /// UTF16 characters; in case of a NULL output buffer, this number is the minimum required buffer
 /// size.
-static inline Usize
+CF_INTERNAL inline Usize
 win32Utf8To16(Str str, Char16 *out, Usize out_size)
 {
     CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
@@ -86,7 +86,7 @@ win32Utf8To16(Str str, Char16 *out, Usize out_size)
 /// Encodes the given UTF8 string slice in UTF16.
 /// The string is not null terminated, and the function returns the length of the written string in
 /// bytes; in case of a NULL output buffer, this number is the minimum required buffer size.
-static inline Usize
+CF_INTERNAL inline Usize
 win32Utf16To8(Str16 str, Char8 *out, Usize out_size)
 {
     CF_ASSERT(out_size <= I32_MAX, "Invalid out size");

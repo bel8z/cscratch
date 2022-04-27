@@ -97,14 +97,14 @@ memFreeAlign(MemAllocator a, void *mem, Usize size, Usize align)
 //   End-of-page allocator   //
 //---------------------------//
 
-static Usize
+CF_INTERNAL Usize
 memRoundSize(Usize req_size, Usize page_size)
 {
     Usize page_count = (req_size + page_size - 1) / page_size;
     return page_count * page_size;
 }
 
-static MEM_ALLOCATOR_FN(memEndOfPageAlloc)
+CF_INTERNAL MEM_ALLOCATOR_FN(memEndOfPageAlloc)
 {
     VMemApi *vmem = state;
 
@@ -159,7 +159,7 @@ memEndOfPageAllocator(VMemApi *vmem)
 //   Memory arena   //
 //------------------//
 
-static void
+CF_INTERNAL void
 mem_arenaCommitVMem(MemArena *arena)
 {
     CF_ASSERT_NOT_NULL(arena);
@@ -179,7 +179,7 @@ mem_arenaCommitVMem(MemArena *arena)
     }
 }
 
-static void
+CF_INTERNAL void
 mem_arenaDecommitVm(MemArena *arena)
 {
     if (arena->vmem && arena->committed > arena->allocated)
@@ -481,7 +481,7 @@ memArenaSplit(MemArena *arena, MemArena *split, Usize size)
     return true;
 }
 
-static MEM_ALLOCATOR_FN(mem_arenaAllocFn)
+CF_INTERNAL MEM_ALLOCATOR_FN(mem_arenaAllocFn)
 {
     CF_ASSERT(memory || !old_size, "Invalid allocation request");
 

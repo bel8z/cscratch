@@ -184,6 +184,10 @@
 // Function with both inline and exported out-of-line declaration
 #define CF_INLINE_API CF_EXTERN_C inline CF_DLL_EXPORT
 
+// More explicit aliases to 'static'
+#define CF_INTERNAL static
+#define CF_GLOBAL static
+
 //-------------------//
 //   Compiler diagnostics   //
 //-------------------//

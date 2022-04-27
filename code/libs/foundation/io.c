@@ -5,13 +5,13 @@
 
 //=== IO buffered reader ===//
 
-static inline void
+CF_INTERNAL inline void
 io_fillCondition(IoReader *self)
 {
     CF_ASSERT(self->cursor == self->end, "Only an exhausted buffer can be refilled");
 }
 
-static IO_FILL_FN(io_fillZero)
+CF_INTERNAL IO_FILL_FN(io_fillZero)
 {
     io_fillCondition(self);
 
@@ -23,7 +23,7 @@ static IO_FILL_FN(io_fillZero)
     return self->error_code;
 }
 
-static ErrorCode32
+CF_INTERNAL ErrorCode32
 io_readFail(IoReader *self, ErrorCode32 cause)
 {
     self->error_code = cause;
@@ -31,7 +31,7 @@ io_readFail(IoReader *self, ErrorCode32 cause)
     return self->error_code;
 }
 
-// static IO_FILL_FN(io_fillFromFile)
+// CF_INTERNAL IO_FILL_FN(io_fillFromFile)
 // {
 //     io_fillCondition(self);
 
@@ -66,7 +66,7 @@ io_readFail(IoReader *self, ErrorCode32 cause)
 //     return self->error_code;
 // }
 
-static IO_FILL_FN(io_fillFromMemory)
+CF_INTERNAL IO_FILL_FN(io_fillFromMemory)
 {
     io_fillCondition(self);
 
@@ -200,7 +200,7 @@ ioFileReadAll(IoFileApi *api, Str filename, MemAllocator alloc)
 }
 
 #if 0
-static Usize
+CF_INTERNAL Usize
 findLineBreak(U8 const *buffer, Usize size)
 {
     bool cr_found = false;

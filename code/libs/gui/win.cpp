@@ -19,7 +19,7 @@
 // Anyway, I work around this by trying some different versions in decreasing release
 // order (one per year or release), in order to benefit of the latest features available.
 
-static const GuiOpenGLVersion g_gl_versions[8] = {
+CF_GLOBAL const GuiOpenGLVersion g_gl_versions[8] = {
     {4, 6, 430}, // 2017
     {4, 5, 430}, // 2014
     {4, 4, 430}, // 2013
@@ -30,7 +30,7 @@ static const GuiOpenGLVersion g_gl_versions[8] = {
     {3, 0, 130}, // 2008
 };
 
-static GLFWwindow *
+CF_INTERNAL GLFWwindow *
 gui_CreateWinAndContext(Cstr title, I32 width, I32 height, GuiOpenGLVersion *gl_version)
 {
     GLFWwindow *window = NULL;
@@ -68,13 +68,13 @@ gui_CreateWinAndContext(Cstr title, I32 width, I32 height, GuiOpenGLVersion *gl_
     return window;
 }
 
-static inline GLFWwindow *
+CF_INTERNAL inline GLFWwindow *
 gui_MainWindow(void)
 {
     return (GLFWwindow *)guiData().main_window;
 }
 
-static void
+CF_INTERNAL void
 gui_ErrorCallback(int error, Cstr description)
 {
     CF_UNUSED(error);

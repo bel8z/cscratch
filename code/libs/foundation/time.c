@@ -138,7 +138,7 @@ typedef struct Win32Clock
 
 CF_STATIC_ASSERT(sizeof(Clock) == sizeof(Win32Clock), "Clock type is too small on Win32");
 
-static CalendarTime
+CF_INTERNAL CalendarTime
 win32CalendarTime(SYSTEMTIME const *out)
 {
     return (CalendarTime){.year = out->wYear,

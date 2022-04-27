@@ -9,7 +9,7 @@
 //------------------------------------------------------------------------------
 // Misc implementation
 
-static inline DWORD
+CF_INTERNAL inline DWORD
 win32DurationMs(Duration duration)
 {
     if (timeDurationIsInfinite(duration)) return INFINITE;
@@ -62,7 +62,7 @@ typedef struct Win32ThreadData
 
 } Win32ThreadData;
 
-static U32 WINAPI
+CF_INTERNAL U32 WINAPI
 win32threadProc(void *data_ptr)
 {
     Win32ThreadData *data = data_ptr;
@@ -163,7 +163,7 @@ cfThreadWaitAll(CfThread *threads, Usize num_threads, Duration duration)
 
 #if CF_THREADING_DEBUG
 
-static bool
+CF_INTERNAL bool
 win32TryLockExc(SRWLOCK *lock, U32 *owner_id)
 {
     CF_ASSERT_NOT_NULL(lock);
@@ -180,7 +180,7 @@ win32TryLockExc(SRWLOCK *lock, U32 *owner_id)
     return true;
 }
 
-static void
+CF_INTERNAL void
 win32LockExc(SRWLOCK *lock, U32 *owner_id)
 {
     CF_ASSERT_NOT_NULL(lock);
@@ -196,7 +196,7 @@ win32LockExc(SRWLOCK *lock, U32 *owner_id)
     *owner_id = GetCurrentThreadId();
 }
 
-static void
+CF_INTERNAL void
 win32UnlockExc(SRWLOCK *lock, U32 *owner_id)
 {
     CF_ASSERT_NOT_NULL(lock);
@@ -363,7 +363,7 @@ cfRwUnlockWriter(CfRwLock *lock)
 CF_STATIC_ASSERT(sizeof(((CfConditionVariable *)0)->data) == sizeof(CONDITION_VARIABLE),
                  "Invalid CfConditionVariable internal size");
 
-static inline bool
+CF_INTERNAL inline bool
 win32cvWait(CfConditionVariable *cv, SRWLOCK *lock, Duration duration)
 {
     CF_ASSERT_NOT_NULL(cv);
@@ -422,19 +422,19 @@ cfCvSignalAll(CfConditionVariable *cv)
 //------------------------------------------------------------------------------
 // Semaphore implementation
 
-static CfSemaphoreHandle
+CF_INTERNAL CfSemaphoreHandle
 semaHandleCreate(Usize init_count)
 {
     return CreateSemaphore(NULL, init_count, MAXLONG, NULL);
 }
 
-static void
+CF_INTERNAL void
 semaHandleWait(CfSemaphoreHandle handle)
 {
     WaitForSingleObject(handle, INFINITE);
 }
 
-static void
+CF_INTERNAL void
 semaHandleSignal(CfSemaphoreHandle handle, Usize count)
 {
     ReleaseSemaphore(handle, count, NULL);

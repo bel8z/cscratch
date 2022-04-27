@@ -8,7 +8,7 @@
 #include "memory.h"
 #include "threading.h"
 
-static inline Usize
+CF_INTERNAL inline Usize
 nextPowerOf2(Usize x)
 {
     x--;
@@ -78,9 +78,9 @@ struct TaskQueue
 //===================================//
 // Internals
 
-static bool taskDequeue(TaskQueue *queue, Task *out_task);
+CF_INTERNAL bool taskDequeue(TaskQueue *queue, Task *out_task);
 
-static CF_THREAD_FN(taskThreadProc)
+CF_INTERNAL CF_THREAD_FN(taskThreadProc)
 {
     TaskWorkerSlot *slot = args;
     TaskQueue *queue = slot->queue;
@@ -100,7 +100,7 @@ static CF_THREAD_FN(taskThreadProc)
     }
 }
 
-static void
+CF_INTERNAL void
 taskClear(TaskQueue *queue)
 {
     CF_ASSERT_NOT_NULL(queue->buffer);
@@ -117,7 +117,7 @@ taskClear(TaskQueue *queue)
     }
 }
 
-static Task *
+CF_INTERNAL Task *
 taskFindInQueue(TaskQueue *queue, TaskId id)
 {
     Task *task = NULL;
@@ -133,7 +133,7 @@ taskFindInQueue(TaskQueue *queue, TaskId id)
     return task;
 }
 
-static Task *
+CF_INTERNAL Task *
 taskFindInProgress(TaskQueue *queue, TaskId id)
 {
     for (Usize i = 0; i < queue->num_workers; ++i)
@@ -285,7 +285,7 @@ taskEnqueue(TaskQueue *queue, TaskFn fn, void *data)
     return cell->task.id;
 }
 
-static bool
+CF_INTERNAL bool
 taskDequeue(TaskQueue *queue, Task *out_task)
 {
     TaskQueueCell *cell = NULL;

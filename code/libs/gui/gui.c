@@ -37,7 +37,7 @@ CF_DIAGNOSTIC_POP()
 
 //=== Font handling ===//
 
-static GuiFont *
+CF_INTERNAL GuiFont *
 gui_LoadCustomFont(GuiFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
 {
     Char8 buffer[1024] = {0};
@@ -96,17 +96,17 @@ guiLoadCustomFonts(GuiFontAtlas *atlas, F32 dpi_scale, Str data_path)
 
 typedef BOOL(APIENTRY *Win32FileDialog)(LPOPENFILENAMEW);
 
-static const Win32FileDialog win32FileDialog[2] = {
+CF_GLOBAL const Win32FileDialog win32FileDialog[2] = {
     [GuiFileDialog_Open] = GetOpenFileNameW,
     [GuiFileDialog_Save] = GetSaveFileNameW,
 };
 
-static const DWORD win32FileDialogFlags[2] = {
+CF_GLOBAL const DWORD win32FileDialogFlags[2] = {
     [GuiFileDialog_Open] = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST,
     [GuiFileDialog_Save] = OFN_OVERWRITEPROMPT,
 };
 
-static StrBuf16
+CF_INTERNAL StrBuf16
 win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAllocator alloc)
 {
     StrBuf16 out_filter = {0};

@@ -56,7 +56,7 @@ colorMultiplyAlpha(LinearColor col)
 
 // Convert rgba floats to hsva floats  (components in the [0-1] range), from Foley & van Dam p592
 // Optimized http://lolengine.net/blog/2013/01/13/fast-rgb-to-hsv
-static void
+CF_INTERNAL void
 _RgbToHsv(F32 rgb[3], F32 hsv[3])
 {
     F32 K = 0.f;
@@ -83,7 +83,7 @@ _RgbToHsv(F32 rgb[3], F32 hsv[3])
 
 // Convert hsv floats to rgb floats (components in the [0-1] range), from Foley & van Dam p593 also
 // http://en.wikipedia.org/wiki/HSL_and_HSV
-static void
+CF_INTERNAL void
 _HsvToRgb(F32 hsv[3], F32 rgb[3])
 {
     if (hsv[1] == 0.0f)

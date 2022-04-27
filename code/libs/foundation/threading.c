@@ -20,9 +20,9 @@
 // TODO (Matteo): Tweak spin count
 #define SEMA_SPIN_COUNT 10000
 
-static CfSemaphoreHandle semaHandleCreate(Usize init_count);
-static void semaHandleWait(CfSemaphoreHandle handle);
-static void semaHandleSignal(CfSemaphoreHandle handle, Usize count);
+CF_INTERNAL CfSemaphoreHandle semaHandleCreate(Usize init_count);
+CF_INTERNAL void semaHandleWait(CfSemaphoreHandle handle);
+CF_INTERNAL void semaHandleSignal(CfSemaphoreHandle handle, Usize count);
 
 CF_API void
 cfSemaInit(CfSemaphore *sema, Usize init_count)

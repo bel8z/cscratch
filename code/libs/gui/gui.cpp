@@ -103,13 +103,13 @@ guiRender()
 
 // TODO (Matteo): Handle SRGB colorspace correctly
 
-static ImVec4
+CF_INTERNAL ImVec4
 gui_Color(F32 r, F32 g, F32 b, F32 a)
 {
     return {r, g, b, a};
 }
 
-static ImVec4
+CF_INTERNAL ImVec4
 gui_InvertColor(ImVec4 in)
 {
     // NOTE (Matteo): Here I should apply a linear->HSV->linear transformation
@@ -501,7 +501,7 @@ guiSetTheme(GuiTheme theme)
     }
 }
 
-static void
+CF_INTERNAL void
 gui_SetSizes(ImGuiStyle *style)
 {
     // Main
@@ -665,7 +665,7 @@ guiLoadDefaultFont(ImFontAtlas *fonts)
 
 //=== Windows ===//
 
-static U32
+CF_INTERNAL U32
 gui_DockSplit(GuiDockLayout *layout, ImGuiDir dir, F32 size_ratio)
 {
     U32 id = U32_MAX;
@@ -676,7 +676,7 @@ gui_DockSplit(GuiDockLayout *layout, ImGuiDir dir, F32 size_ratio)
     return id;
 }
 
-static U32
+CF_INTERNAL U32
 gui_DockSpaceOnMainViewport(ImGuiDockNodeFlags dock_flags)
 {
     ImGuiViewport const *viewport = ImGui::GetMainViewport();

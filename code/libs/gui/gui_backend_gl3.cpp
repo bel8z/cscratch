@@ -152,7 +152,7 @@ struct GuiGl3BackendData
 // Backend data stored in io.BackendRendererUserData to allow support for multiple Dear ImGui
 // contexts It is STRONGLY preferred that you use docking branch with multi-viewports (== single
 // Dear ImGui context + multiple windows) instead of multiple Dear ImGui contexts.
-static GuiGl3BackendData *
+CF_INTERNAL GuiGl3BackendData *
 guiGl3_BackendData()
 {
     return ImGui::GetCurrentContext() ? (GuiGl3BackendData *)ImGui::GetIO().BackendRendererUserData
@@ -161,7 +161,7 @@ guiGl3_BackendData()
 
 // Functions
 
-static void
+CF_INTERNAL void
 guiGl3_SetupRenderState(ImDrawData *draw_data, int fb_width, int fb_height,
                         GLuint vertex_array_object)
 {
@@ -242,7 +242,7 @@ guiGl3_SetupRenderState(ImDrawData *draw_data, int fb_width, int fb_height,
 }
 
 #    if !GUI_BACKEND_BACKUP_STATE
-static void
+CF_INTERNAL void
 guiGl3_ResetRenderState(void)
 {
     glDisable(GL_BLEND);
@@ -259,7 +259,7 @@ guiGl3_ResetRenderState(void)
 
 // If you get an error please report on github. You may try different GL context version or GLSL
 // version. See GL<>GLSL version table at the top of this file.
-static bool
+CF_INTERNAL bool
 guiGl3_CheckShader(GLuint handle, const char *desc)
 {
     GuiGl3BackendData *bd = guiGl3_BackendData();
@@ -286,7 +286,7 @@ guiGl3_CheckShader(GLuint handle, const char *desc)
 
 // If you get an error please report on GitHub. You may try different GL context version or GLSL
 // version.
-static bool
+CF_INTERNAL bool
 guiGl3_CheckProgram(GLuint handle, const char *desc)
 {
     GuiGl3BackendData *bd = guiGl3_BackendData();
@@ -311,7 +311,7 @@ guiGl3_CheckProgram(GLuint handle, const char *desc)
     return (status == GL_TRUE);
 }
 
-static void
+CF_INTERNAL void
 guiGl3_CreateFontsTexture()
 {
     ImGuiIO &io = ImGui::GetIO();
@@ -346,7 +346,7 @@ guiGl3_CreateFontsTexture()
     glBindTexture(GL_TEXTURE_2D, (GLuint)last_texture);
 }
 
-static void
+CF_INTERNAL void
 guiGl3_DeleteFontsTexture()
 {
     ImGuiIO &io = ImGui::GetIO();
@@ -359,7 +359,7 @@ guiGl3_DeleteFontsTexture()
     }
 }
 
-static bool
+CF_INTERNAL bool
 guiGl3_CreateDeviceObjects()
 {
     GuiGl3BackendData *bd = guiGl3_BackendData();
@@ -549,7 +549,7 @@ guiGl3_CreateDeviceObjects()
     return true;
 }
 
-static void
+CF_INTERNAL void
 guiGl3_DeleteDeviceObjects()
 {
     GuiGl3BackendData *bd = guiGl3_BackendData();
@@ -582,7 +582,7 @@ guiGl3_DeleteDeviceObjects()
 // it is recommended that you completely ignore this section first..
 //--------------------------------------------------------------------------------------------------
 
-static void
+CF_INTERNAL void
 guiGl3_RenderWindow(ImGuiViewport *viewport, void *)
 {
     if (!(viewport->Flags & ImGuiViewportFlags_NoRendererClear))

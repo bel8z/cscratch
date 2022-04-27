@@ -46,25 +46,25 @@
 #define mDegrees(X) _Generic((X), default : mDegrees64, F32 : mDegrees32)(X)
 #define mRadians(X) _Generic((X), default : mRadians64, F32 : mRadians32)(X)
 
-static inline F32
+CF_INTERNAL inline F32
 mDegrees32(F32 radians)
 {
     return (radians * 180.0f) / M_PI32;
 }
 
-static inline F64
+CF_INTERNAL inline F64
 mDegrees64(F64 radians)
 {
     return (radians * 180.0) / M_PI64;
 }
 
-static inline F32
+CF_INTERNAL inline F32
 mRadians32(F32 degrees)
 {
     return (degrees * M_PI32) / 180.0f;
 }
 
-static inline F64
+CF_INTERNAL inline F64
 mRadians64(F64 degrees)
 {
     return (degrees * M_PI64) / 180.0;
@@ -82,36 +82,36 @@ mRadians64(F64 degrees)
 #define mExp(base, xp) _Generic((base, xp), default : exp, F32 : expf)(base, xp)
 #define mLog(x) _Generic((x), default : log, F32 : logf)(x)
 
-static inline F32
+CF_INTERNAL inline F32
 mRsqrt32(F32 x)
 {
     return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(x)));
 }
 
-#define M__ISQRT(Size)                            \
-    static inline I##Size mISqrt##Size(I##Size x) \
-    {                                             \
-        I##Size q = 1;                            \
-        I##Size r = 0;                            \
-                                                  \
-        while (q <= x) q <<= 2;                   \
-                                                  \
-        while (q > 1)                             \
-        {                                         \
-            q >>= 2;                              \
-                                                  \
-            I##Size t = x - r - q;                \
-                                                  \
-            r >>= 1;                              \
-                                                  \
-            if (t >= 0)                           \
-            {                                     \
-                x = t;                            \
-                r += q;                           \
-            }                                     \
-        }                                         \
-                                                  \
-        return r;                                 \
+#define M__ISQRT(Size)                                 \
+    CF_INTERNAL inline I##Size mISqrt##Size(I##Size x) \
+    {                                                  \
+        I##Size q = 1;                                 \
+        I##Size r = 0;                                 \
+                                                       \
+        while (q <= x) q <<= 2;                        \
+                                                       \
+        while (q > 1)                                  \
+        {                                              \
+            q >>= 2;                                   \
+                                                       \
+            I##Size t = x - r - q;                     \
+                                                       \
+            r >>= 1;                                   \
+                                                       \
+            if (t >= 0)                                \
+            {                                          \
+                x = t;                                 \
+                r += q;                                \
+            }                                          \
+        }                                              \
+                                                       \
+        return r;                                      \
     }
 
 M__ISQRT(32)
@@ -154,33 +154,33 @@ M__ISQRT(64)
 
 // clang-format on
 
-#define M__EUCLID_OPS(Type)                                                  \
-    static inline Type m_##Type##DivEuclid(Type lhs, Type rhs)               \
-    {                                                                        \
-        Type quot = lhs / rhs;                                               \
-        Type rem = lhs % rhs;                                                \
-        return (rem < 0) ? (rhs > 0 ? quot - 1 : quot + 1) : quot;           \
-    }                                                                        \
-                                                                             \
-    static inline Type m_##Type##ModEuclid(Type lhs, Type rhs)               \
-    {                                                                        \
-        Type rem = lhs % rhs;                                                \
-        return (rem < 0) ? (rhs < 0 ? rem - rhs : rem + rhs) : rem;          \
-    }                                                                        \
-                                                                             \
-    static inline Type m_##Type##DivModEuclid(Type lhs, Type rhs, Type *mod) \
-    {                                                                        \
-        Type quot = lhs / rhs;                                               \
-        Type rem = lhs % rhs;                                                \
-                                                                             \
-        if (rem < 0)                                                         \
-        {                                                                    \
-            *mod = (rhs < 0 ? rem - rhs : rem + rhs);                        \
-            return (rhs > 0 ? quot - 1 : quot + 1);                          \
-        }                                                                    \
-                                                                             \
-        *mod = rem;                                                          \
-        return quot;                                                         \
+#define M__EUCLID_OPS(Type)                                                       \
+    CF_INTERNAL inline Type m_##Type##DivEuclid(Type lhs, Type rhs)               \
+    {                                                                             \
+        Type quot = lhs / rhs;                                                    \
+        Type rem = lhs % rhs;                                                     \
+        return (rem < 0) ? (rhs > 0 ? quot - 1 : quot + 1) : quot;                \
+    }                                                                             \
+                                                                                  \
+    CF_INTERNAL inline Type m_##Type##ModEuclid(Type lhs, Type rhs)               \
+    {                                                                             \
+        Type rem = lhs % rhs;                                                     \
+        return (rem < 0) ? (rhs < 0 ? rem - rhs : rem + rhs) : rem;               \
+    }                                                                             \
+                                                                                  \
+    CF_INTERNAL inline Type m_##Type##DivModEuclid(Type lhs, Type rhs, Type *mod) \
+    {                                                                             \
+        Type quot = lhs / rhs;                                                    \
+        Type rem = lhs % rhs;                                                     \
+                                                                                  \
+        if (rem < 0)                                                              \
+        {                                                                         \
+            *mod = (rhs < 0 ? rem - rhs : rem + rhs);                             \
+            return (rhs > 0 ? quot - 1 : quot + 1);                               \
+        }                                                                         \
+                                                                                  \
+        *mod = rem;                                                               \
+        return quot;                                                              \
     }
 
 M__EUCLID_OPS(I8)
@@ -209,19 +209,19 @@ M__EUCLID_OPS(I64)
 // https://github.com/rust-lang/rust/blob/3809bbf47c8557bd149b3e52ceb47434ca8378d5/src/libstd/sys_common/mod.rs#L124
 // Computes (value*numer)/denom without overflow, as long as both (numer*denom) and the overall
 // result fit into i64 (which is the case for our time conversions).
-#define M__MULDIV(Type)                                                        \
-    static inline Type m_##Type##MulDiv(Type value, Type numer, Type denom)    \
-    {                                                                          \
-        CF_DEBUG_ASSERT(numer *denom < T_MAX(Type), "Operation can overflow"); \
-                                                                               \
-        Type q = value / denom;                                                \
-        Type r = value % denom;                                                \
-        /*                                                                     \
-        Decompose value as (value/denom*denom + value%denom), substitute into  \
-        (value*numer)/denom and simplify.                                      \
-        r < denom, so (denom*numer) is the upper bound of (r*numer)            \
-        */                                                                     \
-        return q * numer + r * numer / denom;                                  \
+#define M__MULDIV(Type)                                                          \
+    CF_INTERNAL inline Type m_##Type##MulDiv(Type value, Type numer, Type denom) \
+    {                                                                            \
+        CF_DEBUG_ASSERT(numer *denom < T_MAX(Type), "Operation can overflow");   \
+                                                                                 \
+        Type q = value / denom;                                                  \
+        Type r = value % denom;                                                  \
+        /*                                                                       \
+        Decompose value as (value/denom*denom + value%denom), substitute into    \
+        (value*numer)/denom and simplify.                                        \
+        r < denom, so (denom*numer) is the upper bound of (r*numer)              \
+        */                                                                       \
+        return q * numer + r * numer / denom;                                    \
     }
 
 M__MULDIV(U8)
@@ -242,13 +242,13 @@ M__MULDIV(I64)
 
 #define mLerp(x, y, t) _Generic((x, y, t), default : mLerp64, F32 : mLerp32)(x, y, t)
 
-static inline F32
+CF_INTERNAL inline F32
 mLerp32(F32 x, F32 y, F32 t)
 {
     return x * (1 - t) + y * t;
 }
 
-static inline F64
+CF_INTERNAL inline F64
 mLerp64(F64 x, F64 y, F64 t)
 {
     return x * (1 - t) + y * t;
@@ -270,7 +270,7 @@ mLerp64(F64 x, F64 y, F64 t)
 // clang-format on
 
 #define M__GCD(Type)                                                             \
-    static inline Type mGcd##Type(Type a, Type b)                                \
+    CF_INTERNAL inline Type mGcd##Type(Type a, Type b)                           \
     {                                                                            \
         /* GCD(0, b) == b, */                                                    \
         /* GCD(a, 0) == a, */                                                    \
@@ -408,64 +408,66 @@ M__GCD(U64)
 /// Norm of a vector of arbitrary length
 #define vecNormN(v, length) mSqrt(vecNormSquaredN(v, length))
 
-#define VEC__N_OPS(Scalar)                                                                      \
-    static inline void vec_##Scalar##AddN(Scalar const *a, Scalar const *b, Usize length,       \
-                                          Scalar *out)                                          \
-    {                                                                                           \
-        for (Usize n = 0; n < length; ++n) out[n] = a[n] + b[n];                                \
-    }                                                                                           \
-                                                                                                \
-    static inline void vec_##Scalar##SubN(Scalar const *a, Scalar const *b, Usize length,       \
-                                          Scalar *out)                                          \
-    {                                                                                           \
-        for (Usize n = 0; n < length; ++n) out[n] = a[n] - b[n];                                \
-    }                                                                                           \
-                                                                                                \
-    static inline void vec_##Scalar##MulN(Scalar const *a, Scalar b, Usize length, Scalar *out) \
-    {                                                                                           \
-        for (Usize n = 0; n < length; ++n) out[n] = a[n] * b;                                   \
-    }                                                                                           \
-                                                                                                \
-    static inline void vec_##Scalar##DivN(Scalar const *a, Scalar b, Usize length, Scalar *out) \
-    {                                                                                           \
-        for (Usize n = 0; n < length; ++n) out[n] = a[n] / b;                                   \
-    }                                                                                           \
-                                                                                                \
-    static inline Scalar vec_##Scalar##DotN(Scalar const *a, Scalar const *b, Usize length)     \
-    {                                                                                           \
-        Scalar out = 0;                                                                         \
-        for (Usize n = 0; n < length; ++n) out += a[n] * b[n];                                  \
-        return out;                                                                             \
-    }                                                                                           \
-                                                                                                \
-    static inline Scalar vec_##Scalar##DistanceSquaredN(Scalar const *a, Scalar const *b,       \
-                                                        Usize length)                           \
-    {                                                                                           \
-                                                                                                \
-        Scalar out = 0;                                                                         \
-        for (Usize n = 0; n < length; ++n)                                                      \
-        {                                                                                       \
-            Scalar diff = a[n] - b[n];                                                          \
-            out += diff * diff;                                                                 \
-        }                                                                                       \
-        return out;                                                                             \
-    }                                                                                           \
-                                                                                                \
-    static inline void vec_##Scalar##LerpN(Scalar const *a, Scalar const *b, Usize length,      \
-                                           Scalar t, Scalar *out)                               \
-    {                                                                                           \
-        Scalar t1 = (Scalar)1 - t;                                                              \
-        for (Usize n = 0; n < length; ++n) out[n] = t1 * a[n] + t * b[n];                       \
-    }                                                                                           \
-                                                                                                \
-    static inline void vec_##Scalar##NegateN(Scalar const *v, Usize length, Scalar *out)        \
-    {                                                                                           \
-        for (Usize n = 0; n < length; ++n) out[n] = -v[n];                                      \
-    }                                                                                           \
-                                                                                                \
-    static inline Scalar vec_##Scalar##NormSquaredN(Scalar const *v, Usize length)              \
-    {                                                                                           \
-        return vec_##Scalar##DotN(v, v, length);                                                \
+#define VEC__N_OPS(Scalar)                                                                       \
+    CF_INTERNAL inline void vec_##Scalar##AddN(Scalar const *a, Scalar const *b, Usize length,   \
+                                               Scalar *out)                                      \
+    {                                                                                            \
+        for (Usize n = 0; n < length; ++n) out[n] = a[n] + b[n];                                 \
+    }                                                                                            \
+                                                                                                 \
+    CF_INTERNAL inline void vec_##Scalar##SubN(Scalar const *a, Scalar const *b, Usize length,   \
+                                               Scalar *out)                                      \
+    {                                                                                            \
+        for (Usize n = 0; n < length; ++n) out[n] = a[n] - b[n];                                 \
+    }                                                                                            \
+                                                                                                 \
+    CF_INTERNAL inline void vec_##Scalar##MulN(Scalar const *a, Scalar b, Usize length,          \
+                                               Scalar *out)                                      \
+    {                                                                                            \
+        for (Usize n = 0; n < length; ++n) out[n] = a[n] * b;                                    \
+    }                                                                                            \
+                                                                                                 \
+    CF_INTERNAL inline void vec_##Scalar##DivN(Scalar const *a, Scalar b, Usize length,          \
+                                               Scalar *out)                                      \
+    {                                                                                            \
+        for (Usize n = 0; n < length; ++n) out[n] = a[n] / b;                                    \
+    }                                                                                            \
+                                                                                                 \
+    CF_INTERNAL inline Scalar vec_##Scalar##DotN(Scalar const *a, Scalar const *b, Usize length) \
+    {                                                                                            \
+        Scalar out = 0;                                                                          \
+        for (Usize n = 0; n < length; ++n) out += a[n] * b[n];                                   \
+        return out;                                                                              \
+    }                                                                                            \
+                                                                                                 \
+    CF_INTERNAL inline Scalar vec_##Scalar##DistanceSquaredN(Scalar const *a, Scalar const *b,   \
+                                                             Usize length)                       \
+    {                                                                                            \
+                                                                                                 \
+        Scalar out = 0;                                                                          \
+        for (Usize n = 0; n < length; ++n)                                                       \
+        {                                                                                        \
+            Scalar diff = a[n] - b[n];                                                           \
+            out += diff * diff;                                                                  \
+        }                                                                                        \
+        return out;                                                                              \
+    }                                                                                            \
+                                                                                                 \
+    CF_INTERNAL inline void vec_##Scalar##LerpN(Scalar const *a, Scalar const *b, Usize length,  \
+                                                Scalar t, Scalar *out)                           \
+    {                                                                                            \
+        Scalar t1 = (Scalar)1 - t;                                                               \
+        for (Usize n = 0; n < length; ++n) out[n] = t1 * a[n] + t * b[n];                        \
+    }                                                                                            \
+                                                                                                 \
+    CF_INTERNAL inline void vec_##Scalar##NegateN(Scalar const *v, Usize length, Scalar *out)    \
+    {                                                                                            \
+        for (Usize n = 0; n < length; ++n) out[n] = -v[n];                                       \
+    }                                                                                            \
+                                                                                                 \
+    CF_INTERNAL inline Scalar vec_##Scalar##NormSquaredN(Scalar const *v, Usize length)          \
+    {                                                                                            \
+        return vec_##Scalar##DotN(v, v, length);                                                 \
     }
 
 VEC__N_OPS(F32)
@@ -575,19 +577,19 @@ VEC__N_OPS(I64)
 //   Type-specific vector operations   //
 //-------------------------------------//
 
-static inline F32
+CF_INTERNAL inline F32
 vecPerpDot2(Vec2 a, Vec2 b)
 {
     return a.x * b.y - a.y * b.x;
 }
 
-static inline F64
+CF_INTERNAL inline F64
 vecPerpDot2D(DVec2 a, DVec2 b)
 {
     return a.x * b.y - a.y * b.x;
 }
 
-static inline Vec3
+CF_INTERNAL inline Vec3
 vecCross3(Vec3 a, Vec3 b)
 {
     return (Vec3){.x = a.y * b.z - a.z * b.y, //
@@ -595,7 +597,7 @@ vecCross3(Vec3 a, Vec3 b)
                   .z = a.x * b.y - a.y * b.x};
 }
 
-static inline DVec3
+CF_INTERNAL inline DVec3
 vecCross3D(DVec3 a, DVec3 b)
 {
     return (DVec3){.x = a.y * b.z - a.z * b.y, //
@@ -603,68 +605,68 @@ vecCross3D(DVec3 a, DVec3 b)
                    .z = a.x * b.y - a.y * b.x};
 }
 
-#define VEC__OPS(Scalar, N, tag)                                                      \
-    static inline tag##Vec##N vecAdd##N##tag(tag##Vec##N a, tag##Vec##N b)            \
-    {                                                                                 \
-        tag##Vec##N out = {0};                                                        \
-        vecAddN(a.elem, b.elem, N, out.elem);                                         \
-        return out;                                                                   \
-    }                                                                                 \
-                                                                                      \
-    static inline tag##Vec##N vecSub##N##tag(tag##Vec##N a, tag##Vec##N b)            \
-    {                                                                                 \
-        tag##Vec##N out = {0};                                                        \
-        vecSubN(a.elem, b.elem, N, out.elem);                                         \
-        return out;                                                                   \
-    }                                                                                 \
-                                                                                      \
-    static inline tag##Vec##N vecMul##N##tag(tag##Vec##N a, Scalar b)                 \
-    {                                                                                 \
-        tag##Vec##N out = {0};                                                        \
-        vecMulN(a.elem, b, N, out.elem);                                              \
-        return out;                                                                   \
-    }                                                                                 \
-                                                                                      \
-    static inline tag##Vec##N vecDiv##N##tag(tag##Vec##N a, Scalar b)                 \
-    {                                                                                 \
-        tag##Vec##N out = {0};                                                        \
-        vecDivN(a.elem, b, N, out.elem);                                              \
-        return out;                                                                   \
-    }                                                                                 \
-                                                                                      \
-    static inline Scalar vecDot##N##tag(tag##Vec##N a, tag##Vec##N b)                 \
-    {                                                                                 \
-        return vecDotN(a.elem, b.elem, N);                                            \
-    }                                                                                 \
-                                                                                      \
-    static inline Scalar vecDistanceSquared##N##tag(tag##Vec##N a, tag##Vec##N b)     \
-    {                                                                                 \
-        return vecDistanceSquaredN(a.elem, b.elem, N);                                \
-    }                                                                                 \
-                                                                                      \
-    static inline tag##Vec##N vecLerp##N##tag(tag##Vec##N a, tag##Vec##N b, Scalar t) \
-    {                                                                                 \
-        tag##Vec##N out = {0};                                                        \
-        vecLerpN(a.elem, b.elem, N, t, out.elem);                                     \
-        return out;                                                                   \
-    }                                                                                 \
-                                                                                      \
-    static inline tag##Vec##N vecNegate##N##tag(tag##Vec##N v)                        \
-    {                                                                                 \
-        tag##Vec##N out = {0};                                                        \
-        vecNegateN(v.elem, N, out.elem);                                              \
-        return out;                                                                   \
-    }                                                                                 \
-                                                                                      \
-    static inline Scalar vecNormSquared##N##tag(tag##Vec##N v)                        \
-    {                                                                                 \
-        return vec_##Scalar##NormSquaredN(v.elem, N);                                 \
-    }                                                                                 \
-                                                                                      \
-    static inline tag##Vec##N vecNormalize##N##tag(tag##Vec##N v)                     \
-    {                                                                                 \
-        Scalar norm = mSqrt(vecNormSquared##N##tag(v));                               \
-        return vecDiv##N##tag(v, norm);                                               \
+#define VEC__OPS(Scalar, N, tag)                                                           \
+    CF_INTERNAL inline tag##Vec##N vecAdd##N##tag(tag##Vec##N a, tag##Vec##N b)            \
+    {                                                                                      \
+        tag##Vec##N out = {0};                                                             \
+        vecAddN(a.elem, b.elem, N, out.elem);                                              \
+        return out;                                                                        \
+    }                                                                                      \
+                                                                                           \
+    CF_INTERNAL inline tag##Vec##N vecSub##N##tag(tag##Vec##N a, tag##Vec##N b)            \
+    {                                                                                      \
+        tag##Vec##N out = {0};                                                             \
+        vecSubN(a.elem, b.elem, N, out.elem);                                              \
+        return out;                                                                        \
+    }                                                                                      \
+                                                                                           \
+    CF_INTERNAL inline tag##Vec##N vecMul##N##tag(tag##Vec##N a, Scalar b)                 \
+    {                                                                                      \
+        tag##Vec##N out = {0};                                                             \
+        vecMulN(a.elem, b, N, out.elem);                                                   \
+        return out;                                                                        \
+    }                                                                                      \
+                                                                                           \
+    CF_INTERNAL inline tag##Vec##N vecDiv##N##tag(tag##Vec##N a, Scalar b)                 \
+    {                                                                                      \
+        tag##Vec##N out = {0};                                                             \
+        vecDivN(a.elem, b, N, out.elem);                                                   \
+        return out;                                                                        \
+    }                                                                                      \
+                                                                                           \
+    CF_INTERNAL inline Scalar vecDot##N##tag(tag##Vec##N a, tag##Vec##N b)                 \
+    {                                                                                      \
+        return vecDotN(a.elem, b.elem, N);                                                 \
+    }                                                                                      \
+                                                                                           \
+    CF_INTERNAL inline Scalar vecDistanceSquared##N##tag(tag##Vec##N a, tag##Vec##N b)     \
+    {                                                                                      \
+        return vecDistanceSquaredN(a.elem, b.elem, N);                                     \
+    }                                                                                      \
+                                                                                           \
+    CF_INTERNAL inline tag##Vec##N vecLerp##N##tag(tag##Vec##N a, tag##Vec##N b, Scalar t) \
+    {                                                                                      \
+        tag##Vec##N out = {0};                                                             \
+        vecLerpN(a.elem, b.elem, N, t, out.elem);                                          \
+        return out;                                                                        \
+    }                                                                                      \
+                                                                                           \
+    CF_INTERNAL inline tag##Vec##N vecNegate##N##tag(tag##Vec##N v)                        \
+    {                                                                                      \
+        tag##Vec##N out = {0};                                                             \
+        vecNegateN(v.elem, N, out.elem);                                                   \
+        return out;                                                                        \
+    }                                                                                      \
+                                                                                           \
+    CF_INTERNAL inline Scalar vecNormSquared##N##tag(tag##Vec##N v)                        \
+    {                                                                                      \
+        return vec_##Scalar##NormSquaredN(v.elem, N);                                      \
+    }                                                                                      \
+                                                                                           \
+    CF_INTERNAL inline tag##Vec##N vecNormalize##N##tag(tag##Vec##N v)                     \
+    {                                                                                      \
+        Scalar norm = mSqrt(vecNormSquared##N##tag(v));                                    \
+        return vecDiv##N##tag(v, norm);                                                    \
     }
 
 VEC__OPS(F32, 2, )
@@ -689,7 +691,7 @@ VEC__OPS(I32, 4, I)
 
 //--- Common forms ---//
 
-static inline Mat4
+CF_INTERNAL inline Mat4
 matDiagonal(F32 value)
 {
     Mat4 mat = {0};
@@ -700,13 +702,13 @@ matDiagonal(F32 value)
     return mat;
 }
 
-static inline Mat4
+CF_INTERNAL inline Mat4
 matIdentity(void)
 {
     return matDiagonal(1.0f);
 }
 
-static inline Mat4
+CF_INTERNAL inline Mat4
 matTranspose(Mat4 in)
 {
     Mat4 out;
@@ -739,7 +741,7 @@ matTranspose(Mat4 in)
 // NOTE (Matteo): all trasformations use right hand convention, except for projections
 // which convert from a RH system to a LH clip space commonly used by graphics API.
 
-static inline Mat4
+CF_INTERNAL inline Mat4
 matScale(F32 value)
 {
     Mat4 mat = {0};
@@ -750,7 +752,7 @@ matScale(F32 value)
     return mat;
 }
 
-static inline Mat4
+CF_INTERNAL inline Mat4
 matTranslation(F32 x, F32 y, F32 z)
 {
     Mat4 mat = matIdentity();
@@ -760,7 +762,7 @@ matTranslation(F32 x, F32 y, F32 z)
     return mat;
 }
 
-static inline Mat4
+CF_INTERNAL inline Mat4
 matTranslationVec(Vec3 t)
 {
     Mat4 mat = matIdentity();
@@ -768,7 +770,7 @@ matTranslationVec(Vec3 t)
     return mat;
 }
 
-static inline Mat4
+CF_INTERNAL inline Mat4
 matRotation(Vec3 axis, F32 radians)
 {
     Mat4 mat = {0};
@@ -796,7 +798,7 @@ matRotation(Vec3 axis, F32 radians)
     return mat;
 }
 
-static inline Mat4
+CF_INTERNAL inline Mat4
 matLookAt(Vec3 eye, Vec3 target, Vec3 up)
 {
     Mat4 mat = {0};
@@ -830,7 +832,7 @@ matLookAt(Vec3 eye, Vec3 target, Vec3 up)
     return mat;
 }
 
-static inline Mat4
+CF_INTERNAL inline Mat4
 matPerspective(F32 fovy, F32 aspect, F32 near_plane, F32 far_plane, ClipSpace clip)
 {
     // See:
@@ -857,7 +859,7 @@ matPerspective(F32 fovy, F32 aspect, F32 near_plane, F32 far_plane, ClipSpace cl
     return mat;
 }
 
-static inline Mat4
+CF_INTERNAL inline Mat4
 matOrtho(F32 width, F32 height, F32 near_plane, F32 far_plane, ClipSpace clip)
 {
     Mat4 mat = {0};
@@ -876,7 +878,7 @@ matOrtho(F32 width, F32 height, F32 near_plane, F32 far_plane, ClipSpace clip)
     return mat;
 }
 
-static inline Mat4
+CF_INTERNAL inline Mat4
 matOrthoBounds(F32 left, F32 right, //
                F32 bottom, F32 top, //
                F32 near_plane, F32 far_plane, ClipSpace clip)
@@ -912,7 +914,7 @@ matOrthoBounds(F32 left, F32 right, //
 
 // clang-format on
 
-static inline Mat4
+CF_INTERNAL inline Mat4
 matMulMat4(Mat4 left, Mat4 right)
 {
     // TODO (Matteo): Go wide with SIMD
@@ -937,7 +939,7 @@ matMulMat4(Mat4 left, Mat4 right)
     return mat;
 }
 
-static inline Vec4
+CF_INTERNAL inline Vec4
 matMulVec4(Mat4 mat, Vec4 vec)
 {
     Vec4 res = {0};
@@ -951,13 +953,13 @@ matMulVec4(Mat4 mat, Vec4 vec)
     return res;
 }
 
-static inline Vec3
+CF_INTERNAL inline Vec3
 matMulVec3(Mat4 mat, Vec3 vec)
 {
     return matMulVec4(mat, (Vec4){.xyz = vec}).xyz;
 }
 
-static inline Vec2
+CF_INTERNAL inline Vec2
 matMulVec2(Mat4 mat, Vec2 vec)
 {
     return (Vec2){
@@ -970,7 +972,7 @@ matMulVec2(Mat4 mat, Vec2 vec)
 //   Common graphics clip spaces   //
 //---------------------------------//
 
-static inline ClipSpace
+CF_INTERNAL inline ClipSpace
 mClipSpaceGl(void)
 {
     // NOTE (Matteo): OpenGL has a left-handed clip space, with all coordinates
@@ -982,7 +984,7 @@ mClipSpaceGl(void)
     };
 }
 
-static inline ClipSpace
+CF_INTERNAL inline ClipSpace
 mClipSpaceD3D(void)
 {
     // NOTE (Matteo): Direct3D uses a left-handed clip space, with the Z coordinate
@@ -994,7 +996,7 @@ mClipSpaceD3D(void)
     };
 }
 
-static inline ClipSpace
+CF_INTERNAL inline ClipSpace
 mClipSpaceVk(bool reverse_depth)
 {
     // NOTE (Matteo): Vulkan uses a left-handed clip space, with the Z coordinate

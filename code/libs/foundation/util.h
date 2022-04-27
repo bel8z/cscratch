@@ -7,7 +7,7 @@
 #include "error.h"
 #include "memory.h"
 
-static inline U32
+CF_INTERNAL inline U32
 cfRoundUp(U32 block_size, U32 page_size)
 {
     CF_ASSERT((page_size & (page_size - 1)) == 0, "Page size is not a power of 2");
@@ -20,7 +20,7 @@ cfRoundUp(U32 block_size, U32 page_size)
 
 // Swap elements using a temporary buffer of the same size
 // Implementation detail for cfSwapItem
-static inline void
+CF_INTERNAL inline void
 cfSwapBuf(void *l, void *r, U8 *buf, Usize size)
 {
     memCopy(l, buf, size);
@@ -29,7 +29,7 @@ cfSwapBuf(void *l, void *r, U8 *buf, Usize size)
 }
 
 // Swap elements byte per byte
-static inline void
+CF_INTERNAL inline void
 cfSwapBytes(void *l, void *r, Usize size)
 {
     U8 *lbuf = (U8 *)l;
@@ -44,7 +44,7 @@ cfSwapBytes(void *l, void *r, Usize size)
     }
 }
 
-static inline void
+CF_INTERNAL inline void
 cfSwapBlock(void *array, Usize l, Usize r, Usize count, Usize item_size)
 {
     U8 *lbuf = (U8 *)array + l * item_size;
@@ -67,7 +67,7 @@ cfSwapBlock(void *array, Usize l, Usize r, Usize count, Usize item_size)
 // Array reversal
 //------------------------------------------------------------------------------
 
-static inline void
+CF_INTERNAL inline void
 cfReverseBuf(void *array, Usize size, U8 *swap_buf, Usize swap_size)
 {
     U8 *buf = (U8 *)array;
@@ -85,7 +85,7 @@ cfReverseBuf(void *array, Usize size, U8 *swap_buf, Usize swap_size)
 //------------------------------------------------------------------------------
 
 // Rotate array using reversal method (from John Bentley's "Programming Pearls")
-static inline void
+CF_INTERNAL inline void
 cf__rotateReversal(void *array, Usize size, Usize pos, U8 *swap_buf, Usize swap_size)
 {
     U8 *buf = (U8 *)array;

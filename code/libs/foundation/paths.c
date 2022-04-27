@@ -7,7 +7,7 @@
 
 #define DELIMITER_STR "\\/"
 
-static const Str g_delimiters = {
+CF_GLOBAL const Str g_delimiters = {
     .buf = DELIMITER_STR,
     .len = CF_ARRAY_SIZE(DELIMITER_STR) - 1,
 };

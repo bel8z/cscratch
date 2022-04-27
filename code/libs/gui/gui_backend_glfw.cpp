@@ -63,7 +63,7 @@ struct GuiGlfwData
 // backend, adding a little bit of extra complexity to it.
 // FIXME: some shared resources (mouse cursor shape, gamepad) are mishandled when using
 // multi-context.
-static GuiGlfwData *
+CF_INTERNAL GuiGlfwData *
 guiGlfw_GetBackendData()
 {
     return ImGui::GetCurrentContext() ? (GuiGlfwData *)ImGui::GetIO().BackendPlatformUserData
@@ -71,23 +71,23 @@ guiGlfw_GetBackendData()
 }
 
 // Forward Declarations
-static void guiGlfw_UpdateMonitors();
-static void guiGlfw_InitPlatformInterface();
+CF_INTERNAL void guiGlfw_UpdateMonitors();
+CF_INTERNAL void guiGlfw_InitPlatformInterface();
 
 // Functions
-static inline const char *
+CF_INTERNAL inline const char *
 guiGlfw_GetClipboardText(void *user_data)
 {
     return glfwGetClipboardString((GLFWwindow *)user_data);
 }
 
-static inline void
+CF_INTERNAL inline void
 guiGlfw_SetClipboardText(void *user_data, const char *text)
 {
     glfwSetClipboardString((GLFWwindow *)user_data, text);
 }
 
-static ImGuiKey
+CF_INTERNAL ImGuiKey
 guiGlfw_KeyToImGuiKey(int key)
 {
     switch (key)
@@ -201,7 +201,7 @@ guiGlfw_KeyToImGuiKey(int key)
     }
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_UpdateKeyModifiers(int mods)
 {
     ImGuiIO &io = ImGui::GetIO();
@@ -242,7 +242,7 @@ guiGlfw_ScrollCallback(GLFWwindow *window, double xoffset, double yoffset)
     io.AddMouseWheelEvent((F32)xoffset, (F32)yoffset);
 }
 
-static int
+CF_INTERNAL int
 guiGlfw_TranslateUntranslatedKey(int key, int scancode)
 {
 #if !defined(__EMSCRIPTEN__)
@@ -465,7 +465,7 @@ guiGlfwShutdown()
     IM_DELETE(bd);
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_UpdateMouseData()
 {
     GuiGlfwData *bd = guiGlfw_GetBackendData();
@@ -548,7 +548,7 @@ guiGlfw_UpdateMouseData()
         io.AddMouseViewportEvent(mouse_viewport_id);
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_UpdateMouseCursor()
 {
     ImGuiIO &io = ImGui::GetIO();
@@ -582,13 +582,13 @@ guiGlfw_UpdateMouseCursor()
 
 // Update gamepad inputs
 
-static inline F32
+CF_INTERNAL inline F32
 Saturate(F32 v)
 {
     return v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v;
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_UpdateGamepads()
 {
     ImGuiIO &io = ImGui::GetIO();
@@ -643,7 +643,7 @@ guiGlfw_UpdateGamepads()
 #undef MAP_ANALOG
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_UpdateMonitors()
 {
     int monitors_count = 0;
@@ -740,7 +740,7 @@ struct GuiGlfwViewportData
     ~GuiGlfwViewportData() { CF_ASSERT(Window == NULL, "Window pointer must be null"); }
 };
 
-static void
+CF_INTERNAL void
 guiGlfw_WindowCloseCallback(GLFWwindow *window)
 {
     if (ImGuiViewport *viewport = ImGui::FindViewportByPlatformHandle(window))
@@ -753,7 +753,7 @@ guiGlfw_WindowCloseCallback(GLFWwindow *window)
 // - on Linux it is queued and invoked during glfwPollEvents()
 // Because the event doesn't always fire on glfwSetWindowXXX() we use a frame counter tag to only
 // ignore recent glfwSetWindowXXX() calls.
-static void
+CF_INTERNAL void
 guiGlfw_WindowPosCallback(GLFWwindow *window, int, int)
 {
     if (ImGuiViewport *viewport = ImGui::FindViewportByPlatformHandle(window))
@@ -766,7 +766,7 @@ guiGlfw_WindowPosCallback(GLFWwindow *window, int, int)
     }
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_WindowSizeCallback(GLFWwindow *window, int, int)
 {
     if (ImGuiViewport *viewport = ImGui::FindViewportByPlatformHandle(window))
@@ -779,7 +779,7 @@ guiGlfw_WindowSizeCallback(GLFWwindow *window, int, int)
     }
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_CreateWindow(ImGuiViewport *viewport)
 {
     GuiGlfwData *bd = guiGlfw_GetBackendData();
@@ -825,7 +825,7 @@ guiGlfw_CreateWindow(ImGuiViewport *viewport)
     }
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_DestroyWindow(ImGuiViewport *viewport)
 {
     GuiGlfwData *bd = guiGlfw_GetBackendData();
@@ -863,9 +863,9 @@ guiGlfw_DestroyWindow(ImGuiViewport *viewport)
 // Implement same work-around for Linux/OSX!)
 #if CF_OS_WIN32
 
-static WNDPROC g_GlfwWndProc = NULL;
+CF_GLOBAL WNDPROC g_GlfwWndProc = NULL;
 
-static LRESULT CALLBACK
+CF_INTERNAL LRESULT CALLBACK
 WndProcNoInputs(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     if (msg == WM_NCHITTEST)
@@ -884,7 +884,7 @@ WndProcNoInputs(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 }
 #endif
 
-static void
+CF_INTERNAL void
 guiGlfw_ShowWindow(ImGuiViewport *viewport)
 {
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
@@ -911,7 +911,7 @@ guiGlfw_ShowWindow(ImGuiViewport *viewport)
     glfwShowWindow(vd->Window);
 }
 
-static ImVec2
+CF_INTERNAL ImVec2
 guiGlfw_GetWindowPos(ImGuiViewport *viewport)
 {
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
@@ -920,7 +920,7 @@ guiGlfw_GetWindowPos(ImGuiViewport *viewport)
     return ImVec2((F32)x, (F32)y);
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_SetWindowPos(ImGuiViewport *viewport, ImVec2 pos)
 {
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
@@ -928,7 +928,7 @@ guiGlfw_SetWindowPos(ImGuiViewport *viewport, ImVec2 pos)
     glfwSetWindowPos(vd->Window, (int)pos.x, (int)pos.y);
 }
 
-static ImVec2
+CF_INTERNAL ImVec2
 guiGlfw_GetWindowSize(ImGuiViewport *viewport)
 {
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
@@ -937,7 +937,7 @@ guiGlfw_GetWindowSize(ImGuiViewport *viewport)
     return {(F32)w, (F32)h};
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_SetWindowSize(ImGuiViewport *viewport, ImVec2 size)
 {
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
@@ -945,42 +945,42 @@ guiGlfw_SetWindowSize(ImGuiViewport *viewport, ImVec2 size)
     glfwSetWindowSize(vd->Window, (int)size.x, (int)size.y);
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_SetWindowTitle(ImGuiViewport *viewport, const char *title)
 {
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
     glfwSetWindowTitle(vd->Window, title);
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_SetWindowFocus(ImGuiViewport *viewport)
 {
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
     glfwFocusWindow(vd->Window);
 }
 
-static bool
+CF_INTERNAL bool
 guiGlfw_GetWindowFocus(ImGuiViewport *viewport)
 {
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
     return glfwGetWindowAttrib(vd->Window, GLFW_FOCUSED) != 0;
 }
 
-static bool
+CF_INTERNAL bool
 guiGlfw_GetWindowMinimized(ImGuiViewport *viewport)
 {
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
     return glfwGetWindowAttrib(vd->Window, GLFW_ICONIFIED) != 0;
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_SetWindowAlpha(ImGuiViewport *viewport, F32 alpha)
 {
     GuiGlfwViewportData *vd = (GuiGlfwViewportData *)viewport->PlatformUserData;
     glfwSetWindowOpacity(vd->Window, alpha);
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_RenderWindow(ImGuiViewport *viewport, void *)
 {
     GuiGlfwData *bd = guiGlfw_GetBackendData();
@@ -988,7 +988,7 @@ guiGlfw_RenderWindow(ImGuiViewport *viewport, void *)
     if (bd->gl_context) glfwMakeContextCurrent(vd->Window);
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_SwapBuffers(ImGuiViewport *viewport, void *)
 {
     GuiGlfwData *bd = guiGlfw_GetBackendData();
@@ -1009,7 +1009,7 @@ CF_EXTERN_C GLFWAPI I32 glfwCreateWindowSurface(VkInstance instance, GLFWwindow 
                                                 const VkAllocationCallbacks *allocator,
                                                 VkSurfaceKHR *surface);
 
-static I32
+CF_INTERNAL I32
 guiGlfw_CreateVkSurface(ImGuiViewport *viewport, ImU64 vk_instance, const void *vk_allocator,
                         ImU64 *out_vk_surface)
 {
@@ -1023,7 +1023,7 @@ guiGlfw_CreateVkSurface(ImGuiViewport *viewport, ImU64 vk_instance, const void *
                                    (VkSurfaceKHR *)out_vk_surface);
 }
 
-static void
+CF_INTERNAL void
 guiGlfw_InitPlatformInterface()
 {
     // Register platform interface (will be coupled with a renderer interface)

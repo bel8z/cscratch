@@ -52,10 +52,10 @@ CF_DIAGNOSTIC_PUSH()
 CF_DIAGNOSTIC_IGNORE_CLANG("-Wunused-function")
 #    endif
 
+#    include "foundation/error.h"
 #    include "foundation/io.h"
 #    include "foundation/memory.h"
 #    include "foundation/strings.h"
-#    include "foundation/error.h"
 
 // NOTE (Matteo): On memory allocation
 //
@@ -70,10 +70,10 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wunused-function")
 #    define STBI_ASSERT(x) CF_ASSERT(x, "stb image assert")
 
 // Custom memory management for stbi
-static MemAllocator g_alloc;
-static void *stbiAlloc(Usize size);
-static void *stbiRealloc(void *memory, Usize size);
-static void stbiFree(void *memory);
+CF_GLOBAL MemAllocator g_alloc;
+CF_INTERNAL void *stbiAlloc(Usize size);
+CF_INTERNAL void *stbiRealloc(void *memory, Usize size);
+CF_INTERNAL void stbiFree(void *memory);
 
 #    define STBI_MALLOC stbiAlloc
 #    define STBI_REALLOC stbiRealloc
@@ -153,7 +153,7 @@ typedef struct FileReader
     bool eof;
 } FileReader;
 
-static I32
+CF_INTERNAL I32
 stbiRead(void *user, Char8 *data, I32 size)
 {
     FileReader *reader = user;
@@ -162,14 +162,14 @@ stbiRead(void *user, Char8 *data, I32 size)
     return (I32)read_bytes;
 }
 
-static void
+CF_INTERNAL void
 stbiSkip(void *user, I32 n)
 {
     FileReader *reader = user;
     reader->api->seek(reader->file, IoSeekPos_Current, n);
 }
 
-static I32
+CF_INTERNAL I32
 stbiEof(void *user)
 {
     FileReader *reader = user;

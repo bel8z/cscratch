@@ -157,7 +157,7 @@ strCompare(Str l, Str r)
     return memCompare(l.buf, r.buf, cfMin(l.len, r.len));
 }
 
-static inline I32
+CF_INTERNAL inline I32
 __strIComp(Cstr l, Cstr r, Usize size)
 {
     I32 diff = 0;
@@ -245,7 +245,7 @@ strContains(Str str, Char8 c)
 #define _sbValidate(sb) \
     (CF_ASSERT((sb) && (sb)->data && (sb)->size >= 1, "Invalid string builder state")) // NOLINT
 
-static void
+CF_INTERNAL void
 strBuilderResize(StrBuilder *sb, Usize new_size)
 {
     if (sb->capacity < new_size)
