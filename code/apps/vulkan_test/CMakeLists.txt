@@ -1,4 +1,3 @@
-set(APP vulkan_test)
 message(STATUS "Configuring ${APP}")
 
 set(EXE_NAME ${APP})

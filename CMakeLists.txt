@@ -42,8 +42,8 @@ include(CPack)
 
 set(EXT_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/ext)
 set(CODE_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/code)
-set(LIBS_DIR ${CODE_DIR}/libs)
-set(APPS_DIR ${CODE_DIR}/apps)
+set(LIBS_DIR  ${CODE_DIR}/libs)
+set(APPS_DIR  ${CODE_DIR}/apps)
 set(TESTS_DIR ${CODE_DIR}/tests)
 
 #----------------------#
@@ -100,50 +100,15 @@ set_source_files_properties(${CONSOLE_ENTRY} PROPERTIES LANGUAGE C)
 set(APP_LIST
     demo 
     image_viewer
-    learn_opengl)
+    learn_opengl
+    vulkan_test)
 
-foreach(APP ${APP_LIST})  
-    message(STATUS "Configuring ${APP}")
-
-    set(EXE_NAME ${APP})
-    # NOTE (Matteo): _lib suffix added to prevent conflicts with .pdb files
-    set(LIB_NAME ${APP}_lib) 
-
-    set(APP_SOURCES)
-    file(GLOB_RECURSE APP_SOURCES ${APPS_DIR}/${APP}/*.c)
-    list(APPEND APP_SOURCES ${LIBS_DIR}/gl/gload.c)
-    set_source_files_properties(${APP_SOURCES} PROPERTIES LANGUAGE C)
-
-    set(APP_RESOURCES)
-    file(GLOB_RECURSE APP_RESOURCES ${APPS_DIR}/${APP}/*.rc)
-    set_source_files_properties(${APP_RESOURCES} PROPERTIES LANGUAGE RC)
-
-    add_executable(${EXE_NAME} WIN32 ${PLATFORM_SOURCES} ${APP_RESOURCES})
-    add_library(${LIB_NAME} SHARED ${APP_SOURCES})
-
-    target_compile_features(${EXE_NAME} PUBLIC c_std_11)
-    target_compile_features(${LIB_NAME} PUBLIC c_std_11)
-
-    target_include_directories(${EXE_NAME} PUBLIC ${LIBS_DIR})
-    target_include_directories(${LIB_NAME} PUBLIC ${LIBS_DIR} ${EXT_DIR}/stb)
-
-    target_link_libraries(${EXE_NAME} PRIVATE foundation gui_gl3)
-    target_link_libraries(${LIB_NAME} PRIVATE foundation gui ${OPENGL_gl_LIBRARY}) 
-
-    target_link_libraries(${EXE_NAME} PUBLIC Imm32)
-    target_link_libraries(${LIB_NAME} PUBLIC Imm32)
-
-    set_c_compile_flags(${EXE_NAME})
-    set_c_compile_flags(${LIB_NAME})
-
-    set_target_properties(${EXE_NAME} ${LIB_NAME} PROPERTIES UNITY_BUILD TRUE)
+file(GLOB APPS RELATIVE ${APPS_DIR} ${APPS_DIR}/*)
+foreach(APP ${APPS})
+    if(IS_DIRECTORY ${APPS_DIR}/${APP})
+        add_subdirectory(${APPS_DIR}/${APP})
+    endif()    
 endforeach()
-
-#-------------------------#
-# Vulkan test application #
-#-------------------------#
-
-add_subdirectory(${APPS_DIR}/vulkan_test)
 
 #---------#
 # Testing #
