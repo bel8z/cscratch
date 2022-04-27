@@ -18,6 +18,9 @@ set(GLFW_DIR ${EXT_DIR}/glfw-3.3.6)
 #----------------------#
 
 # TODO (Matteo): Find a better way to handle out of tree builds
+
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs" FORCE)
 add_subdirectory(${GLFW_DIR} ${CMAKE_BINARY_DIR}/glfw-3.3.6)
 
 find_package(freetype REQUIRED PATHS ${FREETYPE_DIR})

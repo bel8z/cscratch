@@ -35,7 +35,6 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-
 #------------------#
 # Dependency paths #
 #------------------#
@@ -96,12 +95,6 @@ set_source_files_properties(${CONSOLE_ENTRY} PROPERTIES LANGUAGE C)
 #--------------#
 # Applications #
 #--------------#
-
-set(APP_LIST
-    demo 
-    image_viewer
-    learn_opengl
-    vulkan_test)
 
 file(GLOB APPS RELATIVE ${APPS_DIR} ${APPS_DIR}/*)
 foreach(APP ${APPS})
