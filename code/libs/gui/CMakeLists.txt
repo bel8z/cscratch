@@ -8,8 +8,6 @@ message(STATUS "backend parent directory: ${PARENT_DIR}")
 # Dependency paths #
 #------------------#
 
-set(CODE_DIR ${PARENT_DIR}/code)
-set(EXT_DIR ${PARENT_DIR}/ext)
 set(IMGUI_DIR ${EXT_DIR}/imgui)
 set(BACKEND_DIR ${IMGUI_DIR}/backends)
 set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
@@ -40,8 +38,8 @@ set(GUI_SOURCES
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
     ${IMGUI_DIR}/misc/freetype/imgui_freetype.cpp
-    ${CODE_DIR}/gui/gui.c
-    ${CODE_DIR}/gui/gui.cpp)
+    ${LIBS_DIR}/gui/gui.c
+    ${LIBS_DIR}/gui/gui.cpp)
 
 add_library(${GUI_NAME} STATIC ${GUI_SOURCES})
 
@@ -53,13 +51,13 @@ target_include_directories(${GUI_NAME}
         ${IMGUI_DIR}/misc/freetype
         ${EXT_DIR}/stb
     PUBLIC
-        ${CODE_DIR})
+        ${LIBS_DIR})
 
 #----------------#
 # Window library #
 #----------------#
 set(WIN_NAME gui_win)
-set(WIN_SOURCES ${CODE_DIR}/gui/win.cpp)
+set(WIN_SOURCES ${LIBS_DIR}/gui/win.cpp)
 
 add_library(${WIN_NAME} STATIC ${WIN_SOURCES})
 
@@ -74,8 +72,8 @@ set(BACKEND_NAME gui_gl3)
 find_package(OpenGL REQUIRED)
 
 set(BACKEND_SOURCES 
-    ${CODE_DIR}/gui/gui_backend_gl3.cpp
-    ${CODE_DIR}/gl/gload.c)
+    ${LIBS_DIR}/gui/gui_backend_gl3.cpp
+    ${LIBS_DIR}/gl/gload.c)
 
 add_library(${BACKEND_NAME} STATIC ${BACKEND_SOURCES})
 

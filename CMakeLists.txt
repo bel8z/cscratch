@@ -42,14 +42,16 @@ include(CPack)
 
 set(EXT_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/ext)
 set(CODE_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/code)
+set(LIBS_DIR ${CODE_DIR}/libs)
+set(APPS_DIR ${CODE_DIR}/apps)
 set(TESTS_DIR ${CODE_DIR}/tests)
 
 #----------------------#
 # Dependency libraries #
 #----------------------#
 
-add_subdirectory(${CODE_DIR}/foundation)
-add_subdirectory(${CODE_DIR}/gui)
+add_subdirectory(${LIBS_DIR}/foundation)
+add_subdirectory(${LIBS_DIR}/gui)
 
 #-----------------------#
 # Common resource files #
@@ -108,12 +110,12 @@ foreach(APP ${APP_LIST})
     set(LIB_NAME ${APP}_lib) 
 
     set(APP_SOURCES)
-    file(GLOB_RECURSE APP_SOURCES ${CODE_DIR}/${APP}/*.c)
-    list(APPEND APP_SOURCES ${CODE_DIR}/gl/gload.c)
+    file(GLOB_RECURSE APP_SOURCES ${APPS_DIR}/${APP}/*.c)
+    list(APPEND APP_SOURCES ${LIBS_DIR}/gl/gload.c)
     set_source_files_properties(${APP_SOURCES} PROPERTIES LANGUAGE C)
 
     set(APP_RESOURCES)
-    file(GLOB_RECURSE APP_RESOURCES ${CODE_DIR}/${APP}/*.rc)
+    file(GLOB_RECURSE APP_RESOURCES ${APPS_DIR}/${APP}/*.rc)
     set_source_files_properties(${APP_RESOURCES} PROPERTIES LANGUAGE RC)
 
     add_executable(${EXE_NAME} WIN32 ${PLATFORM_SOURCES} ${APP_RESOURCES})
@@ -122,8 +124,8 @@ foreach(APP ${APP_LIST})
     target_compile_features(${EXE_NAME} PUBLIC c_std_11)
     target_compile_features(${LIB_NAME} PUBLIC c_std_11)
 
-    target_include_directories(${EXE_NAME} PUBLIC ${CODE_DIR})
-    target_include_directories(${LIB_NAME} PUBLIC ${CODE_DIR} ${EXT_DIR}/stb)
+    target_include_directories(${EXE_NAME} PUBLIC ${LIBS_DIR})
+    target_include_directories(${LIB_NAME} PUBLIC ${LIBS_DIR} ${EXT_DIR}/stb)
 
     target_link_libraries(${EXE_NAME} PRIVATE foundation gui_gl3)
     target_link_libraries(${LIB_NAME} PRIVATE foundation gui ${OPENGL_gl_LIBRARY}) 
@@ -141,7 +143,7 @@ endforeach()
 # Vulkan test application #
 #-------------------------#
 
-add_subdirectory(${CODE_DIR}/vulkan_test)
+add_subdirectory(${APPS_DIR}/vulkan_test)
 
 #---------#
 # Testing #
@@ -152,19 +154,19 @@ enable_testing()
 
 add_executable(test_array ${TESTS_DIR}/test_array.c ${CONSOLE_ENTRY})
 target_link_libraries(test_array PRIVATE foundation)
-target_include_directories(test_array PRIVATE ${CODE_DIR})
+target_include_directories(test_array PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_array)
 add_test(test_array test_array)
 
 add_executable(test_arena ${TESTS_DIR}/test_arena.c ${CONSOLE_ENTRY})
 target_link_libraries(test_arena PRIVATE foundation)
-target_include_directories(test_arena PRIVATE ${CODE_DIR})
+target_include_directories(test_arena PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_arena)
 add_test(test_arena test_arena)
 
 add_executable(dummy ${TESTS_DIR}/dummy.c ${CONSOLE_ENTRY})
 target_link_libraries(dummy PRIVATE foundation)
-target_include_directories(dummy PRIVATE ${CODE_DIR})
+target_include_directories(dummy PRIVATE ${LIBS_DIR})
 set_c_compile_flags(dummy)
 
 # set (ASANFLAGS 
@@ -175,23 +177,23 @@ set_c_compile_flags(dummy)
 
 add_executable(test_odbc ${TESTS_DIR}/test_odbc.c ${CONSOLE_ENTRY})
 target_link_libraries(test_odbc PRIVATE foundation)
-target_include_directories(test_odbc PRIVATE ${CODE_DIR})
+target_include_directories(test_odbc PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_odbc)
 
 add_executable(test_files ${TESTS_DIR}/test_files.c ${CONSOLE_ENTRY})
 target_link_libraries(test_files PRIVATE foundation)
-target_include_directories(test_files PRIVATE ${CODE_DIR})
+target_include_directories(test_files PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_files)
 
 # add_executable(test_threading ${TESTS_DIR}/test_threading.c ${CONSOLE_ENTRY})
 # target_link_libraries(test_threading PRIVATE foundation)
-# target_include_directories(test_threading PRIVATE ${CODE_DIR})
+# target_include_directories(test_threading PRIVATE ${LIBS_DIR})
 # set_c_compile_flags(test_threading)
 
 file(GLOB_RECURSE TEST_SOURCES ${TESTS_DIR}/threading/*.c ${CONSOLE_ENTRY})
 add_executable(test_threading ${TEST_SOURCES})
 target_link_libraries(test_threading PRIVATE foundation)
-target_include_directories(test_threading PRIVATE ${CODE_DIR})
+target_include_directories(test_threading PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_threading)
 add_test(test_benaphore test_threading 0)
 add_test(test_auto_reset_event test_threading 1)

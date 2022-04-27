@@ -10,11 +10,11 @@ message(STATUS "Vulkan_LIBRARIES: ${Vulkan_LIBRARIES}")
 
 set(APP_SOURCES)
 file(GLOB_RECURSE APP_SOURCES 
-    ${CODE_DIR}/${APP}/*.c
-    ${CODE_DIR}/${APP}/*.cpp)
+    ${APPS_DIR}/${APP}/*.c
+    ${APPS_DIR}/${APP}/*.cpp)
 
 set(APP_RESOURCES)
-file(GLOB_RECURSE APP_RESOURCES ${CODE_DIR}/${APP}/*.rc)
+file(GLOB_RECURSE APP_RESOURCES ${APPS_DIR}/${APP}/*.rc)
 set_source_files_properties(${APP_RESOURCES} PROPERTIES LANGUAGE RC)
 
 add_executable(${EXE_NAME} WIN32 ${APP_SOURCES} ${APP_RESOURCES})
@@ -27,6 +27,6 @@ set_c_compile_flags(${EXE_NAME})
 set_target_properties(${EXE_NAME} PROPERTIES UNITY_BUILD TRUE)
 
 execute_process(
-    COMMAND ${Vulkan_GLSLC_EXECUTABLE} -fshader-stage=vert -mfmt=num "${CODE_DIR}/${APP}/vert.glsl" -o "${CODE_DIR}/${APP}/vert.spv"
-    COMMAND ${Vulkan_GLSLC_EXECUTABLE} -fshader-stage=frag -mfmt=num "${CODE_DIR}/${APP}/frag.glsl" -o "${CODE_DIR}/${APP}/frag.spv"
+    COMMAND ${Vulkan_GLSLC_EXECUTABLE} -fshader-stage=vert -mfmt=num "${APPS_DIR}/${APP}/vert.glsl" -o "${APPS_DIR}/${APP}/vert.spv"
+    COMMAND ${Vulkan_GLSLC_EXECUTABLE} -fshader-stage=frag -mfmt=num "${APPS_DIR}/${APP}/frag.glsl" -o "${APPS_DIR}/${APP}/frag.spv"
     COMMAND_ERROR_IS_FATAL ANY)
