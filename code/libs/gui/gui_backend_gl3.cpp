@@ -9,7 +9,8 @@
 #endif
 
 #if !defined(GUI_BACKEND_BACKUP_STATE)
-#    define GUI_BACKEND_BACKUP_STATE 0
+// TODO (Matteo): Fix application code in order to disable this
+#    define GUI_BACKEND_BACKUP_STATE 1
 #endif
 
 //--------------------------------------------------------------------------------------------------
@@ -44,7 +45,7 @@ CF_DIAGNOSTIC_POP()
 
 // Backend API
 bool
-guiGl3Init(GlVersion version)
+guiGl3Init(GuiOpenGLVersion version)
 {
     CF_UNUSED(version);
     return ImGui_ImplOpenGL3_Init(NULL);
@@ -71,13 +72,11 @@ guiGl3Render(GuiDrawData *draw_data)
 void
 guiGl3UpdateFontsTexture()
 {
-    guiGl3_DeleteFontsTexture();
-    guiGl3_CreateFontsTexture();
+    ImGui_ImplOpenGL3_DestroyFontsTexture();
+    ImGui_ImplOpenGL3_CreateFontsTexture();
 }
 
 #else
-
-#    include "gui.h"
 
 #    include "imgui.h"
 
