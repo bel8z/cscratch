@@ -19,7 +19,7 @@
 #include "platform.h"
 #include "version.h"
 
-#define IMAGE_STATIC
+#define IMAGE_INTERNAL
 #define IMAGE_IMPL
 #include "image.h"
 

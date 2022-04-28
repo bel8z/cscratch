@@ -7,8 +7,8 @@
 #    include "foundation/core.h"
 #    include "foundation/io.h"
 
-#    if defined(SHADER_STATIC)
-#        define SHADER_API static
+#    if defined(SHADER_INTERNAL)
+#        define SHADER_API CF_INTERNAL
 #    else
 #        define SHADER_API extern
 #    endif
@@ -45,7 +45,7 @@ SHADER_API I32 shaderGetUniform(Shader shader, Cstr uniform_name);
 
 #    include "gl/gload.h"
 
-#    if defined SHADER_STATIC
+#    if defined SHADER_INTERNAL
 CF_DIAGNOSTIC_PUSH()
 CF_DIAGNOSTIC_IGNORE_CLANG("-Wunused-function")
 #    endif
@@ -153,7 +153,7 @@ shaderGetUniform(Shader shader, Cstr uniform_name)
     return glGetUniformLocation(shader.program, uniform_name);
 }
 
-#    if defined SHADER_STATIC
+#    if defined SHADER_INTERNAL
 CF_DIAGNOSTIC_POP()
 #    endif
 

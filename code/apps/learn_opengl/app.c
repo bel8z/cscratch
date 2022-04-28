@@ -1,11 +1,15 @@
 #include "app.h"
 #include "platform.h"
 
-#define SHADER_STATIC
+#define SHADER_INTERNAL
 #define SHADER_IMPL
 #include "shader.h"
 
-#define IMAGE_STATIC
+#define CAMERA_INTERNAL
+#define CAMERA_IMPL
+#include "camera.h"
+
+#define IMAGE_INTERNAL
 #define IMAGE_IMPL
 #include "image.h"
 

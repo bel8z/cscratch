@@ -6,8 +6,8 @@
 
 #    include "foundation/core.h"
 
-#    if defined(IMAGE_STATIC)
-#        define IMAGE_API static
+#    if defined(IMAGE_INTERNAL)
+#        define IMAGE_API CF_INTERNAL
 #    else
 #        define IMAGE_API extern
 #    endif
@@ -47,7 +47,7 @@ IMAGE_API void imageUnload(Image *image);
 
 #if defined(IMAGE_IMPL)
 
-#    if defined IMAGE_STATIC
+#    if defined IMAGE_INTERNAL
 CF_DIAGNOSTIC_PUSH()
 CF_DIAGNOSTIC_IGNORE_CLANG("-Wunused-function")
 #    endif
@@ -240,7 +240,7 @@ imageUnload(Image *image)
 
 //------------------------------------------------------------------------------
 
-#    if defined IMAGE_STATIC
+#    if defined IMAGE_INTERNAL
 CF_DIAGNOSTIC_POP()
 #    endif
 
