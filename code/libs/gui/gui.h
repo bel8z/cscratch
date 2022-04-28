@@ -214,11 +214,13 @@ CF_API void guiGammaCorrection(bool enabled);
 CF_API F32 guiGetFramerate(void);
 
 CF_API bool guiKeyPressed(GuiKey key);
+CF_API I32 guiKeyPressedCount(GuiKey key);
 CF_API bool guiKeyCtrl(void);
 CF_API bool guiKeyAlt(void);
 CF_API bool guiKeyShift(void);
 
 CF_API Vec2 guiGetMousePos(void);
+CF_API Vec2 guiGetMouseDelta(void);
 CF_API F32 guiGetMouseWheel(void);
 CF_API bool guiGetMouseDragging(GuiMouseButton button, Vec2 *out_delta);
 CF_API F32 guiGetMouseDownDuration(GuiMouseButton button);

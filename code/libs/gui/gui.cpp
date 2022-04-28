@@ -940,6 +940,13 @@ guiKeyPressed(GuiKey key)
     return ImGui::IsKeyPressed(key, true);
 }
 
+I32
+guiKeyPressedCount(GuiKey key)
+{
+    auto &io = ImGui::GetIO();
+    return ImGui::GetKeyPressedAmount(key, io.KeyRepeatDelay, io.KeyRepeatRate);
+}
+
 bool
 guiKeyCtrl(void)
 {
@@ -962,6 +969,12 @@ Vec2
 guiGetMousePos(void)
 {
     return ImGui::GetMousePos();
+}
+
+Vec2
+guiGetMouseDelta(void)
+{
+    return ImGui::GetIO().MouseDelta;
 }
 
 F32
