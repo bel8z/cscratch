@@ -159,23 +159,36 @@ guiGl3_BackendData()
 
 // Functions
 
+inline CF_INTERNAL void
+guiGl3_Toggle(GLenum cap, bool enabled)
+{
+    if (enabled)
+    {
+        glEnable(cap);
+    }
+    else
+    {
+        glDisable(cap);
+    }
+}
+
 CF_INTERNAL void
-guiGl3_SetupRenderState(ImDrawData *draw_data, int fb_width, int fb_height,
+guiGl3_SetupRenderState(ImDrawData *draw_data, GLsizei fb_width, GLsizei fb_height,
                         GLuint vertex_array_object)
 {
     GuiGl3BackendData *bd = guiGl3_BackendData();
 
     // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor
     // enabled, polygon fill
-    glEnable(GL_BLEND);
+    guiGl3_Toggle(GL_BLEND, true);
     glBlendEquation(GL_FUNC_ADD);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_STENCIL_TEST);
-    glEnable(GL_SCISSOR_TEST);
+    guiGl3_Toggle(GL_CULL_FACE, false);
+    guiGl3_Toggle(GL_DEPTH_TEST, false);
+    guiGl3_Toggle(GL_STENCIL_TEST, false);
+    guiGl3_Toggle(GL_SCISSOR_TEST, true);
 #    ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_PRIMITIVE_RESTART
-    if (bd->GlVersion >= 310) glDisable(GL_PRIMITIVE_RESTART);
+    if (bd->GlVersion >= 310) guiGl3_Toggle(GL_PRIMITIVE_RESTART, false);
 #    endif
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -194,20 +207,20 @@ guiGl3_SetupRenderState(ImDrawData *draw_data, int fb_width, int fb_height,
     // Our visible imgui space lies from draw_data->DisplayPos (top left) to
     // draw_data->DisplayPos+data_data->DisplaySize (bottom right). DisplayPos is (0,0) for single
     // viewport apps.
-    glViewport(0, 0, (GLsizei)fb_width, (GLsizei)fb_height);
-    float L = draw_data->DisplayPos.x;
-    float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
-    float T = draw_data->DisplayPos.y;
-    float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
+    glViewport(0, 0, fb_width, fb_height);
+    F32 L = draw_data->DisplayPos.x;
+    F32 R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
+    F32 T = draw_data->DisplayPos.y;
+    F32 B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
 #    if defined(GL_CLIP_ORIGIN)
     if (!clip_origin_lower_left)
     {
-        float tmp = T;
+        F32 tmp = T;
         T = B;
         B = tmp;
     } // Swap top and bottom if origin is upper left
 #    endif
-    const float ortho_projection[4][4] = {
+    const F32 ortho_projection[4][4] = {
         {2.0f / (R - L), 0.0f, 0.0f, 0.0f},
         {0.0f, 2.0f / (T - B), 0.0f, 0.0f},
         {0.0f, 0.0f, -1.0f, 0.0f},
@@ -300,14 +313,13 @@ guiGl3_CreateFontsTexture()
     GuiGl3BackendData *bd = guiGl3_BackendData();
 
     // Build texture atlas
+    // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small)
+    // because it is more likely to be compatible with user's existing shaders. If
+    // your ImTextureId represent a higher-level concept than just a GL texture id,
+    // consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
     unsigned char *pixels;
-    int width, height;
-    io.Fonts->GetTexDataAsRGBA32(
-        &pixels, &width,
-        &height); // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small)
-                  // because it is more likely to be compatible with user's existing shaders. If
-                  // your ImTextureId represent a higher-level concept than just a GL texture id,
-                  // consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
+    GLint width, height;
+    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
     // Upload texture to graphics system
     GLint last_texture;
@@ -559,9 +571,9 @@ guiGl3_DeleteDeviceObjects()
 
 //--------------------------------------------------------------------------------------------------
 // MULTI-VIEWPORT / PLATFORM INTERFACE SUPPORT
-// This is an _advanced_ and _optional_ feature, allowing the backend to create and handle multiple
-// viewports simultaneously. If you are new to dear imgui or creating a new binding for dear imgui,
-// it is recommended that you completely ignore this section first..
+// This is an _advanced_ and _optional_ feature, allowing the backend to create and handle
+// multiple viewports simultaneously. If you are new to dear imgui or creating a new binding for
+// dear imgui, it is recommended that you completely ignore this section first..
 //--------------------------------------------------------------------------------------------------
 
 CF_INTERNAL void
@@ -694,15 +706,9 @@ guiGl3Render(GuiDrawData *draw_data)
     GLuint last_texture;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint *)&last_texture);
 #        ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
-    GLuint last_sampler;
-    if (bd->GlVersion >= 330)
-    {
-        glGetIntegerv(GL_SAMPLER_BINDING, (GLint *)&last_sampler);
-    }
-    else
-    {
-        last_sampler = 0;
-    }
+    GLuint last_sampler = (bd->GlVersion >= 330) //
+                              ? glGetIntegerv(GL_SAMPLER_BINDING, (GLint *)&last_sampler)
+                              : 0;
 #        endif
     GLuint last_array_buffer;
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, (GLint *)&last_array_buffer);
@@ -739,8 +745,8 @@ guiGl3Render(GuiDrawData *draw_data)
 
     // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates !=
     // framebuffer coordinates)
-    int fb_width = (int)(draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
-    int fb_height = (int)(draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
+    GLsizei fb_width = (GLsizei)(draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
+    GLsizei fb_height = (GLsizei)(draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
     if (fb_width <= 0 || fb_height <= 0) return;
 
     // Setup desired GL state
@@ -752,9 +758,10 @@ guiGl3Render(GuiDrawData *draw_data)
     guiGl3_SetupRenderState(draw_data, fb_width, fb_height, vertex_array_object);
 
     // Will project scissor/clipping rectangles into framebuffer space
-    ImVec2 clip_off = draw_data->DisplayPos; // (0,0) unless using multi-viewports
-    ImVec2 clip_scale =
-        draw_data->FramebufferScale; // (1,1) unless using retina display which are often (2,2)
+    // (0,0) unless using multi-viewports
+    ImVec2 clip_off = draw_data->DisplayPos;
+    // (1,1) unless using retina display which are often (2,2)
+    ImVec2 clip_scale = draw_data->FramebufferScale;
 
     // Render command lists
     for (int n = 0; n < draw_data->CmdListsCount; n++)
@@ -762,8 +769,10 @@ guiGl3Render(GuiDrawData *draw_data)
         const ImDrawList *cmd_list = draw_data->CmdLists[n];
 
         // Upload vertex/index buffers
-        GLsizeiptr vtx_buffer_size = (GLsizeiptr)cmd_list->VtxBuffer.Size * (int)sizeof(ImDrawVert);
-        GLsizeiptr idx_buffer_size = (GLsizeiptr)cmd_list->IdxBuffer.Size * (int)sizeof(ImDrawIdx);
+        GLsizeiptr vtx_buffer_size =
+            (GLsizeiptr)cmd_list->VtxBuffer.Size * (GLint)sizeof(ImDrawVert);
+        GLsizeiptr idx_buffer_size =
+            (GLsizeiptr)cmd_list->IdxBuffer.Size * (GLint)sizeof(ImDrawIdx);
         if (bd->vbo_size < vtx_buffer_size)
         {
             bd->vbo_size = vtx_buffer_size;
@@ -802,8 +811,8 @@ guiGl3Render(GuiDrawData *draw_data)
                 if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) continue;
 
                 // Apply scissor/clipping rectangle (Y is inverted in OpenGL)
-                glScissor((int)clip_min.x, (int)((float)fb_height - clip_max.y),
-                          (int)(clip_max.x - clip_min.x), (int)(clip_max.y - clip_min.y));
+                glScissor((GLint)clip_min.x, (GLint)((F32)fb_height - clip_max.y),
+                          (GLint)(clip_max.x - clip_min.x), (GLint)(clip_max.y - clip_min.y));
 
                 // Bind texture, Draw
                 glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->GetTexID());
@@ -829,8 +838,8 @@ guiGl3Render(GuiDrawData *draw_data)
     // Restore modified GL state
 #    if !GUI_BACKEND_BACKUP_STATE
     // NOTE (Matteo): Unbind resources and disable ONLY explicitly enabled stuff
-    glDisable(GL_BLEND);
-    glDisable(GL_SCISSOR_TEST);
+    guiGl3_Toggle(GL_BLEND, false);
+    guiGl3_Toggle(GL_SCISSOR_TEST, false);
     glUseProgram(0);
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -848,33 +857,16 @@ guiGl3Render(GuiDrawData *draw_data)
     glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
     glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha,
                         last_blend_dst_alpha);
-    if (last_enable_blend)
-        glEnable(GL_BLEND);
-    else
-        glDisable(GL_BLEND);
-    if (last_enable_cull_face)
-        glEnable(GL_CULL_FACE);
-    else
-        glDisable(GL_CULL_FACE);
-    if (last_enable_depth_test)
-        glEnable(GL_DEPTH_TEST);
-    else
-        glDisable(GL_DEPTH_TEST);
-    if (last_enable_stencil_test)
-        glEnable(GL_STENCIL_TEST);
-    else
-        glDisable(GL_STENCIL_TEST);
-    if (last_enable_scissor_test)
-        glEnable(GL_SCISSOR_TEST);
-    else
-        glDisable(GL_SCISSOR_TEST);
+    guiGl3_Toggle(GL_BLEND, last_enable_blend);
+    guiGl3_Toggle(GL_CULL_FACE, last_enable_cull_face);
+    guiGl3_Toggle(GL_DEPTH_TEST, last_enable_depth_test);
+    guiGl3_Toggle(GL_STENCIL_TEST, last_enable_stencil_test);
+    guiGl3_Toggle(GL_SCISSOR_TEST, last_enable_scissor_test);
+
 #        ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_PRIMITIVE_RESTART
     if (bd->GlVersion >= 310)
     {
-        if (last_enable_primitive_restart)
-            glEnable(GL_PRIMITIVE_RESTART);
-        else
-            glDisable(GL_PRIMITIVE_RESTART);
+        guiGl3_Toggle(GL_PRIMITIVE_RESTART, last_enable_primitive_restart);
     }
 #        endif
 
