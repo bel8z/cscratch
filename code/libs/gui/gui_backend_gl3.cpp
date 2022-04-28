@@ -9,8 +9,7 @@
 #endif
 
 #if !defined(GUI_BACKEND_BACKUP_STATE)
-// TODO (Matteo): Fix application code in order to disable this
-#    define GUI_BACKEND_BACKUP_STATE 1
+#    define GUI_BACKEND_BACKUP_STATE 0
 #endif
 
 //--------------------------------------------------------------------------------------------------
@@ -239,22 +238,6 @@ guiGl3_SetupRenderState(ImDrawData *draw_data, int fb_width, int fb_height,
     glVertexAttribPointer(bd->attr_color, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert),
                           (GLvoid *)IM_OFFSETOF(ImDrawVert, col));
 }
-
-#    if !GUI_BACKEND_BACKUP_STATE
-CF_INTERNAL void
-guiGl3_ResetRenderState(void)
-{
-    glDisable(GL_BLEND);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_STENCIL_TEST);
-    glDisable(GL_SCISSOR_TEST);
-    glUseProgram(0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
-#    endif
 
 // If you get an error please report on github. You may try different GL context version or GLSL
 // version. See GL<>GLSL version table at the top of this file.
@@ -699,11 +682,13 @@ guiGl3Render(GuiDrawData *draw_data)
 {
     GuiGl3BackendData *bd = guiGl3_BackendData();
 
+    // NOTE (Matteo): This is required both for backup and rendering
+    glActiveTexture(GL_TEXTURE0);
+
     // Backup GL state
 #    if GUI_BACKEND_BACKUP_STATE
     GLenum last_active_texture;
     glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint *)&last_active_texture);
-    glActiveTexture(GL_TEXTURE0);
     GLuint last_program;
     glGetIntegerv(GL_CURRENT_PROGRAM, (GLint *)&last_program);
     GLuint last_texture;
@@ -843,8 +828,15 @@ guiGl3Render(GuiDrawData *draw_data)
 
     // Restore modified GL state
 #    if !GUI_BACKEND_BACKUP_STATE
-    guiGl3_ResetRenderState();
+    // NOTE (Matteo): Unbind resources and disable ONLY explicitly enabled stuff
+    glDisable(GL_BLEND);
+    glDisable(GL_SCISSOR_TEST);
+    glUseProgram(0);
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 #    else
+    // NOTE (Matteo): Restore ALL previous state
     glUseProgram(last_program);
     glBindTexture(GL_TEXTURE_2D, last_texture);
 #        ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
