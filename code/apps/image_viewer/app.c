@@ -849,6 +849,16 @@ APP_API APP_UPDATE_FN(appUpdate)
 
     //==== Tool windows ====//
 
+    if (state->style)
+    {
+        guiBegin(STYLE_WINDOW, &state->style);
+        guiThemeSelector("Theme");
+        // TODO (Matteo): Should this be really available?
+        guiSeparator();
+        guiStyleEditor();
+        guiEnd();
+    }
+
     if (state->fonts)
     {
         guiBegin(FONTS_WINDOW, &state->fonts);
@@ -870,13 +880,6 @@ APP_API APP_UPDATE_FN(appUpdate)
                 state->plat->paths->base.buf);
         guiText("App data path:%.*s", (I32)state->plat->paths->data.len,
                 state->plat->paths->data.buf);
-        guiEnd();
-    }
-
-    if (state->style)
-    {
-        guiBegin(STYLE_WINDOW, &state->style);
-        guiStyleEditor();
         guiEnd();
     }
 
