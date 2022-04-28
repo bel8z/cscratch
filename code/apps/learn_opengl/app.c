@@ -62,8 +62,11 @@ struct AppState
     Platform *plat;
 
     GfxState gfx;
+    Camera cam;
 
     CfLog log;
+
+    Duration last_update;
 
     // Output
     Srgb32 clear_color;
@@ -141,11 +144,19 @@ APP_API APP_CREATE_FN(appCreate)
     // NOTE (Matteo): Memory comes cleared to 0
     AppState *app = memAlloc(plat->heap, sizeof(*app));
 
+    // Startup-only initialization
     app->plat = plat;
     app->clear_color = SRGB32_SOLID(115, 140, 153); // R = 0.45, G = 0.55, B = 0.60
     app->log = cfLogCreate(plat->vmem, CF_MB(1));
     app->log_box = true;
 
+    imageInit(app->plat->heap);
+    cameraInit(&app->cam);
+
+    app->cam.pos.z = 3;
+    app->last_update = clockElapsed(&app->plat->clock);
+
+    // Hot-reload initialization
     appLoad(app);
 
     return app;
@@ -166,9 +177,6 @@ APP_API APP_FN(appLoad)
         // TODO (Matteo): Log using IMGUI
         cfLogAppendF(&app->log, "OpenGL 3.3 is not supported!");
     }
-
-    // Init image library
-    imageInit(app->plat->heap);
 
     // Init graphics state
     gfxInit(&app->gfx, &app->log, app->plat->paths, app->plat->file);
@@ -344,7 +352,6 @@ gfxProc(GfxState *gfx, CfLog *log)
     glPolygonMode(GL_FRONT, GL_LINE);
 
     // Bind the pipeline
-
     shaderBind(gfx->shader);
 
     glActiveTexture(GL_TEXTURE0);
@@ -359,6 +366,8 @@ gfxProc(GfxState *gfx, CfLog *log)
 
     glBindVertexArray(gfx->VAO);
     glDrawElements(GL_TRIANGLES, CF_ARRAY_SIZE(indices), GL_UNSIGNED_INT, 0);
+
+    shaderClear();
 }
 
 APP_API APP_UPDATE_FN(appUpdate)
@@ -423,5 +432,17 @@ APP_API APP_UPDATE_FN(appUpdate)
         guiMetricsWindow(&state->metrics);
     }
 
+    // Place camera
+    Duration now = clockElapsed(&state->plat->clock);
+    Duration delta = timeSub(state->last_update, now);
+    Vec2 cam_ofst = {
+        .x = guiKeyPressedCount(GuiKey_D) - guiKeyPressedCount(GuiKey_A),
+        .y = guiKeyPressedCount(GuiKey_W) - guiKeyPressedCount(GuiKey_S),
+    };
+    cameraDirect(&state->cam, guiGetMouseDelta());
+    cameraMove(&state->cam, cam_ofst, (F32)timeGetSeconds(delta));
+    state->last_update = now;
+
     gfxProc(&state->gfx, &state->log);
+    CF_UNUSED(gfxProc);
 }

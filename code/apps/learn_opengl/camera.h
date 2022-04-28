@@ -20,6 +20,9 @@ typedef struct Camera
     F32 speed, sensitivity;
 } Camera;
 
+/// Initialize the camera with default parameters
+CAMERA_API void cameraInit(Camera *self);
+
 /// Change camera orientation according to the given offset applied in the given time delta
 CAMERA_API void cameraMove(Camera *self, Vec2 dpos, F32 dt);
 
@@ -45,6 +48,24 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wunused-function")
 #    endif
 
 #    define HALF_PI (0.5f * M_PI32)
+
+void
+cameraInit(Camera *self)
+{
+    self->pos = VEC3_0;
+    self->right = VEC3_X;
+    self->up = VEC3_Y;
+    self->front = vecNegate3(VEC3_Z);
+
+    self->pitch = 0;
+    self->yaw = -HALF_PI;
+
+    // TODO (Matteo): Handle fov in radians like all other angles
+    self->fov = 45;
+
+    self->speed = 2.5f;
+    self->sensitivity = 0.001f;
+}
 
 void
 cameraMove(Camera *self, Vec2 dpos, F32 dt)
