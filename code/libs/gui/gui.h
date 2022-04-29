@@ -302,6 +302,10 @@ CF_API bool guiColorEdit(Cstr label, Srgb32 *color);
 
 CF_API void guiStyleEditor(void);
 
+//=== Plots ===//
+
+CF_API void guiTestPlot(Cstr label);
+
 //=== Fonts handling ===//
 
 /// Helper struct to tweak IMGUI font handling

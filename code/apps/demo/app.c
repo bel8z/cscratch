@@ -655,6 +655,9 @@ APP_API APP_UPDATE_FN(appUpdate)
         guiClock(t);
         guiSeparator();
 
+        guiTestPlot("plot");
+        guiSeparator();
+
         if (timeIsGe(timeSub(t, state->log_time), timeDurationMs(1000)))
         {
             state->log_time = t;

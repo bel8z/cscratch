@@ -1256,6 +1256,50 @@ guiStyleEditor(void)
     ImGui::ShowStyleEditor(NULL);
 }
 
+//=== Plots ===//
+
+void
+guiTestPlot(Cstr label)
+{
+    // TODO (Matteo): Is there a better way to implement a scrolling buffer?
+    static Vec2 samples[256] = {0};
+    static Usize sample_count = 0;
+    static const Usize mask = CF_ARRAY_SIZE(samples) - 1;
+
+    Usize count, offset;
+    Usize index = index = sample_count & mask;
+
+    if (index != sample_count)
+    {
+        offset = (index + 1) & mask;
+        count = CF_ARRAY_SIZE(samples);
+    }
+    else
+    {
+        offset = 0;
+        count = sample_count + 1;
+    }
+
+    auto &io = ImGui::GetIO();
+    F32 window = (F32)CF_ARRAY_SIZE(samples) / io.Framerate;
+    F32 time = io.DeltaTime;
+    if (sample_count) time += samples[(sample_count - 1) & mask].x;
+
+    samples[index].x = time;
+    samples[index].y = io.Framerate;
+    ++sample_count;
+
+    if (ImPlot::BeginPlot(label))
+    {
+        ImPlot::SetupLegend(ImPlotLocation_South, ImPlotLegendFlags_Outside);
+        ImPlot::SetupAxis(ImAxis_Y1, "Hz", ImPlotAxisFlags_AutoFit);
+        ImPlot::SetupAxisLimits(ImAxis_X1, time - window, time, ImPlotCond_Always);
+        ImPlot::PlotLine("Framerate", &samples[0].x, &samples[0].y, count, offset,
+                         sizeof(*samples));
+        ImPlot::EndPlot();
+    }
+}
+
 //=== File dialogs ===//
 
 // NOTE (Matteo): On windows I use the system dialogs for lazyness (and better experience
