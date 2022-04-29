@@ -235,7 +235,6 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     // Cleanup
     guiGl3Shutdown();
     guiShutdown(platform->gui);
-
     app_api.destroy(app_state);
 
     return 0;

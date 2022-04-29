@@ -260,6 +260,7 @@ CF_API void guiEnd(void);
 
 CF_API void guiMetricsWindow(bool *p_open);
 CF_API void guiDemoWindow(bool *p_open);
+CF_API void guiPlotDemoWindow(bool *p_open);
 
 // NOTE (Matteo): Deprecated?
 CF_API void guiBeginFullScreen(Cstr label, bool docking, bool menu_bar);

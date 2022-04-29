@@ -66,12 +66,13 @@ guiData()
 void
 guiSetContext(GuiContext *ctx)
 {
-    CF_ASSERT_NOT_NULL(ctx);
-
     IMGUI_CHECKVERSION();
+
+    CF_ASSERT_NOT_NULL(ctx);
 
     ImGui::SetCurrentContext(ctx);
     ImGui::SetAllocatorFunctions(guiAlloc, guiFree, &guiData());
+    ImPlot::SetCurrentContext(guiData().implot);
 }
 
 GuiMemory
@@ -818,6 +819,12 @@ void
 guiDemoWindow(bool *p_open)
 {
     ImGui::ShowDemoWindow(p_open);
+}
+
+void
+guiPlotDemoWindow(bool *p_open)
+{
+    ImPlot::ShowDemoWindow(p_open);
 }
 
 //=== Log ===//

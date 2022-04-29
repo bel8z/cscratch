@@ -9,6 +9,7 @@ message(STATUS "backend parent directory: ${PARENT_DIR}")
 #------------------#
 
 set(IMGUI_DIR ${EXT_DIR}/imgui)
+set(IMPLOT_DIR ${EXT_DIR}/implot-v0.13)
 set(BACKEND_DIR ${IMGUI_DIR}/backends)
 set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
 set(GLFW_DIR ${EXT_DIR}/glfw-3.3.6)
@@ -34,12 +35,9 @@ message(STATUS "backend gui config: ${GUI_CONFIG}")
 #-------------#
 set(GUI_NAME gui)
 
-set(GUI_SOURCES 
-    ${IMGUI_DIR}/imgui.cpp
-    ${IMGUI_DIR}/imgui_draw.cpp
-    ${IMGUI_DIR}/imgui_demo.cpp
-    ${IMGUI_DIR}/imgui_tables.cpp
-    ${IMGUI_DIR}/imgui_widgets.cpp
+file(GLOB GUI_SOURCES 
+    ${IMGUI_DIR}/*.cpp
+    ${IMPLOT_DIR}/*.cpp
     ${IMGUI_DIR}/misc/freetype/imgui_freetype.cpp
     ${LIBS_DIR}/gui/gui.c
     ${LIBS_DIR}/gui/gui.cpp)
@@ -51,6 +49,7 @@ target_link_libraries(${GUI_NAME} PRIVATE freetype)
 target_include_directories(${GUI_NAME} 
     PRIVATE 
         ${IMGUI_DIR}
+        ${IMPLOT_DIR}
         ${IMGUI_DIR}/misc/freetype
         ${EXT_DIR}/stb
     PUBLIC
@@ -64,7 +63,11 @@ set(WIN_SOURCES ${LIBS_DIR}/gui/win.cpp)
 
 add_library(${WIN_NAME} STATIC ${WIN_SOURCES})
 
-target_include_directories(${WIN_NAME} PRIVATE ${IMGUI_DIR} ${IMGUI_DIR}/misc/freetype)
+target_include_directories(${WIN_NAME} 
+    PRIVATE 
+        ${IMGUI_DIR} 
+        ${IMPLOT_DIR} 
+        ${IMGUI_DIR}/misc/freetype)
 target_link_libraries(${WIN_NAME} PUBLIC ${GUI_NAME} PRIVATE glfw)
 
 #------------------------#
@@ -80,7 +83,7 @@ set(BACKEND_SOURCES
 
 add_library(${BACKEND_NAME} STATIC ${BACKEND_SOURCES})
 
-target_include_directories(${BACKEND_NAME} PRIVATE ${IMGUI_DIR})
+target_include_directories(${BACKEND_NAME} PRIVATE ${IMGUI_DIR} ${IMPLOT_DIR})
 target_link_libraries(${BACKEND_NAME} PUBLIC 
     ${WIN_NAME} 
     ${OPENGL_gl_LIBRARY})

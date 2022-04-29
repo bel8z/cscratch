@@ -14,7 +14,8 @@
 
 typedef struct AppWindows
 {
-    bool demo;
+    bool gui_demo;
+    bool plot_demo;
     bool metrics;
     bool stats;
     bool fonts;
@@ -562,7 +563,8 @@ APP_API APP_UPDATE_FN(appUpdate)
             guiMenuItem("Stats", &state->windows.stats);
             guiMenuItem("Metrics", &state->windows.metrics);
             guiSeparator();
-            guiMenuItem("Demo window", &state->windows.demo);
+            guiMenuItem("Gui demo", &state->windows.gui_demo);
+            guiMenuItem("Plot demo", &state->windows.plot_demo);
             guiEndMenu();
         }
 
@@ -571,7 +573,8 @@ APP_API APP_UPDATE_FN(appUpdate)
 
     guiDockSpace(GuiDockStyle_Transparent);
 
-    if (state->windows.demo) guiDemoWindow(&state->windows.demo);
+    if (state->windows.gui_demo) guiDemoWindow(&state->windows.gui_demo);
+    if (state->windows.plot_demo) guiPlotDemoWindow(&state->windows.plot_demo);
 
     if (state->windows.fonts)
     {
@@ -623,7 +626,9 @@ APP_API APP_UPDATE_FN(appUpdate)
         Duration t = clockElapsed(clock);
         CalendarTime now = localTime(systemTime());
 
-        guiCheckbox("Demo Window", &state->windows.demo);
+        guiCheckbox("Gui demo", &state->windows.gui_demo);
+        guiSameLine();
+        guiCheckbox("Plot demo", &state->windows.plot_demo);
         guiSlider("float", &f, 0.0f, 1.0f);
         guiColorEdit("clear color", &state->clear_color);
         guiSeparator();

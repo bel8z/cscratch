@@ -88,7 +88,6 @@ guiInit(GuiInitInfo *gui, GuiOpenGLVersion *out_gl_ver)
     CF_ASSERT_NOT_NULL(gui);
 
     GLFWwindow *window = NULL;
-    GuiContext *ctx = NULL;
 
     // Setup platform
     {
@@ -119,6 +118,7 @@ guiInit(GuiInitInfo *gui, GuiOpenGLVersion *out_gl_ver)
     }
 
     // Setup IMGUI
+    GuiContext *ctx = NULL;
     {
         IMGUI_CHECKVERSION();
 
@@ -131,6 +131,7 @@ guiInit(GuiInitInfo *gui, GuiOpenGLVersion *out_gl_ver)
         ImGui::SetAllocatorFunctions(guiAlloc, guiFree, gui_data);
 
         ctx = ImGui::CreateContext(gui->shared_atlas);
+        gui_data->implot = ImPlot::CreateContext();
 
         ImGuiIO &io = ImGui::GetIO();
 
@@ -183,6 +184,7 @@ guiShutdown(GuiContext *ctx)
 
     GuiData *gui_data = (GuiData *)ImGui::GetIO().UserData;
 
+    ImPlot::DestroyContext(gui_data->implot);
     ImGui::DestroyContext(ctx);
 
     CF_ASSERT(gui_data->memory.size == 0, "Possible GUI memory leak");
