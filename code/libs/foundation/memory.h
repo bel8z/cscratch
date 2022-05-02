@@ -48,7 +48,7 @@ CF_API void memFree(MemAllocator a, void *mem, Usize size);
 CF_API void memFreeAlign(MemAllocator a, void *mem, Usize size, Usize align);
 
 // NOTE (Matteo): Those are the very basics required to implement a dynamic array
-// and are offered in case the full-fledged MemArray is not needed or suitable.
+// and are offered in case the full-fledged MemBuffer is not needed or suitable.
 
 #define memAllocArray(allocator, Type, cap) memRealloc(allocator, NULL, 0, (cap) * sizeof(Type))
 

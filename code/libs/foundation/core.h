@@ -516,11 +516,9 @@ typedef struct MemAllocator
 /// Macro to define a typed, dynamically allocated array
 /// Can be used as an anonymous struct or member, or as a typedef for building a specific API.
 /// Functionality is implemented in mem_array.inl
-#define MemArray(Type)                                                                   \
+#define MemBuffer(Type)                                                                  \
     struct                                                                               \
     {                                                                                    \
-        /* Allocator used for growing the array dynamically */                           \
-        MemAllocator alloc;                                                              \
         /* Actual array storage */                                                       \
         Type *data;                                                                      \
         /* Size of the array (number of stored items) */                                 \
@@ -531,7 +529,7 @@ typedef struct MemAllocator
     }
 
 /// Dynamic buffer for raw memory
-typedef MemArray(U8) MemBuffer;
+typedef MemBuffer(U8) MemByteBuffer;
 
 //-------------//
 //   Strings   //
@@ -553,9 +551,10 @@ typedef struct Str
 /// Dynamic string buffer
 typedef struct StrBuilder
 {
+    MemAllocator alloc;
     // NOTE (Matteo): Including a dynamic array as an anonymous struct allows for
     // both extension and easy usage of the array API
-    MemArray(Char8);
+    MemBuffer(Char8);
 } StrBuilder;
 
 /// Fixed size string buffer, useful for temporary string allocation or for storing

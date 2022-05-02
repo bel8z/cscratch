@@ -4,11 +4,12 @@
 #include "foundation/core.h"
 #include "foundation/error.h"
 #include "foundation/mem_array.inl"
+#include "foundation/memory.h"
 
 #include <stdio.h>
 
 typedef I32 MyType;
-typedef MemArray(MyType) MyArray;
+typedef MemBuffer(MyType) MyArray;
 
 void
 arrayPrint(MyArray *a)
@@ -34,11 +35,11 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     MemAllocator std_alloc = platform->heap;
 
     MyArray array = {0};
-    memArrayInit(&array, std_alloc);
+    // memArrayInit(&array, std_alloc);
 
-    memArrayPush(&array, 0);
-    memArrayPush(&array, 1);
-    memArrayPush(&array, 2);
+    CF_ASSERT(!memArrayPushAlloc(&array, 0, std_alloc), "Array allocating push FAILED");
+    CF_ASSERT(!memArrayPushAlloc(&array, 1, std_alloc), "Array allocating push FAILED");
+    CF_ASSERT(!memArrayPushAlloc(&array, 2, std_alloc), "Array allocating push FAILED");
 
     arrayPrint(&array);
 
@@ -47,19 +48,23 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         CF_ASSERT(array.data[i] == (MyType)i, "Array push FAILED");
     }
 
-    CF_ASSERT(memArrayPop(&array) == 2, "Array pop FAILED");
-    CF_ASSERT(memArrayPop(&array) == 1, "Array pop FAILED");
-    CF_ASSERT(memArrayPop(&array) == 0, "Array pop FAILED");
+    I32 popped;
+    CF_ASSERT(!memArrayPop(&array, &popped) && popped == 2, "Array pop FAILED");
+    CF_ASSERT(!memArrayPop(&array, &popped) && popped == 1, "Array pop FAILED");
+    CF_ASSERT(!memArrayPop(&array, &popped) && popped == 0, "Array pop FAILED");
 
     arrayPrint(&array);
 
-    CF_ASSERT(memArrayEmpty(&array), "Array should be empty");
+    CF_ASSERT(!array.size, "Array should be empty");
 
-    memArrayPush(&array, 0);
-    memArrayPush(&array, 1);
-    memArrayPush(&array, 2);
-    memArrayPush(&array, 3);
-    memArrayPush(&array, 4);
+    CF_ASSERT(!memArrayPush(&array, 0), "Array push FAILED");
+    CF_ASSERT(!memArrayPush(&array, 1), "Array push FAILED");
+    CF_ASSERT(!memArrayPush(&array, 2), "Array push FAILED");
+    CF_ASSERT(!memArrayPush(&array, 3), "Array push FAILED");
+
+    CF_ASSERT(memArrayPush(&array, 4), "Array push UNEXPECTED SUCCESS");
+
+    CF_ASSERT(!memArrayPushAlloc(&array, 4, std_alloc), "Array allocating push FAILED");
 
     arrayPrint(&array);
 
@@ -68,7 +73,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         CF_ASSERT(array.data[i] == (MyType)i, "");
     }
 
-    memArrayRemove(&array, 1);
+    memArrayStableRemove(&array, 1);
 
     arrayPrint(&array);
 
@@ -101,7 +106,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         CF_ASSERT(array.data[i] == test_insert[i], "Array insert FAILED");
     }
 
-    memArrayShutdown(&array);
+    // memArrayShutdown(&array);
 
     return 0;
 }

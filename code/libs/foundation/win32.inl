@@ -34,7 +34,7 @@ typedef struct Str16
     Usize len;         // Lenght in chars of the string (not including terminators)
 } Str16;
 
-typedef MemArray(Char16) StrBuf16;
+typedef MemBuffer(Char16) StrBuf16;
 
 CF_INTERNAL inline Str16
 str16FromCstr(Cstr16 cstr)

@@ -3,95 +3,99 @@
 /// Foundation dynamic array implementation
 /// This is not an API header, include it in implementation files only
 
-#include "core.h"
-#include "memory.h"
-
-#define memArrayGrowCapacity(array, req) cfMax(req, memGrowArrayCapacity((array)->capacity))
-
-#define memArrayInit(array, allocator) \
-    do                                 \
-    {                                  \
-        (array)->alloc = (allocator);  \
-        (array)->data = 0;             \
-        (array)->capacity = 0;         \
-        (array)->size = 0;             \
-    } while (0)
-
-#define memArrayInitCap(array, allocator, init_capacity)                               \
-    do                                                                                 \
-    {                                                                                  \
-        (array)->alloc = (allocator);                                                  \
-        (array)->data = 0;                                                             \
-        (array)->data = memReallocArray((allocator), (array)->data, 0, init_capacity); \
-        (array)->capacity = (init_capacity);                                           \
-        (array)->size = 0;                                                             \
-    } while (0)
-
-#define memArrayShutdown(array) memFreeArray((array)->alloc, (array)->data, (array)->capacity)
-
-/// Size of the stored items in bytes (useful for 'memcpy' and the like)
-#define memArrayBytes(array) ((array)->size * sizeof(*(array)->data))
-
-#define memArrayEmpty(array) ((array)->size == 0)
-
-#define memArrayFull(array) ((array)->size == (array)->capacity)
-
-/// Pointer to the first element of the array
-#define memArrayFirst(array) ((array)->data)
-/// Pointer to the last element of the array
-#define memArrayLast(array) (memArrayEnd(array) - 1)
-/// Pointer to one past the last element of the array
-#define memArrayEnd(array) ((array)->data + (array)->size)
-
-#define memArrayClear(array) ((array)->size = 0)
-
-/// Ensure the array have the requested capacity by growing it if needed
-// TODO (Matteo): Geometric growth here too?
-#define memArrayEnsure(array, required_cap)                                                   \
-    ((array)->capacity < required_cap                                                         \
-         ? ((array)->data = memReallocArray((array)->alloc, (array)->data, (array)->capacity, \
-                                            memArrayGrowCapacity(array, required_cap)),       \
-            (array)->capacity = memArrayGrowCapacity(array, required_cap))                    \
-         : 0)
-
-/// Reserve capacity for the requested room
-#define memArrayReserve(array, room) memArrayEnsure(array, (array)->size + (room))
-
-/// Resize the array to the given number of elements
-#define memArrayResize(array, new_size) \
-    (memArrayEnsure(array, new_size), (array)->size = (new_size))
-
-/// Resize the array by adding the given amount of (0-initialized) elements
-#define memArrayExtend(array, amount) memArrayResize((array), ((array)->size + (amount)))
-
-/// Push the given item at the end of the array
-#define memArrayPush(array, item) (memArrayReserve(array, 1), (array)->data[(array)->size++] = item)
-
-/// Pop and return the last element of the array
-#define memArrayPop(array) ((array)->data[--(array)->size])
-
-/// Insert the given item at the given position in the array
-#define memArrayInsert(array, index, item)                                                     \
-    do                                                                                         \
-    {                                                                                          \
-        memArrayPush(array, item);                                                             \
-        memCopyArray((array)->data + index, (array)->data + index + 1, (array)->size - index); \
-        (array)->data[index] = item;                                                           \
-    } while (0)
-
-/// Remove the item at the given position in the array
-/// The items after the removed item are relocated
-#define memArrayRemove(array, index)                                                           \
-    do                                                                                         \
-    {                                                                                          \
-        memCopyArray((array)->data + index + 1, (array)->data + index, (array)->size - index); \
-        (array)->size--;                                                                       \
-    } while (0)
-
-/// Remove the item at the given position in the array, without relocation (the
-/// last element of the array takes the place of the removed item)
-#define memArraySwapRemove(array, index) ((array)->data[(index)] = memArrayPop(array))
-
 // TODO (Matteo):
 // * Range insertion/removal
 // * Trim unused memory
+
+#include "core.h"
+#include "error.h"
+#include "memory.h"
+
+//=== Non-allocating API ===//
+
+#define memArrayClear(array) ((array)->size = 0)
+
+#define memArrayBytes(array) ((array)->size * sizeof((array)->data))
+
+#define memArrayResize(array, required) \
+    ((required) < (array)->capacity ? ((array)->size = (required), Error_None) : Error_BufferFull)
+
+#define memArrayExtend(array, slice_size, out_slice)                          \
+    ((array)->size + slice_size < (array)->capacity                           \
+         ? (((out_slice) ? *(out_slice) = (array)->data + (array)->size : 0), \
+            (array)->size += slice_size, Error_None)                          \
+         : Error_BufferFull)
+
+#define memArrayPush(array, item)                          \
+    ((array)->size == (array)->capacity ? Error_BufferFull \
+                                        : ((array)->data[(array)->size++] = (item), Error_None))
+
+#define memArrayPop(array, item_ptr) \
+    ((array)->size ? (*(item_ptr) = (array)->data[--(array)->size], Error_None) : Error_BufferEmpty)
+
+#define memArrayInsert(array, at, item)                                                         \
+    (memArrayResize((array), (array)->size + 1)                                                 \
+         ? Error_BufferFull                                                                     \
+         : (memCopyArray((array)->data + (at), (array)->data + (at) + 1, (array)->size - (at)), \
+            (array)->data[at] = (item), Error_None))
+
+#define memArraySwapRemove(array, at)         \
+    ((at) >= (array)->size ? Error_OutOfRange \
+                           : (memArrayPop((array), &(array)->data[(at)]), Error_None))
+
+#define memArrayStableRemove(array, at)                                                           \
+    ((at) >= (array)->size                                                                        \
+         ? Error_OutOfRange                                                                       \
+         : (memCopyArray((array)->data + (at) + 1, (array)->data + (at), --(array)->size - (at)), \
+            Error_None))
+
+//=== Allocating API ===//
+
+#define memArrayFree(array, allocator) \
+    ((array)->size = 0, (void)memFreeArray(allocator, (array)->data, (array)->capacity))
+
+#define memArrayEnsure(array, required_capacity, allocator)                              \
+    mem__ArrayGrow((void **)(&(array)->data), &(array)->capacity, sizeof((array)->data), \
+                   required_capacity, allocator)
+
+#define memArrayReserve(array, room, allocator) \
+    memArrayEnsure(array, ((array)->size + room), allocator)
+
+#define memArrayResizeAlloc(array, required, allocator)             \
+    (memArrayEnsure(array, required, allocator) ? Error_OutOfMemory \
+                                                : memArrayResize(array, required))
+
+#define memArrayExtendAlloc(array, slice_size, allocator, out_slice) \
+    (memArrayEnsure(array, (array)->size + (slice_size), allocator)  \
+         ? Error_OutOfMemory                                         \
+         : memArrayExtend(array, slice_size, out_slice))
+
+#define memArrayPushAlloc(array, item, allocator)                            \
+    (memArrayEnsure(array, (array)->size + 1, allocator) ? Error_OutOfMemory \
+                                                         : memArrayPush(array, item))
+
+#define memArrayInsertAlloc(array, at, item, allocator)                      \
+    (memArrayEnsure(array, (array)->size + 1, allocator) ? Error_OutOfMemory \
+                                                         : memArrayInsert(array, at, item))
+
+CF_INTERNAL ErrorCode32
+mem__ArrayGrow(void **data, Usize *cap, Usize elem_size, Usize required, MemAllocator allocator)
+{
+    CF_ASSERT_NOT_NULL(data);
+    CF_ASSERT_NOT_NULL(cap);
+
+    if (required > *cap)
+    {
+        Usize new_cap = memGrowArrayCapacity(*cap);
+        CF_ASSERT(cfIsPowerOf2(new_cap), "Capacity not a power of 2");
+        while (new_cap < required) new_cap <<= 1;
+
+        void *new_data = memRealloc(allocator, *data, *cap * elem_size, new_cap * elem_size);
+        if (!new_data) return Error_OutOfMemory;
+
+        *data = new_data;
+        *cap = new_cap;
+    }
+
+    return Error_None;
+}

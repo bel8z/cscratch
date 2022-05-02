@@ -110,7 +110,7 @@ CF_INTERNAL StrBuf16
 win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAllocator alloc)
 {
     StrBuf16 out_filter = {0};
-    memArrayInitCap(&out_filter, alloc, 1024);
+    memArrayEnsure(&out_filter, 1024, alloc);
 
     if (num_filters == 0) return out_filter;
 
@@ -120,9 +120,9 @@ win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAlloc
         Str filter_name = strFromCstr(filter->name);
         Usize name_size = win32Utf8To16(filter_name, NULL, 0) + 1;
 
-        memArrayReserve(&out_filter, name_size);
-        win32Utf8To16(filter_name, memArrayEnd(&out_filter), name_size);
-        memArrayExtend(&out_filter, name_size);
+        Char16 *slice;
+        memArrayExtendAlloc(&out_filter, name_size, alloc, &slice);
+        win32Utf8To16(filter_name, slice, name_size);
 
         for (Usize ext_no = 0; ext_no < filter->num_extensions; ++ext_no)
         {
@@ -131,12 +131,11 @@ win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAlloc
 
             // Prepend '*' to the extension - not documented but actually required
             memArrayPush(&out_filter, L'*');
-            memArrayReserve(&out_filter, ext_size);
-            win32Utf8To16(ext, memArrayEnd(&out_filter), ext_size);
-            memArrayExtend(&out_filter, ext_size);
+            memArrayExtendAlloc(&out_filter, ext_size, alloc, &slice);
+            win32Utf8To16(ext, slice, ext_size);
 
             // Replace null terminator with ';' to separate extensions
-            *memArrayLast(&out_filter) = L';';
+            out_filter.data[out_filter.size - 1] = L';';
         }
 
         // Append 2 null terminators (required since null terminators are used
@@ -198,7 +197,7 @@ guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc)
         result.code = GuiFileDialogResult_Cancel;
     }
 
-    memArrayShutdown(&filt);
+    memArrayFree(&filt, alloc);
 
     return result;
 }
