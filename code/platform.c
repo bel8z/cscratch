@@ -12,15 +12,12 @@
 // Foundation library
 #include "foundation/colors.h"
 #include "foundation/core.h"
+#include "foundation/error.h"
 #include "foundation/io.h"
 #include "foundation/math.inl"
 #include "foundation/memory.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"
-
-// Standard library
-// TODO (Matteo): Get rid of it (currently here only for stderr)
-#include <stdio.h>
 
 //------------------------------------------------------------------------------
 // OS specific platform layer
@@ -33,13 +30,6 @@
 #else
 #    error "OS specific layer not implemented"
 #endif
-
-//------------------------------------------------------------------------------
-// Local function declarations
-//------------------------------------------------------------------------------
-
-// TODO (Matteo): Better logging
-#define logError(...) fprintf(stderr, __VA_ARGS__)
 
 //------------------------------------------------------------------------------
 // Application API
@@ -143,7 +133,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     // Initialize OpenGL loader
     if (!gloadInit(NULL) || !gloadIsSupported((I32)gl_ver.major, (I32)gl_ver.minor))
     {
-        logError("Failed to initialize OpenGL loader!\n");
+        CF_LOG("Failed to initialize OpenGL loader!\n");
         return -2;
     }
     CF_ASSERT_NOT_NULL(gl);

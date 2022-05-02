@@ -14,12 +14,15 @@
 #    define CF__CRASH() *((int *)0) = 0
 #endif
 
+// TODO (Matteo): Better logging system
+#define CF_LOG(...) fprintf(stderr, __VA_ARGS__)
+
 #define CF__ERROR_PRINT(msg) \
-    fprintf(stderr, "Unexpected error - %s\nFile: %s\nLine: %d\n", msg, CF_FILE, CF_LINE)
+    CF_LOG("Unexpected error - %s\nFile: %s\nLine: %d\n", msg, CF_FILE, CF_LINE)
 
 #define CF__ASSERT_PRINT(expr, msg)                                                             \
-    fprintf(stderr, "Assertion failed - %s: %s\nFile: %s\nLine: %d\n", msg, CF_STRINGIFY(expr), \
-            CF_FILE, CF_LINE)
+    CF_LOG("Assertion failed - %s: %s\nFile: %s\nLine: %d\n", msg, CF_STRINGIFY(expr), CF_FILE, \
+           CF_LINE)
 
 /// CF_CRASH: Guaranteed program crash + error reporting
 #define CF_CRASH(msg) ((CF__ERROR_PRINT(msg), CF__CRASH(), 0))
