@@ -388,7 +388,7 @@ appPushFile(AppState *app, Cstr root_name, Str filename)
 {
     if (app->max_files == app->num_files)
     {
-        Usize next_cap = memGrowArrayCapacity(app->max_files);
+        Usize next_cap = (app->max_files) ? (app->max_files << 1) : 1;
         app->files = memArenaReallocArray(app->main, app->files, app->max_files, next_cap);
         app->max_files = next_cap;
     }

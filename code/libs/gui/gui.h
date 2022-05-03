@@ -375,6 +375,7 @@ typedef struct GuiFileDialogResult
 {
     Str filename;
     U8 code;
+    ErrorCode32 error; 
 } GuiFileDialogResult;
 
 CF_API GuiFileDialogResult guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc);

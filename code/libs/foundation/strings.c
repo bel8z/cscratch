@@ -3,6 +3,8 @@
 #include "error.h"
 #include "memory.h"
 
+#include "mem_buffer.inl"
+
 #include <ctype.h>
 #include <stdio.h>
 
@@ -242,29 +244,18 @@ strContains(Str str, Char8 c)
 //   Dynamic string building   //
 //-----------------------------//
 
-#define _sbValidate(sb) \
-    (CF_ASSERT((sb) && (sb)->data && (sb)->size >= 1, "Invalid string builder state")) // NOLINT
-
-CF_INTERNAL void
-strBuilderResize(StrBuilder *sb, Usize new_size)
+CF_INTERNAL inline strBuilderValidate(StrBuilder *sb)
 {
-    if (sb->capacity < new_size)
-    {
-        Usize next_cap = cfMax(new_size, memGrowArrayCapacity(sb->capacity));
-        sb->data = memRealloc(sb->alloc, sb->data, sb->capacity, next_cap);
-        sb->capacity = next_cap;
-    }
-
-    sb->size = new_size;
+    (CF_ASSERT((sb) && (sb)->data && (sb)->size >= 1, "Invalid string builder state"));
 }
 
 void
 strBuilderInit(StrBuilder *sb, MemAllocator alloc)
 {
     CF_ASSERT_NOT_NULL(sb);
+
     sb->alloc = alloc;
-    sb->capacity = 1;
-    sb->data = memAlloc(alloc, sb->capacity);
+    memBufferEnsure(sb, 1, alloc);
     strBuilderClear(sb);
 }
 
@@ -274,9 +265,7 @@ strBuilderInitFrom(StrBuilder *sb, MemAllocator alloc, Str str)
     CF_ASSERT_NOT_NULL(sb);
 
     sb->alloc = alloc;
-    sb->capacity = sb->size = str.len + 1;
-    sb->data = memAlloc(alloc, sb->capacity);
-
+    memBufferEnsure(sb, str.len + 1, alloc);
     memCopy(str.buf, sb->data, str.len);
     sb->data[str.len] = 0;
 }
@@ -285,15 +274,14 @@ void
 strBuilderInitWith(StrBuilder *sb, MemAllocator alloc, Usize cap)
 {
     sb->alloc = alloc;
-    sb->capacity = cfMin(1, cap);
-    sb->data = memAlloc(alloc, sb->capacity);
+    memBufferEnsure(sb, cfMin(1, cap), alloc);
     strBuilderClear(sb);
 }
 
 void
 strBuilderShutdown(StrBuilder *sb)
 {
-    memFree(sb->alloc, sb->data, sb->capacity);
+    memBufferFree(sb, sb->alloc);
 }
 
 void
@@ -307,12 +295,12 @@ strBuilderClear(StrBuilder *sb)
 void
 strBuilderAppendStr(StrBuilder *sb, Str what)
 {
-    _sbValidate(sb);
+    strBuilderValidate(sb);
 
     // Write over the previous null terminator
     Usize nul_pos = sb->size - 1;
 
-    strBuilderResize(sb, sb->size + what.len);
+    memBufferResizeAlloc(sb, sb->size + what.len, sb->alloc);
 
     memCopy(what.buf, sb->data + nul_pos, what.len);
 
@@ -323,7 +311,7 @@ strBuilderAppendStr(StrBuilder *sb, Str what)
 bool
 strBuilderPrint(StrBuilder *sb, Cstr fmt, ...)
 {
-    _sbValidate(sb);
+    strBuilderValidate(sb);
 
     va_list args;
     va_start(args, fmt);
@@ -336,7 +324,7 @@ strBuilderPrint(StrBuilder *sb, Cstr fmt, ...)
 bool
 strBuilderPrintV(StrBuilder *sb, Cstr fmt, va_list args)
 {
-    _sbValidate(sb);
+    strBuilderValidate(sb);
 
     va_list args_copy;
     va_copy(args_copy, args);
@@ -348,7 +336,7 @@ strBuilderPrintV(StrBuilder *sb, Cstr fmt, va_list args)
     if (len < 0) return false;
 
     // Keep room for the null terminator
-    strBuilderResize(sb, len + 1);
+    memBufferResizeAlloc(sb, len + 1, sb->alloc);
 
     vsnprintf(sb->data, sb->size, fmt, args); // NOLINT
 
@@ -360,7 +348,7 @@ strBuilderPrintV(StrBuilder *sb, Cstr fmt, va_list args)
 bool
 strBuilderAppend(StrBuilder *sb, Cstr fmt, ...)
 {
-    _sbValidate(sb);
+    strBuilderValidate(sb);
 
     va_list args;
     va_start(args, fmt);
@@ -373,7 +361,7 @@ strBuilderAppend(StrBuilder *sb, Cstr fmt, ...)
 bool
 strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args)
 {
-    _sbValidate(sb);
+    strBuilderValidate(sb);
 
     va_list args_copy;
     va_copy(args_copy, args);
@@ -387,7 +375,8 @@ strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args)
     // Write over the previous null terminator
     Usize nul_pos = sb->size - 1;
 
-    strBuilderResize(sb, sb->size + len);
+    memBufferResizeAlloc(sb, sb->size + len, sb->alloc);
+
     CF_ASSERT(sb->size >= len + 1, "Buffer not extended correctly");
 
     vsnprintf(sb->data + nul_pos, len + 1, fmt, args); // NOLINT
@@ -401,13 +390,13 @@ strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args)
 Str
 strBuilderView(StrBuilder *sb)
 {
-    _sbValidate(sb);
+    strBuilderValidate(sb);
     return (Str){.buf = sb->data, .len = sb->size - 1};
 }
 
 Cstr
 strBuilderCstr(StrBuilder *sb)
 {
-    _sbValidate(sb);
+    strBuilderValidate(sb);
     return sb->data;
 }

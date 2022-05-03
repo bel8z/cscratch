@@ -507,29 +507,27 @@ typedef struct MemAllocator
     MEM_ALLOCATOR_FN((*func));
 } MemAllocator;
 
-//-------------------//
-//   Dynamic array   //
-//-------------------//
+//---------------------//
+//   Dynamic buffers   //
+//---------------------//
 
-// TODO (Matteo): Naming review
-
-/// Macro to define a typed, dynamically allocated array
+/// Macro to define a typed buffer, represented as {pointer, capacity, size}
 /// Can be used as an anonymous struct or member, or as a typedef for building a specific API.
-/// Functionality is implemented in mem_array.inl
-#define MemBuffer(Type)                                                                  \
-    struct                                                                               \
-    {                                                                                    \
-        /* Actual array storage */                                                       \
-        Type *data;                                                                      \
-        /* Size of the array (number of stored items) */                                 \
-        Usize size;                                                                      \
-        /* Capacity of the array (number of elements that can be stored before the array \
-         * grows) */                                                                     \
-        Usize capacity;                                                                  \
+/// Functionality is implemented in mem_buffer.inl, handling both fixed and dynamic capacity
+#define MemBuffer(Type)                                                                            \
+    struct                                                                                         \
+    {                                                                                              \
+        /* Pointer to actual storage */                                                            \
+        Type *data;                                                                                \
+        /* Current size of the buffer (number of stored items) */                                  \
+        Usize size;                                                                                \
+        /* Capacity of the buffer (number of elements that can be stored - acts as a watermark for \
+         * dynamic growth) */                                                                      \
+        Usize capacity;                                                                            \
     }
 
-/// Dynamic buffer for raw memory
-typedef MemBuffer(U8) MemByteBuffer;
+/// Buffer of raw memory, uses the same API as MemBuffer
+typedef MemBuffer(U8) MemRawBuffer;
 
 //-------------//
 //   Strings   //

@@ -1,7 +1,7 @@
 #include "gui.h"
 
 #include "foundation/math.inl"
-#include "foundation/mem_array.inl"
+#include "foundation/mem_buffer.inl"
 #include "foundation/memory.h"
 #include "foundation/strings.h"
 
@@ -106,13 +106,15 @@ CF_GLOBAL const DWORD win32FileDialogFlags[2] = {
     [GuiFileDialog_Save] = OFN_OVERWRITEPROMPT,
 };
 
-CF_INTERNAL StrBuf16
-win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAllocator alloc)
+CF_INTERNAL ErrorCode32
+win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAllocator alloc,
+                       StrBuf16 *out_filter)
 {
-    StrBuf16 out_filter = {0};
-    memArrayEnsure(&out_filter, 1024, alloc);
+    ErrorCode32 err = Error_None;
 
-    if (num_filters == 0) return out_filter;
+    if ((err = memBufferEnsure(out_filter, 1024, alloc))) return err;
+
+    if (num_filters == 0) return Error_None;
 
     for (GuiFileDialogFilter *filter = filters, *end = filter + num_filters; //
          filter < end; ++filter)
@@ -121,7 +123,7 @@ win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAlloc
         Usize name_size = win32Utf8To16(filter_name, NULL, 0) + 1;
 
         Char16 *slice;
-        memArrayExtendAlloc(&out_filter, name_size, alloc, &slice);
+        if ((err = memBufferExtendAlloc(out_filter, name_size, alloc, &slice))) return err;
         win32Utf8To16(filter_name, slice, name_size);
 
         for (Usize ext_no = 0; ext_no < filter->num_extensions; ++ext_no)
@@ -130,74 +132,82 @@ win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAlloc
             Usize ext_size = win32Utf8To16(ext, NULL, 0) + 1;
 
             // Prepend '*' to the extension - not documented but actually required
-            memArrayPush(&out_filter, L'*');
-            memArrayExtendAlloc(&out_filter, ext_size, alloc, &slice);
+            if ((err = memBufferPushAlloc(out_filter, L'*', alloc))) return err;
+            if ((err = memBufferExtendAlloc(out_filter, ext_size, alloc, &slice))) return err;
             win32Utf8To16(ext, slice, ext_size);
 
             // Replace null terminator with ';' to separate extensions
-            out_filter.data[out_filter.size - 1] = L';';
+            out_filter->data[out_filter->size - 1] = L';';
         }
 
         // Append 2 null terminators (required since null terminators are used
         // internally to separate filters)
-        memArrayPush(&out_filter, 0);
-        memArrayPush(&out_filter, 0);
+        if ((err = memBufferPushAlloc(out_filter, 0, alloc))) return err;
+        if ((err = memBufferPushAlloc(out_filter, 0, alloc))) return err;
     }
 
-    return out_filter;
+    return Error_None;
 }
 
 GuiFileDialogResult
 guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc)
 {
     GuiFileDialogResult result = {.code = GuiFileDialogResult_Error};
-
     Char16 name[MAX_PATH] = {0};
+    StrBuf16 filt = {0};
 
     if (strValid(parms->filename_hint))
     {
         Usize name_length = win32Utf8To16(parms->filename_hint, NULL, 0);
-        if (name_length >= MAX_PATH) return result;
+        if (name_length >= MAX_PATH)
+        {
+            result.error = Error_BufferFull;
+            return result;
+        }
         win32Utf8To16(parms->filename_hint, name, name_length);
     }
 
-    StrBuf16 filt = win32BuildFilterString(parms->filters, parms->num_filters, alloc);
+    result.error = win32BuildFilterString(parms->filters, parms->num_filters, alloc, &filt);
 
-    OPENFILENAMEW ofn = {0};
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = NULL;
-    ofn.lpstrFile = name;
-    ofn.nMaxFile = MAX_PATH;
-    ofn.lpstrFilter = filt.data; // L"Image files\0*.jpg;*.jpeg;*.bmp;*.png\0";
-    ofn.nFilterIndex = 1;
-    ofn.lpstrFileTitle = NULL;
-    ofn.nMaxFileTitle = 0;
-    ofn.lpstrInitialDir = NULL;
-    ofn.Flags = win32FileDialogFlags[parms->type];
-
-    if (win32FileDialog[parms->type](&ofn))
+    if (!result.error)
     {
-        Str16 filename16 = str16FromCstr(ofn.lpstrFile);
+        OPENFILENAMEW ofn = {0};
+        ofn.lStructSize = sizeof(ofn);
+        ofn.hwndOwner = NULL;
+        ofn.lpstrFile = name;
+        ofn.nMaxFile = MAX_PATH;
+        ofn.lpstrFilter = filt.data; // L"Image files\0*.jpg;*.jpeg;*.bmp;*.png\0";
+        ofn.nFilterIndex = 1;
+        ofn.lpstrFileTitle = NULL;
+        ofn.nMaxFileTitle = 0;
+        ofn.lpstrInitialDir = NULL;
+        ofn.Flags = win32FileDialogFlags[parms->type];
 
-        result.filename.len = win32Utf16To8(filename16, NULL, 0);
-        result.filename.buf = (Char8 *)memAlloc(alloc, result.filename.len);
-
-        if (result.filename.buf)
+        if (win32FileDialog[parms->type](&ofn))
         {
-            result.code = GuiFileDialogResult_Ok;
-            win32Utf16To8(filename16, (Char8 *)result.filename.buf, result.filename.len);
+            Str16 filename16 = str16FromCstr(ofn.lpstrFile);
+
+            result.filename.len = win32Utf16To8(filename16, NULL, 0);
+            result.filename.buf = (Char8 *)memAlloc(alloc, result.filename.len);
+
+            if (result.filename.buf)
+            {
+                result.code = GuiFileDialogResult_Ok;
+                win32Utf16To8(filename16, (Char8 *)result.filename.buf, result.filename.len);
+            }
+            else
+            {
+                result.filename.len = 0;
+                result.error = Error_OutOfMemory;
+            }
         }
         else
         {
-            result.filename.len = 0;
+            result.code = GuiFileDialogResult_Cancel;
         }
     }
-    else
-    {
-        result.code = GuiFileDialogResult_Cancel;
-    }
 
-    memArrayFree(&filt, alloc);
+    memBufferFree(&filt, alloc);
 
     return result;
 }

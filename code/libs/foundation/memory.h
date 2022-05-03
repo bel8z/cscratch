@@ -57,8 +57,6 @@ CF_API void memFreeAlign(MemAllocator a, void *mem, Usize size, Usize align);
 
 #define memFreeArray(allocator, ptr, cap) memFree(allocator, ptr, (cap) * sizeof(*(ptr)))
 
-#define memGrowArrayCapacity(cap) ((cap) ? 2 * (cap) : 1)
-
 //------------------------//
 //   Virtual memory API   //
 //------------------------//
