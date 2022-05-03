@@ -17,7 +17,7 @@
 #define memBufferClear(buffer) ((buffer)->size = 0)
 
 /// Size of the buffer in bytes
-#define memBufferBytes(buffer) ((buffer)->size * sizeof((buffer)->data))
+#define memBufferBytes(buffer) ((buffer)->size * sizeof(*(buffer)->data))
 
 /// Set the size of the buffer to the required values, unless it is greater than capacity
 #define memBufferResize(buffer, required) \
@@ -75,8 +75,8 @@
      /**/ (buffer)->capacity = 0, (buffer)->size = 0)
 
 /// Ensure the buffer has the required capacity, allocating memory if needed
-#define memBufferEnsure(buffer, required_capacity, allocator)                                \
-    mem__BufferGrow((void **)(&(buffer)->data), &(buffer)->capacity, sizeof((buffer)->data), \
+#define memBufferEnsure(buffer, required_capacity, allocator)                                 \
+    mem__BufferGrow((void **)(&(buffer)->data), &(buffer)->capacity, sizeof(*(buffer)->data), \
                     required_capacity, allocator)
 
 // The following operations are equivalent to the non allocating ones, but uses the provided
