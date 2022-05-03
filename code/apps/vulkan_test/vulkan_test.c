@@ -279,7 +279,7 @@ appDiagnostic(App *app, Cstr format, ...)
 
     va_list args;
     va_start(args, format);
-    I32 len = strPrintV(buffer, CF_ARRAY_SIZE(buffer), format, args);
+    Isize len = strPrintV(buffer, CF_ARRAY_SIZE(buffer), format, args);
     va_end(args);
 
     if (len > 0) file->write(file->std_err, (U8 const *)buffer, (Usize)len);
@@ -294,7 +294,7 @@ appTerminate(App *app, Cstr format, ...)
 
     va_list args;
     va_start(args, format);
-    I32 len = strPrintV(buffer, CF_ARRAY_SIZE(buffer), format, args);
+    Isize len = strPrintV(buffer, CF_ARRAY_SIZE(buffer), format, args);
     va_end(args);
 
     if (len > 0) file->write(file->std_err, (U8 const *)buffer, (Usize)len);

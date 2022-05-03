@@ -16,8 +16,11 @@
 /// Clear the size of the buffer to 0
 #define memBufferClear(buffer) ((buffer)->size = 0)
 
+/// Size of the buffer item type in bytes
+#define memBufferItemSize(buffer) sizeof(*(buffer)->data)
+
 /// Size of the buffer in bytes
-#define memBufferBytes(buffer) ((buffer)->size * sizeof(*(buffer)->data))
+#define memBufferBytes(buffer) ((buffer)->size * memBufferItemSize(buffer))
 
 /// Set the size of the buffer to the required values, unless it is greater than capacity
 #define memBufferResize(buffer, required) \
@@ -75,8 +78,8 @@
      /**/ (buffer)->capacity = 0, (buffer)->size = 0)
 
 /// Ensure the buffer has the required capacity, allocating memory if needed
-#define memBufferEnsure(buffer, required_capacity, allocator)                                 \
-    mem__BufferGrow((void **)(&(buffer)->data), &(buffer)->capacity, sizeof(*(buffer)->data), \
+#define memBufferEnsure(buffer, required_capacity, allocator)                                   \
+    mem__BufferGrow((void **)(&(buffer)->data), &(buffer)->capacity, memBufferItemSize(buffer), \
                     required_capacity, allocator)
 
 // The following operations are equivalent to the non allocating ones, but uses the provided
@@ -103,7 +106,7 @@
                                                             : memBufferInsert(buffer, at, item))
 
 CF_INTERNAL ErrorCode32
-mem__BufferGrow(void **data, Usize *cap, Usize elem_size, Usize required, MemAllocator allocator)
+mem__BufferGrow(void **data, Usize *cap, Usize item_size, Usize required, MemAllocator allocator)
 {
     CF_ASSERT_NOT_NULL(data);
     CF_ASSERT_NOT_NULL(cap);
@@ -114,7 +117,7 @@ mem__BufferGrow(void **data, Usize *cap, Usize elem_size, Usize required, MemAll
         CF_ASSERT(cfIsPowerOf2(new_cap), "Capacity not a power of 2");
         while (new_cap < required) new_cap <<= 1;
 
-        void *new_data = memRealloc(allocator, *data, *cap * elem_size, new_cap * elem_size);
+        void *new_data = memRealloc(allocator, *data, *cap * item_size, new_cap * item_size);
         if (!new_data) return Error_OutOfMemory;
 
         *data = new_data;

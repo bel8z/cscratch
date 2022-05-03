@@ -392,9 +392,9 @@ appPushFile(AppState *app, Cstr root_name, Str filename)
 
     file->state = ImageFileState_Idle;
 
-    bool ok = strPrint(file->filename, FILENAME_SIZE, "%s%.*s", root_name, (I32)filename.len,
-                       filename.buf);
-    CF_ASSERT(ok, "Path is too long!");
+    err = strPrint(file->filename, FILENAME_SIZE, "%s%.*s", root_name, (I32)filename.len,
+                   filename.buf);
+    CF_ASSERT(!err, "Path is too long!");
 }
 
 static void

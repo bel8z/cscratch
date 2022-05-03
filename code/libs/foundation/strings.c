@@ -57,14 +57,14 @@ strBufferInit(StrBuffer *buffer)
 //-----------------------//
 
 // NOTE (Matteo): This returns the length of the written string, ignoring the null terminator
-I32
+Isize
 strPrintV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
 {
     va_list args_copy;
 
     va_copy(args_copy, args);
 
-    I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+    Isize len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
 
     va_end(args_copy);
 
@@ -75,78 +75,78 @@ strPrintV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
     return len;
 }
 
-bool
+ErrorCode32
 strPrint(Char8 *buffer, Usize buffer_size, Cstr fmt, ...)
 {
     va_list args;
 
     va_start(args, fmt);
 
-    I32 len = strPrintV(buffer, buffer_size, fmt, args);
+    Isize len = strPrintV(buffer, buffer_size, fmt, args);
 
     va_end(args);
 
-    return (len >= 0);
+    return (len >= 0) ? Error_None : Error_BufferFull;
 }
 
-bool
+ErrorCode32
 strBufferPrint(StrBuffer *buf, Cstr fmt, ...)
 {
     va_list args;
 
     va_start(args, fmt);
 
-    I32 len = strPrintV(buf->data, buf->str.len, fmt, args);
+    Isize len = strPrintV(buf->data, buf->str.len, fmt, args);
 
     va_end(args);
 
-    if (len < 0) return false;
+    if (len < 0) return Error_BufferFull;
 
     // TODO (Matteo): Should account for the null terminator?
     buf->str.len = len;
 
-    return true;
+    return Error_None;
 }
 
-CF_API bool
+ErrorCode32
 strBufferAppendStr(StrBuffer *buf, Str what)
 {
     Usize avail = CF_ARRAY_SIZE(buf->data) - buf->str.len;
-    if (avail < what.len) return false;
+    if (avail < what.len) return Error_BufferFull;
 
     memCopy(what.buf, buf->data + buf->str.len, what.len);
     buf->str.len += what.len;
 
-    return true;
+    return Error_None;
 }
 
-CF_API bool
+ErrorCode32
 strBufferAppend(StrBuffer *buf, Cstr fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    bool result = strBufferAppendV(buf, fmt, args);
+    ErrorCode32 result = strBufferAppendV(buf, fmt, args);
     va_end(args);
     return result;
 }
 
-CF_API bool
+ErrorCode32
 strBufferAppendV(StrBuffer *buf, Cstr fmt, va_list args)
 {
     va_list args_copy;
     va_copy(args_copy, args);
-    I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+    Isize len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
     va_end(args_copy);
 
-    if (len < 0) return false;
+    if (len < 0) return Error_Reserved; // TODO (Matteo): Better diagnostics
 
     Usize avail = CF_ARRAY_SIZE(buf->data) - buf->str.len;
-    if (avail < len) return false;
+    if (avail < len) return Error_BufferFull;
 
     vsnprintf(buf->data + buf->str.len, avail, fmt, args); // NOLINT
     buf->str.len += len;
 
-    return true;
+    return Error_None;
 }
 
 //-----------------------//
@@ -250,50 +250,61 @@ strBuilderValidate(StrBuilder *sb)
     (CF_ASSERT((sb) && (sb)->data && (sb)->size >= 1, "Invalid string builder state"));
 }
 
-void
+ErrorCode32
 strBuilderInit(StrBuilder *sb, MemAllocator alloc)
 {
     CF_ASSERT_NOT_NULL(sb);
 
     sb->alloc = alloc;
-    memBufferEnsure(sb, 1, alloc);
-    strBuilderClear(sb);
+    ErrorCode32 err = memBufferEnsure(sb, 1, alloc);
+    if (!err) strBuilderClear(sb);
+    return err;
 }
 
-void
+ErrorCode32
 strBuilderInitFrom(StrBuilder *sb, MemAllocator alloc, Str str)
 {
     CF_ASSERT_NOT_NULL(sb);
 
     sb->alloc = alloc;
-    memBufferEnsure(sb, str.len + 1, alloc);
-    memCopy(str.buf, sb->data, str.len);
-    sb->data[str.len] = 0;
+    ErrorCode32 err = memBufferEnsure(sb, str.len + 1, alloc);
+    if (!err)
+    {
+        memCopy(str.buf, sb->data, str.len);
+        sb->data[str.len] = 0;
+    }
+    return err;
 }
 
-void
+ErrorCode32
 strBuilderInitWith(StrBuilder *sb, MemAllocator alloc, Usize cap)
 {
+    CF_ASSERT_NOT_NULL(sb);
+
     sb->alloc = alloc;
-    memBufferEnsure(sb, cfMin(1, cap), alloc);
-    strBuilderClear(sb);
+    ErrorCode32 err = memBufferEnsure(sb, cfMin(1, cap), alloc);
+    if (!err) strBuilderClear(sb);
+    return err;
 }
 
 void
 strBuilderShutdown(StrBuilder *sb)
 {
+    CF_ASSERT_NOT_NULL(sb);
     memBufferFree(sb, sb->alloc);
 }
 
 void
 strBuilderClear(StrBuilder *sb)
 {
+    CF_ASSERT_NOT_NULL(sb);
+    CF_ASSERT_NOT_NULL(sb->data);
     CF_ASSERT(sb->capacity >= 1, "Invalid string builder capacity");
     sb->size = 1;
     sb->data[0] = 0;
 }
 
-void
+ErrorCode32
 strBuilderAppendStr(StrBuilder *sb, Str what)
 {
     strBuilderValidate(sb);
@@ -301,28 +312,31 @@ strBuilderAppendStr(StrBuilder *sb, Str what)
     // Write over the previous null terminator
     Usize nul_pos = sb->size - 1;
 
-    memBufferResizeAlloc(sb, sb->size + what.len, sb->alloc);
+    ErrorCode32 err = memBufferResizeAlloc(sb, sb->size + what.len, sb->alloc);
+    if (err) return err;
 
     memCopy(what.buf, sb->data + nul_pos, what.len);
 
     // Null terminate again
     sb->data[sb->size - 1] = 0;
+
+    return Error_None;
 }
 
-bool
+ErrorCode32
 strBuilderPrint(StrBuilder *sb, Cstr fmt, ...)
 {
     strBuilderValidate(sb);
 
     va_list args;
     va_start(args, fmt);
-    bool result = strBuilderPrintV(sb, fmt, args);
+    ErrorCode32 result = strBuilderPrintV(sb, fmt, args);
     va_end(args);
 
     return result;
 }
 
-bool
+ErrorCode32
 strBuilderPrintV(StrBuilder *sb, Cstr fmt, va_list args)
 {
     strBuilderValidate(sb);
@@ -330,36 +344,37 @@ strBuilderPrintV(StrBuilder *sb, Cstr fmt, va_list args)
     va_list args_copy;
     va_copy(args_copy, args);
 
-    I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+    Isize len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
 
     va_end(args_copy);
 
-    if (len < 0) return false;
+    if (len < 0) return Error_Reserved; // TODO (Matteo): Better diagnostics
 
     // Keep room for the null terminator
-    memBufferResizeAlloc(sb, len + 1, sb->alloc);
+    ErrorCode32 err = memBufferResizeAlloc(sb, len + 1, sb->alloc);
+    if (err) return err;
 
     vsnprintf(sb->data, sb->size, fmt, args); // NOLINT
 
     CF_ASSERT(sb->data && sb->data[sb->size - 1] == 0, "Missing null terminator");
 
-    return true;
+    return Error_None;
 }
 
-bool
+ErrorCode32
 strBuilderAppend(StrBuilder *sb, Cstr fmt, ...)
 {
     strBuilderValidate(sb);
 
     va_list args;
     va_start(args, fmt);
-    bool result = strBuilderAppendV(sb, fmt, args);
+    ErrorCode32 result = strBuilderAppendV(sb, fmt, args);
     va_end(args);
 
     return result;
 }
 
-bool
+ErrorCode32
 strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args)
 {
     strBuilderValidate(sb);
@@ -367,16 +382,17 @@ strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args)
     va_list args_copy;
     va_copy(args_copy, args);
 
-    I32 len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+    Isize len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
 
     va_end(args_copy);
 
-    if (len < 0) return false;
+    if (len < 0) return Error_Reserved; // TODO (Matteo): Better diagnostics
 
     // Write over the previous null terminator
     Usize nul_pos = sb->size - 1;
 
-    memBufferResizeAlloc(sb, sb->size + len, sb->alloc);
+    ErrorCode32 err = memBufferResizeAlloc(sb, sb->size + len, sb->alloc);
+    if (err) return err;
 
     CF_ASSERT(sb->size >= len + 1, "Buffer not extended correctly");
 
@@ -385,7 +401,7 @@ strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args)
     // Null terminate again
     sb->data[sb->size - 1] = 0;
 
-    return true;
+    return Error_None;
 }
 
 Str

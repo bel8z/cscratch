@@ -38,19 +38,19 @@ CF_INLINE_API void strBufferInit(StrBuffer *buffer);
 /// Print formatted string on the given static buffer
 /// This does not take a Str because it represents a string view more than a char buffer.
 /// You can use a Str by explicitly calling strPrintV(str.buf, str.len, ...).
-CF_API I32 strPrintV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args) CF_VPRINTF_LIKE(2);
+CF_API Isize strPrintV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args) CF_VPRINTF_LIKE(2);
 
 /// Print formatted string on the given static buffer
 /// This does not take a Str because it represents a string view more than a char buffer.
 /// You can use a Str by explicitly calling strPrint(str.buf, str.len, ...).
-CF_API bool strPrint(Char8 *buffer, Usize buffer_size, Cstr fmt, ...) CF_PRINTF_LIKE(2);
+CF_API ErrorCode32 strPrint(Char8 *buffer, Usize buffer_size, Cstr fmt, ...) CF_PRINTF_LIKE(2);
 
 /// Print formatted string on the given dynamic buffer
-CF_API bool strBufferPrint(StrBuffer *buf, Cstr fmt, ...) CF_PRINTF_LIKE(1);
+CF_API ErrorCode32 strBufferPrint(StrBuffer *buf, Cstr fmt, ...) CF_PRINTF_LIKE(1);
 
-CF_API bool strBufferAppendStr(StrBuffer *buf, Str what);
-CF_API bool strBufferAppend(StrBuffer *buf, Cstr fmt, ...) CF_PRINTF_LIKE(1);
-CF_API bool strBufferAppendV(StrBuffer *buf, Cstr fmt, va_list args) CF_VPRINTF_LIKE(1);
+CF_API ErrorCode32 strBufferAppendStr(StrBuffer *buf, Str what);
+CF_API ErrorCode32 strBufferAppend(StrBuffer *buf, Cstr fmt, ...) CF_PRINTF_LIKE(1);
+CF_API ErrorCode32 strBufferAppendV(StrBuffer *buf, Cstr fmt, va_list args) CF_VPRINTF_LIKE(1);
 
 //------------------------------//
 //   String (view) comparison   //
@@ -73,17 +73,17 @@ CF_API Usize strFindLast(Str haystack, Str needle);
 //   Dynamic string building   //
 //-----------------------------//
 
-CF_API void strBuilderInit(StrBuilder *sb, MemAllocator alloc);
-CF_API void strBuilderInitFrom(StrBuilder *sb, MemAllocator alloc, Str str);
-CF_API void strBuilderInitWith(StrBuilder *sb, MemAllocator alloc, Usize cap);
+CF_API ErrorCode32 strBuilderInit(StrBuilder *sb, MemAllocator alloc);
+CF_API ErrorCode32 strBuilderInitFrom(StrBuilder *sb, MemAllocator alloc, Str str);
+CF_API ErrorCode32 strBuilderInitWith(StrBuilder *sb, MemAllocator alloc, Usize cap);
 CF_API void strBuilderShutdown(StrBuilder *sb);
 
 CF_API void strBuilderClear(StrBuilder *sb);
-CF_API void strBuilderAppendStr(StrBuilder *sb, Str what);
-CF_API bool strBuilderAppend(StrBuilder *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1);
-CF_API bool strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args) CF_VPRINTF_LIKE(1);
-CF_API bool strBuilderPrint(StrBuilder *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1);
-CF_API bool strBuilderPrintV(StrBuilder *sb, Cstr fmt, va_list args) CF_VPRINTF_LIKE(1);
+CF_API ErrorCode32 strBuilderAppendStr(StrBuilder *sb, Str what);
+CF_API ErrorCode32 strBuilderAppend(StrBuilder *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1);
+CF_API ErrorCode32 strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args) CF_VPRINTF_LIKE(1);
+CF_API ErrorCode32 strBuilderPrint(StrBuilder *sb, Cstr fmt, ...) CF_PRINTF_LIKE(1);
+CF_API ErrorCode32 strBuilderPrintV(StrBuilder *sb, Cstr fmt, va_list args) CF_VPRINTF_LIKE(1);
 
 CF_API Str strBuilderView(StrBuilder *sb);
 CF_API Cstr strBuilderCstr(StrBuilder *sb);
