@@ -37,15 +37,15 @@ U8 const *memAlignForward(U8 const *address, Usize alignment);
 
 //=== Allocation ===//
 
-CF_API void *memAlloc(MemAllocator a, Usize size);
-CF_API void *memAllocAlign(MemAllocator a, Usize size, Usize align);
+CF_INLINE_API void *memAlloc(MemAllocator a, Usize size);
+CF_INLINE_API void *memAllocAlign(MemAllocator a, Usize size, Usize align);
 
-CF_API void *memRealloc(MemAllocator a, void *mem, Usize old_size, Usize new_size);
-CF_API void *memReallocAlign(MemAllocator a, void *mem, Usize old_size, Usize new_size,
-                             Usize align);
+CF_INLINE_API void *memRealloc(MemAllocator a, void *mem, Usize old_size, Usize new_size);
+CF_INLINE_API void *memReallocAlign(MemAllocator a, void *mem, Usize old_size, Usize new_size,
+                                    Usize align);
 
-CF_API void memFree(MemAllocator a, void *mem, Usize size);
-CF_API void memFreeAlign(MemAllocator a, void *mem, Usize size, Usize align);
+CF_INLINE_API void memFree(MemAllocator a, void *mem, Usize size);
+CF_INLINE_API void memFreeAlign(MemAllocator a, void *mem, Usize size, Usize align);
 
 // NOTE (Matteo): Those are the very basics required to implement a dynamic array
 // and are offered in case the full-fledged MemBuffer is not needed or suitable.
@@ -164,7 +164,7 @@ typedef struct MemArenaState
 
 /// Initialize the arena using a reserved block of virtual memory, from which actual pages can be
 /// committed
-CF_API bool memArenaInitOnVmem(MemArena *arena, VMemApi *vmem, void *reserved_block,
+CF_API void memArenaInitOnVmem(MemArena *arena, VMemApi *vmem, void *reserved_block,
                                Usize reserved_size);
 
 /// Initialize the arena using a pre-allocated memory buffer
@@ -230,7 +230,7 @@ CF_API void memArenaRestore(MemArenaState state);
 CF_API bool memArenaSplit(MemArena *arena, MemArena *split, Usize size);
 
 /// Build a generic allocator based on the given arena
-CF_API MemAllocator memArenaAllocator(MemArena *arena);
+CF_INLINE_API MemAllocator memArenaAllocator(MemArena *arena);
 
 // Utility macros for managing temporary allocations
 

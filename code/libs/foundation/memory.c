@@ -200,7 +200,7 @@ mem_arenaDecommitVm(MemArena *arena)
     }
 }
 
-bool
+void
 memArenaInitOnVmem(MemArena *arena, VMemApi *vmem, void *reserved_block, Usize reserved_size)
 {
     CF_ASSERT_NOT_NULL(arena);
@@ -211,8 +211,6 @@ memArenaInitOnVmem(MemArena *arena, VMemApi *vmem, void *reserved_block, Usize r
     arena->allocated = 0;
     arena->committed = 0;
     arena->save_stack = 0;
-
-    return true;
 }
 
 void

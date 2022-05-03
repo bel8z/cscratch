@@ -15,11 +15,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     Usize const storage_size = 1024 * 1024 * 1024;
     void *storage = vmemReserve(platform->vmem, storage_size);
 
-    if (!memArenaInitOnVmem(&arena, platform->vmem, storage, storage_size))
-    {
-        printf("Cannot init memory arena");
-        return -1;
-    }
+    memArenaInitOnVmem(&arena, platform->vmem, storage, storage_size);
 
     I32 *ints = memArenaAllocArray(&arena, I32, 1024);
 

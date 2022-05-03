@@ -499,12 +499,14 @@ typedef U64 SystemTime;
 #define MEM_ALLOCATOR_FN(name) \
     void *name(void *state, void *memory, Usize old_size, Usize new_size, Usize align)
 
+typedef MEM_ALLOCATOR_FN((*MemAllocatorFn));
+
 /// Generic allocator interface
 /// The memory provided by this interface should already be cleared to 0
 typedef struct MemAllocator
 {
     void *state;
-    MEM_ALLOCATOR_FN((*func));
+    MemAllocatorFn func;
 } MemAllocator;
 
 //---------------------//
