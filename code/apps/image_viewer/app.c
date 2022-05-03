@@ -32,11 +32,13 @@
 #include "foundation/colors.h"
 #include "foundation/error.h"
 #include "foundation/io.h"
-#include "foundation/math.inl"
 #include "foundation/memory.h"
 #include "foundation/paths.h"
 #include "foundation/strings.h"
 #include "foundation/task.h"
+
+#include "foundation/math.inl"
+#include "foundation/mem_buffer.inl"
 
 //-------------------//
 //     Constants     //
@@ -125,9 +127,7 @@ struct AppState
 
     /// Array of image file info backed by a large VM allocation (no waste since
     /// memory is committed only when required)
-    ImageFile *files;
-    Usize max_files;
-    Usize num_files;
+    MemBuffer(ImageFile) files;
     Usize curr_file;
     Usize browse_width;
 
@@ -302,9 +302,9 @@ imageViewUpdate(ImageView *iv, Image const *image)
 static void
 appClearImages(AppState *app)
 {
-    for (U32 i = 0; i < app->num_files; ++i)
+    for (U32 i = 0; i < app->files.size; ++i)
     {
-        ImageFile *file = app->files + i;
+        ImageFile *file = app->files.data + i;
 
         CF_ASSERT(file->state != ImageFileState_Queued, "Leaking queued files");
 
@@ -319,7 +319,7 @@ appClearImages(AppState *app)
         }
     }
 
-    app->num_files = 0;
+    memBufferClear(&app->files);
     app->curr_file = USIZE_MAX;
 }
 
@@ -345,18 +345,18 @@ appQueueLoadFiles(AppState *app)
     Usize curr = app->curr_file;
     TaskQueue *queue = app->queue;
 
-    loadFileEnqueue(queue, app->files + curr);
+    loadFileEnqueue(queue, app->files.data + curr);
 
-    if (app->browse_width == app->num_files)
+    if (app->browse_width == app->files.size)
     {
-        for (Usize i = curr + 1; i < app->num_files; ++i)
+        for (Usize i = curr + 1; i < app->files.size; ++i)
         {
-            loadFileEnqueue(queue, app->files + i);
+            loadFileEnqueue(queue, app->files.data + i);
         }
 
         for (Usize i = 0; i < curr; ++i)
         {
-            loadFileEnqueue(queue, app->files + curr - i - 1);
+            loadFileEnqueue(queue, app->files.data + curr - i - 1);
         }
     }
     else
@@ -367,13 +367,13 @@ appQueueLoadFiles(AppState *app)
         Usize mid = app->browse_width / 2;
         for (Usize i = 0; i < mid; ++i)
         {
-            Usize next = cfMod(curr + i + 1, app->num_files);
-            Usize prev = cfMod(curr - i - 1, app->num_files);
+            Usize next = cfMod(curr + i + 1, app->files.size);
+            Usize prev = cfMod(curr - i - 1, app->files.size);
             CF_ASSERT(next != curr, "");
             CF_ASSERT(next != prev, "");
             CF_ASSERT(prev != curr, "");
-            loadFileEnqueue(queue, app->files + next);
-            loadFileEnqueue(queue, app->files + prev);
+            loadFileEnqueue(queue, app->files.data + next);
+            loadFileEnqueue(queue, app->files.data + prev);
         }
     }
 
@@ -386,19 +386,15 @@ appQueueLoadFiles(AppState *app)
 static void
 appPushFile(AppState *app, Cstr root_name, Str filename)
 {
-    if (app->max_files == app->num_files)
-    {
-        Usize next_cap = (app->max_files) ? (app->max_files << 1) : 1;
-        app->files = memArenaReallocArray(app->main, app->files, app->max_files, next_cap);
-        app->max_files = next_cap;
-    }
+    ImageFile *file = NULL;
+    ErrorCode32 err = memBufferExtendAlloc(&app->files, 1, memArenaAllocator(app->main), &file);
+    CF_ASSERT(!err, "Push file should not fail");
 
-    ImageFile *file = app->files + app->num_files++;
     file->state = ImageFileState_Idle;
 
     bool ok = strPrint(file->filename, FILENAME_SIZE, "%s%.*s", root_name, (I32)filename.len,
                        filename.buf);
-    CF_ASSERT(ok, "path is too long!");
+    CF_ASSERT(ok, "Path is too long!");
 }
 
 static void
@@ -437,18 +433,18 @@ appLoadFromFile(AppState *state, Str full_name)
 
         CF_DIAGNOSTIC_POP()
 
-        for (U32 file_no = 0; file_no < state->num_files; ++file_no)
+        for (U32 file_no = 0; file_no < state->files.size; ++file_no)
         {
-            Str temp_name = strFromCstr(state->files[file_no].filename);
+            Str temp_name = strFromCstr(state->files.data[file_no].filename);
             if (strEqualInsensitive(full_name, temp_name))
             {
                 state->curr_file = file_no;
-                state->files[file_no] = file;
+                state->files.data[file_no] = file;
                 break;
             }
         }
 
-        state->browse_width = cfMin(BrowseWidth, state->num_files);
+        state->browse_width = cfMin(BrowseWidth, state->files.size);
         CF_ASSERT(state->curr_file != USIZE_MAX, "At least one image file should be present");
         appQueueLoadFiles(state);
     }
@@ -463,12 +459,12 @@ appBrowseNext(AppState *app)
 {
     CF_ASSERT(app->curr_file != U32_MAX, "Invalid browse command");
 
-    Usize next = cfWrapInc(app->curr_file, app->num_files);
+    Usize next = cfWrapInc(app->curr_file, app->files.size);
 
-    if (app->browse_width != app->num_files)
+    if (app->browse_width != app->files.size)
     {
-        Usize lru = cfMod(app->curr_file - app->browse_width / 2, app->num_files);
-        ImageFile *file = app->files + lru;
+        Usize lru = cfMod(app->curr_file - app->browse_width / 2, app->files.size);
+        ImageFile *file = app->files.data + lru;
         if (file->state == ImageFileState_Loaded)
         {
             imageUnload(&file->image);
@@ -477,7 +473,7 @@ appBrowseNext(AppState *app)
     }
     else
     {
-        CF_ASSERT(app->files[next].state != ImageFileState_Idle, "");
+        CF_ASSERT(app->files.data[next].state != ImageFileState_Idle, "");
     }
 
     app->curr_file = next;
@@ -489,12 +485,12 @@ appBrowsePrev(AppState *app)
 {
     CF_ASSERT(app->curr_file != USIZE_MAX, "Invalid browse command");
 
-    Usize prev = cfWrapDec(app->curr_file, app->num_files);
+    Usize prev = cfWrapDec(app->curr_file, app->files.size);
 
-    if (app->browse_width != app->num_files)
+    if (app->browse_width != app->files.size)
     {
-        Usize lru = cfMod(app->curr_file + app->browse_width / 2, app->num_files);
-        ImageFile *file = app->files + lru;
+        Usize lru = cfMod(app->curr_file + app->browse_width / 2, app->files.size);
+        ImageFile *file = app->files.data + lru;
         if (file->state == ImageFileState_Loaded)
         {
             imageUnload(&file->image);
@@ -503,7 +499,7 @@ appBrowsePrev(AppState *app)
     }
     else
     {
-        CF_ASSERT(app->files[prev].state != ImageFileState_Idle, "");
+        CF_ASSERT(app->files.data[prev].state != ImageFileState_Idle, "");
     }
 
     app->curr_file = prev;
@@ -551,7 +547,7 @@ appImageView(AppState *state)
 
     if (state->curr_file != USIZE_MAX)
     {
-        ImageFile *curr_file = state->files + state->curr_file;
+        ImageFile *curr_file = state->files.data + state->curr_file;
         bool can_browse = true;
 
         switch (curr_file->state)
@@ -667,7 +663,7 @@ appOpenFile(AppState *state)
 
         if (state->curr_file != USIZE_MAX)
         {
-            dlg_parms.filename_hint = strFromCstr(state->files[state->curr_file].filename);
+            dlg_parms.filename_hint = strFromCstr(state->files.data[state->curr_file].filename);
         }
 
         GuiFileDialogResult dlg_result =
@@ -797,7 +793,7 @@ APP_API APP_FN(appDestroy)
     taskShutdown(app->queue);
     appClearImages(app);
     imageViewShutdown(&app->iv);
-    memArenaFreeArray(app->main, app->files, app->max_files);
+    memBufferFree(&app->files, memArenaAllocator(app->main));
     memArenaClear(app->scratch);
     memArenaClear(app->main);
 
