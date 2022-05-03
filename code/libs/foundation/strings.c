@@ -244,7 +244,8 @@ strContains(Str str, Char8 c)
 //   Dynamic string building   //
 //-----------------------------//
 
-CF_INTERNAL inline strBuilderValidate(StrBuilder *sb)
+CF_INTERNAL inline void
+strBuilderValidate(StrBuilder *sb)
 {
     (CF_ASSERT((sb) && (sb)->data && (sb)->size >= 1, "Invalid string builder state"));
 }
