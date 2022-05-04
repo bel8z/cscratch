@@ -133,16 +133,6 @@ target_link_libraries(dummy PRIVATE foundation)
 target_include_directories(dummy PRIVATE ${LIBS_DIR})
 set_c_compile_flags(dummy)
 
-add_executable(test_odbc ${TESTS_DIR}/test_odbc.c ${CONSOLE_ENTRY})
-target_link_libraries(test_odbc PRIVATE foundation)
-target_include_directories(test_odbc PRIVATE ${LIBS_DIR})
-set_c_compile_flags(test_odbc)
-
-add_executable(test_files ${TESTS_DIR}/test_files.c ${CONSOLE_ENTRY})
-target_link_libraries(test_files PRIVATE foundation)
-target_include_directories(test_files PRIVATE ${LIBS_DIR})
-set_c_compile_flags(test_files)
-
 file(GLOB_RECURSE TEST_SOURCES ${TESTS_DIR}/threading/*.c ${CONSOLE_ENTRY})
 add_executable(test_threading ${TEST_SOURCES})
 target_link_libraries(test_threading PRIVATE foundation)
@@ -152,3 +142,20 @@ add_test(threading_basic test_threading)
 add_test(threading_benaphore test_threading 0)
 add_test(threading_auto_reset_event test_threading 1)
 add_test(threading_mpmc_queue test_threading 2)
+
+add_executable(test_files ${TESTS_DIR}/test_files.c ${CONSOLE_ENTRY})
+target_link_libraries(test_files PRIVATE foundation)
+target_include_directories(test_files PRIVATE ${LIBS_DIR})
+set_c_compile_flags(test_files)
+
+# WINDOWS SPECIFIC
+
+add_executable(test_odbc ${TESTS_DIR}/test_odbc.c ${CONSOLE_ENTRY})
+target_link_libraries(test_odbc PRIVATE foundation)
+target_include_directories(test_odbc PRIVATE ${LIBS_DIR})
+set_c_compile_flags(test_odbc)
+
+add_executable(sockets ${TESTS_DIR}/sockets/server.c ${CONSOLE_ENTRY})
+target_link_libraries(sockets PRIVATE foundation)
+target_include_directories(sockets PRIVATE ${LIBS_DIR})
+set_c_compile_flags(sockets)
