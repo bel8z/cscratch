@@ -65,6 +65,7 @@ CF_API void cfThreadDestroy(CfThread thread);
 CF_API bool cfThreadIsRunning(CfThread thread);
 CF_API bool cfThreadWait(CfThread thread, Duration duration);
 CF_API bool cfThreadWaitAll(CfThread *threads, Usize num_threads, Duration duration);
+CF_API Usize cfThreadWaitAny(CfThread *threads, Usize num_threads, Duration duration);
 
 /// Wrapper around threadCreate that allows a more convenient syntax for optional
 /// parameters

@@ -157,6 +157,25 @@ cfThreadWaitAll(CfThread *threads, Usize num_threads, Duration duration)
     return (code < WAIT_OBJECT_0 + count);
 }
 
+Usize
+cfThreadWaitAny(CfThread *threads, Usize num_threads, Duration duration)
+{
+    CF_ASSERT(num_threads <= U32_MAX, "Given number of threads is too large");
+
+    DWORD count = (DWORD)num_threads;
+    DWORD code = WaitForMultipleObjects(count, (HANDLE *)threads, false, win32DurationMs(duration));
+
+    if (code == WAIT_TIMEOUT) return 0;
+
+    if (WAIT_OBJECT_0 <= code && code < WAIT_OBJECT_0 + count)
+    {
+        return code - WAIT_OBJECT_0;
+    }
+
+    win32HandleLastError();
+    return USIZE_MAX;
+}
+
 //------------------------------------------------------------------------------
 
 // Internal implementation of exclusive locking, shared by Mutex and RwLock
