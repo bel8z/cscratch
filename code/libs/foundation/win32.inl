@@ -1,7 +1,5 @@
 // Attempt to include windows headers in a clean way
 
-#pragma once
-
 #include "core.h"
 
 CF_DIAGNOSTIC_PUSH()

@@ -1,7 +1,5 @@
 #include "threading.h"
 
-#include "atom.inl"
-
 //------------------------------------------------------------------------------
 // OS primitives implementation
 

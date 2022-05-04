@@ -1,5 +1,3 @@
-#pragma once
-
 /// Foundation dynamic buffer implementation
 /// This is not an API header, include it in implementation files only
 

@@ -1,5 +1,3 @@
-#pragma once
-
 #include "atom.h"
 #include "error.h"
 
