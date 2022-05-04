@@ -110,6 +110,12 @@ endforeach()
 include(CTest)
 enable_testing()
 
+# set (ASANFLAGS 
+#     -fsanitize=address
+#     -fno-common
+#     -fno-omit-frame-pointer)
+# target_link_libraries(dummy PRIVATE ${ASANFLAGS})
+
 add_executable(test_buffer ${TESTS_DIR}/test_buffer.c ${CONSOLE_ENTRY})
 target_link_libraries(test_buffer PRIVATE foundation)
 target_include_directories(test_buffer PRIVATE ${LIBS_DIR})
@@ -127,12 +133,6 @@ target_link_libraries(dummy PRIVATE foundation)
 target_include_directories(dummy PRIVATE ${LIBS_DIR})
 set_c_compile_flags(dummy)
 
-# set (ASANFLAGS 
-#     -fsanitize=address
-#     -fno-common
-#     -fno-omit-frame-pointer)
-# target_link_libraries(dummy PRIVATE ${ASANFLAGS})
-
 add_executable(test_odbc ${TESTS_DIR}/test_odbc.c ${CONSOLE_ENTRY})
 target_link_libraries(test_odbc PRIVATE foundation)
 target_include_directories(test_odbc PRIVATE ${LIBS_DIR})
@@ -143,16 +143,12 @@ target_link_libraries(test_files PRIVATE foundation)
 target_include_directories(test_files PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_files)
 
-# add_executable(test_threading ${TESTS_DIR}/test_threading.c ${CONSOLE_ENTRY})
-# target_link_libraries(test_threading PRIVATE foundation)
-# target_include_directories(test_threading PRIVATE ${LIBS_DIR})
-# set_c_compile_flags(test_threading)
-
 file(GLOB_RECURSE TEST_SOURCES ${TESTS_DIR}/threading/*.c ${CONSOLE_ENTRY})
 add_executable(test_threading ${TEST_SOURCES})
 target_link_libraries(test_threading PRIVATE foundation)
 target_include_directories(test_threading PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_threading)
-add_test(test_benaphore test_threading 0)
-add_test(test_auto_reset_event test_threading 1)
-add_test(test_mpmc_queue test_threading 2)
+add_test(threading_basic test_threading)
+add_test(threading_benaphore test_threading 0)
+add_test(threading_auto_reset_event test_threading 1)
+add_test(threading_mpmc_queue test_threading 2)

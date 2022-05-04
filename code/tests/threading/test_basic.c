@@ -7,6 +7,8 @@
 
 //------------------------------------------------------------------------------
 
+typedef struct Platform Platform;
+
 enum
 {
     Consumer = 0,
@@ -16,7 +18,8 @@ enum
 
 enum
 {
-    QueueSize = 1024
+    QueueSize = 32,
+    StopSignal = 0,
 };
 
 typedef struct Queue
@@ -33,57 +36,73 @@ typedef struct Data
     Queue *queue;
 } Data;
 
-static CF_THREAD_FN(producerProc)
+CF_INTERNAL void
+produce(Queue *queue, I32 value)
 {
-    Data *d = args;
-    Queue *queue = d->queue;
+    cfMutexAcquire(&queue->lock);
 
-    while (true)
+    fprintf(stdout, "Produced: %d", value);
+
+    queue->buffer[(queue->beg + queue->len) % QueueSize] = value;
+
+    if (queue->len == QueueSize)
     {
-        cfSleep(timeDurationMs(1000));
-        cfMutexAcquire(&queue->lock);
-
-        I32 value = rand();
-
-        fprintf(stdout, "Produced: %d", value);
-
-        queue->buffer[(queue->beg + queue->len) % QueueSize] = value;
-
-        if (queue->len == QueueSize)
-        {
-            // Full buffer, overwrite front
-            queue->beg = (queue->beg + 1) % QueueSize;
-            fprintf(stdout, "\tQueue full");
-        }
-        else
-        {
-            ++queue->len;
-        }
-
-        fprintf(stdout, "\n");
-        fflush(stdout);
-        cfCvSignalOne(&queue->notify);
-        cfMutexRelease(&queue->lock);
+        // Full buffer, overwrite front
+        queue->beg = (queue->beg + 1) % QueueSize;
+        fprintf(stdout, "\tQueue full");
     }
+    else
+    {
+        ++queue->len;
+    }
+
+    fprintf(stdout, "\n");
+    fflush(stdout);
+    cfCvSignalOne(&queue->notify);
+    cfMutexRelease(&queue->lock);
 }
 
-static CF_THREAD_FN(consumerProc)
+CF_INTERNAL CF_THREAD_FN(producerFn)
 {
     Data *d = args;
     Queue *queue = d->queue;
 
-    while (true)
+    for (Usize produced_values = 0; produced_values < QueueSize * 2; ++produced_values)
+    {
+        cfSleep(timeDurationMs(20));
+
+        I32 value = StopSignal;
+        while (value == StopSignal)
+        {
+            value = rand();
+        }
+
+        produce(queue, value);
+    }
+
+    produce(queue, StopSignal);
+}
+
+CF_INTERNAL CF_THREAD_FN(consumerFn)
+{
+    Data *d = args;
+    Queue *queue = d->queue;
+    bool go = true;
+
+    cfSleep(timeDurationMs(1000));
+
+    while (go)
     {
         cfMutexAcquire(&queue->lock);
         if (queue->len)
         {
             I32 value = queue->buffer[queue->beg];
+            if (value == StopSignal) go = false;
 
             queue->beg = (queue->beg + 1) % QueueSize;
             --queue->len;
 
             fprintf(stdout, "Consumed: %d\n", value);
-            fflush(stdout);
         }
         else
         {
@@ -96,9 +115,11 @@ static CF_THREAD_FN(consumerProc)
 CF_DIAGNOSTIC_PUSH()
 CF_DIAGNOSTIC_IGNORE_MSVC(4221)
 
-I32
-platformMain(Platform *platform, CommandLine *cmd_line)
+bool
+testBasic(Platform *platform)
 {
+    CF_UNUSED(platform);
+
     Queue queue = {0};
     Data data = {.queue = &queue};
 
@@ -106,19 +127,20 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     cfCvInit(&queue.notify);
 
     CfThread threads[Count] = {[Producer] = cfThreadCreate(&(CfThreadParms){
-                                   .proc = producerProc,
+                                   .fn = producerFn,
                                    .args = &data,
                                    .debug_name = "Producer thread",
                                }),
                                [Consumer] = cfThreadCreate(&(CfThreadParms){
-                                   .proc = consumerProc,
+                                   .fn = consumerFn,
                                    .args = &data,
                                    .debug_name = "Consumer thread",
                                })};
 
     cfThreadWaitAll(threads, Count, DURATION_INFINITE);
+    fflush(stdout);
 
-    return 0;
+    return true;
 }
 
 CF_DIAGNOSTIC_POP()
