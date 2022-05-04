@@ -1,3 +1,4 @@
+#include "foundation/error.h"
 #include "foundation/threading.h"
 #include "foundation/time.h"
 
@@ -13,7 +14,6 @@
 #define serverLog(msg, ...) fprintf(stderr, "Server: " msg, __VA_ARGS__)
 
 #define DEFAULT_PORT "27015"
-#define DEFAULT_BUFLEN 512
 
 typedef struct Platform Platform;
 typedef struct CommandLine CommandLine;
@@ -38,37 +38,29 @@ serverFn(void *data)
 
     SOCKET listener = INVALID_SOCKET;
     SOCKET client = INVALID_SOCKET;
-    I32 code = 0;
 
     //===================================//
     serverLog("Initializing winsock\n");
 
-    if (getaddrinfo(NULL, DEFAULT_PORT, &hint, &info))
-    {
-        code = WSAGetLastError();
-        goto CLEANUP;
-    }
+    if (getaddrinfo(NULL, DEFAULT_PORT, &hint, &info)) goto CLEANUP;
 
-    serverLog("Server address: %*.s\n", (int)info->ai_addrlen, info->ai_addr->sa_data);
+    CF_ASSERT(info->ai_addrlen == sizeof(struct sockaddr_in), "Logic error");
+    struct sockaddr_in *address = (struct sockaddr_in *)info->ai_addr;
+
+    char addrbuf[256] = {0};
+    serverLog("Server address: %s\n",
+              inet_ntop(address->sin_family, &address->sin_addr, addrbuf, CF_ARRAY_SIZE(addrbuf)));
 
     //===================================//
     serverLog("Creating server socket\n");
 
     listener = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
-    if (listener == INVALID_SOCKET)
-    {
-        code = WSAGetLastError();
-        goto CLEANUP;
-    }
+    if (listener == INVALID_SOCKET) goto CLEANUP;
 
     //===================================//
     serverLog("Binding server socket\n");
 
-    if (bind(listener, info->ai_addr, (I32)info->ai_addrlen))
-    {
-        code = WSAGetLastError();
-        goto CLEANUP;
-    }
+    if (bind(listener, info->ai_addr, (I32)info->ai_addrlen)) goto CLEANUP;
 
     //===================================//
     serverLog("Start listening\n");
@@ -76,21 +68,13 @@ serverFn(void *data)
     // The backlog parameter is set to SOMAXCONN: this value is a special constant that instructs
     // the Winsock provider for this socket to allow a maximum reasonable number of pending
     // connections in the queue.
-    if (listen(listener, SOMAXCONN) == SOCKET_ERROR)
-    {
-        code = WSAGetLastError();
-        goto CLEANUP;
-    }
+    if (listen(listener, SOMAXCONN) == SOCKET_ERROR) goto CLEANUP;
 
     //===================================//
     serverLog("Accept client connection\n");
 
     client = accept(listener, NULL, NULL);
-    if (client == INVALID_SOCKET)
-    {
-        code = WSAGetLastError();
-        goto CLEANUP;
-    }
+    if (client == INVALID_SOCKET) goto CLEANUP;
 
     //===================================//
     serverLog("Handling client connection\n");
@@ -98,7 +82,7 @@ serverFn(void *data)
     // Receive until the peer shuts down the connection
     I32 received = 0;
     I32 sent = 0;
-    char recvbuf[DEFAULT_BUFLEN];
+    char recvbuf[512];
     do
     {
         received = recv(client, recvbuf, CF_ARRAY_SIZE(recvbuf), 0);
@@ -108,11 +92,8 @@ serverFn(void *data)
 
             // Echo the buffer back to the sender
             sent = send(client, recvbuf, received, 0);
-            if (sent == SOCKET_ERROR)
-            {
-                code = WSAGetLastError();
-                goto CLEANUP;
-            }
+            if (sent == SOCKET_ERROR) goto CLEANUP;
+
             serverLog("Bytes sent: %d\n", sent);
         }
         else if (received == 0)
@@ -121,7 +102,6 @@ serverFn(void *data)
         }
         else
         {
-            code = WSAGetLastError();
             goto CLEANUP;
         }
 
@@ -129,12 +109,7 @@ serverFn(void *data)
 
     //===================================//
     serverLog("Shutting down sending side of the connection\n");
-
-    if (shutdown(client, SD_SEND))
-    {
-        code = WSAGetLastError();
-        goto CLEANUP;
-    }
+    shutdown(client, SD_SEND);
 
 CLEANUP:
     if (client != INVALID_SOCKET) closesocket(client);
@@ -142,7 +117,7 @@ CLEANUP:
     if (info) freeaddrinfo(info);
 
     Result *result = data;
-    result->code = code;
+    result->code = WSAGetLastError();
 }
 
 CF_INTERNAL void
@@ -158,16 +133,11 @@ clientFn(void *data)
     };
 
     SOCKET connection = INVALID_SOCKET;
-    I32 code = 0;
 
     //===================================//
     clientLog("Initializing client\n");
 
-    if (getaddrinfo("localhost", DEFAULT_PORT, &hint, &info))
-    {
-        code = WSAGetLastError();
-        goto CLEANUP;
-    }
+    if (getaddrinfo("127.0.0.1", DEFAULT_PORT, &hint, &info)) goto CLEANUP;
 
     //===================================//
     clientLog("Attempting to connect to server\n");
@@ -186,7 +156,6 @@ clientFn(void *data)
     if (connection == INVALID_SOCKET)
     {
         clientLog("Unable to connect to server!\n");
-        code = WSAGetLastError();
         goto CLEANUP;
     }
 
@@ -195,27 +164,19 @@ clientFn(void *data)
 
     char sendbuf[] = "Beccati questo!";
     I32 sent = send(connection, sendbuf, CF_ARRAY_SIZE(sendbuf) - 1, 0);
-    if (sent == SOCKET_ERROR)
-    {
-        code = WSAGetLastError();
-        goto CLEANUP;
-    }
+    if (sent == SOCKET_ERROR) goto CLEANUP;
 
     clientLog("Bytes Sent: %d\n", sent);
 
     //===================================//
     clientLog("Shutting down sending side of the connection\n");
 
-    if (shutdown(connection, SD_SEND))
-    {
-        code = WSAGetLastError();
-        goto CLEANUP;
-    }
+    if (shutdown(connection, SD_SEND)) goto CLEANUP;
 
     //===================================//
     clientLog("Receive until the peer closes the connection\n");
 
-    char recvbuf[DEFAULT_BUFLEN] = {0};
+    char recvbuf[512] = {0};
     I32 received = 0;
     do
     {
@@ -230,7 +191,6 @@ clientFn(void *data)
         }
         else
         {
-            code = WSAGetLastError();
             goto CLEANUP;
         }
     } while (received > 0);
@@ -240,7 +200,7 @@ CLEANUP:
     if (info) freeaddrinfo(info);
 
     Result *result = data;
-    result->code = code;
+    result->code = WSAGetLastError();
 }
 
 I32
@@ -262,13 +222,11 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     CfThread client = cfThreadStart(clientFn, .args = &client_result);
 
     Usize mask = 0;
-
     while (mask != 3)
     {
-        Usize n = cfThreadWaitAny((CfThread[]){server, client}, 2, DURATION_INFINITE);
-        Usize done = 0;
+        Usize done = mask;
 
-        switch (n)
+        switch (cfThreadWaitAny((CfThread[]){server, client}, 2, DURATION_INFINITE))
         {
             case USIZE_MAX: mask = 3; break;
             case 0:
