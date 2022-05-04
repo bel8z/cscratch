@@ -165,7 +165,7 @@ cfThreadWaitAny(CfThread *threads, Usize num_threads, Duration duration)
     DWORD count = (DWORD)num_threads;
     DWORD code = WaitForMultipleObjects(count, (HANDLE *)threads, false, win32DurationMs(duration));
 
-    if (code == WAIT_TIMEOUT) return 0;
+    if (code == WAIT_TIMEOUT) return num_threads;
 
     if (WAIT_OBJECT_0 <= code && code < WAIT_OBJECT_0 + count)
     {

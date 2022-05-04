@@ -65,6 +65,11 @@ CF_API void cfThreadDestroy(CfThread thread);
 CF_API bool cfThreadIsRunning(CfThread thread);
 CF_API bool cfThreadWait(CfThread thread, Duration duration);
 CF_API bool cfThreadWaitAll(CfThread *threads, Usize num_threads, Duration duration);
+
+// TODO (Matteo): Review this API
+/// Wait any of the given thread for completion
+/// Returns the index of the first completed thread, or the number of threads in case of
+/// timeout, or USIZE_MAX in case of error
 CF_API Usize cfThreadWaitAny(CfThread *threads, Usize num_threads, Duration duration);
 
 /// Wrapper around threadCreate that allows a more convenient syntax for optional
