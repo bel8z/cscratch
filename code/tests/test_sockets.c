@@ -23,6 +23,21 @@ typedef struct Result
     I32 code;
 } Result;
 
+typedef HANDLE Iocp;
+
+CF_INTERNAL Iocp
+iocpCreate(Usize max_concurrency)
+{
+    CF_ASSERT(max_concurrency <= U32_MAX, "Overflow");
+    return CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, (DWORD)max_concurrency);
+}
+
+CF_INTERNAL bool
+iocpBindSocket(Iocp iocp, SOCKET socket)
+{
+    return (iocp == CreateIoCompletionPort((HANDLE)socket, iocp, 0, 0));
+}
+
 CF_INTERNAL void
 serverFn(void *data)
 {
@@ -38,6 +53,7 @@ serverFn(void *data)
 
     SOCKET listener = INVALID_SOCKET;
     SOCKET client = INVALID_SOCKET;
+    Iocp iocp = iocpCreate(1);
 
     //===================================//
     serverLog("Initializing winsock\n");
@@ -56,6 +72,8 @@ serverFn(void *data)
 
     listener = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
     if (listener == INVALID_SOCKET) goto CLEANUP;
+
+    iocpBindSocket(iocp, listener);
 
     //===================================//
     serverLog("Binding server socket\n");
@@ -215,41 +233,54 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     I32 code = WSAStartup(MAKEWORD(2, 2), &wsa_data);
     if (code) return code;
 
-    Result server_result = {0};
-    Result client_result = {0};
+    Result results[2] = {{0}, {0}};
+    Cstr names[2] = {
+        "Client",
+        "Server",
+    };
+    CfThread threads[2] = {
+        cfThreadStart(clientFn, .args = results),
+        cfThreadStart(serverFn, .args = results + 1),
+    };
 
-    CfThread server = cfThreadStart(serverFn, .args = &server_result);
-    CfThread client = cfThreadStart(clientFn, .args = &client_result);
-
+#if 0
     Usize mask = 0;
     while (mask != 3)
     {
         Usize done = mask;
+        Usize signaled = cfThreadWaitAny(threads, CF_ARRAY_SIZE(threads), DURATION_INFINITE);
 
-        switch (cfThreadWaitAny((CfThread[]){server, client}, 2, DURATION_INFINITE))
+        switch (signaled)
         {
-            case USIZE_MAX: mask = 3; break;
-            case 0:
-                if ((done |= 1) != mask)
-                {
-                    fprintf(stderr, "Server exited with code: %d\n", server_result.code);
-                }
+            case USIZE_MAX:
+                // ERROR
+                mask = 3;
                 break;
-            case 1:
-                if ((done |= 2) != mask)
+            case CF_ARRAY_SIZE(threads):
+                // NOP
+                break;
+            default:
+                Usize flag = (1 << signaled);
+                if ((done |= flag) != mask)
                 {
-                    fprintf(stderr, "Client exited with code: %d\n", client_result.code);
+                    fprintf(stderr, "%s exited with code: %d\n", names[signaled],
+                            results[signaled].code);
                 }
                 break;
         }
 
         mask = done;
     }
+#else
+    cfThreadWaitAll(threads, CF_ARRAY_SIZE(threads), DURATION_INFINITE);
+    fprintf(stderr, "%s exited with code: %d\n", names[0], results[0].code);
+    fprintf(stderr, "%s exited with code: %d\n", names[1], results[1].code);
+#endif
 
     WSACleanup();
 
-    if (server_result.code) return server_result.code;
-    if (client_result.code) return client_result.code;
+    if (results[0].code) return results[0].code;
+    if (results[1].code) return results[1].code;
 
     return 0;
 }
