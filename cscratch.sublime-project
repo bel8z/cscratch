@@ -14,8 +14,9 @@
             "command_line_overrides":
             {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_C_COMPILER": "zig-cc",
-                "CMAKE_CXX_COMPILER": "zig-cc",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
+                // "CMAKE_C_COMPILER": "zig-cc",
+                // "CMAKE_CXX_COMPILER": "zig-cc",
             },
         },
         "ecc_flags_sources":
@@ -48,60 +49,40 @@
 			"variants":
 			[
 				{
-					"name": "NightlyTest",
-					"shell_cmd": "cmake --build . --target NightlyTest",
-				},
-				{
-					"name": "Nightly",
-					"shell_cmd": "cmake --build . --target Nightly",
-				},
-				{
-					"name": "NightlySubmit",
-					"shell_cmd": "cmake --build . --target NightlySubmit",
-				},
-				{
-					"name": "NightlyBuild",
-					"shell_cmd": "cmake --build . --target NightlyBuild",
-				},
-				{
-					"name": "NightlyConfigure",
-					"shell_cmd": "cmake --build . --target NightlyConfigure",
-				},
-				{
-					"name": "Debug/libdemo_lib.dll.a: CXX_SHARED_LIBRARY_LINKER__demo_lib_Debug",
-					"shell_cmd": "cmake --build . --target Debug/libdemo_lib.dll.a: CXX_SHARED_LIBRARY_LINKER__demo_lib_Debug",
-				},
-				{
-					"name": "Debug/liblearn_opengl_lib.dll.a: CXX_SHARED_LIBRARY_LINKER__learn_opengl_lib_Debug",
-					"shell_cmd": "cmake --build . --target Debug/liblearn_opengl_lib.dll.a: CXX_SHARED_LIBRARY_LINKER__learn_opengl_lib_Debug",
-				},
-				{
-					"name": "ExperimentalBuild",
-					"shell_cmd": "cmake --build . --target ExperimentalBuild",
-				},
-				{
-					"name": "ExperimentalStart",
-					"shell_cmd": "cmake --build . --target ExperimentalStart",
-				},
-				{
-					"name": "Debug/libimage_viewer_lib.dll.a: CXX_SHARED_LIBRARY_LINKER__image_viewer_lib_Debug",
-					"shell_cmd": "cmake --build . --target Debug/libimage_viewer_lib.dll.a: CXX_SHARED_LIBRARY_LINKER__image_viewer_lib_Debug",
+					"name": "NightlyMemoryCheck",
+					"shell_cmd": "cmake --build . --target NightlyMemoryCheck",
 				},
 				{
 					"name": "Experimental",
 					"shell_cmd": "cmake --build . --target Experimental",
 				},
 				{
-					"name": "Continuous",
-					"shell_cmd": "cmake --build . --target Continuous",
+					"name": "NightlySubmit",
+					"shell_cmd": "cmake --build . --target NightlySubmit",
 				},
 				{
-					"name": "NightlyMemoryCheck",
-					"shell_cmd": "cmake --build . --target NightlyMemoryCheck",
+					"name": "NightlyConfigure",
+					"shell_cmd": "cmake --build . --target NightlyConfigure",
+				},
+				{
+					"name": "NightlyBuild",
+					"shell_cmd": "cmake --build . --target NightlyBuild",
 				},
 				{
 					"name": "NightlyStart",
 					"shell_cmd": "cmake --build . --target NightlyStart",
+				},
+				{
+					"name": "Continuous",
+					"shell_cmd": "cmake --build . --target Continuous",
+				},
+				{
+					"name": "NightlyTest",
+					"shell_cmd": "cmake --build . --target NightlyTest",
+				},
+				{
+					"name": "Nightly",
+					"shell_cmd": "cmake --build . --target Nightly",
 				},
 				{
 					"name": "NightlyUpdate",
@@ -114,6 +95,14 @@
 				{
 					"name": "NightlyMemCheck",
 					"shell_cmd": "cmake --build . --target NightlyMemCheck",
+				},
+				{
+					"name": "ExperimentalBuild",
+					"shell_cmd": "cmake --build . --target ExperimentalBuild",
+				},
+				{
+					"name": "ExperimentalStart",
+					"shell_cmd": "cmake --build . --target ExperimentalStart",
 				},
 				{
 					"name": "ExperimentalUpdate",
@@ -204,168 +193,396 @@
 					"shell_cmd": "cmake --build . --target install/strip",
 				},
 				{
-					"name": "code/foundation/libfoundation_dll.dll.a: C_SHARED_LIBRARY_LINKER__foundation_dll_Debug",
-					"shell_cmd": "cmake --build . --target code/foundation/libfoundation_dll.dll.a: C_SHARED_LIBRARY_LINKER__foundation_dll_Debug",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyMemoryCheck: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyMemoryCheck: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/foundation/package",
-					"shell_cmd": "cmake --build . --target code/foundation/package",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/Experimental: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/Experimental: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/foundation/package_source",
-					"shell_cmd": "cmake --build . --target code/foundation/package_source",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlySubmit: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlySubmit: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/foundation/rebuild_cache",
-					"shell_cmd": "cmake --build . --target code/foundation/rebuild_cache",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyConfigure: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyConfigure: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/foundation/test",
-					"shell_cmd": "cmake --build . --target code/foundation/test",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyBuild: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyBuild: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/foundation/list_install_components",
-					"shell_cmd": "cmake --build . --target code/foundation/list_install_components",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyStart: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyStart: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/foundation/install/local",
-					"shell_cmd": "cmake --build . --target code/foundation/install/local",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/Continuous: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/Continuous: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/foundation/install",
-					"shell_cmd": "cmake --build . --target code/foundation/install",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyTest: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyTest: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/foundation/install/strip",
-					"shell_cmd": "cmake --build . --target code/foundation/install/strip",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/Nightly: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/Nightly: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/gui/package",
-					"shell_cmd": "cmake --build . --target code/gui/package",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyUpdate: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyUpdate: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/gui/package_source",
-					"shell_cmd": "cmake --build . --target code/gui/package_source",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyCoverage: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyCoverage: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/gui/rebuild_cache",
-					"shell_cmd": "cmake --build . --target code/gui/rebuild_cache",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyMemCheck: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/NightlyMemCheck: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/gui/test",
-					"shell_cmd": "cmake --build . --target code/gui/test",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalBuild: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalBuild: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/gui/list_install_components",
-					"shell_cmd": "cmake --build . --target code/gui/list_install_components",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalStart: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalStart: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/gui/install/local",
-					"shell_cmd": "cmake --build . --target code/gui/install/local",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalUpdate: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalUpdate: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/gui/install",
-					"shell_cmd": "cmake --build . --target code/gui/install",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousMemCheck: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousMemCheck: CUSTOM_COMMAND",
 				},
 				{
-					"name": "code/gui/install/strip",
-					"shell_cmd": "cmake --build . --target code/gui/install/strip",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalConfigure: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalConfigure: CUSTOM_COMMAND",
 				},
 				{
-					"name": "glfw-3/package_source",
-					"shell_cmd": "cmake --build . --target glfw-3/package_source",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalTest: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalTest: CUSTOM_COMMAND",
 				},
 				{
-					"name": "glfw-3/package",
-					"shell_cmd": "cmake --build . --target glfw-3/package",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalCoverage: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalCoverage: CUSTOM_COMMAND",
 				},
 				{
-					"name": "glfw-3/rebuild_cache",
-					"shell_cmd": "cmake --build . --target glfw-3/rebuild_cache",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalMemCheck: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalMemCheck: CUSTOM_COMMAND",
 				},
 				{
-					"name": "glfw-3/test",
-					"shell_cmd": "cmake --build . --target glfw-3/test",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalSubmit: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ExperimentalSubmit: CUSTOM_COMMAND",
 				},
 				{
-					"name": "glfw-3/install/local",
-					"shell_cmd": "cmake --build . --target glfw-3/install/local",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousStart: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousStart: CUSTOM_COMMAND",
 				},
 				{
-					"name": "glfw-3/install",
-					"shell_cmd": "cmake --build . --target glfw-3/install",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousUpdate: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousUpdate: CUSTOM_COMMAND",
 				},
 				{
-					"name": "glfw-3/list_install_components",
-					"shell_cmd": "cmake --build . --target glfw-3/list_install_components",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousSubmit: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousSubmit: CUSTOM_COMMAND",
 				},
 				{
-					"name": "glfw-3/install/strip",
-					"shell_cmd": "cmake --build . --target glfw-3/install/strip",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousConfigure: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousConfigure: CUSTOM_COMMAND",
 				},
 				{
-					"name": "glfw-3/src/rebuild_cache",
-					"shell_cmd": "cmake --build . --target glfw-3/src/rebuild_cache",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousBuild: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousBuild: CUSTOM_COMMAND",
 				},
 				{
-					"name": "glfw-3/src/test",
-					"shell_cmd": "cmake --build . --target glfw-3/src/test",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousTest: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousTest: CUSTOM_COMMAND",
 				},
 				{
-					"name": "glfw-3/src/package",
-					"shell_cmd": "cmake --build . --target glfw-3/src/package",
+					"name": "D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousCoverage: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/CMakeFiles/ContinuousCoverage: CUSTOM_COMMAND",
 				},
 				{
-					"name": "glfw-3/src/package_source",
-					"shell_cmd": "cmake --build . --target glfw-3/src/package_source",
+					"name": "code/libs/foundation/foundation_dll.lib: C_SHARED_LIBRARY_LINKER__foundation_dll_Release",
+					"shell_cmd": "cmake --build . --target code/libs/foundation/foundation_dll.lib: C_SHARED_LIBRARY_LINKER__foundation_dll_Release",
 				},
 				{
-					"name": "glfw-3/src/install/local",
-					"shell_cmd": "cmake --build . --target glfw-3/src/install/local",
+					"name": "code/libs/foundation/package",
+					"shell_cmd": "cmake --build . --target code/libs/foundation/package",
 				},
 				{
-					"name": "glfw-3/src/install",
-					"shell_cmd": "cmake --build . --target glfw-3/src/install",
+					"name": "code/libs/foundation/package_source",
+					"shell_cmd": "cmake --build . --target code/libs/foundation/package_source",
 				},
 				{
-					"name": "glfw-3/src/list_install_components",
-					"shell_cmd": "cmake --build . --target glfw-3/src/list_install_components",
+					"name": "code/libs/foundation/rebuild_cache",
+					"shell_cmd": "cmake --build . --target code/libs/foundation/rebuild_cache",
 				},
 				{
-					"name": "glfw-3/src/install/strip",
-					"shell_cmd": "cmake --build . --target glfw-3/src/install/strip",
+					"name": "code/libs/foundation/test",
+					"shell_cmd": "cmake --build . --target code/libs/foundation/test",
 				},
 				{
-					"name": "code/vulkan_test/package",
-					"shell_cmd": "cmake --build . --target code/vulkan_test/package",
+					"name": "code/libs/foundation/list_install_components",
+					"shell_cmd": "cmake --build . --target code/libs/foundation/list_install_components",
 				},
 				{
-					"name": "code/vulkan_test/package_source",
-					"shell_cmd": "cmake --build . --target code/vulkan_test/package_source",
+					"name": "code/libs/foundation/install/local",
+					"shell_cmd": "cmake --build . --target code/libs/foundation/install/local",
 				},
 				{
-					"name": "code/vulkan_test/rebuild_cache",
-					"shell_cmd": "cmake --build . --target code/vulkan_test/rebuild_cache",
+					"name": "code/libs/foundation/install",
+					"shell_cmd": "cmake --build . --target code/libs/foundation/install",
 				},
 				{
-					"name": "code/vulkan_test/test",
-					"shell_cmd": "cmake --build . --target code/vulkan_test/test",
+					"name": "code/libs/foundation/install/strip",
+					"shell_cmd": "cmake --build . --target code/libs/foundation/install/strip",
 				},
 				{
-					"name": "code/vulkan_test/install/local",
-					"shell_cmd": "cmake --build . --target code/vulkan_test/install/local",
+					"name": "code/libs/gui/package_source",
+					"shell_cmd": "cmake --build . --target code/libs/gui/package_source",
 				},
 				{
-					"name": "code/vulkan_test/install",
-					"shell_cmd": "cmake --build . --target code/vulkan_test/install",
+					"name": "code/libs/gui/package",
+					"shell_cmd": "cmake --build . --target code/libs/gui/package",
 				},
 				{
-					"name": "code/vulkan_test/list_install_components",
-					"shell_cmd": "cmake --build . --target code/vulkan_test/list_install_components",
+					"name": "code/libs/gui/rebuild_cache",
+					"shell_cmd": "cmake --build . --target code/libs/gui/rebuild_cache",
 				},
 				{
-					"name": "code/vulkan_test/install/strip",
-					"shell_cmd": "cmake --build . --target code/vulkan_test/install/strip",
+					"name": "code/libs/gui/test",
+					"shell_cmd": "cmake --build . --target code/libs/gui/test",
+				},
+				{
+					"name": "code/libs/gui/list_install_components",
+					"shell_cmd": "cmake --build . --target code/libs/gui/list_install_components",
+				},
+				{
+					"name": "code/libs/gui/install/local",
+					"shell_cmd": "cmake --build . --target code/libs/gui/install/local",
+				},
+				{
+					"name": "code/libs/gui/install",
+					"shell_cmd": "cmake --build . --target code/libs/gui/install",
+				},
+				{
+					"name": "code/libs/gui/install/strip",
+					"shell_cmd": "cmake --build . --target code/libs/gui/install/strip",
+				},
+				{
+					"name": "glfw-3.3.6/package_source",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/package_source",
+				},
+				{
+					"name": "glfw-3.3.6/package",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/package",
+				},
+				{
+					"name": "glfw-3.3.6/rebuild_cache",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/rebuild_cache",
+				},
+				{
+					"name": "glfw-3.3.6/test",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/test",
+				},
+				{
+					"name": "glfw-3.3.6/install/local",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/install/local",
+				},
+				{
+					"name": "glfw-3.3.6/install",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/install",
+				},
+				{
+					"name": "glfw-3.3.6/list_install_components",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/list_install_components",
+				},
+				{
+					"name": "glfw-3.3.6/install/strip",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/install/strip",
+				},
+				{
+					"name": "D:/Src/_Scratch/cscratch/build/glfw-3.3.6/CMakeFiles/uninstall: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/glfw-3.3.6/CMakeFiles/uninstall: CUSTOM_COMMAND",
+				},
+				{
+					"name": "glfw-3.3.6/src/list_install_components",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/src/list_install_components",
+				},
+				{
+					"name": "glfw-3.3.6/src/rebuild_cache",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/src/rebuild_cache",
+				},
+				{
+					"name": "glfw-3.3.6/src/test",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/src/test",
+				},
+				{
+					"name": "glfw-3.3.6/src/package",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/src/package",
+				},
+				{
+					"name": "glfw-3.3.6/src/package_source",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/src/package_source",
+				},
+				{
+					"name": "glfw-3.3.6/src/install/local",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/src/install/local",
+				},
+				{
+					"name": "glfw-3.3.6/src/install",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/src/install",
+				},
+				{
+					"name": "glfw-3.3.6/src/install/strip",
+					"shell_cmd": "cmake --build . --target glfw-3.3.6/src/install/strip",
+				},
+				{
+					"name": "D:/Src/_Scratch/cscratch/build/glfw-3.3.6/src/CMakeFiles/update_mappings: CUSTOM_COMMAND",
+					"shell_cmd": "cmake --build . --target D:/Src/_Scratch/cscratch/build/glfw-3.3.6/src/CMakeFiles/update_mappings: CUSTOM_COMMAND",
+				},
+				{
+					"name": "code/apps/demo/list_install_components",
+					"shell_cmd": "cmake --build . --target code/apps/demo/list_install_components",
+				},
+				{
+					"name": "Release/demo_lib.lib: CXX_SHARED_LIBRARY_LINKER__demo_lib_Release",
+					"shell_cmd": "cmake --build . --target Release/demo_lib.lib: CXX_SHARED_LIBRARY_LINKER__demo_lib_Release",
+				},
+				{
+					"name": "code/apps/demo/package",
+					"shell_cmd": "cmake --build . --target code/apps/demo/package",
+				},
+				{
+					"name": "code/apps/demo/package_source",
+					"shell_cmd": "cmake --build . --target code/apps/demo/package_source",
+				},
+				{
+					"name": "code/apps/demo/rebuild_cache",
+					"shell_cmd": "cmake --build . --target code/apps/demo/rebuild_cache",
+				},
+				{
+					"name": "code/apps/demo/test",
+					"shell_cmd": "cmake --build . --target code/apps/demo/test",
+				},
+				{
+					"name": "code/apps/demo/install/local",
+					"shell_cmd": "cmake --build . --target code/apps/demo/install/local",
+				},
+				{
+					"name": "code/apps/demo/install",
+					"shell_cmd": "cmake --build . --target code/apps/demo/install",
+				},
+				{
+					"name": "code/apps/demo/install/strip",
+					"shell_cmd": "cmake --build . --target code/apps/demo/install/strip",
+				},
+				{
+					"name": "code/apps/image_viewer/rebuild_cache",
+					"shell_cmd": "cmake --build . --target code/apps/image_viewer/rebuild_cache",
+				},
+				{
+					"name": "code/apps/image_viewer/test",
+					"shell_cmd": "cmake --build . --target code/apps/image_viewer/test",
+				},
+				{
+					"name": "Release/image_viewer_lib.lib: CXX_SHARED_LIBRARY_LINKER__image_viewer_lib_Release",
+					"shell_cmd": "cmake --build . --target Release/image_viewer_lib.lib: CXX_SHARED_LIBRARY_LINKER__image_viewer_lib_Release",
+				},
+				{
+					"name": "code/apps/image_viewer/package",
+					"shell_cmd": "cmake --build . --target code/apps/image_viewer/package",
+				},
+				{
+					"name": "code/apps/image_viewer/package_source",
+					"shell_cmd": "cmake --build . --target code/apps/image_viewer/package_source",
+				},
+				{
+					"name": "code/apps/image_viewer/list_install_components",
+					"shell_cmd": "cmake --build . --target code/apps/image_viewer/list_install_components",
+				},
+				{
+					"name": "code/apps/image_viewer/install/local",
+					"shell_cmd": "cmake --build . --target code/apps/image_viewer/install/local",
+				},
+				{
+					"name": "code/apps/image_viewer/install",
+					"shell_cmd": "cmake --build . --target code/apps/image_viewer/install",
+				},
+				{
+					"name": "code/apps/image_viewer/install/strip",
+					"shell_cmd": "cmake --build . --target code/apps/image_viewer/install/strip",
+				},
+				{
+					"name": "code/apps/learn_opengl/rebuild_cache",
+					"shell_cmd": "cmake --build . --target code/apps/learn_opengl/rebuild_cache",
+				},
+				{
+					"name": "code/apps/learn_opengl/test",
+					"shell_cmd": "cmake --build . --target code/apps/learn_opengl/test",
+				},
+				{
+					"name": "Release/learn_opengl_lib.lib: CXX_SHARED_LIBRARY_LINKER__learn_opengl_lib_Release",
+					"shell_cmd": "cmake --build . --target Release/learn_opengl_lib.lib: CXX_SHARED_LIBRARY_LINKER__learn_opengl_lib_Release",
+				},
+				{
+					"name": "code/apps/learn_opengl/package",
+					"shell_cmd": "cmake --build . --target code/apps/learn_opengl/package",
+				},
+				{
+					"name": "code/apps/learn_opengl/package_source",
+					"shell_cmd": "cmake --build . --target code/apps/learn_opengl/package_source",
+				},
+				{
+					"name": "code/apps/learn_opengl/list_install_components",
+					"shell_cmd": "cmake --build . --target code/apps/learn_opengl/list_install_components",
+				},
+				{
+					"name": "code/apps/learn_opengl/install/local",
+					"shell_cmd": "cmake --build . --target code/apps/learn_opengl/install/local",
+				},
+				{
+					"name": "code/apps/learn_opengl/install",
+					"shell_cmd": "cmake --build . --target code/apps/learn_opengl/install",
+				},
+				{
+					"name": "code/apps/learn_opengl/install/strip",
+					"shell_cmd": "cmake --build . --target code/apps/learn_opengl/install/strip",
+				},
+				{
+					"name": "code/apps/vulkan_test/package",
+					"shell_cmd": "cmake --build . --target code/apps/vulkan_test/package",
+				},
+				{
+					"name": "code/apps/vulkan_test/package_source",
+					"shell_cmd": "cmake --build . --target code/apps/vulkan_test/package_source",
+				},
+				{
+					"name": "code/apps/vulkan_test/rebuild_cache",
+					"shell_cmd": "cmake --build . --target code/apps/vulkan_test/rebuild_cache",
+				},
+				{
+					"name": "code/apps/vulkan_test/test",
+					"shell_cmd": "cmake --build . --target code/apps/vulkan_test/test",
+				},
+				{
+					"name": "code/apps/vulkan_test/install/local",
+					"shell_cmd": "cmake --build . --target code/apps/vulkan_test/install/local",
+				},
+				{
+					"name": "code/apps/vulkan_test/install",
+					"shell_cmd": "cmake --build . --target code/apps/vulkan_test/install",
+				},
+				{
+					"name": "code/apps/vulkan_test/list_install_components",
+					"shell_cmd": "cmake --build . --target code/apps/vulkan_test/list_install_components",
+				},
+				{
+					"name": "code/apps/vulkan_test/install/strip",
+					"shell_cmd": "cmake --build . --target code/apps/vulkan_test/install/strip",
 				},
 				{
 					"name": "demo",
@@ -380,6 +597,10 @@
 					"shell_cmd": "cmake --build . --target demo_lib",
 				},
 				{
+					"name": "demo_lib.dll",
+					"shell_cmd": "cmake --build . --target demo_lib.dll",
+				},
+				{
 					"name": "dummy",
 					"shell_cmd": "cmake --build . --target dummy",
 				},
@@ -392,20 +613,48 @@
 					"shell_cmd": "cmake --build . --target foundation",
 				},
 				{
+					"name": "foundation.lib",
+					"shell_cmd": "cmake --build . --target foundation.lib",
+				},
+				{
 					"name": "foundation_dll",
 					"shell_cmd": "cmake --build . --target foundation_dll",
+				},
+				{
+					"name": "foundation_dll.dll",
+					"shell_cmd": "cmake --build . --target foundation_dll.dll",
 				},
 				{
 					"name": "glfw",
 					"shell_cmd": "cmake --build . --target glfw",
 				},
 				{
+					"name": "glfw3.lib",
+					"shell_cmd": "cmake --build . --target glfw3.lib",
+				},
+				{
 					"name": "gui",
 					"shell_cmd": "cmake --build . --target gui",
 				},
 				{
-					"name": "gui_backend",
-					"shell_cmd": "cmake --build . --target gui_backend",
+					"name": "gui.lib",
+					"shell_cmd": "cmake --build . --target gui.lib",
+				},
+				{
+					"name": "gui_gl3",
+					"shell_cmd": "cmake --build . --target gui_gl3",
+				},
+				{
+					"name": "gui_gl3.lib",
+					"shell_cmd": "cmake --build . --target gui_gl3.lib",
+				},
+				{
+					"name": "gui_win",
+					"shell_cmd": "cmake --build . --target gui_win",
+				},
+				{
+					"name": "gui_win.lib",
+					"shell_cmd": "cmake --build . --target gui_win.lib",
 				},
 				{
 					"name": "image_viewer",
@@ -420,6 +669,10 @@
 					"shell_cmd": "cmake --build . --target image_viewer_lib",
 				},
 				{
+					"name": "image_viewer_lib.dll",
+					"shell_cmd": "cmake --build . --target image_viewer_lib.dll",
+				},
+				{
 					"name": "learn_opengl",
 					"shell_cmd": "cmake --build . --target learn_opengl",
 				},
@@ -432,92 +685,76 @@
 					"shell_cmd": "cmake --build . --target learn_opengl_lib",
 				},
 				{
-					"name": "libdemo_lib.dll",
-					"shell_cmd": "cmake --build . --target libdemo_lib.dll",
-				},
-				{
-					"name": "libfoundation.a",
-					"shell_cmd": "cmake --build . --target libfoundation.a",
-				},
-				{
-					"name": "libfoundation_dll.dll",
-					"shell_cmd": "cmake --build . --target libfoundation_dll.dll",
-				},
-				{
-					"name": "libglfw3.a",
-					"shell_cmd": "cmake --build . --target libglfw3.a",
-				},
-				{
-					"name": "libgui.a",
-					"shell_cmd": "cmake --build . --target libgui.a",
-				},
-				{
-					"name": "libgui_backend.a",
-					"shell_cmd": "cmake --build . --target libgui_backend.a",
-				},
-				{
-					"name": "libimage_viewer_lib.dll",
-					"shell_cmd": "cmake --build . --target libimage_viewer_lib.dll",
-				},
-				{
-					"name": "liblearn_opengl_lib.dll",
-					"shell_cmd": "cmake --build . --target liblearn_opengl_lib.dll",
+					"name": "learn_opengl_lib.dll",
+					"shell_cmd": "cmake --build . --target learn_opengl_lib.dll",
 				},
 				{
 					"name": "test_arena",
-					"shell_cmd": "cmake --build . --target test_arena"
+					"shell_cmd": "cmake --build . --target test_arena",
 				},
 				{
 					"name": "test_arena.exe",
-					"shell_cmd": "cmake --build . --target test_arena.exe"
+					"shell_cmd": "cmake --build . --target test_arena.exe",
 				},
 				{
-					"name": "test_array",
-					"shell_cmd": "cmake --build . --target test_array"
+					"name": "test_buffer",
+					"shell_cmd": "cmake --build . --target test_buffer",
 				},
 				{
-					"name": "test_array.exe",
-					"shell_cmd": "cmake --build . --target test_array.exe"
+					"name": "test_buffer.exe",
+					"shell_cmd": "cmake --build . --target test_buffer.exe",
 				},
 				{
 					"name": "test_files",
-					"shell_cmd": "cmake --build . --target test_files"
+					"shell_cmd": "cmake --build . --target test_files",
 				},
 				{
 					"name": "test_files.exe",
-					"shell_cmd": "cmake --build . --target test_files.exe"
+					"shell_cmd": "cmake --build . --target test_files.exe",
 				},
 				{
 					"name": "test_odbc",
-					"shell_cmd": "cmake --build . --target test_odbc"
+					"shell_cmd": "cmake --build . --target test_odbc",
 				},
 				{
 					"name": "test_odbc.exe",
-					"shell_cmd": "cmake --build . --target test_odbc.exe"
+					"shell_cmd": "cmake --build . --target test_odbc.exe",
+				},
+				{
+					"name": "test_sockets",
+					"shell_cmd": "cmake --build . --target test_sockets",
+				},
+				{
+					"name": "test_sockets.exe",
+					"shell_cmd": "cmake --build . --target test_sockets.exe",
 				},
 				{
 					"name": "test_threading",
-					"shell_cmd": "cmake --build . --target test_threading"
+					"shell_cmd": "cmake --build . --target test_threading",
 				},
 				{
 					"name": "test_threading.exe",
-					"shell_cmd": "cmake --build . --target test_threading.exe"
+					"shell_cmd": "cmake --build . --target test_threading.exe",
 				},
 				{
 					"name": "uninstall",
-					"shell_cmd": "cmake --build . --target uninstall"
+					"shell_cmd": "cmake --build . --target uninstall",
+				},
+				{
+					"name": "update_mappings",
+					"shell_cmd": "cmake --build . --target update_mappings",
 				},
 				{
 					"name": "vulkan_test",
-					"shell_cmd": "cmake --build . --target vulkan_test"
+					"shell_cmd": "cmake --build . --target vulkan_test",
 				},
 				{
 					"name": "vulkan_test.exe",
-					"shell_cmd": "cmake --build . --target vulkan_test.exe"
+					"shell_cmd": "cmake --build . --target vulkan_test.exe",
 				},
 				{
 					"name": "clean",
-					"shell_cmd": "cmake --build . --target clean"
+					"shell_cmd": "cmake --build . --target clean",
 				},
 			],
 			"working_dir": "${project_path}/build",
