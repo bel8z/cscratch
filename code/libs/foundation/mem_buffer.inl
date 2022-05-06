@@ -76,9 +76,9 @@
      /**/ (buffer)->capacity = 0, (buffer)->size = 0)
 
 /// Ensure the buffer has the required capacity, allocating memory if needed
-#define memBufferEnsure(buffer, required_capacity, allocator)                                   \
-    mem__BufferGrow((void **)(&(buffer)->data), &(buffer)->capacity, memBufferItemSize(buffer), \
-                    required_capacity, allocator)
+#define memBufferEnsure(buffer, required_capacity, allocator)                                  \
+    mem_BufferGrow((void **)(&(buffer)->data), &(buffer)->capacity, memBufferItemSize(buffer), \
+                   mem_BufferItemAlign(buffer), required_capacity, allocator)
 
 // The following operations are equivalent to the non allocating ones, but uses the provided
 // allocator to grow the buffer if needed.
@@ -103,8 +103,15 @@
     (memBufferEnsure(buffer, (buffer)->size + 1, allocator) ? Error_OutOfMemory \
                                                             : memBufferInsert(buffer, at, item))
 
+#if CF_COMPILER_CLANG
+#    define mem_BufferItemAlign(buffer) alignof(*(buffer)->data)
+#else
+#    define mem_BufferItemAlign(buffer) CF_MAX_ALIGN
+#endif
+
 CF_INTERNAL ErrorCode32
-mem__BufferGrow(void **data, Usize *cap, Usize item_size, Usize required, MemAllocator allocator)
+mem_BufferGrow(void **data, Usize *cap, Usize item_size, Usize item_align, Usize required,
+               MemAllocator allocator)
 {
     CF_ASSERT_NOT_NULL(data);
     CF_ASSERT_NOT_NULL(cap);
@@ -115,7 +122,8 @@ mem__BufferGrow(void **data, Usize *cap, Usize item_size, Usize required, MemAll
         CF_ASSERT(cfIsPowerOf2(new_cap), "Capacity not a power of 2");
         while (new_cap < required) new_cap <<= 1;
 
-        void *new_data = memRealloc(allocator, *data, *cap * item_size, new_cap * item_size);
+        void *new_data =
+            memReallocAlign(allocator, *data, *cap * item_size, new_cap * item_size, item_align);
         if (!new_data) return Error_OutOfMemory;
 
         *data = new_data;

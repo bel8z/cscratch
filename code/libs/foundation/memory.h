@@ -49,8 +49,11 @@ CF_INLINE_API void memFreeAlign(MemAllocator a, void *mem, Usize size, Usize ali
 
 // NOTE (Matteo): Those are the very basics required to implement a dynamic array
 // and are offered in case the full-fledged MemBuffer is not needed or suitable.
-
 #if CF_COMPILER_CLANG
+#    define memAllocStruct(allocator, Type) memAllocAlign(allocator, sizeof(Type), alignof(Type))
+#    define memFreeStruct(allocator, ptr) \
+        memFreeAlign(allocator, ptr, sizeof(*(ptr)), alignof(*(ptr)))
+
 #    define memAllocArray(allocator, Type, cap) \
         memReallocAlign(allocator, NULL, 0, (cap) * sizeof(Type), alignof(Type))
 
@@ -61,6 +64,9 @@ CF_INLINE_API void memFreeAlign(MemAllocator a, void *mem, Usize size, Usize ali
 #    define memFreeArray(allocator, ptr, cap) \
         memFreeAlign(allocator, ptr, (cap) * sizeof(*(ptr)), alignof(*(ptr)))
 #else
+#    define memAllocStruct(allocator, Type) memAlloc(allocator, sizeof(Type))
+#    define memFreeStruct(allocator, ptr) memFree(allocator, ptr, sizeof(*(ptr)))
+
 #    define memAllocArray(allocator, Type, cap) memRealloc(allocator, NULL, 0, (cap) * sizeof(Type))
 
 #    define memReallocArray(allocator, ptr, old_cap, new_cap) \

@@ -123,7 +123,7 @@ guiInit(GuiInitInfo *gui, GuiOpenGLVersion *out_gl_ver)
         IMGUI_CHECKVERSION();
 
         // Configure custom user data
-        GuiData *gui_data = (GuiData *)memAlloc(gui->alloc, sizeof(*gui_data));
+        GuiData *gui_data = (GuiData *)memAllocStruct(gui->alloc, GuiData);
         gui_data->allocator = gui->alloc;
         gui_data->user_data = gui->user_data;
         gui_data->main_window = window;
@@ -192,7 +192,7 @@ guiShutdown(GuiContext *ctx)
 
     glfwDestroyWindow((GLFWwindow *)gui_data->main_window);
 
-    memFree(gui_data->allocator, gui_data, sizeof(*gui_data));
+    memFreeStruct(gui_data->allocator, gui_data);
 
     glfwTerminate();
 }

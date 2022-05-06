@@ -48,7 +48,7 @@ APP_API APP_CREATE_FN(appCreate)
     CF_UNUSED(cmd_line);
 
     // NOTE (Matteo): Memory comes cleared to 0
-    AppState *app = memAlloc(plat->heap, sizeof(*app));
+    AppState *app = memAllocStruct(plat->heap, AppState);
 
     app->plat = plat;
     app->alloc = plat->heap;
@@ -73,7 +73,7 @@ APP_API APP_FN(appDestroy)
 {
     appUnload(app);
     cfLogDestroy(&app->log, app->plat->vmem);
-    memFree(app->alloc, app, sizeof(*app));
+    memFreeStruct(app->alloc, app);
 }
 
 APP_API APP_FN(appLoad)

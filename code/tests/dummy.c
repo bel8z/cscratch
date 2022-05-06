@@ -168,7 +168,7 @@ ioCallback(TP_CALLBACK_INSTANCE *Instance,     //
     CF_ASSERT(Overlapped == &ioctxt->ovp, "");
 
     CloseThreadpoolIo(Io);
-    memFree(g_heap, ioctxt, sizeof(*ioctxt));
+    memFreeStruct(g_heap, ioctxt);
 }
 
 TP_IO *
@@ -196,7 +196,7 @@ IO_CALLBACK(fileIoCallback)
 void
 fileBeginWrite(Cstr filename, U8 const *buffer, Usize size, FileIoToken *token)
 {
-    IoContext *context = memAlloc(g_heap, sizeof(*context));
+    IoContext *context = memAllocStruct(g_heap, IoContext);
     context->callback = fileIoCallback;
     context->user_data = token;
 
