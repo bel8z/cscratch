@@ -137,7 +137,7 @@ win32GetCommandLineArgs(MemAllocator alloc, CommandLine *out)
         buf += size + 1; // Ensure space for the null-terminator
     }
 
-    LocalFree(args16);
+    LocalFree((Char16 *)args16);
 
     return out_size;
 }
@@ -240,7 +240,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmd
 
     I32 result = platformMain(&g_platform, &cmd_line);
 
-    memFree(g_platform.heap, cmd_line.arg, cmd_line_size);
+    memFree(g_platform.heap, (Char8 *)cmd_line.arg, cmd_line_size);
 
     win32PlatformShutdown();
 

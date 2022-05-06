@@ -205,9 +205,9 @@
 #    define CF_DIAGNOSTIC_PUSH() _Pragma("warning(push)")
 #    define CF_DIAGNOSTIC_POP() _Pragma("warning(pop)")
 #    define CF_DIAGNOSTIC_IGNORE_CLANG(x)
-#    define CF_DIAGNOSTIC_IGNORE_MSVC(x) _Pragma(warning(disable : x))
+#    define CF_DIAGNOSTIC_IGNORE_MSVC(x) _Pragma(CF_STRINGIFY(warning(disable : x)))
 #    define CF_DIAGNOSTIC_RESTORE_CLANG(x)
-#    define CF_DIAGNOSTIC_RESTORE_MSVC(x) _Pragma(warning(default : x))
+#    define CF_DIAGNOSTIC_RESTORE_MSVC(x) _Pragma(CF_STRINGIFY(warning(default : x)))
 #elif CF_COMPILER_GCC
 #    define CF_DIAGNOSTIC_PUSH() _Pragma("gcc diagnostic push")
 #    define CF_DIAGNOSTIC_POP() _Pragma("gcc diagnostic pop")
@@ -732,3 +732,5 @@ CF_DIAGNOSTIC_POP()
 CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(void *), "Invalid pointer size detected");
 CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(Uptr), "Invalid pointer size detected");
 CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(Iptr), "Invalid pointer size detected");
+
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wgnu-alignof-expression")

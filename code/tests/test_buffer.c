@@ -46,7 +46,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
         CF_ASSERT(buffer.data[i] == i, "Buffer push FAILED");
     }
 
-    Usize popped;
+    Usize popped = 0;
     CF_ASSERT(!memBufferPop(&buffer, &popped) && popped == 2, "Buffer pop FAILED");
     CF_ASSERT(!memBufferPop(&buffer, &popped) && popped == 1, "Buffer pop FAILED");
     CF_ASSERT(!memBufferPop(&buffer, &popped) && popped == 0, "Buffer pop FAILED");

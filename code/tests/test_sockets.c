@@ -10,8 +10,6 @@
 #pragma comment(lib, "Ws2_32.lib")
 
 #include <stdio.h>
-#define clientLog(msg, ...) fprintf(stderr, "Client: " msg, __VA_ARGS__)
-#define serverLog(msg, ...) fprintf(stderr, "Server: " msg, __VA_ARGS__)
 
 #define DEFAULT_PORT "27015"
 
@@ -56,7 +54,7 @@ serverFn(void *data)
     Iocp iocp = iocpCreate(1);
 
     //===================================//
-    serverLog("Initializing winsock\n");
+    fprintf(stderr, "Server: Initializing winsock\n");
 
     if (getaddrinfo(NULL, DEFAULT_PORT, &hint, &info)) goto CLEANUP;
 
@@ -64,11 +62,11 @@ serverFn(void *data)
     struct sockaddr_in *address = (struct sockaddr_in *)info->ai_addr;
 
     char addrbuf[256] = {0};
-    serverLog("Server address: %s\n",
-              inet_ntop(address->sin_family, &address->sin_addr, addrbuf, CF_ARRAY_SIZE(addrbuf)));
+    fprintf(stderr, "Server: Server address: %s\n",
+            inet_ntop(address->sin_family, &address->sin_addr, addrbuf, CF_ARRAY_SIZE(addrbuf)));
 
     //===================================//
-    serverLog("Creating server socket\n");
+    fprintf(stderr, "Server: Creating server socket\n");
 
     listener = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
     if (listener == INVALID_SOCKET) goto CLEANUP;
@@ -76,12 +74,12 @@ serverFn(void *data)
     iocpBindSocket(iocp, listener);
 
     //===================================//
-    serverLog("Binding server socket\n");
+    fprintf(stderr, "Server: Binding server socket\n");
 
     if (bind(listener, info->ai_addr, (I32)info->ai_addrlen)) goto CLEANUP;
 
     //===================================//
-    serverLog("Start listening\n");
+    fprintf(stderr, "Server: Start listening\n");
 
     // The backlog parameter is set to SOMAXCONN: this value is a special constant that instructs
     // the Winsock provider for this socket to allow a maximum reasonable number of pending
@@ -89,13 +87,13 @@ serverFn(void *data)
     if (listen(listener, SOMAXCONN) == SOCKET_ERROR) goto CLEANUP;
 
     //===================================//
-    serverLog("Accept client connection\n");
+    fprintf(stderr, "Server: Accept client connection\n");
 
     client = accept(listener, NULL, NULL);
     if (client == INVALID_SOCKET) goto CLEANUP;
 
     //===================================//
-    serverLog("Handling client connection\n");
+    fprintf(stderr, "Server: Handling client connection\n");
 
     // Receive until the peer shuts down the connection
     I32 received = 0;
@@ -106,17 +104,17 @@ serverFn(void *data)
         received = recv(client, recvbuf, CF_ARRAY_SIZE(recvbuf), 0);
         if (received > 0)
         {
-            serverLog("Bytes received: %d\n", received);
+            fprintf(stderr, "Server: Bytes received: %d\n", received);
 
             // Echo the buffer back to the sender
             sent = send(client, recvbuf, received, 0);
             if (sent == SOCKET_ERROR) goto CLEANUP;
 
-            serverLog("Bytes sent: %d\n", sent);
+            fprintf(stderr, "Server: Bytes sent: %d\n", sent);
         }
         else if (received == 0)
         {
-            serverLog("Connection closing...\n");
+            fprintf(stderr, "Server: Connection closing...\n");
         }
         else
         {
@@ -126,7 +124,7 @@ serverFn(void *data)
     } while (received > 0);
 
     //===================================//
-    serverLog("Shutting down sending side of the connection\n");
+    fprintf(stderr, "Server: Shutting down sending side of the connection\n");
     shutdown(client, SD_SEND);
 
 CLEANUP:
@@ -153,12 +151,12 @@ clientFn(void *data)
     SOCKET connection = INVALID_SOCKET;
 
     //===================================//
-    clientLog("Initializing client\n");
+    fprintf(stderr, "Client: Initializing client\n");
 
     if (getaddrinfo("127.0.0.1", DEFAULT_PORT, &hint, &info)) goto CLEANUP;
 
     //===================================//
-    clientLog("Attempting to connect to server\n");
+    fprintf(stderr, "Client: Attempting to connect to server\n");
 
     for (ADDRINFO *ptr = info; ptr; ptr = ptr->ai_next)
     {
@@ -173,26 +171,26 @@ clientFn(void *data)
 
     if (connection == INVALID_SOCKET)
     {
-        clientLog("Unable to connect to server!\n");
+        fprintf(stderr, "Client: Unable to connect to server!\n");
         goto CLEANUP;
     }
 
     //===================================//
-    clientLog("Sending an initial buffer\n");
+    fprintf(stderr, "Client: Sending an initial buffer\n");
 
     char sendbuf[] = "Beccati questo!";
     I32 sent = send(connection, sendbuf, CF_ARRAY_SIZE(sendbuf) - 1, 0);
     if (sent == SOCKET_ERROR) goto CLEANUP;
 
-    clientLog("Bytes Sent: %d\n", sent);
+    fprintf(stderr, "Client: Bytes Sent: %d\n", sent);
 
     //===================================//
-    clientLog("Shutting down sending side of the connection\n");
+    fprintf(stderr, "Client: Shutting down sending side of the connection\n");
 
     if (shutdown(connection, SD_SEND)) goto CLEANUP;
 
     //===================================//
-    clientLog("Receive until the peer closes the connection\n");
+    fprintf(stderr, "Client: Receive until the peer closes the connection\n");
 
     char recvbuf[512] = {0};
     I32 received = 0;
@@ -201,11 +199,11 @@ clientFn(void *data)
         received = recv(connection, recvbuf, CF_ARRAY_SIZE(recvbuf), 0);
         if (received > 0)
         {
-            clientLog("Bytes received: %d\n", received);
+            fprintf(stderr, "Client: Bytes received: %d\n", received);
         }
         else if (received == 0)
         {
-            clientLog("Connection closed\n");
+            fprintf(stderr, "Client: Connection closed\n");
         }
         else
         {
