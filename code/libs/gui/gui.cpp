@@ -903,7 +903,7 @@ guiCanvasDrawRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1)
 void
 guiCanvasFillRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1)
 {
-    canvas->draw_list->AddRectFilled(p0, p1, canvas->stroke_color, 0.0f, 0);
+    canvas->draw_list->AddRectFilled(p0, p1, canvas->fill_color, 0.0f, 0);
 }
 
 void

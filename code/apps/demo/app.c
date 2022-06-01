@@ -295,8 +295,7 @@ fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     guiCanvasDrawPolyline(canvas, points, CF_ARRAY_SIZE(points));
 
     // Draw mouse position and nearest point on the ellipse
-    Vec2 query_pt = {.x = mouse_data.x - center.x, //
-                     .y = mouse_data.y - center.y};
+    Vec2 query_pt = vecSub(mouse_data.xy, center);
     query_pt = rotateBwd(query_pt, cosw, sinw);
 
     Vec2 query_res = DistancePointEllipse(a, b, query_pt).xy;
@@ -304,11 +303,11 @@ fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
 
     canvas->stroke_color = canvas->fill_color = SRGB32_ORANGE_RED;
 
-    guiCanvasFillCircle(canvas, mouse_data.xyz.xy, 5.0f);
+    guiCanvasFillCircle(canvas, mouse_data.xy, 5.0f);
 
     guiCanvasFillCircle(canvas, vecAdd(query_res, center), 5.0f);
 
-    guiCanvasDrawLine(canvas, mouse_data.xyz.xy, vecAdd(query_res, center));
+    guiCanvasDrawLine(canvas, mouse_data.xy, vecAdd(query_res, center));
 
     // Draw intersection on the Y axis
     F32 sinw2 = sinw * sinw;
@@ -400,12 +399,13 @@ fxSine(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
                       (Vec2){.x = p0.x + 2 * amp, .y = p1.y});
 
     canvas->fill_color = SRGB32_ORANGE_RED;
-    guiCanvasFillCircle(canvas, mouse_data.xyz.xy, 5.0f);
+    guiCanvasFillCircle(canvas, mouse_data.xy, 5.0f);
 }
 
 static void
 fxDraw(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
 {
+    canvas->stroke_color = SRGB32_RED;
     guiCanvasDrawRect(canvas, canvas->p0, canvas->p1);
 
     Char8 buffer[1024];
@@ -426,7 +426,7 @@ fxWindow(void)
     guiCanvasBegin(&canvas);
 
     Vec4 mouse_data;
-    mouse_data.xyz.xy = guiGetMousePos();
+    mouse_data.xy = guiGetMousePos();
     mouse_data.z = guiGetMouseDownDuration(GuiMouseButton_Left);
     mouse_data.w = guiGetMouseDownDuration(GuiMouseButton_Right);
 
