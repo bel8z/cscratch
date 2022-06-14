@@ -1301,9 +1301,9 @@ appInit(App *app, Platform *platform)
     U32 num_extensions = 0;
 
     // Get the required extensions from gui
-    Cstr const *glfw_extensions = guiRequiredVulkanExtensions(&num_extensions);
+    Cstr *glfw_extensions = guiRequiredVulkanExtensions(&num_extensions);
     CF_ASSERT(num_extensions < CF_ARRAY_SIZE(extensions), "Too many required extensions");
-    memCopy(glfw_extensions, extensions, num_extensions * sizeof(*extensions));
+    memCopy(glfw_extensions, (void *)extensions, num_extensions * sizeof(*extensions));
 
 #if CF_DEBUG
     // Add debug layer

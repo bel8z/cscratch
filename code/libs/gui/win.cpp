@@ -203,7 +203,7 @@ guiSetTitle(Cstr title)
     glfwSetWindowTitle(gui_MainWindow(), title);
 }
 
-Cstr const *
+Cstr *
 guiRequiredVulkanExtensions(U32 *count)
 {
     return glfwGetRequiredInstanceExtensions(count);

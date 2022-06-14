@@ -56,6 +56,6 @@ typedef struct VkAllocationCallbacks VkAllocationCallbacks;
 #    undef VK_DEFINE_NON_DISPATCHABLE_HANDLE
 #endif // VULKAN_H_
 
-CF_API Cstr const *guiRequiredVulkanExtensions(U32 *count);
+CF_API Cstr *guiRequiredVulkanExtensions(U32 *count);
 CF_API I32 guiCreateVulkanSurface(VkInstance vk_instance, const VkAllocationCallbacks *vk_allocator,
                                   VkSurfaceKHR *out_vk_surface);

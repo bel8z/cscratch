@@ -436,8 +436,8 @@ APP_API APP_UPDATE_FN(appUpdate)
     Duration now = clockElapsed(&state->plat->clock);
     Duration delta = timeSub(state->last_update, now);
     Vec2 cam_ofst = {
-        .x = guiKeyPressedCount(GuiKey_D) - guiKeyPressedCount(GuiKey_A),
-        .y = guiKeyPressedCount(GuiKey_W) - guiKeyPressedCount(GuiKey_S),
+        .x = (F32)(guiKeyPressedCount(GuiKey_D) - guiKeyPressedCount(GuiKey_A)),
+        .y = (F32)(guiKeyPressedCount(GuiKey_W) - guiKeyPressedCount(GuiKey_S)),
     };
     cameraDirect(&state->cam, guiGetMouseDelta());
     cameraMove(&state->cam, cam_ofst, (F32)timeGetSeconds(delta));
