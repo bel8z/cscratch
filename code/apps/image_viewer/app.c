@@ -784,6 +784,9 @@ APP_API APP_CREATE_FN(appCreate)
 
     if (cmd_line->len > 1) appLoadFromFile(app, strFromCstr(cmd_line->arg[1]));
 
+    // NOTE (Matteo): I like this theme
+    guiSetTheme(GuiTheme_Rugged);
+
     return app;
 }
 
