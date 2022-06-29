@@ -91,7 +91,14 @@ APP_API APP_FN(appLoad)
     // Init OpenGl
     gloadInit(app->plat->gl);
 
-    glDisable(GL_FRAMEBUFFER_SRGB);
+    if (app->srgb_framebuffer)
+    {
+        glEnable(GL_FRAMEBUFFER_SRGB);
+    }
+    else
+    {
+        glDisable(GL_FRAMEBUFFER_SRGB);
+    }
 }
 
 APP_API APP_FN(appUnload)
@@ -639,14 +646,7 @@ APP_API APP_UPDATE_FN(appUpdate)
         guiSameLine();
         if (guiCheckbox("Srgb", &state->srgb_framebuffer))
         {
-            if (state->srgb_framebuffer)
-            {
-                glEnable(GL_FRAMEBUFFER_SRGB);
-            }
-            else
-            {
-                glDisable(GL_FRAMEBUFFER_SRGB);
-            }
+            gloadToggle(GL_FRAMEBUFFER_SRGB, state->srgb_framebuffer);
             guiGammaCorrection(state->srgb_framebuffer);
         }
         guiSeparator();
@@ -667,15 +667,6 @@ APP_API APP_UPDATE_FN(appUpdate)
         guiLogBox(&state->log, false);
     }
     guiEnd();
-
-    if (state->srgb_framebuffer)
-    {
-        glEnable(GL_FRAMEBUFFER_SRGB);
-    }
-    else
-    {
-        glDisable(GL_FRAMEBUFFER_SRGB);
-    }
 
     fxWindow();
     fxTangentCircles();

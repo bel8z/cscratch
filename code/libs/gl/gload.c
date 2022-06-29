@@ -52,7 +52,21 @@ gloadIsSupported(int major, int minor)
 void *
 gloadGetProc(const char *proc)
 {
+
     return gl__GetProc(proc);
+}
+
+void
+gloadToggle(GLenum cap, int enable)
+{
+    if (enable)
+    {
+        glEnable(cap);
+    }
+    else
+    {
+        glDisable(cap);
+    }
 }
 
 //------------------------------------------------------------------------------

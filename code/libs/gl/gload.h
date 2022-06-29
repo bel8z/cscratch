@@ -40,6 +40,7 @@ extern "C"
     int gloadInit(GlApi *api);
     int gloadIsSupported(int major, int minor);
     void *gloadGetProc(const char *proc);
+    void gloadToggle(GLenum cap, int enable);
 
     //------------
     // OpenGL API
