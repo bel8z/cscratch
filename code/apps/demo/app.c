@@ -36,8 +36,8 @@ struct AppState
     Duration log_time;
 };
 
-static CfLog *g_log = NULL;
-static Clock *g_clock = NULL;
+CF_GLOBAL CfLog *g_log = NULL;
+CF_GLOBAL Clock *g_clock = NULL;
 
 #define appLog(...) (g_log ? (cfLogAppendF(g_log, __VA_ARGS__), 1) : 0)
 
@@ -116,7 +116,7 @@ typedef struct QueryResult
 
 #define MAX_ITER(Type) F_DIGITS(Type) - F_MIN_EXP(Type)
 
-static F32
+CF_INTERNAL F32
 RobustLength(F32 x, F32 y)
 {
     F32 abs_x = mAbs(x);
@@ -128,7 +128,7 @@ RobustLength(F32 x, F32 y)
     return mSqrt(x * x + y * y);
 }
 
-static F32
+CF_INTERNAL F32
 GetRoot(F32 r0, F32 z0, F32 z1, F32 g)
 {
     F32 n0 = r0 * z0;
@@ -243,7 +243,7 @@ DistancePointEllipse(F32 e0, F32 e1, Vec2 p)
     return result;
 }
 
-static Vec2
+CF_INTERNAL Vec2
 rotateFwd(Vec2 p, F32 cos, F32 sin)
 {
     Vec2 r = {0};
@@ -252,7 +252,7 @@ rotateFwd(Vec2 p, F32 cos, F32 sin)
     return r;
 }
 
-static Vec2
+CF_INTERNAL Vec2
 rotateBwd(Vec2 p, F32 cos, F32 sin)
 {
     Vec2 r = {0};
@@ -261,7 +261,7 @@ rotateBwd(Vec2 p, F32 cos, F32 sin)
     return r;
 }
 
-static F32
+CF_INTERNAL F32
 normalize(F32 value, F32 range, F32 offset)
 {
     return value - range * mFloor((value + offset) / range);
@@ -409,7 +409,7 @@ fxSine(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     guiCanvasFillCircle(canvas, mouse_data.xy, 5.0f);
 }
 
-static void
+CF_INTERNAL void
 fxDraw(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
 {
     canvas->stroke_color = SRGB32_RED;
@@ -423,7 +423,7 @@ fxDraw(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     fxEllipse(canvas, mouse_data, time);
 }
 
-static void
+CF_INTERNAL void
 fxWindow(void)
 {
     guiSetNextWindowSize((Vec2){{320, 180}}, GuiCond_Once);
@@ -445,7 +445,7 @@ fxWindow(void)
     guiEnd();
 }
 
-static void
+CF_INTERNAL void
 fxDrawArc(GuiCanvas *canvas, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Srgb32 color)
 {
     Vec2 points[1024];
@@ -539,7 +539,7 @@ fxTangentCircles(void)
     guiEnd();
 }
 
-static void
+CF_INTERNAL void
 guiClock(Duration time)
 {
     I64 const secs_per_hour = 60 * 60;

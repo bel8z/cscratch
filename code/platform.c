@@ -52,12 +52,12 @@ typedef struct AppApi
     Char8 dst_file[Paths_Size];
 } AppApi;
 
-static APP_FN(appProcStub);
-static APP_CREATE_FN(appCreateStub);
-static APP_UPDATE_FN(appUpdateStub);
+CF_INTERNAL APP_FN(appProcStub);
+CF_INTERNAL APP_CREATE_FN(appCreateStub);
+CF_INTERNAL APP_UPDATE_FN(appUpdateStub);
 
-static void appApiLoad(AppApi *api, Paths *paths, LibraryApi *library, IoFileApi *file);
-static void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
+CF_INTERNAL void appApiLoad(AppApi *api, Paths *paths, LibraryApi *library, IoFileApi *file);
+CF_INTERNAL void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
 
 //------------------------------------------------------------------------------
 // Main
@@ -65,7 +65,7 @@ static void appApiUpdate(AppApi *api, Platform *platform, AppState *app);
 
 #if PLATFORM_DPI_HANDLING
 
-static bool
+CF_INTERNAL bool
 platformUpdateMainDpi(ImFontAtlas *fonts, F32 *curr_dpi, Str data_path)
 {
     ImGuiViewport *vp = igGetMainViewport();
@@ -234,19 +234,19 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 // Internal functions
 //------------------------------------------------------------------------------
 
-static APP_FN(appProcStub)
+APP_FN(appProcStub)
 {
     CF_UNUSED(app);
 }
 
-static APP_CREATE_FN(appCreateStub)
+APP_CREATE_FN(appCreateStub)
 {
     CF_UNUSED(plat);
     CF_UNUSED(cmd_line);
     return NULL;
 }
 
-static APP_UPDATE_FN(appUpdateStub)
+APP_UPDATE_FN(appUpdateStub)
 {
     CF_UNUSED(state);
     io->quit = true;

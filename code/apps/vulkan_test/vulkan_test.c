@@ -1,3 +1,4 @@
+#include "foundation/core.h"
 #include "platform.h"
 
 // Backend libraries
@@ -31,7 +32,7 @@
 #endif
 
 // Configure the pipeline state that can change dynamically
-static VkDynamicState const DYNAMIC_PIPELINE_STATES[] = {
+CF_GLOBAL VkDynamicState const DYNAMIC_PIPELINE_STATES[] = {
     // VK_DYNAMIC_STATE_VIEWPORT,
     VK_DYNAMIC_STATE_LINE_WIDTH,
 };
@@ -145,7 +146,7 @@ typedef struct App
     UniformBufferObject ubo;
 } App;
 
-static const Vertex g_vertices[] = {
+CF_GLOBAL const Vertex g_vertices[] = {
     {.pos = {{-0.5f, -0.5f, 0.0f}}, .color = {{1.0f, 0.0f, 0.0f}}},
     {.pos = {{0.5f, -0.5f, 0.0f}}, .color = {{0.0f, 1.0f, 0.0f}}},
     {.pos = {{0.5f, 0.5f, 0.0f}}, .color = {{0.0f, 0.0f, 1.0f}}},
@@ -153,7 +154,7 @@ static const Vertex g_vertices[] = {
     // {.pos = {{0.0f, 0.0f, 1.0f}}, .color = {{1.0f, 1.0f, 1.0f}}},
 };
 
-static const U16 g_indices[] = {
+CF_GLOBAL const U16 g_indices[] = {
     0, 1, 2, 2, 3, 0, //
     // 0, 4, 1, 3, 4, 2, //
 };
@@ -162,9 +163,9 @@ static const U16 g_indices[] = {
 //   Entry point   //
 //-----------------//
 
-static void appInit(App *app, Platform *platform);
-static void appShutdown(App *app);
-static void appMainLoop(App *app);
+CF_INTERNAL void appInit(App *app, Platform *platform);
+CF_INTERNAL void appShutdown(App *app);
+CF_INTERNAL void appMainLoop(App *app);
 
 // TODO (Matteo): Review of the platform layer for graphic apps
 
@@ -223,7 +224,7 @@ extern void ImGui_ImplVulkan_SetMinImageCount(
 //------------------------//
 
 // Vulkan debug layers
-static Cstr const g_layers[] = {
+CF_GLOBAL Cstr const g_layers[] = {
     "VK_LAYER_KHRONOS_validation",
 };
 
@@ -271,7 +272,7 @@ vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT de
 #define VK_CHECK(res) appCheckResult(app, res)
 
 CF_PRINTF_LIKE(1)
-static void
+CF_INTERNAL void
 appDiagnostic(App *app, Cstr format, ...)
 {
     IoFileApi *file = app->platform->file;
@@ -286,7 +287,7 @@ appDiagnostic(App *app, Cstr format, ...)
 }
 
 CF_PRINTF_LIKE(1)
-static void
+CF_INTERNAL void
 appTerminate(App *app, Cstr format, ...)
 {
     IoFileApi *file = app->platform->file;
@@ -303,13 +304,13 @@ appTerminate(App *app, Cstr format, ...)
     exit(-1);
 }
 
-static void
+CF_INTERNAL void
 appCheckResult(App *app, VkResult result)
 {
     if (result) appTerminate(app, "Vulkan error %d\n", result);
 }
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL
+CF_INTERNAL VKAPI_ATTR VkBool32 VKAPI_CALL
 appDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
                  VkDebugUtilsMessageTypeFlagsEXT type,
                  const VkDebugUtilsMessengerCallbackDataEXT *callback_data, void *user_data)
@@ -335,7 +336,7 @@ appDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
     return VK_FALSE;
 }
 
-static void
+CF_INTERNAL void
 guiCheckResult(VkResult result)
 {
     App *app = guiUserData();
@@ -346,7 +347,7 @@ guiCheckResult(VkResult result)
 //   Initialization / Shutdown    //
 //--------------------------------//
 
-static inline VkExtent2D
+CF_INTERNAL inline VkExtent2D
 extentClamp(VkExtent2D value, VkExtent2D min, VkExtent2D max)
 {
     value.width = cfClamp(value.width, min.width, max.width);
@@ -354,7 +355,7 @@ extentClamp(VkExtent2D value, VkExtent2D min, VkExtent2D max)
     return value;
 }
 
-static VkExtent2D
+CF_INTERNAL VkExtent2D
 appGetFrameSize(App *app)
 {
     CF_UNUSED(app);
@@ -364,7 +365,7 @@ appGetFrameSize(App *app)
     return (VkExtent2D){.height = (U32)height, .width = (U32)width};
 }
 
-static void
+CF_INTERNAL void
 appPickGpu(App *app)
 {
     U32 num_gpus;
@@ -423,7 +424,7 @@ appPickGpu(App *app)
     if (!app->gpu) appTerminate(app, "Cannot find a suitable GPU\n");
 }
 
-static void
+CF_INTERNAL void
 appPrintGpuMemoryProperties(App *app)
 {
     VkPhysicalDeviceMemoryProperties props;
@@ -497,7 +498,7 @@ appPrintGpuMemoryProperties(App *app)
     }
 }
 
-static void
+CF_INTERNAL void
 appCreateLogicalDevice(App *app)
 {
     F32 const queue_priority = 1.0f;
@@ -522,15 +523,15 @@ appCreateLogicalDevice(App *app)
 
     Cstr const device_extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-    VkDeviceCreateInfo device_info = {
-        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        .ppEnabledExtensionNames = device_extensions,
-        .enabledExtensionCount = CF_ARRAY_SIZE(device_extensions),
-        .pQueueCreateInfos = queue_info,
-        .queueCreateInfoCount = queue_count,
+    VkDeviceCreateInfo device_info =
+    {.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+     .ppEnabledExtensionNames = device_extensions,
+     .enabledExtensionCount = CF_ARRAY_SIZE(device_extensions),
+     .pQueueCreateInfos = queue_info,
+     .queueCreateInfoCount = queue_count,
 #if CF_DEBUG
-        .ppEnabledLayerNames = g_layers,
-        .enabledLayerCount = CF_ARRAY_SIZE(g_layers),
+     .ppEnabledLayerNames = g_layers,
+     .enabledLayerCount = CF_ARRAY_SIZE(g_layers),
 #endif
     };
 
@@ -540,7 +541,7 @@ appCreateLogicalDevice(App *app)
     vkGetDeviceQueue(app->device, app->queue_index[PRESENT], 0, &app->queue[PRESENT]);
 }
 
-static void
+CF_INTERNAL void
 appCreateSwapchain(App *app)
 {
     Swapchain *swapchain = &app->swapchain;
@@ -675,7 +676,7 @@ appCreateSwapchain(App *app)
     VK_CHECK(vkCreateSwapchainKHR(app->device, &info, app->vkalloc, &swapchain->handle));
 }
 
-static void
+CF_INTERNAL void
 appCreateRenderPass(App *app)
 {
     VkAttachmentDescription color = {
@@ -734,7 +735,7 @@ appCreateRenderPass(App *app)
     VK_CHECK(vkCreateRenderPass(app->device, &info, app->vkalloc, &app->render_pass));
 }
 
-static void
+CF_INTERNAL void
 appCreateDescriptorSetLayout(App *app)
 {
     // NOTE (Matteo): It is possible for the shader variable to represent an array of uniform
@@ -759,7 +760,7 @@ appCreateDescriptorSetLayout(App *app)
         vkCreateDescriptorSetLayout(app->device, &layout_info, app->vkalloc, &app->desc_layout));
 }
 
-static VkShaderModule
+CF_INTERNAL VkShaderModule
 appCreateShaderModule(App *app, U32 const *code, Usize code_size)
 {
     VkShaderModule module;
@@ -773,7 +774,7 @@ appCreateShaderModule(App *app, U32 const *code, Usize code_size)
     return module;
 }
 
-static void
+CF_INTERNAL void
 appCreatePipeline(App *app)
 {
     static U32 const frag_code[] = {
@@ -854,27 +855,27 @@ appCreatePipeline(App *app)
         .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
     };
 
-    VkPipelineColorBlendAttachmentState blend_attachment = {
-        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+    VkPipelineColorBlendAttachmentState blend_attachment =
+    {.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                       VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
 #if !BLEND_ENABLED
-        // Blending disabled
-        .blendEnable = VK_FALSE,
-        .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,  // Optional
-        .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO, // Optional
-        .colorBlendOp = VK_BLEND_OP_ADD,             // Optional
-        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,  // Optional
-        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO, // Optional
-        .alphaBlendOp = VK_BLEND_OP_ADD,             // Optional
+     // Blending disabled
+     .blendEnable = VK_FALSE,
+     .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,  // Optional
+     .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO, // Optional
+     .colorBlendOp = VK_BLEND_OP_ADD,             // Optional
+     .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,  // Optional
+     .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO, // Optional
+     .alphaBlendOp = VK_BLEND_OP_ADD,             // Optional
 #else
-        // Alpha blending
-        .blendEnable = VK_TRUE,
-        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-        .colorBlendOp = VK_BLEND_OP_ADD,
-        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
-        .alphaBlendOp = VK_BLEND_OP_ADD,
+     // Alpha blending
+     .blendEnable = VK_TRUE,
+     .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+     .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+     .colorBlendOp = VK_BLEND_OP_ADD,
+     .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+     .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+     .alphaBlendOp = VK_BLEND_OP_ADD,
 #endif
     };
 
@@ -929,7 +930,7 @@ appCreatePipeline(App *app)
     vkDestroyShaderModule(app->device, stage_info[1].module, app->vkalloc);
 }
 
-static void
+CF_INTERNAL void
 appCreateFrameBuffers(App *app)
 {
     Swapchain *swapchain = &app->swapchain;
@@ -982,7 +983,7 @@ appCreateFrameBuffers(App *app)
     }
 }
 
-static void
+CF_INTERNAL void
 appCleanupSwapchain(App *app)
 {
     vkDestroyPipeline(app->device, app->pipe, app->vkalloc);
@@ -999,7 +1000,7 @@ appCleanupSwapchain(App *app)
     vkDestroySwapchainKHR(app->device, app->swapchain.handle, app->vkalloc);
 }
 
-static void
+CF_INTERNAL void
 appSetupSwapchain(App *app)
 {
     if (app->swapchain.handle)
@@ -1014,7 +1015,7 @@ appSetupSwapchain(App *app)
     appCreateFrameBuffers(app);
 }
 
-static U32
+CF_INTERNAL U32
 appFindMemoryType(App *app, VkMemoryPropertyFlags type_flags, U32 type_filter)
 {
     VkPhysicalDeviceMemoryProperties mem_properties;
@@ -1033,7 +1034,7 @@ appFindMemoryType(App *app, VkMemoryPropertyFlags type_flags, U32 type_filter)
     return U32_MAX;
 }
 
-static void
+CF_INTERNAL void
 appCreateBuffer(App *app, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags,
                 bool mapped, ResourceBuffer *buffer)
 {
@@ -1075,7 +1076,7 @@ appCreateBuffer(App *app, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
     }
 }
 
-static void
+CF_INTERNAL void
 appDestroyBuffer(App *app, ResourceBuffer *buffer)
 {
     if (buffer->map)
@@ -1087,7 +1088,7 @@ appDestroyBuffer(App *app, ResourceBuffer *buffer)
     vkFreeMemory(app->device, buffer->memory, app->vkalloc);
 }
 
-static void
+CF_INTERNAL void
 appCopyBuffer(App *app, VkBuffer src, VkBuffer dst, VkDeviceSize size)
 {
     VkCommandPool cmd_pool = app->frames[0].cmd_pool; // TODO (Matteo): Dedicated pool?
@@ -1123,7 +1124,7 @@ appCopyBuffer(App *app, VkBuffer src, VkBuffer dst, VkDeviceSize size)
     vkFreeCommandBuffers(app->device, cmd_pool, 1, &cmd);
 }
 
-static void
+CF_INTERNAL void
 appCreateAndFillBuffer(App *app, void const *data, Usize data_size, VkBufferUsageFlags usage,
                        ResourceBuffer *buffer)
 {
@@ -1150,7 +1151,7 @@ appCreateAndFillBuffer(App *app, void const *data, Usize data_size, VkBufferUsag
     appDestroyBuffer(app, &staging);
 }
 
-// static void
+// CF_INTERNAL void
 // framebufferResizeCallback(GLFWwindow *window, int width, int height)
 // {
 //     CF_UNUSED(width);
@@ -1159,7 +1160,7 @@ appCreateAndFillBuffer(App *app, void const *data, Usize data_size, VkBufferUsag
 //     app->rebuild_swapchain = true;
 // }
 
-static void
+CF_INTERNAL void
 appInitGui(App *app, Platform *platform)
 {
     // NOTE (Matteo): Custom IMGUI ini file
@@ -1191,7 +1192,7 @@ appInitGui(App *app, Platform *platform)
     // glfwSetFramebufferSizeCallback(app->window, framebufferResizeCallback);
 }
 
-static void
+CF_INTERNAL void
 appCreateFrames(App *app)
 {
     for (Usize index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
@@ -1261,7 +1262,7 @@ appCreateFrames(App *app)
     }
 }
 
-static void
+CF_INTERNAL void
 appDestroyFrames(App *app)
 {
     for (U32 index = 0; index < CF_ARRAY_SIZE(app->frames); ++index)
@@ -1401,7 +1402,7 @@ appShutdown(App *app)
 //   App logic   //
 //---------------//
 
-static void
+CF_INTERNAL void
 appSetupGuiRendering(App *app)
 {
     if (app->gui_setup) return;
@@ -1457,7 +1458,7 @@ appSetupGuiRendering(App *app)
     app->gui_setup = true;
 }
 
-static void
+CF_INTERNAL void
 appDrawFrame(App *app, Frame *frame)
 {
     Swapchain *swapchain = &app->swapchain;

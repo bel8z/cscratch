@@ -23,13 +23,13 @@ typedef struct ThreadData
     I32 id;
 } ThreadData;
 
-F32
+CF_INTERNAL F32
 randF32(void)
 {
     return (F32)rand() / (F32)RAND_MAX;
 }
 
-static CF_THREAD_FN(testArEventWork)
+CF_INTERNAL CF_THREAD_FN(testArEventWork)
 {
     ThreadData *data = args;
     TestArEventState *test = data->test;

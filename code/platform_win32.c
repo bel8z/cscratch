@@ -28,44 +28,44 @@ I32 platformMain(Platform *platform, CommandLine *cmd_line);
 
 //---- Virtual memory ----//
 
-static VMEM_RESERVE_FN(win32VmReserve);
-static VMEM_COMMIT_FN(win32VmCommit);
-static VMEM_DECOMMIT_FN(win32VmDecommit);
-static VMEM_RELEASE_FN(win32VmRelease);
+CF_INTERNAL VMEM_RESERVE_FN(win32VmReserve);
+CF_INTERNAL VMEM_COMMIT_FN(win32VmCommit);
+CF_INTERNAL VMEM_DECOMMIT_FN(win32VmDecommit);
+CF_INTERNAL VMEM_RELEASE_FN(win32VmRelease);
 
-static VMEM_MIRROR_ALLOCATE_FN(win32MirrorAllocate);
-static VMEM_MIRROR_FREE_FN(win32MirrorFree);
+CF_INTERNAL VMEM_MIRROR_ALLOCATE_FN(win32MirrorAllocate);
+CF_INTERNAL VMEM_MIRROR_FREE_FN(win32MirrorFree);
 
 //---- Heap allocation ----//
 
-static MEM_ALLOCATOR_FN(win32Alloc);
+CF_INTERNAL MEM_ALLOCATOR_FN(win32Alloc);
 
 //---- File system ----//
 
-static IO_FILE_COPY(win32FileCopy);
-static IO_FILE_OPEN(win32FileOpen);
-static IO_FILE_CLOSE(win32FileClose);
-static IO_FILE_SIZE(win32FileSize);
-static IO_FILE_SEEK(win32FileSeek);
-static IO_FILE_READ(win32FileRead);
-static IO_FILE_READ_AT(win32FileReadAt);
-static IO_FILE_WRITE(win32FileWrite);
-static IO_FILE_WRITE_AT(win32FileWriteAt);
-static IO_FILE_PROPERTIES(win32FileProperties);
-static IO_FILE_PROPERTIES_P(win32FilePropertiesP);
+CF_INTERNAL IO_FILE_COPY(win32FileCopy);
+CF_INTERNAL IO_FILE_OPEN(win32FileOpen);
+CF_INTERNAL IO_FILE_CLOSE(win32FileClose);
+CF_INTERNAL IO_FILE_SIZE(win32FileSize);
+CF_INTERNAL IO_FILE_SEEK(win32FileSeek);
+CF_INTERNAL IO_FILE_READ(win32FileRead);
+CF_INTERNAL IO_FILE_READ_AT(win32FileReadAt);
+CF_INTERNAL IO_FILE_WRITE(win32FileWrite);
+CF_INTERNAL IO_FILE_WRITE_AT(win32FileWriteAt);
+CF_INTERNAL IO_FILE_PROPERTIES(win32FileProperties);
+CF_INTERNAL IO_FILE_PROPERTIES_P(win32FilePropertiesP);
 
-static IO_DIRECTORY_OPEN(win32DirectoryOpen);
+CF_INTERNAL IO_DIRECTORY_OPEN(win32DirectoryOpen);
 
 //---- Dynamic loading ----//
 
-static Library *win32libLoad(Str filename);
-static void win32libUnload(Library *lib);
-static void *win32libLoadProc(Library *restrict lib, Cstr restrict name);
+CF_INTERNAL Library *win32libLoad(Str filename);
+CF_INTERNAL void win32libUnload(Library *lib);
+CF_INTERNAL void *win32libLoadProc(Library *restrict lib, Cstr restrict name);
 
 //---- Global platform API ----//
 
 // NOTE (Matteo): a global here should be quite safe
-static Platform g_platform = {
+CF_GLOBAL Platform g_platform = {
     .vmem =
         &(VMemApi){
             .reserve = win32VmReserve,
@@ -107,7 +107,7 @@ static Platform g_platform = {
 // Utilities
 //------------------------------------------------------------------------------
 
-static Usize
+CF_INTERNAL Usize
 win32GetCommandLineArgs(MemAllocator alloc, CommandLine *out)
 {
     Cstr16 cmd_line = GetCommandLineW();
@@ -146,7 +146,7 @@ win32GetCommandLineArgs(MemAllocator alloc, CommandLine *out)
 // Main entry point
 //------------------------------------------------------------------------------
 
-static void
+CF_INTERNAL void
 pathsInit(Paths *g_paths)
 {
     // Clear shared buffer
@@ -180,7 +180,7 @@ pathsInit(Paths *g_paths)
     g_paths->data.len = strLength(g_paths->data.buf);
 }
 
-static void
+CF_INTERNAL void
 win32PlatformInit(void)
 {
     // ** Init memory management **
@@ -214,7 +214,7 @@ win32PlatformInit(void)
     clockStart(&g_platform.clock);
 }
 
-static void
+CF_INTERNAL void
 win32PlatformShutdown(void)
 {
     CF_ASSERT(g_platform.heap_blocks == 0, "Potential memory leak");
@@ -499,20 +499,20 @@ typedef struct Win32DirIterator
 CF_STATIC_ASSERT(sizeof(((Win32DirIterator *)0)->buffer) >= 512,
                  "FsIterator buffer size is too small");
 
-static inline U64
+CF_INTERNAL inline U64
 win32MergeWords(DWORD high, DWORD low)
 {
     ULARGE_INTEGER value = {.HighPart = high, .LowPart = low};
     return value.QuadPart;
 }
 
-static inline SystemTime
+CF_INTERNAL inline SystemTime
 win32FileSystemTime(FILETIME time)
 {
     return win32MergeWords(time.dwHighDateTime, time.dwLowDateTime);
 }
 
-static void
+CF_INTERNAL void
 win32ReadAttributes(DWORD attributes, IoFileProperties *out)
 {
     if (attributes & FILE_ATTRIBUTE_DIRECTORY)
@@ -526,7 +526,7 @@ win32ReadAttributes(DWORD attributes, IoFileProperties *out)
     }
 }
 
-static OVERLAPPED
+CF_INTERNAL OVERLAPPED
 win32FileOffset(Usize offset)
 {
     ULARGE_INTEGER temp_offset = {.QuadPart = offset};
@@ -728,7 +728,7 @@ IO_FILE_WRITE_AT(win32FileWriteAt)
     return true;
 }
 
-static IO_DIRECTORY_NEXT(win32DirectoryNext)
+CF_INTERNAL IO_DIRECTORY_NEXT(win32DirectoryNext)
 {
     CF_ASSERT_NOT_NULL(self);
 
@@ -759,7 +759,7 @@ static IO_DIRECTORY_NEXT(win32DirectoryNext)
     return true;
 }
 
-static IO_DIRECTORY_CLOSE(win32DirectoryClose)
+CF_INTERNAL IO_DIRECTORY_CLOSE(win32DirectoryClose)
 {
     CF_ASSERT_NOT_NULL(self);
 

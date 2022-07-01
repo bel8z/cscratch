@@ -5,7 +5,7 @@
 
 // Rotate array using Gries-Mills block swap algorith
 // Implementation detail for cfRotateLeft/cfRotateLeft
-static inline void
+CF_INTERNAL inline void
 rotateBlockSwap_(void *array, Usize size, Usize pos, Usize item_size)
 {
     if (pos == 0 || pos == size) return;

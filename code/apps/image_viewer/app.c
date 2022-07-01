@@ -44,8 +44,8 @@
 //     Constants     //
 //-------------------//
 
-static Cstr g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
-static IoFileApi *g_file = NULL;
+CF_GLOBAL Cstr g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
+CF_GLOBAL IoFileApi *g_file = NULL;
 
 #define MAIN_WINDOW "Main"
 #define STYLE_WINDOW "Style Editor"
@@ -171,7 +171,7 @@ TASK_QUEUE_FN(loadFileTask)
     }
 }
 
-static void
+CF_INTERNAL void
 loadFileEnqueue(TaskQueue *queue, ImageFile *file)
 {
     if (file->state == ImageFileState_Idle)
@@ -188,7 +188,7 @@ loadFileEnqueue(TaskQueue *queue, ImageFile *file)
 //     Image display     //
 //-----------------------//
 
-static void
+CF_INTERNAL void
 imageTexBuild(ImageTex *tex)
 {
     CF_ASSERT(tex->id == 0, "Overwriting an existing texture");
@@ -226,7 +226,7 @@ imageTexBuild(ImageTex *tex)
     }
 }
 
-static ImageTex
+CF_INTERNAL ImageTex
 imageTexCreate(I32 width, I32 height)
 {
     ImageTex tex = {.width = width, .height = height};
@@ -234,7 +234,7 @@ imageTexCreate(I32 width, I32 height)
     return tex;
 }
 
-static void
+CF_INTERNAL void
 imageViewInit(ImageView *iv)
 {
     iv->advanced = false;
@@ -250,7 +250,7 @@ imageViewInit(ImageView *iv)
     }
 }
 
-static void
+CF_INTERNAL void
 imageViewShutdown(ImageView *iv)
 {
     for (Usize i = 0; i < CF_ARRAY_SIZE(iv->tex); ++i)
@@ -260,13 +260,13 @@ imageViewShutdown(ImageView *iv)
     }
 }
 
-static inline ImageTex *
+CF_INTERNAL inline ImageTex *
 imageViewCurrTex(ImageView *iv)
 {
     return iv->tex + iv->tex_index;
 }
 
-static void
+CF_INTERNAL void
 imageViewUpdate(ImageView *iv, Image const *image)
 {
     if (iv->dirty)
@@ -299,7 +299,7 @@ imageViewUpdate(ImageView *iv, Image const *image)
 //     Application image handling     //
 //------------------------------------//
 
-static void
+CF_INTERNAL void
 appClearImages(AppState *app)
 {
     for (U32 i = 0; i < app->files.size; ++i)
@@ -323,7 +323,7 @@ appClearImages(AppState *app)
     app->curr_file = USIZE_MAX;
 }
 
-static bool
+CF_INTERNAL bool
 appIsFileSupported(Str path)
 {
     Str ext = pathSplitExt(path);
@@ -337,7 +337,7 @@ appIsFileSupported(Str path)
     return false;
 }
 
-static void
+CF_INTERNAL void
 appQueueLoadFiles(AppState *app)
 {
     // NOTE (Matteo): improve browsing performance by pre-loading previous and next files
@@ -383,7 +383,7 @@ appQueueLoadFiles(AppState *app)
     app->iv.drag = (Vec2){0};
 }
 
-static void
+CF_INTERNAL void
 appPushFile(AppState *app, Cstr root_name, Str filename)
 {
     ImageFile *file = NULL;
@@ -397,7 +397,7 @@ appPushFile(AppState *app, Cstr root_name, Str filename)
     CF_ASSERT(!err, "Path is too long!");
 }
 
-static void
+CF_INTERNAL void
 appLoadFromFile(AppState *state, Str full_name)
 {
     appClearImages(state);
@@ -454,7 +454,7 @@ appLoadFromFile(AppState *state, Str full_name)
 //     Application GUI    //
 //------------------------//
 
-static void
+CF_INTERNAL void
 appBrowseNext(AppState *app)
 {
     CF_ASSERT(app->curr_file != U32_MAX, "Invalid browse command");
@@ -480,7 +480,7 @@ appBrowseNext(AppState *app)
     appQueueLoadFiles(app);
 }
 
-static void
+CF_INTERNAL void
 appBrowsePrev(AppState *app)
 {
     CF_ASSERT(app->curr_file != USIZE_MAX, "Invalid browse command");
@@ -506,7 +506,7 @@ appBrowsePrev(AppState *app)
     appQueueLoadFiles(app);
 }
 
-static void
+CF_INTERNAL void
 appImageView(AppState *state)
 {
     F32 const min_zoom = 1.0f;
@@ -648,7 +648,7 @@ appImageView(AppState *state)
     }
 }
 
-static bool
+CF_INTERNAL bool
 appOpenFile(AppState *state)
 {
     bool result = true;
@@ -679,7 +679,7 @@ appOpenFile(AppState *state)
     return result;
 }
 
-static bool
+CF_INTERNAL bool
 appMenuBar(AppState *state)
 {
     bool quit = false;
@@ -718,7 +718,7 @@ appMenuBar(AppState *state)
     return quit;
 }
 
-static void
+CF_INTERNAL void
 appMainWindow(AppState *state)
 {
 

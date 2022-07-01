@@ -1,3 +1,4 @@
+#include "foundation/core.h"
 #include "platform.h"
 
 #include "foundation/error.h"
@@ -6,7 +7,7 @@
 #include "foundation/memory.h"
 #include "foundation/strings.h"
 
-static MemAllocator g_heap;
+CF_GLOBAL MemAllocator g_heap;
 
 //======================================================//
 

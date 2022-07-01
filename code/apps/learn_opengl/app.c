@@ -132,8 +132,8 @@ Cstr pix_shader_src = //
 
 //------------------------------------------------------------------------------
 
-static void gfxInit(GfxState *state, CfLog *log, Paths *paths, IoFileApi *file);
-static void gfxShutdown(GfxState *gfx);
+CF_INTERNAL void gfxInit(GfxState *state, CfLog *log, Paths *paths, IoFileApi *file);
+CF_INTERNAL void gfxShutdown(GfxState *gfx);
 
 //------------------------------------------------------------------------------
 
@@ -205,7 +205,7 @@ APP_API APP_FN(appDestroy)
 
 //------------------------------------------------------------------------------
 
-static bool
+CF_INTERNAL bool
 textureLoad(Texture *tex, Str filename, IoFileApi *file)
 {
     Image image = {0};
@@ -236,7 +236,7 @@ textureLoad(Texture *tex, Str filename, IoFileApi *file)
     return true;
 }
 
-static void
+CF_INTERNAL void
 gfxInit(GfxState *gfx, CfLog *log, Paths *paths, IoFileApi *file)
 {
     //=== Shaders ==//
@@ -312,7 +312,7 @@ gfxInit(GfxState *gfx, CfLog *log, Paths *paths, IoFileApi *file)
     shaderClear();
 }
 
-static void
+CF_INTERNAL void
 gfxShutdown(GfxState *gfx)
 {
     // Unbind all used textures
@@ -338,7 +338,7 @@ gfxShutdown(GfxState *gfx)
     shaderUnload(&gfx->shader);
 }
 
-static void
+CF_INTERNAL void
 gfxProc(GfxState *gfx, CfLog *log)
 {
     CF_UNUSED(log); // at the moment

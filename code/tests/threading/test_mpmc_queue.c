@@ -1,3 +1,4 @@
+#include "foundation/core.h"
 #include "platform.h"
 
 #include "foundation/atom.h"
@@ -32,7 +33,7 @@ typedef struct MpmcQueue
     CF_CACHELINE_PAD;
 } MpmcQueue;
 
-void
+CF_INTERNAL void
 mpmcInit(MpmcQueue *queue, Usize buffer_size, MemAllocator alloc)
 {
     queue->buffer = memAllocArray(alloc, QueueCell, buffer_size);
@@ -50,13 +51,13 @@ mpmcInit(MpmcQueue *queue, Usize buffer_size, MemAllocator alloc)
     atomWrite(&queue->dequeue_pos, 0);
 }
 
-void
+CF_INTERNAL void
 mpmcShutdown(MpmcQueue *queue, MemAllocator alloc)
 {
     memFreeArray(alloc, queue->buffer, queue->buffer_mask + 1);
 }
 
-bool
+CF_INTERNAL bool
 mpmcEnqueue(MpmcQueue *queue, Usize data)
 {
     QueueCell *cell = NULL;
@@ -92,7 +93,7 @@ mpmcEnqueue(MpmcQueue *queue, Usize data)
     return true;
 }
 
-bool
+CF_INTERNAL bool
 mpmcDequeue(MpmcQueue *queue, Usize *data)
 {
     QueueCell *cell = NULL;
@@ -135,9 +136,9 @@ mpmcDequeue(MpmcQueue *queue, Usize *data)
 #define THREAD_COUNT 4
 #define BATCH_SIZE 1
 #define ITER_COUNT 2000000
-AtomBool g_start;
+CF_GLOBAL AtomBool g_start;
 
-CF_THREAD_FN(thread_func)
+CF_INTERNAL CF_THREAD_FN(thread_func)
 {
     MpmcQueue *queue = args;
     Usize data;
@@ -191,6 +192,8 @@ testMpmcQueue(Platform *platform)
     U64 time = end - start;
 
     printf("cycles/op=%llu\n", time / (BATCH_SIZE * ITER_COUNT * 2 * THREAD_COUNT));
+
+    mpmcShutdown(&queue, alloc);
 
     return true;
 }
