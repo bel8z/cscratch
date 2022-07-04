@@ -4,6 +4,7 @@
 #include "foundation/colors.h"
 #include "foundation/log.h"
 #include "foundation/memory.h"
+#include "implot.h"
 
 #if !defined GUI_VIEWPORTS
 #    define GUI_VIEWPORTS 0
@@ -188,15 +189,26 @@ guiGetBackColor(void)
 void
 guiGammaCorrection(bool enabled)
 {
-    ImGuiStyle &style = ImGui::GetStyle();
-    ImVec4 *colors = style.Colors;
-    F32 exp = (enabled) ? 2.2f : (1.0f / 2.2f);
+    typedef F32 (*ConvertFn)(F32);
+    ConvertFn convert = (enabled) ? colorSrgbDecode : colorSrgbEncode;
 
+    ImVec4 *colors;
+
+    colors = ImGui::GetStyle().Colors;
     for (U32 i = 0; i < ImGuiCol_COUNT; ++i)
     {
-        colors[i].x = ImClamp(ImPow(colors[i].x, exp), 0.0f, 1.0f);
-        colors[i].y = ImClamp(ImPow(colors[i].y, exp), 0.0f, 1.0f);
-        colors[i].z = ImClamp(ImPow(colors[i].z, exp), 0.0f, 1.0f);
+
+        colors[i].x = convert(colors[i].x);
+        colors[i].y = convert(colors[i].y);
+        colors[i].z = convert(colors[i].z);
+    }
+
+    colors = ImPlot::GetStyle().Colors;
+    for (U32 i = 0; i < ImPlotCol_COUNT; ++i)
+    {
+        colors[i].x = convert(colors[i].x);
+        colors[i].y = convert(colors[i].y);
+        colors[i].z = convert(colors[i].z);
     }
 }
 
