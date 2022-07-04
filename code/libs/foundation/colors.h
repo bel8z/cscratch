@@ -36,7 +36,10 @@
 //--------------------------------------------------------------------------------------------------
 // Color space manipulation utilities
 
-/// Convert linear space RBGA color to linear space, packed
+CF_API F32 colorSrgbEncode(F32 channel);
+CF_API F32 colorSrgbDecode(F32 channel);
+
+/// Convert linear space RBGA color to sRGB space, packed
 CF_API Srgb32 colorToSrgb(LinearColor in);
 
 /// Convert sRGB packed color to linear space

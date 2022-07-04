@@ -3,14 +3,34 @@
 #include "math.inl"
 #include "util.h"
 
+F32
+colorSrgbEncode(F32 channel)
+{
+    if (channel > 0.0031308)
+    {
+        return cfMin(1.0f, 1.055f * mPow(channel, 1.0f / 2.4f) - 0.055f);
+    }
+
+    return cfMax(0.0f, 12.92f * channel);
+}
+
+F32
+colorSrgbDecode(F32 channel)
+{
+    if (channel > 0.04045)
+    {
+        return cfMin(1.0f, mPow((channel + 0.055f) / 1.055f, 2.4f));
+    }
+
+    return cfMax(0.0f, channel / 12.92f);
+}
+
 Srgb32
 colorToSrgb(LinearColor in)
 {
-    F32 exp = 1.0f / 2.2f;
-
-    return SRGB32(cfClamp(mPow(in.r, exp) * 255.0f, 0.0f, 255.0f),
-                  cfClamp(mPow(in.g, exp) * 255.0f, 0.0f, 255.0f),
-                  cfClamp(mPow(in.b, exp) * 255.0f, 0.0f, 255.0f),
+    return SRGB32(colorSrgbEncode(in.r) * 255.0f, //
+                  colorSrgbEncode(in.g) * 255.0f, //
+                  colorSrgbEncode(in.b) * 255.0f, //
                   cfClamp(in.a * 255.0f, 0.0f, 255.0f));
 }
 
@@ -20,9 +40,9 @@ colorToLinear(Srgb32 in)
     F32 s = 1.0f / 255.0f;
 
     return (LinearColor){
-        .r = mPow(SRGB32_R(in) * s, 2.2f),
-        .g = mPow(SRGB32_G(in) * s, 2.2f),
-        .b = mPow(SRGB32_B(in) * s, 2.2f),
+        .r = colorSrgbDecode(SRGB32_R(in) * s),
+        .g = colorSrgbDecode(SRGB32_G(in) * s),
+        .b = colorSrgbDecode(SRGB32_B(in) * s),
         .a = SRGB32_A(in) * s,
     };
 }
