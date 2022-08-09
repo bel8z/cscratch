@@ -79,7 +79,7 @@ mRadians64(F64 degrees)
 #define mPow(base, xp) _Generic((base, xp), default : pow, F32 : powf)(base, xp)
 #define mSquare(x) ((x) * (x))
 #define mCube(x) ((x) * (x) * (x))
-#define mExp(base, xp) _Generic((base, xp), default : exp, F32 : expf)(base, xp)
+#define mExp(xp) _Generic((xp), default : exp, F32 : expf)(xp)
 #define mLog(x) _Generic((x), default : log, F32 : logf)(x)
 
 CF_INTERNAL inline F32
