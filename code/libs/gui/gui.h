@@ -276,6 +276,13 @@ CF_API void guiClosePopup(void);
 
 //=== Widgets ===//
 
+typedef struct GuiInputInfo
+{
+    F32 step;
+    F32 step_fast;
+    Cstr format;
+} GuiInputInfo;
+
 CF_API bool guiIsItemHovered(void);
 
 CF_API bool guiButton(Cstr label);
@@ -284,6 +291,8 @@ CF_API bool guiCenteredButton(Cstr label);
 CF_API bool guiCheckbox(Cstr label, bool *checked);
 
 CF_API bool guiSlider(Cstr label, F32 *value, F32 min_value, F32 max_value);
+
+CF_API bool guiInput(Cstr label, F32 *value, GuiInputInfo *info);
 
 CF_API void guiText(Cstr fmt, ...) CF_PRINTF_LIKE(0);
 CF_API void guiTextV(Cstr fmt, va_list args) CF_VPRINTF_LIKE(0);

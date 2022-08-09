@@ -1,9 +1,13 @@
 #include "gui.h"
+#include "foundation/core.h"
+#include "foundation/error.h"
+#include "foundation/strings.h"
 #include "gui_internal.h"
 
 #include "foundation/colors.h"
 #include "foundation/log.h"
 #include "foundation/memory.h"
+#include "imgui.h"
 #include "implot.h"
 
 #if !defined GUI_VIEWPORTS
@@ -1137,6 +1141,13 @@ guiSlider(Cstr label, F32 *value, F32 min_value, F32 max_value)
 {
     return ImGui::SliderFloat(label, value, min_value, max_value, "%.3f",
                               ImGuiSliderFlags_AlwaysClamp);
+}
+
+CF_API bool
+guiInput(Cstr label, F32 *value, GuiInputInfo *info)
+{
+    return ImGui::InputFloat(label, value, info->step, info->step_fast,
+                             info->format ? info->format : "%.3f");
 }
 
 void
