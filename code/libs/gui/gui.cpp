@@ -1281,8 +1281,40 @@ guiStyleEditor(void)
 
 //=== Plots ===//
 
+typedef struct GuiPlotAxis
+{
+    Cstr label;
+    double limits_min;
+    double limits_max;
+    bool limits_locked;
+} GuiPlotAxis;
+
+bool
+guiPlotBegin(Cstr label)
+{
+    return ImPlot::BeginPlot(label);
+}
+
 void
-guiTestPlot(Cstr label)
+guiPlotEnd()
+{
+    ImPlot::EndPlot();
+}
+
+void
+guiPlotLegend(GuiPlotLocation location)
+{
+    ImPlot::SetupLegend(location, ImPlotLegendFlags_Outside);
+}
+
+void
+guiPlotLine(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride)
+{
+    ImPlot::PlotLine(id, &xy[0], &xy[1], count, offset, stride);
+}
+
+void
+guiPlotTest(Cstr label)
 {
     // TODO (Matteo): Is there a better way to implement a scrolling buffer?
     static Vec2 samples[256] = {0};
@@ -1312,14 +1344,13 @@ guiTestPlot(Cstr label)
     samples[index].y = io.Framerate;
     ++sample_count;
 
-    if (ImPlot::BeginPlot(label))
+    if (guiPlotBegin(label))
     {
-        ImPlot::SetupLegend(ImPlotLocation_South, ImPlotLegendFlags_Outside);
+        guiPlotLegend(GuiPlotLocation_S);
         ImPlot::SetupAxis(ImAxis_Y1, "Hz", ImPlotAxisFlags_AutoFit);
         ImPlot::SetupAxisLimits(ImAxis_X1, time - window, time, ImPlotCond_Always);
-        ImPlot::PlotLine("Framerate", &samples[0].x, &samples[0].y, count, offset,
-                         sizeof(*samples));
-        ImPlot::EndPlot();
+        guiPlotLine("Framerate", samples[0].elem, count, offset, sizeof(*samples));
+        guiPlotEnd();
     }
 }
 

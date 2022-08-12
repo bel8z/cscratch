@@ -313,7 +313,28 @@ CF_API void guiStyleEditor(void);
 
 //=== Plots ===//
 
-CF_API void guiTestPlot(Cstr label);
+typedef I32 GuiPlotLocation;
+enum GuiPlotLocation_
+{
+    GuiPlotLocation_C = 0,                                      // center-center
+    GuiPlotLocation_N = 1 << 0,                                 // top-center
+    GuiPlotLocation_S = 1 << 1,                                 // bottom-center
+    GuiPlotLocation_W = 1 << 2,                                 // center-left
+    GuiPlotLocation_E = 1 << 3,                                 // center-right
+    GuiPlotLocation_NW = GuiPlotLocation_N | GuiPlotLocation_W, // top-left
+    GuiPlotLocation_NE = GuiPlotLocation_N | GuiPlotLocation_E, // top-right
+    GuiPlotLocation_SW = GuiPlotLocation_S | GuiPlotLocation_W, // bottom-left
+    GuiPlotLocation_SE = GuiPlotLocation_S | GuiPlotLocation_E  // bottom-right
+};
+
+CF_API bool guiPlotBegin(Cstr label);
+CF_API void guiPlotEnd();
+
+CF_API void guiPlotLegend(GuiPlotLocation location);
+
+CF_API void guiPlotLine(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride);
+
+CF_API void guiPlotTest(Cstr label);
 
 //=== Fonts handling ===//
 
