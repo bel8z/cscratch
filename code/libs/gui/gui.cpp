@@ -1,12 +1,13 @@
 #include "gui.h"
-#include "foundation/core.h"
-#include "foundation/error.h"
-#include "foundation/strings.h"
 #include "gui_internal.h"
 
 #include "foundation/colors.h"
+#include "foundation/core.h"
+#include "foundation/error.h"
 #include "foundation/log.h"
 #include "foundation/memory.h"
+#include "foundation/strings.h"
+
 #include "imgui.h"
 #include "implot.h"
 
@@ -149,6 +150,24 @@ gui_InvertColor(ImVec4 in)
     };
 }
 
+CF_INTERNAL ImVec4
+gui_GammaDecode(ImVec4 color)
+{
+    color.x = colorSrgbDecode(color.x);
+    color.y = colorSrgbDecode(color.y);
+    color.z = colorSrgbDecode(color.z);
+    return color;
+}
+
+CF_INTERNAL ImVec4
+gui_GammaEncode(ImVec4 color)
+{
+    color.x = colorSrgbEncode(color.x);
+    color.y = colorSrgbEncode(color.y);
+    color.z = colorSrgbEncode(color.z);
+    return color;
+}
+
 void
 guiThemeSelector(Cstr label)
 {
@@ -193,26 +212,21 @@ guiGetBackColor(void)
 void
 guiGammaCorrection(bool enabled)
 {
-    typedef F32 (*ConvertFn)(F32);
-    ConvertFn convert = (enabled) ? colorSrgbDecode : colorSrgbEncode;
+    typedef ImVec4 (*ConvertFn)(ImVec4);
+    ConvertFn convert = (enabled) ? gui_GammaDecode : gui_GammaEncode;
 
     ImVec4 *colors;
 
     colors = ImGui::GetStyle().Colors;
     for (U32 i = 0; i < ImGuiCol_COUNT; ++i)
     {
-
-        colors[i].x = convert(colors[i].x);
-        colors[i].y = convert(colors[i].y);
-        colors[i].z = convert(colors[i].z);
+        colors[i] = convert(colors[i]);
     }
 
     colors = ImPlot::GetStyle().Colors;
     for (U32 i = 0; i < ImPlotCol_COUNT; ++i)
     {
-        colors[i].x = convert(colors[i].x);
-        colors[i].y = convert(colors[i].y);
-        colors[i].z = convert(colors[i].z);
+        colors[i] = convert(colors[i]);
     }
 }
 
@@ -221,16 +235,29 @@ guiSetTheme(GuiTheme theme)
 {
     guiData().theme = theme;
 
+    ImPlot::StyleColorsAuto(nullptr);
+
     switch (theme)
     {
-        case GuiTheme_ImguiClassic: ImGui::StyleColorsClassic(NULL); break;
-        case GuiTheme_ImguiDark: ImGui::StyleColorsDark(NULL); break;
-        case GuiTheme_ImguiLight: ImGui::StyleColorsLight(NULL); break;
+        case GuiTheme_ImguiClassic:
+            ImGui::StyleColorsClassic(nullptr);
+            ImPlot::StyleColorsClassic(nullptr);
+            break;
+
+        case GuiTheme_ImguiDark:
+            ImGui::StyleColorsDark(nullptr);
+            ImPlot::StyleColorsDark(nullptr);
+            break;
+
+        case GuiTheme_ImguiLight:
+            ImGui::StyleColorsLight(nullptr);
+            ImPlot::StyleColorsLight(nullptr);
+            break;
 
         case GuiTheme_EmeraldDark:
         case GuiTheme_EmeraldLight:
         {
-            ImGui::StyleColorsClassic(NULL);
+            ImGui::StyleColorsClassic(nullptr);
             ImGuiStyle &style = ImGui::GetStyle();
             // clang-format off
             style.Colors[ImGuiCol_Text]                   = gui_Color(1.00f, 1.00f, 1.00f, 1.00f);
@@ -294,7 +321,7 @@ guiSetTheme(GuiTheme theme)
 
         case GuiTheme_LightBlue:
         {
-            ImGui::StyleColorsClassic(NULL);
+            ImGui::StyleColorsClassic(nullptr);
             ImGuiStyle &style = ImGui::GetStyle();
             // clang-format off
             style.Colors[ImGuiCol_Text]                   = gui_Color(0.00f, 0.00f, 0.00f, 1.00f);
@@ -408,7 +435,7 @@ guiSetTheme(GuiTheme theme)
 
         case GuiTheme_Dummy:
         {
-            ImGui::StyleColorsLight(NULL);
+            ImGui::StyleColorsLight(nullptr);
             ImGuiStyle &style = ImGui::GetStyle();
             // clang-format off
             style.Colors[ImGuiCol_Text]                 = gui_Color(0.31f, 0.25f, 0.24f, 1.00f);
@@ -590,7 +617,7 @@ guiFontOptionsEdit(GuiFontOptions *state)
                                     ImGuiSliderFlags_None);
 
     rebuild_fonts |= ImGui::DragFloat("RasterizerMultiply", &state->rasterizer_multiply, 0.001f,
-                                      0.0f, 2.0f, NULL, ImGuiSliderFlags_None);
+                                      0.0f, 2.0f, nullptr, ImGuiSliderFlags_None);
 
     ImGui::Separator();
 
@@ -618,9 +645,9 @@ guiFontOptionsEdit(GuiFontOptions *state)
     else
 #endif
     {
-        rebuild_fonts |= ImGui::DragInt("Oversample H", &state->oversample_h, 0.1f, 1, 5, NULL,
+        rebuild_fonts |= ImGui::DragInt("Oversample H", &state->oversample_h, 0.1f, 1, 5, nullptr,
                                         ImGuiSliderFlags_None);
-        rebuild_fonts |= ImGui::DragInt("Oversample V", &state->oversample_v, 0.1f, 1, 5, NULL,
+        rebuild_fonts |= ImGui::DragInt("Oversample V", &state->oversample_v, 0.1f, 1, 5, nullptr,
                                         ImGuiSliderFlags_None);
     }
 
@@ -671,13 +698,13 @@ guiFonts(void)
 ImFont *
 guiLoadFont(ImFontAtlas *fonts, Cstr file_name, F32 font_size)
 {
-    return fonts->AddFontFromFileTTF(file_name, font_size, NULL, fonts->GetGlyphRangesDefault());
+    return fonts->AddFontFromFileTTF(file_name, font_size, nullptr, fonts->GetGlyphRangesDefault());
 }
 
 ImFont *
 guiLoadDefaultFont(ImFontAtlas *fonts)
 {
-    return fonts->AddFontDefault(NULL);
+    return fonts->AddFontDefault(nullptr);
 }
 
 //=== Windows ===//
@@ -688,7 +715,7 @@ gui_DockSplit(GuiDockLayout *layout, ImGuiDir dir, F32 size_ratio)
     U32 id = U32_MAX;
     if (layout->open)
     {
-        id = ImGui::DockBuilderSplitNode(layout->id, dir, size_ratio, NULL, &layout->id);
+        id = ImGui::DockBuilderSplitNode(layout->id, dir, size_ratio, nullptr, &layout->id);
     }
     return id;
 }
@@ -697,7 +724,7 @@ CF_INTERNAL U32
 gui_DockSpaceOnMainViewport(ImGuiDockNodeFlags dock_flags)
 {
     ImGuiViewport const *viewport = ImGui::GetMainViewport();
-    return ImGui::DockSpaceOverViewport(viewport, dock_flags, NULL);
+    return ImGui::DockSpaceOverViewport(viewport, dock_flags, nullptr);
 }
 
 void
@@ -808,7 +835,7 @@ guiBeginLayout(Cstr name, GuiDockLayout *layout)
         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
         ImGuiWindowFlags_NoNavFocus;
 
-    bool result = ImGui::Begin(name, NULL, window_flags);
+    bool result = ImGui::Begin(name, nullptr, window_flags);
 
     // NOTE (Matteo): Instruct the docking system to consider the window's node always as the
     // central one, thus not using it as a docking target (there's the backing dockspace
@@ -1081,7 +1108,7 @@ guiBeginFullScreen(Cstr label, bool docking, bool menu_bar)
     if (!docking) window_flags |= ImGuiWindowFlags_NoDocking;
     if (menu_bar) window_flags |= ImGuiWindowFlags_MenuBar;
 
-    ImGui::Begin(label, NULL, window_flags);
+    ImGui::Begin(label, nullptr, window_flags);
     ImGui::PopStyleVar(3);
 }
 
@@ -1115,7 +1142,7 @@ guiCenteredButton(Cstr label)
     ImGuiStyle &style = ImGui::GetStyle();
 
     // NOTE (Matteo): Button size calculation copied from ImGui::ButtonEx
-    ImVec2 label_size = ImGui::CalcTextSize(label, NULL, false, -1.0f);
+    ImVec2 label_size = ImGui::CalcTextSize(label, nullptr, false, -1.0f);
     ImVec2 button_size = ImGui::CalcItemSize({0, 0}, //
                                              label_size.x + style.FramePadding.x * 2.0f,
                                              label_size.y + style.FramePadding.y * 2.0f);
@@ -1192,7 +1219,7 @@ guiEndMenu(void)
 bool
 guiMenuItem(Cstr label, bool *p_selected)
 {
-    return ImGui::MenuItem(label, NULL, p_selected, true);
+    return ImGui::MenuItem(label, nullptr, p_selected, true);
 }
 
 bool
@@ -1235,7 +1262,7 @@ guiColorEdit(Cstr label, Srgb32 *color)
 
     bool color_changed = false;
     Usize color_index = USIZE_MAX;
-    Cstr color_name = NULL;
+    Cstr color_name = nullptr;
     Char8 label_buffer[1024];
 
     // Test if the color is a known named one
@@ -1276,7 +1303,7 @@ guiColorEdit(Cstr label, Srgb32 *color)
 void
 guiStyleEditor(void)
 {
-    ImGui::ShowStyleEditor(NULL);
+    ImGui::ShowStyleEditor(nullptr);
 }
 
 //=== Plots ===//
