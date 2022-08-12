@@ -1281,18 +1281,49 @@ guiStyleEditor(void)
 
 //=== Plots ===//
 
-typedef struct GuiPlotAxis
-{
-    Cstr label;
-    double limits_min;
-    double limits_max;
-    bool limits_locked;
-} GuiPlotAxis;
-
 bool
-guiPlotBegin(Cstr label)
+guiPlotBegin(Cstr label, GuiPlotSetup *setup)
 {
-    return ImPlot::BeginPlot(label);
+    ImPlotFlags plot_flags = ImPlotFlags_None;
+    ImPlotLegendFlags leg_flags = ImPlotLegendFlags_None;
+    ImPlotLocation leg_location = 0;
+
+    if (setup->legend)
+    {
+        leg_location = setup->legend->location;
+        if (setup->legend->outside) leg_flags |= ImPlotLegendFlags_Outside;
+    }
+    else
+    {
+        plot_flags |= ImPlotFlags_NoLegend;
+    }
+
+    if (!ImPlot::BeginPlot(label)) return false;
+
+    ImPlot::SetupLegend(leg_location, leg_flags);
+
+    CF_ASSERT_NOT_NULL(setup);
+
+    for (GuiAxis ax = 0; ax < GuiAxis_COUNT; ++ax)
+    {
+        GuiAxisInfo *info = setup->info[ax];
+        if (!info) continue;
+
+        ImPlotAxisFlags ax_flags = ImPlotAxisFlags_None;
+        if (info->autofit) ax_flags |= ImPlotAxisFlags_AutoFit;
+
+        ImPlot::SetupAxis(ax, info->label, ax_flags);
+
+        if (info->range)
+        {
+            ImPlot::SetupAxisLimits(ax,               //
+                                    info->range->min, //
+                                    info->range->max,
+                                    (info->range->locked) ? ImPlotCond_Always : ImPlotCond_Once);
+        }
+    }
+
+    return true;
 }
 
 void
@@ -1302,56 +1333,27 @@ guiPlotEnd()
 }
 
 void
-guiPlotLegend(GuiPlotLocation location)
-{
-    ImPlot::SetupLegend(location, ImPlotLegendFlags_Outside);
-}
-
-void
-guiPlotLine(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride)
+guiPlotLineF32(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride)
 {
     ImPlot::PlotLine(id, &xy[0], &xy[1], count, offset, stride);
 }
 
 void
-guiPlotTest(Cstr label)
+guiPlotLineF64(Cstr id, F64 *xy, Usize count, Usize offset, Usize stride)
 {
-    // TODO (Matteo): Is there a better way to implement a scrolling buffer?
-    static Vec2 samples[256] = {0};
-    static Usize sample_count = 0;
-    static const Usize mask = CF_ARRAY_SIZE(samples) - 1;
+    ImPlot::PlotLine(id, &xy[0], &xy[1], count, offset, stride);
+}
 
-    Usize count, offset;
-    Usize index = index = sample_count & mask;
+void
+guiPlotScatterF32(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride)
+{
+    ImPlot::PlotScatter(id, &xy[0], &xy[1], count, offset, stride);
+}
 
-    if (index != sample_count)
-    {
-        offset = (index + 1) & mask;
-        count = CF_ARRAY_SIZE(samples);
-    }
-    else
-    {
-        offset = 0;
-        count = sample_count + 1;
-    }
-
-    auto &io = ImGui::GetIO();
-    F32 window = (F32)CF_ARRAY_SIZE(samples) / io.Framerate;
-    F32 time = io.DeltaTime;
-    if (sample_count) time += samples[(sample_count - 1) & mask].x;
-
-    samples[index].x = time;
-    samples[index].y = io.Framerate;
-    ++sample_count;
-
-    if (guiPlotBegin(label))
-    {
-        guiPlotLegend(GuiPlotLocation_S);
-        ImPlot::SetupAxis(ImAxis_Y1, "Hz", ImPlotAxisFlags_AutoFit);
-        ImPlot::SetupAxisLimits(ImAxis_X1, time - window, time, ImPlotCond_Always);
-        guiPlotLine("Framerate", samples[0].elem, count, offset, sizeof(*samples));
-        guiPlotEnd();
-    }
+void
+guiPlotScatterF64(Cstr id, F64 *xy, Usize count, Usize offset, Usize stride)
+{
+    ImPlot::PlotScatter(id, &xy[0], &xy[1], count, offset, stride);
 }
 
 //=== File dialogs ===//

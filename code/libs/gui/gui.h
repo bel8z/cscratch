@@ -151,6 +151,37 @@ enum GuiMouseButton_
     GuiMouseButton_COUNT = 5
 };
 
+typedef I32 GuiLocation;
+enum GuiLocation_
+{
+    GuiLocation_C = 0,                              // center-center
+    GuiLocation_N = 1 << 0,                         // top-center
+    GuiLocation_S = 1 << 1,                         // bottom-center
+    GuiLocation_W = 1 << 2,                         // center-left
+    GuiLocation_E = 1 << 3,                         // center-right
+    GuiLocation_NW = GuiLocation_N | GuiLocation_W, // top-left
+    GuiLocation_NE = GuiLocation_N | GuiLocation_E, // top-right
+    GuiLocation_SW = GuiLocation_S | GuiLocation_W, // bottom-left
+    GuiLocation_SE = GuiLocation_S | GuiLocation_E  // bottom-right
+};
+
+typedef I32 GuiAxis;
+enum GuiAxis_
+{
+    // horizontal axes
+    GuiAxis_X1 = 0, // enabled by default
+    GuiAxis_X2,     // disabled by default
+    GuiAxis_X3,     // disabled by default
+
+    // vertical axes
+    GuiAxis_Y1, // enabled by default
+    GuiAxis_Y2, // disabled by default
+    GuiAxis_Y3, // disabled by default
+
+    // bookeeping
+    GuiAxis_COUNT
+};
+
 // Constants for DPI handling
 #define GUI_PLATFORM_DPI 96.0f
 #define GUI_TRUETYPE_DPI 72.0f
@@ -313,28 +344,40 @@ CF_API void guiStyleEditor(void);
 
 //=== Plots ===//
 
-typedef I32 GuiPlotLocation;
-enum GuiPlotLocation_
+typedef struct GuiAxisRange
 {
-    GuiPlotLocation_C = 0,                                      // center-center
-    GuiPlotLocation_N = 1 << 0,                                 // top-center
-    GuiPlotLocation_S = 1 << 1,                                 // bottom-center
-    GuiPlotLocation_W = 1 << 2,                                 // center-left
-    GuiPlotLocation_E = 1 << 3,                                 // center-right
-    GuiPlotLocation_NW = GuiPlotLocation_N | GuiPlotLocation_W, // top-left
-    GuiPlotLocation_NE = GuiPlotLocation_N | GuiPlotLocation_E, // top-right
-    GuiPlotLocation_SW = GuiPlotLocation_S | GuiPlotLocation_W, // bottom-left
-    GuiPlotLocation_SE = GuiPlotLocation_S | GuiPlotLocation_E  // bottom-right
-};
+    double min, max;
+    bool locked;
+} GuiAxisRange;
 
-CF_API bool guiPlotBegin(Cstr label);
+typedef struct GuiAxisInfo
+{
+    Cstr label;
+    GuiAxisRange *range;
+    bool autofit;
+} GuiAxisInfo;
+
+typedef struct GuiPlotLegend
+{
+    GuiLocation location;
+    bool outside;
+    bool vertical;
+} GuiPlotLegend;
+
+typedef struct GuiPlotSetup
+{
+    GuiPlotLegend *legend;
+    GuiAxisInfo *info[GuiAxis_COUNT];
+} GuiPlotSetup;
+
+CF_API bool guiPlotBegin(Cstr label, GuiPlotSetup *setup);
 CF_API void guiPlotEnd();
 
-CF_API void guiPlotLegend(GuiPlotLocation location);
+CF_API void guiPlotLineF32(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride);
+CF_API void guiPlotLineF64(Cstr id, F64 *xy, Usize count, Usize offset, Usize stride);
 
-CF_API void guiPlotLine(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride);
-
-CF_API void guiPlotTest(Cstr label);
+CF_API void guiPlotScatterF32(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride);
+CF_API void guiPlotScatterF64(Cstr id, F64 *xy, Usize count, Usize offset, Usize stride);
 
 //=== Fonts handling ===//
 

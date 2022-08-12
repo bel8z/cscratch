@@ -554,6 +554,55 @@ guiClock(Duration time)
     guiText("%02lld:%02lld:%02lld.%09u", hours, mins, final_secs, time.nanos);
 }
 
+CF_INTERNAL void
+guiFrameratePlot()
+{
+    // TODO (Matteo): Is there a better way to implement a scrolling buffer?
+    static DVec2 samples[256] = {0};
+    static Usize sample_count = 0;
+    static const Usize mask = CF_ARRAY_SIZE(samples) - 1;
+
+    Usize count, offset;
+    Usize index = index = sample_count & mask;
+
+    if (index != sample_count)
+    {
+        offset = (index + 1) & mask;
+        count = CF_ARRAY_SIZE(samples);
+    }
+    else
+    {
+        offset = 0;
+        count = sample_count + 1;
+    }
+
+    F64 framerate = (F64)guiGetFramerate();
+    F64 window = (F64)CF_ARRAY_SIZE(samples) / framerate;
+    F64 time = 1.0 / framerate;
+    if (sample_count) time += samples[(sample_count - 1) & mask].x;
+
+    samples[index].x = time;
+    samples[index].y = framerate;
+    ++sample_count;
+
+    GuiPlotSetup plot = {
+        .legend = &(GuiPlotLegend){.location = GuiLocation_S, .outside = true},
+        .info[GuiAxis_Y1] = &(GuiAxisInfo){.label = "Hz", .autofit = true},
+        .info[GuiAxis_X1] = &(GuiAxisInfo){.range =
+                                               &(GuiAxisRange){
+                                                   .min = time - window,
+                                                   .max = time,
+                                                   .locked = true,
+                                               }},
+    };
+
+    if (guiPlotBegin("plot", &plot))
+    {
+        guiPlotLineF64("Framerate", samples[0].elem, count, offset, sizeof(*samples));
+        guiPlotEnd();
+    }
+}
+
 APP_API APP_UPDATE_FN(appUpdate)
 {
     Platform *plat = state->plat;
@@ -655,7 +704,7 @@ APP_API APP_UPDATE_FN(appUpdate)
         guiClock(t);
         guiSeparator();
 
-        guiPlotTest("plot");
+        guiFrameratePlot();
         guiSeparator();
 
         if (timeIsGe(timeSub(t, state->log_time), timeDurationMs(1000)))
