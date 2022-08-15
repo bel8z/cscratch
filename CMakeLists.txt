@@ -50,7 +50,6 @@ set(TESTS_DIR ${CODE_DIR}/tests)
 #----------------------#
 
 add_subdirectory(${LIBS_DIR}/foundation)
-add_subdirectory(${LIBS_DIR}/gui)
 
 #-----------------------#
 # Common resource files #
@@ -92,6 +91,74 @@ set_source_files_properties(${PLATFORM_SOURCES} PROPERTIES LANGUAGE C)
 set(CONSOLE_ENTRY ${CODE_DIR}/console.c)
 set_source_files_properties(${CONSOLE_ENTRY} PROPERTIES LANGUAGE C)
 
+#-------------#
+# Gui library #
+#-------------#
+
+set(GUI_NAME gui)
+set(IMGUI_DIR ${EXT_DIR}/imgui)
+set(IMPLOT_DIR ${EXT_DIR}/implot-v0.13)
+set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
+
+find_package(freetype REQUIRED PATHS ${FREETYPE_DIR})
+
+# NOTE (Matteo): Custom imgui configuration (requires giving access to foundation include directory)
+set(GUI_CONFIG ${LIBS_DIR}/gui/gui_config.h)
+message(STATUS "backend gui config: ${GUI_CONFIG}")
+
+file(GLOB GUI_SOURCES 
+    ${IMGUI_DIR}/*.cpp
+    ${IMPLOT_DIR}/*.cpp
+    ${IMGUI_DIR}/misc/freetype/imgui_freetype.cpp
+    ${LIBS_DIR}/gui/gui.c
+    ${LIBS_DIR}/gui/gui.cpp)
+
+add_library(${GUI_NAME} STATIC ${GUI_SOURCES})
+
+target_compile_features(${GUI_NAME}    PUBLIC c_std_11) 
+target_compile_features(${GUI_NAME}    PUBLIC cxx_std_14)
+target_compile_definitions(${GUI_NAME} PUBLIC IMGUI_USER_CONFIG="${GUI_CONFIG}")
+target_link_libraries(${GUI_NAME} PRIVATE freetype)
+target_include_directories(${GUI_NAME} 
+    PRIVATE 
+        ${IMGUI_DIR}
+        ${IMPLOT_DIR}
+        ${IMGUI_DIR}/misc/freetype
+        ${EXT_DIR}/stb
+    PUBLIC
+        ${LIBS_DIR})
+
+#----------------#
+# Window library #
+#----------------#
+
+set(GLFW_DIR ${EXT_DIR}/glfw-3.3.6)
+
+# TODO (Matteo): Find a better way to handle out of tree builds
+
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs" FORCE)
+add_subdirectory(${GLFW_DIR} ${CMAKE_BINARY_DIR}/glfw-3.3.6)
+
+find_package(OpenGL REQUIRED)
+
+set(WIN_NAME gui_win)
+add_library(${WIN_NAME} STATIC
+    ${LIBS_DIR}/gui/win.cpp
+    ${LIBS_DIR}/gui/gui_backend_gl3.cpp
+    ${LIBS_DIR}/gl/gl_api.c)
+
+target_include_directories(${WIN_NAME} 
+    PRIVATE 
+        ${IMGUI_DIR} 
+        ${IMPLOT_DIR} 
+        ${IMGUI_DIR}/misc/freetype)
+
+target_link_libraries(${WIN_NAME} PUBLIC ${GUI_NAME} ${OPENGL_gl_LIBRARY} PRIVATE glfw)
+target_compile_features(${WIN_NAME} PUBLIC c_std_11) 
+target_compile_features(${WIN_NAME} PUBLIC cxx_std_14)
+set_c_compile_flags(${WIN_NAME})
+
 #--------------#
 # Applications #
 #--------------#
@@ -125,8 +192,8 @@ foreach(APP ${APPS})
         target_include_directories(${EXE_NAME} PUBLIC ${LIBS_DIR})
         target_include_directories(${LIB_NAME} PUBLIC ${LIBS_DIR} ${EXT_DIR}/stb)
 
-        target_link_libraries(${EXE_NAME} PRIVATE foundation gui_gl3)
-        target_link_libraries(${LIB_NAME} PRIVATE foundation gui ${OPENGL_gl_LIBRARY}) 
+        target_link_libraries(${EXE_NAME} PRIVATE foundation ${WIN_NAME})
+        target_link_libraries(${LIB_NAME} PRIVATE foundation ${GUI_NAME} ${OPENGL_gl_LIBRARY}) 
 
         target_link_libraries(${EXE_NAME} PUBLIC Imm32)
         target_link_libraries(${LIB_NAME} PUBLIC Imm32)
