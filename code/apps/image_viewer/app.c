@@ -302,9 +302,9 @@ imageViewUpdate(ImageView *iv, Image const *image)
 CF_INTERNAL void
 appClearImages(AppState *app)
 {
-    for (U32 i = 0; i < app->files.size; ++i)
+    for (U32 i = 0; i < app->files.len; ++i)
     {
-        ImageFile *file = app->files.data + i;
+        ImageFile *file = app->files.ptr + i;
 
         CF_ASSERT(file->state != ImageFileState_Queued, "Leaking queued files");
 
@@ -345,18 +345,18 @@ appQueueLoadFiles(AppState *app)
     Usize curr = app->curr_file;
     TaskQueue *queue = app->queue;
 
-    loadFileEnqueue(queue, app->files.data + curr);
+    loadFileEnqueue(queue, app->files.ptr + curr);
 
-    if (app->browse_width == app->files.size)
+    if (app->browse_width == app->files.len)
     {
-        for (Usize i = curr + 1; i < app->files.size; ++i)
+        for (Usize i = curr + 1; i < app->files.len; ++i)
         {
-            loadFileEnqueue(queue, app->files.data + i);
+            loadFileEnqueue(queue, app->files.ptr + i);
         }
 
         for (Usize i = 0; i < curr; ++i)
         {
-            loadFileEnqueue(queue, app->files.data + curr - i - 1);
+            loadFileEnqueue(queue, app->files.ptr + curr - i - 1);
         }
     }
     else
@@ -367,13 +367,13 @@ appQueueLoadFiles(AppState *app)
         Usize mid = app->browse_width / 2;
         for (Usize i = 0; i < mid; ++i)
         {
-            Usize next = cfMod(curr + i + 1, app->files.size);
-            Usize prev = cfMod(curr - i - 1, app->files.size);
+            Usize next = cfMod(curr + i + 1, app->files.len);
+            Usize prev = cfMod(curr - i - 1, app->files.len);
             CF_ASSERT(next != curr, "");
             CF_ASSERT(next != prev, "");
             CF_ASSERT(prev != curr, "");
-            loadFileEnqueue(queue, app->files.data + next);
-            loadFileEnqueue(queue, app->files.data + prev);
+            loadFileEnqueue(queue, app->files.ptr + next);
+            loadFileEnqueue(queue, app->files.ptr + prev);
         }
     }
 
@@ -393,7 +393,7 @@ appPushFile(AppState *app, Cstr root_name, Str filename)
     file->state = ImageFileState_Idle;
 
     err = strPrint(file->filename, FILENAME_SIZE, "%s%.*s", root_name, (I32)filename.len,
-                   filename.buf);
+                   filename.ptr);
     CF_ASSERT(!err, "Path is too long!");
 }
 
@@ -409,7 +409,7 @@ appLoadFromFile(AppState *state, Str full_name)
         ImageFile file = {0};
         Char8 root_name[FILENAME_SIZE] = {0};
         Str file_name = pathSplitName(full_name);
-        memCopy(full_name.buf, root_name, full_name.len - file_name.len);
+        memCopy(full_name.ptr, root_name, full_name.len - file_name.len);
         strToCstr(full_name, file.filename, FILENAME_SIZE);
 
         CF_DIAGNOSTIC_PUSH()
@@ -433,18 +433,18 @@ appLoadFromFile(AppState *state, Str full_name)
 
         CF_DIAGNOSTIC_POP()
 
-        for (U32 file_no = 0; file_no < state->files.size; ++file_no)
+        for (U32 file_no = 0; file_no < state->files.len; ++file_no)
         {
-            Str temp_name = strFromCstr(state->files.data[file_no].filename);
+            Str temp_name = strFromCstr(state->files.ptr[file_no].filename);
             if (strEqualInsensitive(full_name, temp_name))
             {
                 state->curr_file = file_no;
-                state->files.data[file_no] = file;
+                state->files.ptr[file_no] = file;
                 break;
             }
         }
 
-        state->browse_width = cfMin(BrowseWidth, state->files.size);
+        state->browse_width = cfMin(BrowseWidth, state->files.len);
         CF_ASSERT(state->curr_file != USIZE_MAX, "At least one image file should be present");
         appQueueLoadFiles(state);
     }
@@ -459,12 +459,12 @@ appBrowseNext(AppState *app)
 {
     CF_ASSERT(app->curr_file != U32_MAX, "Invalid browse command");
 
-    Usize next = cfWrapInc(app->curr_file, app->files.size);
+    Usize next = cfWrapInc(app->curr_file, app->files.len);
 
-    if (app->browse_width != app->files.size)
+    if (app->browse_width != app->files.len)
     {
-        Usize lru = cfMod(app->curr_file - app->browse_width / 2, app->files.size);
-        ImageFile *file = app->files.data + lru;
+        Usize lru = cfMod(app->curr_file - app->browse_width / 2, app->files.len);
+        ImageFile *file = app->files.ptr + lru;
         if (file->state == ImageFileState_Loaded)
         {
             imageUnload(&file->image);
@@ -473,7 +473,7 @@ appBrowseNext(AppState *app)
     }
     else
     {
-        CF_ASSERT(app->files.data[next].state != ImageFileState_Idle, "");
+        CF_ASSERT(app->files.ptr[next].state != ImageFileState_Idle, "");
     }
 
     app->curr_file = next;
@@ -485,12 +485,12 @@ appBrowsePrev(AppState *app)
 {
     CF_ASSERT(app->curr_file != USIZE_MAX, "Invalid browse command");
 
-    Usize prev = cfWrapDec(app->curr_file, app->files.size);
+    Usize prev = cfWrapDec(app->curr_file, app->files.len);
 
-    if (app->browse_width != app->files.size)
+    if (app->browse_width != app->files.len)
     {
-        Usize lru = cfMod(app->curr_file + app->browse_width / 2, app->files.size);
-        ImageFile *file = app->files.data + lru;
+        Usize lru = cfMod(app->curr_file + app->browse_width / 2, app->files.len);
+        ImageFile *file = app->files.ptr + lru;
         if (file->state == ImageFileState_Loaded)
         {
             imageUnload(&file->image);
@@ -499,7 +499,7 @@ appBrowsePrev(AppState *app)
     }
     else
     {
-        CF_ASSERT(app->files.data[prev].state != ImageFileState_Idle, "");
+        CF_ASSERT(app->files.ptr[prev].state != ImageFileState_Idle, "");
     }
 
     app->curr_file = prev;
@@ -547,7 +547,7 @@ appImageView(AppState *state)
 
     if (state->curr_file != USIZE_MAX)
     {
-        ImageFile *curr_file = state->files.data + state->curr_file;
+        ImageFile *curr_file = state->files.ptr + state->curr_file;
         bool can_browse = true;
 
         switch (curr_file->state)
@@ -663,7 +663,7 @@ appOpenFile(AppState *state)
 
         if (state->curr_file != USIZE_MAX)
         {
-            dlg_parms.filename_hint = strFromCstr(state->files.data[state->curr_file].filename);
+            dlg_parms.filename_hint = strFromCstr(state->files.ptr[state->curr_file].filename);
         }
 
         GuiFileDialogResult dlg_result =
@@ -876,9 +876,9 @@ APP_API APP_UPDATE_FN(appUpdate)
                 (F64)plat->reserved_size / 1024, (F64)plat->committed_size / 1024);
         guiSeparator();
         guiText("App base path:%.*s", (I32)state->plat->paths->base.len,
-                state->plat->paths->base.buf);
+                state->plat->paths->base.ptr);
         guiText("App data path:%.*s", (I32)state->plat->paths->data.len,
-                state->plat->paths->data.buf);
+                state->plat->paths->data.ptr);
         guiEnd();
     }
 

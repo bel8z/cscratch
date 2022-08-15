@@ -73,7 +73,7 @@ shaderLoadStrings(Str vtx, Str pix, CfLog *log)
 
     I32 const vtx_len = (I32)vtx.len;
     U32 const vtx_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vtx_shader, 1, &vtx.buf, &vtx_len);
+    glShaderSource(vtx_shader, 1, &vtx.ptr, &vtx_len);
     glCompileShader(vtx_shader);
     glGetShaderiv(vtx_shader, GL_COMPILE_STATUS, &success);
     if (success)
@@ -92,7 +92,7 @@ shaderLoadStrings(Str vtx, Str pix, CfLog *log)
 
     I32 const pix_len = (I32)pix.len;
     U32 const pix_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(pix_shader, 1, &pix.buf, &pix_len);
+    glShaderSource(pix_shader, 1, &pix.ptr, &pix_len);
     glCompileShader(pix_shader);
     glGetShaderiv(pix_shader, GL_COMPILE_STATUS, &success);
     if (success)
@@ -135,8 +135,8 @@ shaderLoadStrings(Str vtx, Str pix, CfLog *log)
 Shader
 shaderLoadFiles(IoFileContent vtx, IoFileContent pix, CfLog *log)
 {
-    return shaderLoadStrings((Str){.buf = (Char8 *)vtx.data, .len = vtx.size},
-                             (Str){.buf = (Char8 *)pix.data, .len = pix.size}, //
+    return shaderLoadStrings((Str){.ptr = (Char8 *)vtx.data, .len = vtx.size},
+                             (Str){.ptr = (Char8 *)pix.data, .len = pix.size}, //
                              log);
 }
 
