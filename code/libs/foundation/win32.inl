@@ -28,7 +28,7 @@ typedef Char16 const *Cstr16;
 
 typedef struct Str16
 {
-    Char16 const *buf; // Pointer to string data (not a C string)
+    Char16 const *ptr; // Pointer to string data (not a C string)
     Usize len;         // Lenght in chars of the string (not including terminators)
 } Str16;
 
@@ -37,7 +37,7 @@ typedef MemBuffer(Char16) StrBuf16;
 CF_INTERNAL inline Str16
 str16FromCstr(Cstr16 cstr)
 {
-    return (Str16){.buf = (cstr), .len = wcslen(cstr)};
+    return (Str16){.ptr = (cstr), .len = wcslen(cstr)};
 }
 
 CF_INTERNAL inline void
@@ -68,7 +68,7 @@ win32Utf8To16(Str str, Char16 *out, Usize out_size)
     CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
 
     I32 len =
-        MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str.buf, (I32)str.len, out, (I32)out_size);
+        MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED, str.ptr, (I32)str.len, out, (I32)out_size);
 
     if (len == 0)
     {
@@ -89,7 +89,7 @@ win32Utf16To8(Str16 str, Char8 *out, Usize out_size)
 {
     CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
 
-    I32 len = WideCharToMultiByte(CP_UTF8, 0, str.buf, (I32)str.len, out, (I32)out_size, 0, false);
+    I32 len = WideCharToMultiByte(CP_UTF8, 0, str.ptr, (I32)str.len, out, (I32)out_size, 0, false);
 
     if (len == 0)
     {

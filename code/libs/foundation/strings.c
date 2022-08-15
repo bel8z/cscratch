@@ -30,7 +30,7 @@ strSize(Cstr cstr)
 Str
 strFromCstr(Cstr cstr)
 {
-    return (Str){.buf = (cstr), .len = strLength(cstr)};
+    return (Str){.ptr = (cstr), .len = strLength(cstr)};
 }
 
 Usize
@@ -39,7 +39,7 @@ strToCstr(Str str, Char8 *buffer, Usize size)
     Usize len = cfMin(str.len, size);
     if (buffer)
     {
-        memCopy(str.buf, buffer, len);
+        memCopy(str.ptr, buffer, len);
         buffer[len] = 0;
     }
     return len + 1;
@@ -49,7 +49,7 @@ void
 strBufferInit(StrBuffer *buffer)
 {
     buffer->str.len = 0;
-    buffer->str.buf = (Char8 const *)buffer->data;
+    buffer->str.ptr = (Char8 const *)buffer->data;
 }
 
 //-----------------------//
@@ -114,7 +114,7 @@ strBufferAppendStr(StrBuffer *buf, Str what)
     Usize avail = CF_ARRAY_SIZE(buf->data) - buf->str.len;
     if (avail < what.len) return Error_BufferFull;
 
-    memCopy(what.buf, buf->data + buf->str.len, what.len);
+    memCopy(what.ptr, buf->data + buf->str.len, what.len);
     buf->str.len += what.len;
 
     return Error_None;
@@ -156,7 +156,7 @@ strBufferAppendV(StrBuffer *buf, Cstr fmt, va_list args)
 I32
 strCompare(Str l, Str r)
 {
-    return memCompare(l.buf, r.buf, cfMin(l.len, r.len));
+    return memCompare(l.ptr, r.ptr, cfMin(l.len, r.len));
 }
 
 CF_INTERNAL inline I32
@@ -175,20 +175,20 @@ __strIComp(Cstr l, Cstr r, Usize size)
 I32
 strCompareInsensitive(Str l, Str r)
 {
-    return __strIComp(l.buf, r.buf, cfMin(l.len, r.len));
+    return __strIComp(l.ptr, r.ptr, cfMin(l.len, r.len));
 }
 
 bool
 strEqual(Str l, Str r)
 {
-    return (l.len == r.len && memMatch(l.buf, r.buf, l.len));
+    return (l.len == r.len && memMatch(l.ptr, r.ptr, l.len));
 }
 
 bool
 strEqualInsensitive(Str l, Str r)
 {
     // TODO (Matteo): replace with portable method
-    return (l.len == r.len && !__strIComp(l.buf, r.buf, l.len));
+    return (l.len == r.len && !__strIComp(l.ptr, r.ptr, l.len));
 }
 
 //----------------------------//
@@ -202,7 +202,7 @@ strFindFirst(Str haystack, Str needle)
     {
         for (Usize n = 0; n < needle.len; ++n)
         {
-            if (haystack.buf[h] == needle.buf[n])
+            if (haystack.ptr[h] == needle.ptr[n])
             {
                 return h;
             }
@@ -219,7 +219,7 @@ strFindLast(Str haystack, Str needle)
     {
         for (Usize n = needle.len; n > 0; --n)
         {
-            if (haystack.buf[h - 1] == needle.buf[n - 1])
+            if (haystack.ptr[h - 1] == needle.ptr[n - 1])
             {
                 return h - 1;
             }
@@ -234,7 +234,7 @@ strContains(Str str, Char8 c)
 {
     for (Usize i = 0; i < str.len; ++i)
     {
-        if (str.buf[i] == c) return true;
+        if (str.ptr[i] == c) return true;
     }
 
     return false;
@@ -247,7 +247,7 @@ strContains(Str str, Char8 c)
 CF_INTERNAL inline void
 strBuilderValidate(StrBuilder *sb)
 {
-    (CF_ASSERT((sb) && (sb)->data && (sb)->size >= 1, "Invalid string builder state"));
+    (CF_ASSERT((sb) && (sb)->ptr && (sb)->len >= 1, "Invalid string builder state"));
 }
 
 ErrorCode32
@@ -270,8 +270,8 @@ strBuilderInitFrom(StrBuilder *sb, MemAllocator alloc, Str str)
     ErrorCode32 err = memBufferEnsure(sb, str.len + 1, alloc);
     if (!err)
     {
-        memCopy(str.buf, sb->data, str.len);
-        sb->data[str.len] = 0;
+        memCopy(str.ptr, sb->ptr, str.len);
+        sb->ptr[str.len] = 0;
     }
     return err;
 }
@@ -298,10 +298,10 @@ void
 strBuilderClear(StrBuilder *sb)
 {
     CF_ASSERT_NOT_NULL(sb);
-    CF_ASSERT_NOT_NULL(sb->data);
-    CF_ASSERT(sb->capacity >= 1, "Invalid string builder capacity");
-    sb->size = 1;
-    sb->data[0] = 0;
+    CF_ASSERT_NOT_NULL(sb->ptr);
+    CF_ASSERT(sb->cap >= 1, "Invalid string builder capacity");
+    sb->len = 1;
+    sb->ptr[0] = 0;
 }
 
 ErrorCode32
@@ -310,15 +310,15 @@ strBuilderAppendStr(StrBuilder *sb, Str what)
     strBuilderValidate(sb);
 
     // Write over the previous null terminator
-    Usize nul_pos = sb->size - 1;
+    Usize nul_pos = sb->len - 1;
 
-    ErrorCode32 err = memBufferResizeAlloc(sb, sb->size + what.len, sb->alloc);
+    ErrorCode32 err = memBufferResizeAlloc(sb, sb->len + what.len, sb->alloc);
     if (err) return err;
 
-    memCopy(what.buf, sb->data + nul_pos, what.len);
+    memCopy(what.ptr, sb->ptr + nul_pos, what.len);
 
     // Null terminate again
-    sb->data[sb->size - 1] = 0;
+    sb->ptr[sb->len - 1] = 0;
 
     return Error_None;
 }
@@ -354,9 +354,9 @@ strBuilderPrintV(StrBuilder *sb, Cstr fmt, va_list args)
     ErrorCode32 err = memBufferResizeAlloc(sb, len + 1, sb->alloc);
     if (err) return err;
 
-    vsnprintf(sb->data, sb->size, fmt, args); // NOLINT
+    vsnprintf(sb->ptr, sb->len, fmt, args); // NOLINT
 
-    CF_ASSERT(sb->data && sb->data[sb->size - 1] == 0, "Missing null terminator");
+    CF_ASSERT(sb->ptr && sb->ptr[sb->len - 1] == 0, "Missing null terminator");
 
     return Error_None;
 }
@@ -389,17 +389,17 @@ strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args)
     if (len < 0) return Error_Reserved; // TODO (Matteo): Better diagnostics
 
     // Write over the previous null terminator
-    Usize nul_pos = sb->size - 1;
+    Usize nul_pos = sb->len - 1;
 
-    ErrorCode32 err = memBufferResizeAlloc(sb, sb->size + len, sb->alloc);
+    ErrorCode32 err = memBufferResizeAlloc(sb, sb->len + len, sb->alloc);
     if (err) return err;
 
-    CF_ASSERT(sb->size >= len + 1, "Buffer not extended correctly");
+    CF_ASSERT(sb->len >= len + 1, "Buffer not extended correctly");
 
-    vsnprintf(sb->data + nul_pos, len + 1, fmt, args); // NOLINT
+    vsnprintf(sb->ptr + nul_pos, len + 1, fmt, args); // NOLINT
 
     // Null terminate again
-    sb->data[sb->size - 1] = 0;
+    sb->ptr[sb->len - 1] = 0;
 
     return Error_None;
 }
@@ -408,12 +408,12 @@ Str
 strBuilderView(StrBuilder *sb)
 {
     strBuilderValidate(sb);
-    return (Str){.buf = sb->data, .len = sb->size - 1};
+    return (Str){.ptr = sb->ptr, .len = sb->len - 1};
 }
 
 Cstr
 strBuilderCstr(StrBuilder *sb)
 {
     strBuilderValidate(sb);
-    return sb->data;
+    return sb->ptr;
 }

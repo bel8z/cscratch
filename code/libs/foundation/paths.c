@@ -8,7 +8,7 @@
 #define DELIMITER_STR "\\/"
 
 CF_GLOBAL const Str g_delimiters = {
-    .buf = DELIMITER_STR,
+    .ptr = DELIMITER_STR,
     .len = CF_ARRAY_SIZE(DELIMITER_STR) - 1,
 };
 
@@ -33,12 +33,12 @@ pathSplitNameExt(Str path, Str *ext)
 
     if (delim_pos != USIZE_MAX)
     {
-        path.buf += delim_pos;
+        path.ptr += delim_pos;
         path.len -= delim_pos;
 
-        while (path.len && strContains(g_delimiters, path.buf[0]))
+        while (path.len && strContains(g_delimiters, path.ptr[0]))
         {
-            path.buf++;
+            path.ptr++;
             path.len--;
         }
     }
@@ -50,12 +50,12 @@ pathSplitNameExt(Str path, Str *ext)
 
         if (ext_pos == USIZE_MAX)
         {
-            ext->buf = NULL;
+            ext->ptr = NULL;
             ext->len = 0;
         }
         else
         {
-            ext->buf = path.buf + ext_pos;
+            ext->ptr = path.ptr + ext_pos;
             ext->len = path.len - ext_pos;
         }
     }
@@ -72,13 +72,13 @@ pathJoin(Str root, Str leaf, Char8 *buffer, Usize buffer_size)
     {
         if (size > buffer_size) return USIZE_MAX;
 
-        memCopy(root.buf, buffer, root.len);
+        memCopy(root.ptr, buffer, root.len);
         buffer += root.len;
 
         *buffer = '/';
         buffer++;
 
-        memCopy(leaf.buf, buffer, leaf.len);
+        memCopy(leaf.ptr, buffer, leaf.len);
     }
 
     return size;
@@ -97,14 +97,14 @@ pathChangeExt(Str path, Str new_ext, Char8 *out)
 {
     Str ext = pathSplitExt(path);
 
-    CF_ASSERT_NOT_NULL(ext.buf);
+    CF_ASSERT_NOT_NULL(ext.ptr);
 
     Isize offset = path.len - ext.len;
 
     if (out)
     {
-        memCopy(path.buf, out, offset);
-        memCopy(new_ext.buf, out + offset, new_ext.len);
+        memCopy(path.ptr, out, offset);
+        memCopy(new_ext.ptr, out + offset, new_ext.len);
     }
 
     return offset + new_ext.len;
@@ -116,7 +116,7 @@ pathSplitStart(PathSplitIter *iter, Str path)
     CF_ASSERT_NOT_NULL(iter);
 
     iter->path = path;
-    iter->curr.buf = NULL;
+    iter->curr.ptr = NULL;
     iter->curr.len = 0;
 }
 
@@ -134,14 +134,14 @@ pathSplitNext(PathSplitIter *iter)
     }
     else
     {
-        Usize offset = iter->curr.buf + iter->curr.len - iter->path.buf;
-        iter->curr.buf = iter->path.buf + offset;
+        Usize offset = iter->curr.ptr + iter->curr.len - iter->path.ptr;
+        iter->curr.ptr = iter->path.ptr + offset;
         iter->curr.len = iter->path.len - offset;
     }
 
-    while (iter->curr.len && strContains(g_delimiters, iter->curr.buf[0]))
+    while (iter->curr.len && strContains(g_delimiters, iter->curr.ptr[0]))
     {
-        iter->curr.buf++;
+        iter->curr.ptr++;
         iter->curr.len--;
     }
 

@@ -46,6 +46,9 @@ function(set_c_compile_flags project_name)
         
         #-Wcast-align # warn for potential performance problem casts
         
+        # Allow anonymous struct members, they're useful
+        -Wno-nested-anon-types
+
         # Allow variadic macros to be called without an argument in place of the ellipsis
         -Wno-gnu-zero-variadic-macro-arguments
 

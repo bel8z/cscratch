@@ -274,8 +274,8 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     strPrint(buff, BUFF_SIZE, "USIZE_MAX = %zu", USIZE_MAX);
     Str dummy = strFromCstr(buff);
-    strPrint(buff, BUFF_SIZE, "%.*s", (I32)dummy.len, dummy.buf);
-    printf("%.*s\n", (I32)dummy.len, dummy.buf);
+    strPrint(buff, BUFF_SIZE, "%.*s", (I32)dummy.len, dummy.ptr);
+    printf("%.*s\n", (I32)dummy.len, dummy.ptr);
 
     memFree(alloc, buff, BUFF_SIZE);
 

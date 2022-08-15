@@ -41,7 +41,7 @@ CF_INTERNAL GuiFont *
 gui_LoadCustomFont(GuiFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
 {
     Char8 buffer[1024] = {0};
-    strPrint(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.buf, name);
+    strPrint(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.ptr, name);
     return guiLoadFont(fonts, buffer, font_size);
 }
 
@@ -137,7 +137,7 @@ win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAlloc
             win32Utf8To16(ext, slice, ext_size);
 
             // Replace null terminator with ';' to separate extensions
-            out_filter->data[out_filter->size - 1] = L';';
+            out_filter->ptr[out_filter->len - 1] = L';';
         }
 
         // Append 2 null terminators (required since null terminators are used
@@ -176,7 +176,7 @@ guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc)
         ofn.hwndOwner = NULL;
         ofn.lpstrFile = name;
         ofn.nMaxFile = MAX_PATH;
-        ofn.lpstrFilter = filt.data; // L"Image files\0*.jpg;*.jpeg;*.bmp;*.png\0";
+        ofn.lpstrFilter = filt.ptr; // L"Image files\0*.jpg;*.jpeg;*.bmp;*.png\0";
         ofn.nFilterIndex = 1;
         ofn.lpstrFileTitle = NULL;
         ofn.nMaxFileTitle = 0;
@@ -188,12 +188,12 @@ guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc)
             Str16 filename16 = str16FromCstr(ofn.lpstrFile);
 
             result.filename.len = win32Utf16To8(filename16, NULL, 0);
-            result.filename.buf = (Char8 *)memAlloc(alloc, result.filename.len);
+            result.filename.ptr = (Char8 *)memAlloc(alloc, result.filename.len);
 
-            if (result.filename.buf)
+            if (result.filename.ptr)
             {
                 result.code = GuiFileDialogResult_Ok;
-                win32Utf16To8(filename16, (Char8 *)result.filename.buf, result.filename.len);
+                win32Utf16To8(filename16, (Char8 *)result.filename.ptr, result.filename.len);
             }
             else
             {

@@ -153,9 +153,9 @@ pathsInit(Paths *g_paths)
     memClear(g_paths->buffer, CF_ARRAY_SIZE(g_paths->buffer));
 
     // Point string views to assigned positions
-    g_paths->base.buf = g_paths->buffer;
-    g_paths->lib_name.buf = g_paths->buffer + 1 * Paths_Size;
-    g_paths->data.buf = g_paths->buffer + 2 * Paths_Size;
+    g_paths->base.ptr = g_paths->buffer;
+    g_paths->lib_name.ptr = g_paths->buffer + 1 * Paths_Size;
+    g_paths->data.ptr = g_paths->buffer + 2 * Paths_Size;
 
     // Retrieve executable full path
     g_paths->base.len = GetModuleFileNameA(0, g_paths->buffer, Paths_Size);
@@ -169,15 +169,15 @@ pathsInit(Paths *g_paths)
     g_paths->base.len -= g_paths->exe_name.len;
 
     // Build library filename
-    strPrint((Char8 *)g_paths->lib_name.buf, Paths_Size, "%.*s%s",
-             (I32)(g_paths->exe_name.len - ext.len), g_paths->exe_name.buf, "_lib.dll");
+    strPrint((Char8 *)g_paths->lib_name.ptr, Paths_Size, "%.*s%s",
+             (I32)(g_paths->exe_name.len - ext.len), g_paths->exe_name.ptr, "_lib.dll");
 
-    g_paths->lib_name.len = strLength(g_paths->lib_name.buf);
+    g_paths->lib_name.len = strLength(g_paths->lib_name.ptr);
 
     // Build data path from base path
-    strPrint((Char8 *)g_paths->data.buf, Paths_Size, "%.*sdata\\", (I32)g_paths->base.len,
-             g_paths->base.buf);
-    g_paths->data.len = strLength(g_paths->data.buf);
+    strPrint((Char8 *)g_paths->data.ptr, Paths_Size, "%.*sdata\\", (I32)g_paths->base.len,
+             g_paths->base.ptr);
+    g_paths->data.len = strLength(g_paths->data.ptr);
 }
 
 CF_INTERNAL void
@@ -745,7 +745,7 @@ CF_INTERNAL IO_DIRECTORY_NEXT(win32DirectoryNext)
 
     CF_ASSERT(size > 0, "Which filename can have a size of 0???");
 
-    filename->buf = iter->buffer;
+    filename->ptr = iter->buffer;
     filename->len = (Usize)(size);
 
     if (props)
@@ -817,7 +817,7 @@ posixFileProperties(Str filename)
     Char8 buffer[1024] = {0};
     struct _stat64i32 info = {0};
 
-    memCopy(filename.buf, buffer, filename.len);
+    memCopy(filename.ptr, buffer, filename.len);
     if (!_stat(buffer, &info))
     {
         props.exists = true;

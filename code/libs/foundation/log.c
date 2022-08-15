@@ -30,7 +30,7 @@ void
 cfLogAppend(CfLog *log, Str string)
 {
     Char8 *ptr = (Char8 *)log->buffer + (log->write_pos & (log->size - 1));
-    memCopy(string.buf, ptr, string.len);
+    memCopy(string.ptr, ptr, string.len);
     log->write_pos += string.len;
 }
 
@@ -64,13 +64,13 @@ Str
 cfLogString(CfLog *log)
 {
     Str result = {
-        .buf = log->buffer,
+        .ptr = log->buffer,
         .len = log->write_pos,
     };
 
     if (log->write_pos > log->size)
     {
-        result.buf += ((log->write_pos + 1) & (log->size - 1));
+        result.ptr += ((log->write_pos + 1) & (log->size - 1));
         result.len = log->size - 1;
     }
 

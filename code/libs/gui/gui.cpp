@@ -892,7 +892,7 @@ guiLogBox(CfLog *log, bool readonly)
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
         Str log_str = cfLogString(log);
-        ImGui::TextUnformatted(log_str.buf, log_str.buf + log_str.len);
+        ImGui::TextUnformatted(log_str.ptr, log_str.ptr + log_str.len);
         ImGui::PopStyleVar(1);
         if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
         {
@@ -964,7 +964,7 @@ guiCanvasFillCircle(GuiCanvas *canvas, Vec2 center, F32 radius)
 void
 guiCanvasDrawText(GuiCanvas *canvas, Str text, Vec2 pos, Srgb32 color)
 {
-    canvas->draw_list->AddText(pos, color, text.buf, text.buf + text.len);
+    canvas->draw_list->AddText(pos, color, text.ptr, text.ptr + text.len);
 }
 
 void

@@ -513,20 +513,33 @@ typedef struct MemAllocator
 //   Dynamic buffers   //
 //---------------------//
 
-/// Macro to define a typed buffer, represented as {pointer, capacity, size}
+/// Macro to define a typed slice, represented as {pointer, size}
+/// Can be used as an anonymous struct or member, or as a typedef for building a specific API.
+#define MemSlice(Type)                              \
+    struct                                          \
+    {                                               \
+        /* Pointer to actual storage */             \
+        Type *ptr;                                  \
+        /* Length of the slice (number of items) */ \
+        Usize len;                                  \
+    }
+
+/// Macro to define a typed buffer, represented as {pointer, size, capacity}
 /// Can be used as an anonymous struct or member, or as a typedef for building a specific API.
 /// Functionality is implemented in mem_buffer.inl, handling both fixed and dynamic capacity
-#define MemBuffer(Type)                                                                            \
-    struct                                                                                         \
-    {                                                                                              \
-        /* Pointer to actual storage */                                                            \
-        Type *data;                                                                                \
-        /* Current size of the buffer (number of stored items) */                                  \
-        Usize size;                                                                                \
-        /* Capacity of the buffer (number of elements that can be stored - acts as a watermark for \
-         * dynamic growth) */                                                                      \
-        Usize capacity;                                                                            \
+#define MemBuffer(Type)                                                                           \
+    struct                                                                                        \
+    {                                                                                             \
+        /* Slice that provides a pointer to the actual storage and the current size of the buffer \
+         * (number of stored items) */                                                            \
+        MemSlice(Type);                                                                           \
+        /* Capacity of the buffer (number of elements that can be stored - acts as a watermark    \
+         * for dynamic growth) */                                                                 \
+        Usize cap;                                                                                \
     }
+
+/// Slice of raw memory
+typedef MemSlice(U8) MemRawSlice;
 
 /// Buffer of raw memory, uses the same API as MemBuffer
 typedef MemBuffer(U8) MemRawBuffer;
@@ -542,11 +555,8 @@ typedef Char8 const *Cstr;
 
 /// Immutable string slice/view. Not guaranteed to be null terminated.
 /// Prefer it over C strings (safety, better API in progress)
-typedef struct Str
-{
-    Char8 const *buf; // Pointer to string data (not a C string)
-    Usize len;        // Lenght in chars of the string (not including terminators)
-} Str;
+
+typedef MemSlice(Char8 const) Str;
 
 /// Dynamic string buffer
 typedef struct StrBuilder
@@ -565,12 +575,12 @@ typedef struct StrBuffer
     Str str;
 } StrBuffer;
 
-#define strValid(str) (!!(str).buf)
-#define strEnd(str) ((str).buf + (str).len)
+#define strValid(str) (!!(str).ptr)
+#define strEnd(str) ((str).ptr + (str).len)
 
 /// Build a string view from a string literal (static C string)
 #define strLiteral(lit) \
-    (Str) { .buf = (lit), .len = CF_ARRAY_SIZE(lit) - 1, }
+    (Str) { .ptr = (lit), .len = CF_ARRAY_SIZE(lit) - 1, }
 
 //-------------//
 //   Vectors   //

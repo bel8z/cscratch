@@ -111,8 +111,8 @@ platformMain(Platform *platform, CommandLine *cmd_line)
 
     Char8 gui_ini[Paths_Size] = {0};
     CF_ASSERT(paths->base.len + paths->exe_name.len < Paths_Size, "IMGUI ini file name too long");
-    memCopy(paths->base.buf, gui_ini, paths->base.len);
-    memCopy(paths->exe_name.buf, gui_ini + paths->base.len, paths->exe_name.len);
+    memCopy(paths->base.ptr, gui_ini, paths->base.len);
+    memCopy(paths->exe_name.ptr, gui_ini + paths->base.len, paths->exe_name.len);
     pathChangeExt(strFromCstr(gui_ini), strLiteral(".gui"), gui_ini);
 
     // Setup Dear ImGui context
@@ -263,8 +263,8 @@ appApiLoad(AppApi *api, Paths *paths, LibraryApi *library, IoFileApi *file)
     }
 
     strPrint(api->src_file, Paths_Size, "%.*s%.*s", //
-             (I32)paths->base.len, paths->base.buf, //
-             (I32)paths->lib_name.len, paths->lib_name.buf);
+             (I32)paths->base.len, paths->base.ptr, //
+             (I32)paths->lib_name.len, paths->lib_name.ptr);
     strPrint(api->dst_file, Paths_Size, "%s.tmp", api->src_file);
 
     Str dst_file = strFromCstr(api->dst_file);
