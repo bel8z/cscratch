@@ -86,7 +86,7 @@ endif()
 # Common platform code #
 #----------------------#
 
-set(PLATFORM_SOURCES ${CODE_DIR}/platform.c)
+set(PLATFORM_SOURCES ${CODE_DIR}/win32_platform.c)
 set_source_files_properties(${PLATFORM_SOURCES} PROPERTIES LANGUAGE C)
 
 set(CONSOLE_ENTRY ${CODE_DIR}/console.c)

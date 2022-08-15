@@ -10,7 +10,7 @@ bool testMpmcQueue(Platform *platform);
 bool testBasic(Platform *platform);
 
 I32
-platformMain(Platform *platform, CommandLine *cmd_line)
+consoleMain(Platform *platform, CommandLine *cmd_line)
 {
     bool result = false;
 

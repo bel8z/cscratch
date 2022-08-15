@@ -12,17 +12,6 @@
 typedef struct VMemApi VMemApi;
 typedef struct IoFileApi IoFileApi;
 
-//=== Dynamic library loading ===//
-
-typedef struct Library Library;
-
-typedef struct LibraryApi
-{
-    Library *(*load)(Str filename);
-    void (*unload)(Library *lib);
-    void *(*loadSymbol)(Library *restrict lib, Cstr restrict name);
-} LibraryApi;
-
 //=== Common application paths ===//
 
 enum
@@ -77,9 +66,6 @@ typedef struct Platform
 
     /// Tracks elapsed time since the start of the application (useful for performance measurements)
     Clock clock;
-
-    /// Dynamic library loading
-    LibraryApi *library;
 
     /// Common program paths
     Paths *paths;

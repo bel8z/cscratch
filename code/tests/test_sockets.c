@@ -220,7 +220,7 @@ CLEANUP:
 }
 
 I32
-platformMain(Platform *platform, CommandLine *cmd_line)
+consoleMain(Platform *platform, CommandLine *cmd_line)
 {
     CF_UNUSED(platform);
     CF_UNUSED(cmd_line);

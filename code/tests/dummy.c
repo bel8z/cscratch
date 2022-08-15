@@ -233,7 +233,7 @@ typedef union F64Bits
 } F64Bits;
 
 I32
-platformMain(Platform *platform, CommandLine *cmd_line)
+consoleMain(Platform *platform, CommandLine *cmd_line)
 {
     CF_UNUSED(cmd_line);
 
