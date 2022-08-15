@@ -8,7 +8,7 @@
 #include "foundation/strings.h"
 #include "foundation/time.h"
 
-#include "gl/gload.h"
+#include "gl/gl_api.h"
 
 #include "gui/gui.h"
 
@@ -79,7 +79,7 @@ APP_API APP_FN(appLoad)
     guiSetContext(app->plat->gui);
 
     // Init OpenGl
-    gloadInit(app->plat->gl);
+    glApiSet(app->plat->gl);
 
     glDisable(GL_FRAMEBUFFER_SRGB);
 }

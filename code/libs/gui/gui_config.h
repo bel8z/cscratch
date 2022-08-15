@@ -23,7 +23,7 @@
 #include "foundation/error.h"
 #include "gui.h"
 
-#define IMGUI_IMPL_OPENGL_LOADER_CUSTOM <gl/gload.h>
+#define IMGUI_IMPL_OPENGL_LOADER_CUSTOM <gl/gl_api.h>
 #include IMGUI_IMPL_OPENGL_LOADER_CUSTOM
 
 // NOTE (Matteo): Core Dear Imgui has a C++ Api, while backends have a C API

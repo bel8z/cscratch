@@ -43,7 +43,7 @@ SHADER_API I32 shaderGetUniform(Shader shader, Cstr uniform_name);
 #    include "foundation/log.h"
 #    include "foundation/strings.h"
 
-#    include "gl/gload.h"
+#    include "gl/gl_api.h"
 
 #    if defined SHADER_INTERNAL
 CF_DIAGNOSTIC_PUSH()

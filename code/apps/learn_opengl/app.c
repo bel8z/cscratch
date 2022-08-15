@@ -13,7 +13,7 @@
 #define IMAGE_IMPL
 #include "image.h"
 
-#include "gl/gload.h"
+#include "gl/gl_api.h"
 
 #include "gui/gui.h"
 
@@ -171,8 +171,8 @@ APP_API APP_FN(appLoad)
     guiSetContext(app->plat->gui);
 
     // Init OpenGl
-    gloadInit(app->plat->gl);
-    if (!gloadIsSupported(3, 3))
+    glApiSet(app->plat->gl);
+    if (!glApiIsSupported(3, 3))
     {
         // TODO (Matteo): Log using IMGUI
         cfLogAppendF(&app->log, "OpenGL 3.3 is not supported!");

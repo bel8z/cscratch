@@ -197,6 +197,12 @@ guiShutdown(GuiContext *ctx)
     glfwTerminate();
 }
 
+CF_API void *
+guiLoadProc(Cstr name)
+{
+    return (void *)glfwGetProcAddress(name);
+}
+
 void
 guiSetTitle(Cstr title)
 {

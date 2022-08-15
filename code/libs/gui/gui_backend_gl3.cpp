@@ -149,14 +149,14 @@ guiGl3_SetupRenderState(ImDrawData *draw_data, GLsizei fb_width, GLsizei fb_heig
 
     // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor
     // enabled, polygon fill
-    gloadToggle(GL_BLEND, true);
+    glApiToggle(GL_BLEND, true);
     glBlendEquation(GL_FUNC_ADD);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    gloadToggle(GL_CULL_FACE, false);
-    gloadToggle(GL_DEPTH_TEST, false);
-    gloadToggle(GL_STENCIL_TEST, false);
-    gloadToggle(GL_SCISSOR_TEST, true);
-    if (bd->GlVersion >= 310) gloadToggle(GL_PRIMITIVE_RESTART, false);
+    glApiToggle(GL_CULL_FACE, false);
+    glApiToggle(GL_DEPTH_TEST, false);
+    glApiToggle(GL_STENCIL_TEST, false);
+    glApiToggle(GL_SCISSOR_TEST, true);
+    if (bd->GlVersion >= 310) glApiToggle(GL_PRIMITIVE_RESTART, false);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     // Support for GL 4.5 rarely used glClipControl(GL_UPPER_LEFT)
@@ -699,8 +699,8 @@ guiGl3Render(GuiDrawData *draw_data)
 
     // Restore modified GL state
     // NOTE (Matteo): Unbind resources and disable ONLY explicitly enabled stuff
-    gloadToggle(GL_BLEND, false);
-    gloadToggle(GL_SCISSOR_TEST, false);
+    glApiToggle(GL_BLEND, false);
+    glApiToggle(GL_SCISSOR_TEST, false);
     glUseProgram(0);
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);

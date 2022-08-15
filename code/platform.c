@@ -7,7 +7,7 @@
 #include "gui/win.h"
 
 // Backend libraries
-#include "gl/gload.h"
+#include "gl/gl_api.h"
 
 // Foundation library
 #include "foundation/colors.h"
@@ -131,7 +131,7 @@ platformMain(Platform *platform, CommandLine *cmd_line)
     CF_DIAGNOSTIC_POP()
 
     // Initialize OpenGL loader
-    if (!gloadInit(NULL) || !gloadIsSupported((I32)gl_ver.major, (I32)gl_ver.minor))
+    if (!glApiLoad(guiLoadProc) || !glApiIsSupported(gl_ver.major, gl_ver.minor))
     {
         CF_LOG("Failed to initialize OpenGL loader!\n");
         return -2;

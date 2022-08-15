@@ -8,7 +8,7 @@
 #include "foundation/strings.h"
 #include "foundation/time.h"
 
-#include "gl/gload.h"
+#include "gl/gl_api.h"
 
 #include "gui/gui.h"
 
@@ -89,7 +89,7 @@ APP_API APP_FN(appLoad)
     guiSetContext(app->plat->gui);
 
     // Init OpenGl
-    gloadInit(app->plat->gl);
+    glApiSet(app->plat->gl);
 
     if (app->srgb_framebuffer)
     {
@@ -695,7 +695,7 @@ APP_API APP_UPDATE_FN(appUpdate)
         guiSameLine();
         if (guiCheckbox("Srgb", &state->srgb_framebuffer))
         {
-            gloadToggle(GL_FRAMEBUFFER_SRGB, state->srgb_framebuffer);
+            glApiToggle(GL_FRAMEBUFFER_SRGB, state->srgb_framebuffer);
             guiGammaCorrection(state->srgb_framebuffer);
         }
         guiSeparator();

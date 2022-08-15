@@ -79,7 +79,7 @@ find_package(OpenGL REQUIRED)
 
 set(BACKEND_SOURCES 
     ${LIBS_DIR}/gui/gui_backend_gl3.cpp
-    ${LIBS_DIR}/gl/gload.c)
+    ${LIBS_DIR}/gl/gl_api.c)
 
 add_library(${BACKEND_NAME} STATIC ${BACKEND_SOURCES})
 

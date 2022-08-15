@@ -25,7 +25,7 @@
 
 #include "gui/gui.h"
 
-#include "gl/gload.h"
+#include "gl/gl_api.h"
 
 #include "foundation/core.h"
 
@@ -213,7 +213,7 @@ imageTexBuild(ImageTex *tex)
     // a single mipmap level (multiple levels are not needed for the purpose of these textures and
     // are only a waste of memory and bandwidth)
     // See: https://www.khronos.org/opengl/wiki/Common_Mistakes#Creating_a_complete_texture
-    if (gloadIsSupported(4, 2))
+    if (glApiIsSupported(4, 2))
     {
         glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, tex->width, tex->height);
     }
@@ -810,7 +810,7 @@ APP_API APP_FN(appLoad)
     // Init Dear Imgui
     guiSetContext(app->plat->gui);
     // Init image loading
-    gloadInit(app->plat->gl);
+    glApiSet(app->plat->gl);
     imageInit(app->plat->heap);
 
     g_file = app->plat->file;

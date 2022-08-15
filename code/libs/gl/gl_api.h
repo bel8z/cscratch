@@ -1,50 +1,42 @@
 #pragma once
 
+#include "foundation/core.h"
+
 #if defined(__cplusplus)
 extern "C"
 {
 #endif
 
-#if defined(_MSC_VER)
-#    if defined(__clang__)
-#        pragma clang diagnostic push
-#        pragma clang diagnostic ignored "-Wlanguage-extension-token"
-#    else
-#        pragma warning(push)
-#        pragma warning(disable : 5105)
-#    endif
-#endif
+    CF_DIAGNOSTIC_PUSH()
+    CF_DIAGNOSTIC_IGNORE_CLANG("-Wlanguage-extension-token")
+    CF_DIAGNOSTIC_IGNORE_MSVC(5105)
 
 #include "glcorearb.h"
 
-#if defined(_MSC_VER)
-#    if defined(__clang__)
-#        pragma clang diagnostic pop
-#    else
-#        pragma warning(pop)
-#    endif
-#endif
-
-#ifndef __gl_h_
-#    define __gl_h_
-#endif
+    CF_DIAGNOSTIC_POP()
 
     //-----------
     // GLoad API
     //-----------
 
     typedef struct GlApi GlApi;
+    typedef void *(GlApiLoadFn)(Cstr proc);
 
     extern GlApi *gl;
 
-    int gloadInit(GlApi *api);
-    int gloadIsSupported(int major, int minor);
-    void *gloadGetProc(const char *proc);
-    void gloadToggle(GLenum cap, int enable);
+    bool glApiLoad(GlApiLoadFn *fn);
+    bool glApiSet(GlApi *api);
+
+    bool glApiIsSupported(U32 major, U32 minor);
+    void glApiToggle(GLenum cap, bool enable);
 
     //------------
     // OpenGL API
     //------------
+
+#ifndef __gl_h_
+#    define __gl_h_
+#endif
 
 #define glCullFace gl->CullFace
 #define glFrontFace gl->FrontFace

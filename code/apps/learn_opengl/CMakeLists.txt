@@ -6,7 +6,7 @@ set(LIB_NAME ${APP}_lib)
 
 set(APP_SOURCES)
 file(GLOB_RECURSE APP_SOURCES ${APPS_DIR}/${APP}/*.c)
-list(APPEND APP_SOURCES ${LIBS_DIR}/gl/gload.c)
+list(APPEND APP_SOURCES ${LIBS_DIR}/gl/gl_api.c)
 set_source_files_properties(${APP_SOURCES} PROPERTIES LANGUAGE C)
 
 set(APP_RESOURCES)

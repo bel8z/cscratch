@@ -29,6 +29,8 @@ typedef struct GuiInitInfo
 CF_API GuiContext *guiInit(GuiInitInfo *info, GuiOpenGLVersion *out_gl_version);
 CF_API void guiShutdown(GuiContext *ctx);
 
+CF_API void *guiLoadProc(Cstr name);
+
 //=== Updating ===//
 
 CF_API void guiSetTitle(Cstr title);
