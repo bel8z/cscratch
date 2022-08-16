@@ -2,14 +2,12 @@
 // Interface between platform layer and hosted applicatiom
 #include "app.h"
 
-// Gui library
+#include "gl/gl_api.h"
+
 #include "gui/gui.h"
 
-// Backend libraries
-#include "gl/gl_api.h"
-#include "gui/gui_backend_gl3.h"
-
 // Base Win32 code
+#include "win32_gui_backend.h"
 #include "win32_platform.c"
 
 /// Mantains the hot-reloaded application API
@@ -29,18 +27,6 @@ typedef struct Win32AppApi
     Char8 src_file[Paths_Size];
     Char8 dst_file[Paths_Size];
 } Win32AppApi;
-
-//------------------------------------------------------------------------------
-// Gui backend implementation
-//------------------------------------------------------------------------------
-
-CF_API bool ImGui_ImplWin32_Init(void *hwnd);
-CF_API void ImGui_ImplWin32_Shutdown();
-CF_API void ImGui_ImplWin32_NewFrame();
-CF_API void ImGui_ImplWin32_EnableDpiAwareness();
-CF_API float ImGui_ImplWin32_GetDpiScaleForHwnd(void *hwnd);       // HWND hwnd
-CF_API float ImGui_ImplWin32_GetDpiScaleForMonitor(void *monitor); // HMONITOR monitor
-CF_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 //------------------------------------------------------------------------------
 // Internal utilities
@@ -131,7 +117,7 @@ win32GetCommandLineArgs(MemAllocator alloc, CommandLine *out)
 // Anyway, I work around this by trying some different versions in decreasing release
 // order (one per year or release), in order to benefit of the latest features available.
 
-CF_GLOBAL const GuiOpenGLVersion g_gl_versions[8] = {
+CF_GLOBAL const OpenGLVersion g_gl_versions[8] = {
     {4, 6, 430}, // 2017
     {4, 5, 430}, // 2014
     {4, 4, 430}, // 2013
@@ -462,6 +448,8 @@ win32UpdateAppApi(Win32AppApi *api, Paths *paths, AppState *app)
 // Main entry point
 //------------------------------------------------------------------------------
 
+CF_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 LRESULT WINAPI
 WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -475,7 +463,9 @@ WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 return 0;
             break;
         case WM_DESTROY:
-            guiGl3Shutdown();
+            // NOTE (Matteo): Shutdown is done here because the GL API is dependent on the current
+            // context, which is going to be destroyed.
+            win32GuiShutdown();
             wglDeleteContext(wglGetCurrentContext());
             PostQuitMessage(0);
             return 0;
@@ -517,7 +507,8 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, I32 nCmd
     clockStart(&g_platform.clock);
 
     // Setup windowing system
-    ImGui_ImplWin32_EnableDpiAwareness();
+    SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
     WNDCLASSEXW wc = {
         .cbSize = sizeof(WNDCLASSEXW),
         .style = CS_CLASSDC,
@@ -547,7 +538,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, I32 nCmd
     }
 
     // Create application window with graphics context
-    GuiOpenGLVersion gl_ver = g_gl_versions[0];
+    OpenGLVersion gl_ver = g_gl_versions[0];
     HWND window = NULL;
     HDC gl_dc = NULL;
     HGLRC gl_context = NULL;
@@ -585,7 +576,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, I32 nCmd
     // Setup Dear ImGui context
     {
         // HACK How do I get the platform base DPI?
-        F32 dpi_scale = ImGui_ImplWin32_GetDpiScaleForHwnd(window);
+        F32 dpi_scale = win32GuiGetDpiScale(window);
 
         g_platform.gui = guiInit(
             &(GuiInitInfo){
@@ -598,8 +589,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, I32 nCmd
         if (!g_platform.gui) goto WIN32_PLATORM_SHUTDOWN;
 
         // Setup Platform/Renderer backends
-        ImGui_ImplWin32_Init(window);
-        guiGl3Init(gl_ver);
+        win32GuiInit(window, gl_ver);
     }
 
     // Setup application
@@ -644,7 +634,6 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, I32 nCmd
                 }
             }
 
-
             if (quit) break;
         }
 
@@ -667,15 +656,14 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, I32 nCmd
                 app_io.rebuild_fonts = false;
                 guiUpdateAtlas(guiFonts(), app_io.font_opts);
                 // Re-upload font texture on the GPU
-                guiGl3UpdateFontsTexture();
+                win32GuiUpdateFontsTexture();
             }
         }
 
         // Frame update
         {
             // Start the Dear ImGui frame
-            ImGui_ImplWin32_NewFrame(); // guiGlfwNewFrame(win_size, display);
-            guiGl3NewFrame();
+            win32GuiNewFrame();
             guiNewFrame();
 
             // NOTE (Matteo): Setup GL viewport and clear buffers BEFORE app update in order to
@@ -699,7 +687,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, I32 nCmd
         // Rendering
         {
             GuiDrawData *draw_data = guiRender();
-            guiGl3Render(draw_data);
+            win32GuiRender(draw_data);
 
             // Update and Render additional Platform Windows
             // TODO (Matteo): Make sure the GL context is restored? Currently it
@@ -709,7 +697,6 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, I32 nCmd
     }
 
     // Cleanup
-    ImGui_ImplWin32_Shutdown();
     guiShutdown(g_platform.gui);
     app_api.destroy(app_state);
 

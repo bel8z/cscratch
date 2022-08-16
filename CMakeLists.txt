@@ -94,7 +94,7 @@ find_package(freetype REQUIRED PATHS ${FREETYPE_DIR})
 
 # NOTE (Matteo): Custom imgui configuration (requires giving access to foundation include directory)
 set(GUI_CONFIG ${LIBS_DIR}/gui/gui_config.h)
-message(STATUS "backend gui config: ${GUI_CONFIG}")
+message(STATUS "Gui config: ${GUI_CONFIG}")
 
 file(GLOB GUI_SOURCES 
     ${IMGUI_DIR}/*.cpp
@@ -139,7 +139,6 @@ foreach(APP ${APPS})
             ${CODE_DIR}/win32_gui.c
             ${CODE_DIR}/win32_gui_backend.cpp
             ${LIBS_DIR}/gl/gl_api.c
-            ${LIBS_DIR}/gui/gui_backend_gl3.cpp
             ${EXE_RESOURCES})
 
         # NOTE (Matteo): _lib suffix added to prevent conflicts with .pdb files
@@ -155,8 +154,7 @@ foreach(APP ${APPS})
             PRIVATE 
                 ${IMGUI_DIR} 
                 ${IMPLOT_DIR} 
-                ${IMGUI_DIR}/misc/freetype
-                ${IMGUI_DIR}/backends)
+                ${IMGUI_DIR}/misc/freetype)
 
         target_include_directories(${LIB_NAME} 
             PUBLIC 
