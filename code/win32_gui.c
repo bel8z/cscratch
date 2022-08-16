@@ -117,24 +117,18 @@ win32GetCommandLineArgs(MemAllocator alloc, CommandLine *out)
 // Anyway, I work around this by trying some different versions in decreasing release
 // order (one per year or release), in order to benefit of the latest features available.
 
-CF_GLOBAL const OpenGLVersion g_gl_versions[8] = {
-    {4, 6, 430}, // 2017
-    {4, 5, 430}, // 2014
-    {4, 4, 430}, // 2013
-    {4, 3, 430}, // 2012
-    {4, 2, 420}, // 2011
-    {4, 1, 410}, // 2010
-    {3, 2, 150}, // 2009
-    {3, 0, 130}, // 2008
-};
-
 // See https://www.khronos.org/registry/OpenGL/extensions/ARB/WGL_ARB_create_context.txt for all
 // values
 #define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
+#define WGL_CONTEXT_FLAGS_ARB 0x2094
 #define WGL_CONTEXT_PROFILE_MASK_ARB 0x9126
 
+#define WGL_CONTEXT_DEBUG_BIT_ARB 0x0001
+#define WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB 0x0002
+
 #define WGL_CONTEXT_CORE_PROFILE_BIT_ARB 0x00000001
+#define WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 0x00000002
 
 // See https://www.khronos.org/registry/OpenGL/extensions/ARB/WGL_ARB_pixel_format.txt for all
 // values
@@ -260,31 +254,25 @@ win32InitWgl(void)
 }
 
 CF_INTERNAL HGLRC
-win32CreateGlContext(HDC real_dc)
+win32CreateGlContext(HDC dc, OpenGLVersion *out_ver)
 {
-
-    // Now we can choose a pixel format the modern way, using wglChoosePixelFormatARB.
-    I32 pixel_format_attribs[] = {WGL_DRAW_TO_WINDOW_ARB,
-                                  GL_TRUE,
-                                  WGL_SUPPORT_OPENGL_ARB,
-                                  GL_TRUE,
-                                  WGL_DOUBLE_BUFFER_ARB,
-                                  GL_TRUE,
-                                  WGL_ACCELERATION_ARB,
-                                  WGL_FULL_ACCELERATION_ARB,
-                                  WGL_PIXEL_TYPE_ARB,
-                                  WGL_TYPE_RGBA_ARB,
-                                  WGL_COLOR_BITS_ARB,
-                                  32,
-                                  WGL_DEPTH_BITS_ARB,
-                                  24,
-                                  WGL_STENCIL_BITS_ARB,
-                                  8,
-                                  0};
+    // clang-format off
+    static I32 pixel_format_attribs[] = {
+        WGL_DRAW_TO_WINDOW_ARB, GL_TRUE, 
+        WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+        WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,
+        WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
+        WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
+        WGL_COLOR_BITS_ARB,     32,
+        WGL_DEPTH_BITS_ARB,     24,
+        WGL_STENCIL_BITS_ARB,   8,
+        0,
+    };
+    // clang-format on
 
     I32 pixel_format;
     U32 num_formats;
-    wglChoosePixelFormatARB(real_dc, pixel_format_attribs, 0, 1, &pixel_format, &num_formats);
+    wglChoosePixelFormatARB(dc, pixel_format_attribs, 0, 1, &pixel_format, &num_formats);
     if (!num_formats)
     {
         win32GuiErrorHandler(strLiteral("Failed to set the OpenGL pixel format."));
@@ -292,32 +280,62 @@ win32CreateGlContext(HDC real_dc)
     }
 
     PIXELFORMATDESCRIPTOR pfd;
-    DescribePixelFormat(real_dc, pixel_format, sizeof(pfd), &pfd);
-    if (!SetPixelFormat(real_dc, pixel_format, &pfd))
+    DescribePixelFormat(dc, pixel_format, sizeof(pfd), &pfd);
+    if (!SetPixelFormat(dc, pixel_format, &pfd))
     {
         win32GuiErrorHandler(strLiteral("Failed to set the OpenGL pixel format."));
         return NULL;
     }
 
-    // Specify that we want to create an OpenGL core profile context
-    I32 gl33_attribs[] = {
-        WGL_CONTEXT_MAJOR_VERSION_ARB,
-        (I32)g_gl_versions[0].major,
-        WGL_CONTEXT_MINOR_VERSION_ARB,
-        (I32)g_gl_versions[0].minor,
-        WGL_CONTEXT_PROFILE_MASK_ARB,
-        WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-        0,
+    HGLRC gl_context = NULL;
+
+    // NOTE (Matteo): I didn't find a way to ask WGL for a core profile context with the highest
+    // version available, so the best I can do is trying some different versions in decreasing
+    // release order (one per year of release).
+    static const OpenGLVersion gl_versions[] = {
+        {4, 6, 430}, // 2017
+        {4, 5, 430}, // 2014
+        {4, 4, 430}, // 2013
+        {4, 3, 430}, // 2012
+        {4, 2, 420}, // 2011
+        {4, 1, 410}, // 2010
+        {3, 2, 150}, // 2009
     };
 
-    HGLRC gl_context = wglCreateContextAttribsARB(real_dc, 0, gl33_attribs);
+    // Specify that we want to create an OpenGL core profile context
+    // clang-format off
+    I32 context_attribs[] = {
+        WGL_CONTEXT_MAJOR_VERSION_ARB, 0, // PLACEHOLDER
+        WGL_CONTEXT_MINOR_VERSION_ARB, 0, // PLACEHOLDER
+        WGL_CONTEXT_FLAGS_ARB,         WGL_CONTEXT_DEBUG_BIT_ARB | WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+        WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+        0,
+    };
+    // clang-format on
+
+    for (Usize i = 0; i < CF_ARRAY_SIZE(gl_versions); ++i)
+    {
+        context_attribs[1] = (I32)gl_versions[i].major;
+        context_attribs[3] = (I32)gl_versions[i].minor;
+
+        CF_ASSERT(context_attribs[1] >= 3 && context_attribs[3] >= 2,
+                  "OpenGL 3.2 or major is expected");
+
+        gl_context = wglCreateContextAttribsARB(dc, 0, context_attribs);
+        if (gl_context)
+        {
+            *out_ver = gl_versions[i];
+            break;
+        }
+    }
+
     if (!gl_context)
     {
         win32GuiErrorHandler(strLiteral("Failed to create OpenGL context."));
         return NULL;
     }
 
-    if (!wglMakeCurrent(real_dc, gl_context))
+    if (!wglMakeCurrent(dc, gl_context))
     {
         win32GuiErrorHandler(strLiteral("Failed to activate OpenGL rendering context."));
         return NULL;
@@ -538,7 +556,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, I32 nCmd
     }
 
     // Create application window with graphics context
-    OpenGLVersion gl_ver = g_gl_versions[0];
+    OpenGLVersion gl_ver;
     HWND window = NULL;
     HDC gl_dc = NULL;
     HGLRC gl_context = NULL;
@@ -555,7 +573,7 @@ wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, I32 nCmd
         UpdateWindow(window);
 
         gl_dc = GetDC(window);
-        gl_context = win32CreateGlContext(gl_dc);
+        gl_context = win32CreateGlContext(gl_dc, &gl_ver);
         if (!gl_context) goto WIN32_PLATORM_SHUTDOWN;
 
         wglMakeCurrent(gl_dc, gl_context);

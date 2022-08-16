@@ -7,7 +7,7 @@
 // Internal functions and data
 //------------------------------------------------------------------------------
 
-CF_INTERNAL int gl__ParseVersion(void);
+CF_INTERNAL bool gl__ParseVersion(void);
 CF_INTERNAL void gl__LoadProcs(GlApi *api, GlApiLoadFn *fn);
 
 static GlApi g_api = {0};
@@ -72,7 +72,7 @@ glApiToggle(GLenum cap, bool enable)
 // Internal implementation
 //------------------------------------------------------------------------------
 
-int
+bool
 gl__ParseVersion(void)
 {
     if (!glGetIntegerv) return 0;
@@ -82,7 +82,7 @@ gl__ParseVersion(void)
 
     if (version.major < 3) return 0;
 
-    return 1;
+    return true;
 }
 
 void

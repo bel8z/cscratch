@@ -18,7 +18,7 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wsign-conversion")
 #include <backends/imgui_impl_win32.cpp>
 CF_DIAGNOSTIC_POP()
 
-CF_API F32
+F32
 win32GuiGetDpiScale(void *window)
 {
     return ImGui_ImplWin32_GetDpiScaleForHwnd(window);
