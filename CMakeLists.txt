@@ -85,11 +85,11 @@ endif()
 # Common platform code #
 #----------------------#
 
-set(PLATFORM_SOURCES ${CODE_DIR}/win32_platform.c)
-set_source_files_properties(${PLATFORM_SOURCES} PROPERTIES LANGUAGE C)
+set(GUI_ENTRY ${CODE_DIR}/win32_gui.c)
+set_source_files_properties(${GUI_ENTRY} PROPERTIES LANGUAGE C)
 
-set(CONSOLE_ENTRY ${CODE_DIR}/console.c)
-set_source_files_properties(${CONSOLE_ENTRY} PROPERTIES LANGUAGE C)
+set(CLI_ENTRY ${CODE_DIR}/win32_cli.c)
+set_source_files_properties(${CLI_ENTRY} PROPERTIES LANGUAGE C)
 
 #-------------#
 # Gui library #
@@ -183,7 +183,7 @@ foreach(APP ${APPS})
         file(GLOB_RECURSE APP_RESOURCES ${APPS_DIR}/${APP}/*.rc)
         set_source_files_properties(${APP_RESOURCES} PROPERTIES LANGUAGE RC)
 
-        add_executable(${EXE_NAME} WIN32 ${PLATFORM_SOURCES} ${APP_RESOURCES})
+        add_executable(${EXE_NAME} WIN32 ${GUI_ENTRY} ${APP_RESOURCES})
         add_library(${LIB_NAME} SHARED ${APP_SOURCES})
 
         target_compile_features(${EXE_NAME} PUBLIC c_std_11)
@@ -218,24 +218,24 @@ enable_testing()
 #     -fno-omit-frame-pointer)
 # target_link_libraries(dummy PRIVATE ${ASANFLAGS})
 
-add_executable(test_buffer ${TESTS_DIR}/test_buffer.c ${CONSOLE_ENTRY})
+add_executable(test_buffer ${TESTS_DIR}/test_buffer.c ${CLI_ENTRY})
 target_link_libraries(test_buffer PRIVATE foundation)
 target_include_directories(test_buffer PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_buffer)
 add_test(test_buffer test_buffer)
 
-add_executable(test_arena ${TESTS_DIR}/test_arena.c ${CONSOLE_ENTRY})
+add_executable(test_arena ${TESTS_DIR}/test_arena.c ${CLI_ENTRY})
 target_link_libraries(test_arena PRIVATE foundation)
 target_include_directories(test_arena PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_arena)
 add_test(test_arena test_arena)
 
-add_executable(dummy ${TESTS_DIR}/dummy.c ${CONSOLE_ENTRY})
+add_executable(dummy ${TESTS_DIR}/dummy.c ${CLI_ENTRY})
 target_link_libraries(dummy PRIVATE foundation)
 target_include_directories(dummy PRIVATE ${LIBS_DIR})
 set_c_compile_flags(dummy)
 
-file(GLOB_RECURSE TEST_SOURCES ${TESTS_DIR}/threading/*.c ${CONSOLE_ENTRY})
+file(GLOB_RECURSE TEST_SOURCES ${TESTS_DIR}/threading/*.c ${CLI_ENTRY})
 add_executable(test_threading ${TEST_SOURCES})
 target_link_libraries(test_threading PRIVATE foundation)
 target_include_directories(test_threading PRIVATE ${LIBS_DIR})
@@ -245,19 +245,19 @@ add_test(threading_benaphore test_threading 0)
 add_test(threading_auto_reset_event test_threading 1)
 add_test(threading_mpmc_queue test_threading 2)
 
-add_executable(test_files ${TESTS_DIR}/test_files.c ${CONSOLE_ENTRY})
+add_executable(test_files ${TESTS_DIR}/test_files.c ${CLI_ENTRY})
 target_link_libraries(test_files PRIVATE foundation)
 target_include_directories(test_files PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_files)
 
 # WINDOWS SPECIFIC
 
-add_executable(test_odbc ${TESTS_DIR}/test_odbc.c ${CONSOLE_ENTRY})
+add_executable(test_odbc ${TESTS_DIR}/test_odbc.c ${CLI_ENTRY})
 target_link_libraries(test_odbc PRIVATE foundation)
 target_include_directories(test_odbc PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_odbc)
 
-add_executable(test_sockets ${TESTS_DIR}/test_sockets.c ${CONSOLE_ENTRY})
+add_executable(test_sockets ${TESTS_DIR}/test_sockets.c ${CLI_ENTRY})
 target_link_libraries(test_sockets PRIVATE foundation)
 target_include_directories(test_sockets PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_sockets)

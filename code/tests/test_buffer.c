@@ -17,9 +17,9 @@ bufferPrint(UsizeBuffer *a)
 
     fprintf(out, "{");
 
-    for (Usize i = 0; i < a->size; ++i)
+    for (Usize i = 0; i < a->len; ++i)
     {
-        fprintf(out, "%zu, ", a->data[i]);
+        fprintf(out, "%zu, ", a->ptr[i]);
     }
 
     fprintf(out, "}\n");
@@ -41,9 +41,9 @@ consoleMain(Platform *platform, CommandLine *cmd_line)
 
     bufferPrint(&buffer);
 
-    for (Usize i = 0; i < buffer.size; ++i)
+    for (Usize i = 0; i < buffer.len; ++i)
     {
-        CF_ASSERT(buffer.data[i] == i, "Buffer push FAILED");
+        CF_ASSERT(buffer.ptr[i] == i, "Buffer push FAILED");
     }
 
     Usize popped = 0;
@@ -53,7 +53,7 @@ consoleMain(Platform *platform, CommandLine *cmd_line)
 
     bufferPrint(&buffer);
 
-    CF_ASSERT(!buffer.size, "Buffer should be empty");
+    CF_ASSERT(!buffer.len, "Buffer should be empty");
 
     CF_ASSERT(!memBufferPush(&buffer, 0), "Buffer push FAILED");
     CF_ASSERT(!memBufferPush(&buffer, 1), "Buffer push FAILED");
@@ -66,9 +66,9 @@ consoleMain(Platform *platform, CommandLine *cmd_line)
 
     bufferPrint(&buffer);
 
-    for (Usize i = 0; i < buffer.size; ++i)
+    for (Usize i = 0; i < buffer.len; ++i)
     {
-        CF_ASSERT(buffer.data[i] == i, "");
+        CF_ASSERT(buffer.ptr[i] == i, "");
     }
 
     memBufferStableRemove(&buffer, 1);
@@ -79,7 +79,7 @@ consoleMain(Platform *platform, CommandLine *cmd_line)
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(test_remove); ++i)
     {
-        CF_ASSERT(buffer.data[i] == test_remove[i], "Buffer remove FAILED");
+        CF_ASSERT(buffer.ptr[i] == test_remove[i], "Buffer remove FAILED");
     }
 
     memBufferSwapRemove(&buffer, 1);
@@ -90,7 +90,7 @@ consoleMain(Platform *platform, CommandLine *cmd_line)
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(test_swap_remove); ++i)
     {
-        CF_ASSERT(buffer.data[i] == test_swap_remove[i], "Buffer swap remove FAILED");
+        CF_ASSERT(buffer.ptr[i] == test_swap_remove[i], "Buffer swap remove FAILED");
     }
 
     memBufferInsert(&buffer, 1, 8);
@@ -101,7 +101,7 @@ consoleMain(Platform *platform, CommandLine *cmd_line)
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(test_insert); ++i)
     {
-        CF_ASSERT(buffer.data[i] == test_insert[i], "Buffer insert FAILED");
+        CF_ASSERT(buffer.ptr[i] == test_insert[i], "Buffer insert FAILED");
     }
 
     return 0;

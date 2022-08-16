@@ -13,7 +13,7 @@ typedef struct CommandLine CommandLine;
 void
 pathPrint(Str p)
 {
-    if (strValid(p)) printf("%.*s\n", (I32)p.len, p.buf);
+    if (strValid(p)) printf("%.*s\n", (I32)p.len, p.ptr);
 }
 
 I32
