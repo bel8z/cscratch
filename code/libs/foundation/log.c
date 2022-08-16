@@ -3,6 +3,10 @@
 #include "memory.h"
 #include "strings.h"
 
+// TODO (Matteo): Get rid of it?
+// Used only for vsnprintf
+#include <stdio.h>
+
 CfLog
 cfLogCreate(VMemApi *vmem, Usize buffer_size)
 {

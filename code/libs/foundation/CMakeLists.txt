@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.15.0)
 
 set(LIB_SOURCES  
     "colors.c"
+    "error.c"
     "list.c"
     "log.c"
     "io.c"

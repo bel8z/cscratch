@@ -1,12 +1,16 @@
 #pragma once
 
-// TODO (Matteo): Get rid of it?
-// At the moment it is required for printing assertion failures to stderr
-#include <stdio.h>
+#include "core.h"
+#include <vadefs.h>
 
 //-------------------------------//
 //   Assertions / Debug macros   //
 //-------------------------------//
+
+typedef void(ErrorLogFn)(Cstr format, va_list args, void *context);
+
+CF_API void errorLog(Cstr format, ...) CF_PRINTF_LIKE(0);
+CF_API void errorInstallHandler(ErrorLogFn *handler, void *context);
 
 #if CF_COMPILER_CLANG
 #    define CF__CRASH() __builtin_trap()
@@ -15,7 +19,7 @@
 #endif
 
 // TODO (Matteo): Better logging system
-#define CF_LOG(...) fprintf(stderr, __VA_ARGS__)
+#define CF_LOG(...) errorLog(__VA_ARGS__)
 
 #define CF__ERROR_PRINT(msg) \
     CF_LOG("Unexpected error - %s\nFile: %s\nLine: %d\n", msg, CF_FILE, CF_LINE)
