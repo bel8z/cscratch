@@ -9,6 +9,9 @@ function(set_c_compile_flags project_name)
         /w14242 # 'identifier': conversion from 'type1' to 'type1', possible loss of data
         /w14254 # 'operator': conversion from 'type1:field_bits' to 'type2:field_bits', possible loss of data
         /w14287 # 'operator': unsigned/negative constant mismatch
+        /w14263 # 'function': member function does not override any base class virtual member function
+        /w14265 # 'classname': class has virtual functions, but destructor is not virtual instances of this class may not
+                # be destructed correctly
         /we4289 # nonstandard extension used: 'variable': loop control variable declared in the for-loop is used outside
                 # the for-loop scope
         /w14296 # 'operator': expression is always 'boolean_value'
@@ -43,7 +46,10 @@ function(set_c_compile_flags project_name)
         -Wsign-conversion # warn on sign conversions
         -Wdouble-promotion # warn if float is implicit promoted to double
         -Wformat=2 # warn on security issues around functions that format output (ie printf)
-        
+        -Wnon-virtual-dtor # warn the user if a class with virtual functions has a non-virtual destructor. 
+                           # This helps catch hard to track down memory errors
+        -Woverloaded-virtual # warn if you overload (not override) a virtual function
+
         #-Wcast-align # warn for potential performance problem casts
         
         # Allow anonymous struct members, they're useful
@@ -54,6 +60,10 @@ function(set_c_compile_flags project_name)
 
         # Converting int to float by default seems
         -Wno-implicit-int-float-conversion
+
+        # Disable C++ exceptions and RTTI
+        -fno-exceptions
+        -fno-rtti
     )
 
     if (WARNINGS_AS_ERRORS)
@@ -85,45 +95,6 @@ function(set_c_compile_flags project_name)
         set(PROJECT_WARNINGS ${GCC_WARNINGS})
     else()
         message(AUTHOR_WARNING "No compiler warnings set for '${CMAKE_C_COMPILER_ID}' compiler.")
-    endif()
-
-  target_compile_options(${project_name} INTERFACE ${PROJECT_WARNINGS})
-endfunction()
-
-function(set_cxx_compile_flags project_name)
-    set_c_compile_flags(${project_name})
-
-    set(PROJECT_WARNINGS)
-
-    set(MSVC_WARNINGS
-        /w14263 # 'function': member function does not override any base class virtual member function
-        /w14265 # 'classname': class has virtual functions, but destructor is not virtual instances of this class may not
-                # be destructed correctly
-        /w14287 # 'operator': unsigned/negative constant mismatch
-        /we4289 # nonstandard extension used: 'variable': loop control variable declared in the for-loop is used outside
-                # the for-loop scope
-
-        /we4820
-    )
-
-    set(CLANG_WARNINGS
-        -Wnon-virtual-dtor # warn the user if a class with virtual functions has a non-virtual destructor. 
-                           # This helps catch hard to track down memory errors
-        -Wold-style-cast # warn for c-style casts
-        -Woverloaded-virtual # warn if you overload (not override) a virtual function
-        -Wcast-align # warn for potential performance problem casts
-    )
-
-    if(MSVC)
-        set(PROJECT_WARNINGS ${MSVC_WARNINGS})
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
-        add_compile_options(-fcolor-diagnostics)
-        set(PROJECT_WARNINGS ${CLANG_WARNINGS})
-    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        add_compile_options(-fdiagnostics-color=always)
-        set(PROJECT_WARNINGS ${GCC_WARNINGS})
-    else()
-        message(AUTHOR_WARNING "No compiler warnings set for '${CMAKE_CXX_COMPILER_ID}' compiler.")
     endif()
 
   target_compile_options(${project_name} INTERFACE ${PROJECT_WARNINGS})

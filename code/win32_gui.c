@@ -344,48 +344,6 @@ win32CreateGlContext(HDC dc, OpenGLVersion *out_ver)
     return gl_context;
 }
 
-#if 0
-
-CF_INTERNAL GLFWwindow *
-gui_CreateWinAndContext(Cstr title, I32 width, I32 height, GuiOpenGLVersion *gl_version)
-{
-    GLFWwindow *window = NULL;
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-    glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
-    glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
-
-    for (Usize i = 0; i < CF_ARRAY_SIZE(g_gl_versions); ++i)
-    {
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, (I32)g_gl_versions[i].major);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, (I32)g_gl_versions[i].minor);
-
-        if (g_gl_versions[i].major >= 3)
-        {
-            // TODO (Matteo): Make this OS specific? It doesn't seem to bring any penalty
-            // 3.0+ only, required on MAC
-            glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-            if (g_gl_versions[i].minor >= 2)
-            {
-                // 3.2+ only
-                glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-            }
-        }
-
-        window = glfwCreateWindow(width, height, title, NULL, NULL);
-        if (window)
-        {
-            *gl_version = g_gl_versions[i];
-            break;
-        }
-    }
-
-    return window;
-}
-
-#endif
-
 //------------------------------//
 //   Application API handling   //
 //------------------------------//
@@ -506,15 +464,30 @@ WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
-I32 WINAPI
-wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, I32 nCmdShow)
-{
-    I32 result = -1;
+// NOTE (Matteo): Funny business to make Zig happy as a compiler
+#if defined(__MINGW32__)
+DPI_AWARENESS_CONTEXT WINAPI SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT dpiContext);
+#    define ENTRYPOINT I32 main(void)
+#    define ENTRYPOINT_DISCARD
+#else
+#    define ENTRYPOINT                                                                     \
+        I32 WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, \
+                            I32 nCmdShow)
 
-    CF_UNUSED(hInstance);
-    CF_UNUSED(hPrevInstance);
-    CF_UNUSED(pCmdLine);
-    CF_UNUSED(nCmdShow);
+#    define ENTRYPOINT_DISCARD        \
+        {                             \
+            CF_UNUSED(hInstance);     \
+            CF_UNUSED(hPrevInstance); \
+            CF_UNUSED(pCmdLine);      \
+            CF_UNUSED(nCmdShow);      \
+        }
+#endif
+
+ENTRYPOINT
+{
+    ENTRYPOINT_DISCARD
+
+    I32 result = -1;
 
     // Setup platform layer
     win32PlatformInit();

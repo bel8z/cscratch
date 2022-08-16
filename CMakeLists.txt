@@ -161,11 +161,8 @@ foreach(APP ${APPS})
                 ${LIBS_DIR} 
                 ${EXT_DIR}/stb)
 
-        target_link_libraries(${EXE_NAME} PRIVATE foundation ${GUI_NAME} ${OPENGL_gl_LIBRARY})
+        target_link_libraries(${EXE_NAME} PRIVATE foundation ${GUI_NAME} ${OPENGL_gl_LIBRARY} dwmapi)
         target_link_libraries(${LIB_NAME} PRIVATE foundation ${GUI_NAME} ${OPENGL_gl_LIBRARY}) 
-
-        target_link_libraries(${EXE_NAME} PUBLIC Imm32)
-        target_link_libraries(${LIB_NAME} PUBLIC Imm32)
 
         target_compile_features(${EXE_NAME} PUBLIC c_std_11)
         target_compile_features(${EXE_NAME} PUBLIC cxx_std_14)
