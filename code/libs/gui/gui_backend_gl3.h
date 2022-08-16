@@ -1,9 +1,15 @@
 #pragma once
 
 #include "gui.h"
-#include "win.h"
 
 typedef struct ImDrawData GuiDrawData;
+
+typedef struct GuiOpenGLVersion
+{
+    U32 major, minor;
+    /// Shader version for Dear Imgui OpenGL backend
+    U32 glsl;
+} GuiOpenGLVersion;
 
 // Backend API
 CF_API bool guiGl3Init(GuiOpenGLVersion version);

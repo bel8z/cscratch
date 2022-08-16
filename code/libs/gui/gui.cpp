@@ -1,5 +1,19 @@
 #include "gui.h"
-#include "gui_internal.h"
+
+CF_DIAGNOSTIC_PUSH()
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wlanguage-extension-token")
+CF_DIAGNOSTIC_IGNORE_CLANG("-Wdouble-promotion")
+CF_DIAGNOSTIC_IGNORE_MSVC(4201)
+CF_DIAGNOSTIC_IGNORE_MSVC(4214)
+
+#include "imgui.h"
+#include "imgui_internal.h"
+#if defined(IMGUI_ENABLE_FREETYPE)
+#    include "imgui_freetype.h"
+#endif
+#include "implot.h"
+
+CF_DIAGNOSTIC_POP()
 
 #include "foundation/colors.h"
 #include "foundation/core.h"
@@ -8,12 +22,21 @@
 #include "foundation/memory.h"
 #include "foundation/strings.h"
 
-#include "imgui.h"
-#include "implot.h"
-
 #if !defined GUI_VIEWPORTS
 #    define GUI_VIEWPORTS 0
 #endif // GUI_VIEWPORTS
+
+struct GuiData
+{
+    MemAllocator allocator;
+
+    ImPlotContext *implot;
+
+    GuiMemory memory;
+    GuiTheme theme;
+
+    void *user_data;
+};
 
 //=== Type conversions ===//
 
@@ -22,7 +45,7 @@ CF_STATIC_ASSERT(sizeof(LinearColor) == sizeof(ImVec4), "LinearColor not compati
 
 //=== Memory management ===//
 
-void *
+CF_INTERNAL void *
 guiAlloc(Usize size, void *state)
 {
     // TODO (Matteo): Check for misaligned access
@@ -43,7 +66,7 @@ guiAlloc(Usize size, void *state)
     return buf;
 }
 
-void
+CF_INTERNAL void
 guiFree(void *mem, void *state)
 {
     CF_ASSERT_NOT_NULL(state);
@@ -61,12 +84,75 @@ guiFree(void *mem, void *state)
         memFree(data->allocator, buf, total_size);
     }
 }
-//=== Initialization ===//
 
-GuiData &
+CF_INTERNAL GuiData &
 guiData()
 {
     return *(GuiData *)ImGui::GetIO().UserData;
+}
+
+//=== Initialization ===//
+
+GuiContext *
+guiInit(GuiInitInfo *gui, F32 dpi_scale)
+{
+    CF_ASSERT_NOT_NULL(gui);
+
+    // Setup IMGUI
+    IMGUI_CHECKVERSION();
+
+    // Configure custom user data
+    GuiData *gui_data = (GuiData *)memAllocStruct(gui->alloc, GuiData);
+    gui_data->allocator = gui->alloc;
+    gui_data->user_data = gui->user_data;
+
+    ImGui::SetAllocatorFunctions(guiAlloc, guiFree, gui_data);
+
+    GuiContext *ctx = ImGui::CreateContext(gui->shared_atlas);
+    gui_data->implot = ImPlot::CreateContext();
+
+    ImGuiIO &io = ImGui::GetIO();
+
+    io.UserData = gui_data;
+
+    io.IniFilename = gui->ini_filename;
+
+    // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    // Reduce visual noise while docking, also has a benefit for out-of-sync viewport rendering
+    io.ConfigDockingTransparentPayload = true;
+
+#if GUI_VIEWPORTS
+    // Enable Multi-Viewport / Platform Windows
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+#endif
+
+    guiSetTheme(GuiTheme_EmeraldDark);
+
+    // Setup Dear ImGui style
+    guiSetupStyle(GuiTheme_EmeraldLight, dpi_scale);
+    if (!strValid(gui->data_path) || !guiLoadCustomFonts(guiFonts(), dpi_scale, gui->data_path))
+    {
+        guiLoadDefaultFont(guiFonts());
+    }
+
+    return ctx;
+}
+
+void
+guiShutdown(GuiContext *ctx)
+{
+    GuiData &gui_data = guiData();
+
+    ImPlot::DestroyContext(gui_data.implot);
+    ImGui::DestroyContext(ctx);
+
+    CF_ASSERT(gui_data.memory.size == 0, "Possible GUI memory leak");
+    CF_ASSERT(gui_data.memory.blocks == 0, "Possible GUI memory leak");
+
+    memFreeStruct(gui_data.allocator, &gui_data);
 }
 
 void
@@ -104,6 +190,16 @@ guiRender()
 {
     ImGui::Render();
     return ImGui::GetDrawData();
+}
+
+CF_API void
+guiUpdateViewports(bool render)
+{
+    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        ImGui::UpdatePlatformWindows();
+        if (render) ImGui::RenderPlatformWindowsDefault(NULL, NULL);
+    }
 }
 
 //=== Themes & styling ===//

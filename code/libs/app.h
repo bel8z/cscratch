@@ -20,7 +20,7 @@ typedef struct AppIo
     GuiFontOptions *font_opts;
 
     // Outputs
-    Cstr window_title;
+    Str window_title;
     Srgb32 back_color;
     bool quit;
     bool rebuild_fonts;

@@ -193,6 +193,18 @@ typedef struct GuiMemory
     Usize blocks;
 } GuiMemory;
 
+/// IMGUI state, used to initialize internal global variables
+typedef struct GuiInitInfo
+{
+    MemAllocator alloc;
+    GuiFontAtlas *shared_atlas;
+    Cstr ini_filename;
+    void *user_data;
+    Str data_path;
+} GuiInitInfo;
+
+CF_API GuiContext *guiInit(GuiInitInfo *info, F32 dpi_scale);
+CF_API void guiShutdown(GuiContext *ctx);
 CF_API void guiSetContext(GuiContext *ctx);
 
 //=== Updating & querying ===//
@@ -202,6 +214,7 @@ CF_API void *guiUserData(void);
 
 CF_API void guiNewFrame();
 CF_API GuiDrawData *guiRender();
+CF_API void guiUpdateViewports(bool render);
 
 //=== Themes & styling ===//
 

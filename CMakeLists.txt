@@ -81,16 +81,6 @@ else()
     file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data DESTINATION "${OUT_DIR}")
 endif()
 
-#----------------------#
-# Common platform code #
-#----------------------#
-
-set(GUI_ENTRY ${CODE_DIR}/win32_gui.c)
-set_source_files_properties(${GUI_ENTRY} PROPERTIES LANGUAGE C)
-
-set(CLI_ENTRY ${CODE_DIR}/win32_cli.c)
-set_source_files_properties(${CLI_ENTRY} PROPERTIES LANGUAGE C)
-
 #-------------#
 # Gui library #
 #-------------#
@@ -128,40 +118,11 @@ target_include_directories(${GUI_NAME}
     PUBLIC
         ${LIBS_DIR})
 
-#----------------#
-# Window library #
-#----------------#
-
-set(GLFW_DIR ${EXT_DIR}/glfw-3.3.6)
-
-# TODO (Matteo): Find a better way to handle out of tree builds
-
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "Build the GLFW example programs" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs" FORCE)
-add_subdirectory(${GLFW_DIR} ${CMAKE_BINARY_DIR}/glfw-3.3.6)
-
-find_package(OpenGL REQUIRED)
-
-set(WIN_NAME gui_win)
-add_library(${WIN_NAME} STATIC
-    ${LIBS_DIR}/gui/win.cpp
-    ${LIBS_DIR}/gui/gui_backend_gl3.cpp
-    ${LIBS_DIR}/gl/gl_api.c)
-
-target_include_directories(${WIN_NAME} 
-    PRIVATE 
-        ${IMGUI_DIR} 
-        ${IMPLOT_DIR} 
-        ${IMGUI_DIR}/misc/freetype)
-
-target_link_libraries(${WIN_NAME} PUBLIC ${GUI_NAME} ${OPENGL_gl_LIBRARY} PRIVATE glfw)
-target_compile_features(${WIN_NAME} PUBLIC c_std_11) 
-target_compile_features(${WIN_NAME} PUBLIC cxx_std_14)
-set_c_compile_flags(${WIN_NAME})
-
 #--------------#
 # Applications #
 #--------------#
+
+find_package(OpenGL REQUIRED)
 
 file(GLOB APPS RELATIVE ${APPS_DIR} ${APPS_DIR}/*)
 foreach(APP ${APPS})
@@ -170,44 +131,66 @@ foreach(APP ${APPS})
 
         message(STATUS "Configuring ${APP}")
 
-        set(EXE_NAME ${APP})
+        set(EXE_NAME ${APP})      
+        set(EXE_RESOURCES)
+        file(GLOB_RECURSE EXE_RESOURCES ${APPS_DIR}/${APP}/*.rc)
+        set_source_files_properties(${EXE_RESOURCES} PROPERTIES LANGUAGE RC)
+        add_executable(${EXE_NAME} WIN32 
+            ${CODE_DIR}/win32_gui.c
+            ${CODE_DIR}/win32_gui_backend.cpp
+            ${LIBS_DIR}/gl/gl_api.c
+            ${LIBS_DIR}/gui/gui_backend_gl3.cpp
+            ${EXE_RESOURCES})
+
         # NOTE (Matteo): _lib suffix added to prevent conflicts with .pdb files
         set(LIB_NAME ${APP}_lib) 
+        set(LIB_SOURCES)
+        file(GLOB_RECURSE LIB_SOURCES ${APPS_DIR}/${APP}/*.c)
+        list(APPEND LIB_SOURCES ${LIBS_DIR}/gl/gl_api.c)
+        add_library(${LIB_NAME} SHARED ${LIB_SOURCES})
 
-        set(APP_SOURCES)
-        file(GLOB_RECURSE APP_SOURCES ${APPS_DIR}/${APP}/*.c)
-        list(APPEND APP_SOURCES ${LIBS_DIR}/gl/gl_api.c)
-        set_source_files_properties(${APP_SOURCES} PROPERTIES LANGUAGE C)
+        target_include_directories(${EXE_NAME} 
+            PUBLIC 
+                ${LIBS_DIR}
+            PRIVATE 
+                ${IMGUI_DIR} 
+                ${IMPLOT_DIR} 
+                ${IMGUI_DIR}/misc/freetype
+                ${IMGUI_DIR}/backends)
 
-        set(APP_RESOURCES)
-        file(GLOB_RECURSE APP_RESOURCES ${APPS_DIR}/${APP}/*.rc)
-        set_source_files_properties(${APP_RESOURCES} PROPERTIES LANGUAGE RC)
+        target_include_directories(${LIB_NAME} 
+            PUBLIC 
+                ${LIBS_DIR} 
+                ${EXT_DIR}/stb)
 
-        add_executable(${EXE_NAME} WIN32 ${GUI_ENTRY} ${APP_RESOURCES})
-        add_library(${LIB_NAME} SHARED ${APP_SOURCES})
-
-        target_compile_features(${EXE_NAME} PUBLIC c_std_11)
-        target_compile_features(${LIB_NAME} PUBLIC c_std_11)
-
-        target_include_directories(${EXE_NAME} PUBLIC ${LIBS_DIR})
-        target_include_directories(${LIB_NAME} PUBLIC ${LIBS_DIR} ${EXT_DIR}/stb)
-
-        target_link_libraries(${EXE_NAME} PRIVATE foundation ${WIN_NAME})
+        target_link_libraries(${EXE_NAME} PRIVATE foundation ${GUI_NAME} ${OPENGL_gl_LIBRARY})
         target_link_libraries(${LIB_NAME} PRIVATE foundation ${GUI_NAME} ${OPENGL_gl_LIBRARY}) 
 
         target_link_libraries(${EXE_NAME} PUBLIC Imm32)
         target_link_libraries(${LIB_NAME} PUBLIC Imm32)
 
+        target_compile_features(${EXE_NAME} PUBLIC c_std_11)
+        target_compile_features(${EXE_NAME} PUBLIC cxx_std_14)
+        target_compile_features(${LIB_NAME} PUBLIC c_std_11)
+        target_compile_features(${LIB_NAME} PUBLIC cxx_std_14)
         set_c_compile_flags(${EXE_NAME})
         set_c_compile_flags(${LIB_NAME})
 
-        set_target_properties(${EXE_NAME} ${LIB_NAME} PROPERTIES UNITY_BUILD TRUE)
+        # NOTE (Matteo): Since the app library is meant to be hot-reloaded, it is 
+        # not linked explicitly; the dependency is still required to ensure proper
+        # rebuild on changes
+        add_dependencies(${EXE_NAME} ${LIB_NAME})
+
+        # set_target_properties(${EXE_NAME} ${LIB_NAME} PROPERTIES UNITY_BUILD TRUE)
     endif()    
 endforeach()
 
 #---------#
 # Testing #
 #---------#
+
+set(CLI_ENTRY ${CODE_DIR}/win32_cli.c)
+set_source_files_properties(${CLI_ENTRY} PROPERTIES LANGUAGE C)
 
 include(CTest)
 enable_testing()
