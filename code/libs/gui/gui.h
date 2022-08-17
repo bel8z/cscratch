@@ -360,7 +360,7 @@ CF_API void guiStyleEditor(void);
 
 typedef struct GuiAxisRange
 {
-    double min, max;
+    F64 min, max;
     bool locked;
 } GuiAxisRange;
 
@@ -387,11 +387,11 @@ typedef struct GuiPlotSetup
 CF_API bool guiPlotBegin(Cstr label, GuiPlotSetup *setup);
 CF_API void guiPlotEnd();
 
-CF_API void guiPlotLineF32(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride);
-CF_API void guiPlotLineF64(Cstr id, F64 *xy, Usize count, Usize offset, Usize stride);
+CF_API void guiPlotLineF32(Cstr id, F32 *x, F32 *y, Usize count, Usize offset, Usize stride);
+CF_API void guiPlotLineF64(Cstr id, F64 *x, F64 *y, Usize count, Usize offset, Usize stride);
 
-CF_API void guiPlotScatterF32(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride);
-CF_API void guiPlotScatterF64(Cstr id, F64 *xy, Usize count, Usize offset, Usize stride);
+CF_API void guiPlotScatterF32(Cstr id, F32 *x, F32 *y, Usize count, Usize offset, Usize stride);
+CF_API void guiPlotScatterF64(Cstr id, F64 *x, F64 *y, Usize count, Usize offset, Usize stride);
 
 //=== Fonts handling ===//
 

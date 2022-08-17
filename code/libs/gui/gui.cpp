@@ -1475,27 +1475,27 @@ guiPlotEnd()
 }
 
 void
-guiPlotLineF32(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride)
+guiPlotLineF32(Cstr id, F32 *x, F32 *y, Usize count, Usize offset, Usize stride)
 {
-    ImPlot::PlotLine(id, &xy[0], &xy[1], count, 0, offset, stride);
+    ImPlot::PlotLine(id, x, y, count, 0, offset, stride * sizeof(*x));
 }
 
 void
-guiPlotLineF64(Cstr id, F64 *xy, Usize count, Usize offset, Usize stride)
+guiPlotLineF64(Cstr id, F64 *x, F64 *y, Usize count, Usize offset, Usize stride)
 {
-    ImPlot::PlotLine(id, &xy[0], &xy[1], count, 0, offset, stride);
+    ImPlot::PlotLine(id, x, y, count, 0, offset, stride * sizeof(*x));
 }
 
 void
-guiPlotScatterF32(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride)
+guiPlotScatterF32(Cstr id, F32 *x, F32 *y, Usize count, Usize offset, Usize stride)
 {
-    ImPlot::PlotScatter(id, &xy[0], &xy[1], count, 0, offset, stride);
+    ImPlot::PlotScatter(id, x, y, count, 0, offset, stride * sizeof(*x));
 }
 
 void
-guiPlotScatterF64(Cstr id, F64 *xy, Usize count, Usize offset, Usize stride)
+guiPlotScatterF64(Cstr id, F64 *x, F64 *y, Usize count, Usize offset, Usize stride)
 {
-    ImPlot::PlotScatter(id, &xy[0], &xy[1], count, 0, offset, stride);
+    ImPlot::PlotScatter(id, x, y, count, 0, offset, stride * sizeof(*x));
 }
 
 //=== File dialogs ===//

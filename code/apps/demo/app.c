@@ -598,7 +598,7 @@ guiFrameratePlot()
 
     if (guiPlotBegin("plot", &plot))
     {
-        guiPlotLineF64("Framerate", samples[0].elem, count, offset, sizeof(*samples));
+        guiPlotLineF64("Framerate", samples[0].elem, samples[0].elem + 1, count, offset, 2);
         guiPlotEnd();
     }
 }
