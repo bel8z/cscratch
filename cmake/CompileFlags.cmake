@@ -1,5 +1,5 @@
 function(set_c_compile_flags project_name)
-    set(PROJECT_WARNINGS)
+    set(PROJECT_FLAGS)
 
     option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" TRUE)
     option(CHECK_PADDING "Check extra padding in structs" FALSE)
@@ -35,7 +35,7 @@ function(set_c_compile_flags project_name)
         /wd4201 #nonstandard extension used: nameless struct/union 
     )
 
-    set(CLANG_WARNINGS
+    set(CLANG_FLAGS
         -Wall
         -Wextra # reasonable and standard
         -Wpedantic # warn if non-standard C is used       
