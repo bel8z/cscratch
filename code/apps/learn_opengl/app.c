@@ -346,7 +346,7 @@ gfxProc(GfxState *gfx, CfLog *log)
     // Tweak some parameters
 
     guiBeginAutoResize("Tool", NULL);
-    guiSlider("Blend", &gfx->blend, 0, 1);
+    guiSliderF32("Blend", &gfx->blend, 0, 1);
     guiEnd();
 
     glPolygonMode(GL_FRONT, GL_LINE);

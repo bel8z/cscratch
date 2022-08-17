@@ -527,7 +527,7 @@ appImageView(AppState *state)
             iv->tex_count = double_buffer ? CF_ARRAY_SIZE(iv->tex) : 1;
         }
         guiSameLine();
-        guiSlider("zoom", &curr_zoom, min_zoom, max_zoom);
+        guiSliderF32("zoom", &curr_zoom, min_zoom, max_zoom);
     }
 
     // NOTE (Matteo): Use the available content area as the image view; an invisible button

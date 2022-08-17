@@ -334,7 +334,8 @@ CF_API bool guiCenteredButton(Cstr label);
 
 CF_API bool guiCheckbox(Cstr label, bool *checked);
 
-CF_API bool guiSlider(Cstr label, F32 *value, F32 min_value, F32 max_value);
+CF_API bool guiSliderF32(Cstr label, F32 *value, F32 min_value, F32 max_value);
+CF_API bool guiSliderF64(Cstr label, F64 *value, F64 min_value, F64 max_value);
 
 CF_API bool guiInput(Cstr label, F32 *value, GuiInputInfo *info);
 

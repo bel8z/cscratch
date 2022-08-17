@@ -1260,10 +1260,19 @@ guiCheckbox(Cstr label, bool *checked)
 }
 
 bool
-guiSlider(Cstr label, F32 *value, F32 min_value, F32 max_value)
+guiSliderF32(Cstr label, F32 *value, F32 min_value, F32 max_value)
 {
     return ImGui::SliderFloat(label, value, min_value, max_value, "%.3f",
                               ImGuiSliderFlags_AlwaysClamp);
+}
+
+bool
+guiSliderF64(Cstr label, F64 *value, F64 min_value, F64 max_value)
+{
+    return ImGui::SliderScalar(label, ImGuiDataType_Double, value, //
+                               (void const *)(&min_value),         //
+                               (void const *)(&max_value),         //
+                               "%.3f", ImGuiSliderFlags_AlwaysClamp);
 }
 
 CF_API bool

@@ -7,6 +7,9 @@
 #include "foundation/memory.h"
 #include "foundation/strings.h"
 
+// TODO (Matteo): Get rid of it and use platform API only
+#include <stdio.h>
+
 CF_GLOBAL MemAllocator g_heap;
 
 //======================================================//

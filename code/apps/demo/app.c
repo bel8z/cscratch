@@ -493,8 +493,8 @@ fxTangentCircles(void)
     guiSetNextWindowSize((Vec2){.x = 320, .y = 180}, GuiCond_Once);
     guiBegin("Tangent circles", NULL);
 
-    guiSlider("Radius", &lens_radius_parm, 50, 1000);
-    guiSlider("Depth", &depth, 0, 5);
+    guiSliderF32("Radius", &lens_radius_parm, 50, 1000);
+    guiSliderF32("Depth", &depth, 0, 5);
     guiSeparator();
 
     GuiCanvas canvas = {0};
@@ -685,7 +685,7 @@ APP_API APP_UPDATE_FN(appUpdate)
         guiCheckbox("Gui demo", &state->windows.gui_demo);
         guiSameLine();
         guiCheckbox("Plot demo", &state->windows.plot_demo);
-        guiSlider("float", &f, 0.0f, 1.0f);
+        guiSliderF32("float", &f, 0.0f, 1.0f);
         guiColorEdit("clear color", &state->clear_color);
         guiSeparator();
         guiThemeSelector("Theme");
