@@ -7,13 +7,6 @@
 #include "error.h"
 #include "memory.h"
 
-CF_INTERNAL inline U32
-cfRoundUp(U32 block_size, U32 page_size)
-{
-    CF_ASSERT((page_size & (page_size - 1)) == 0, "Page size is not a power of 2");
-    return page_size * ((block_size + page_size - 1) / page_size);
-}
-
 //------------------------------------------------------------------------------
 // Swap utilities
 //------------------------------------------------------------------------------

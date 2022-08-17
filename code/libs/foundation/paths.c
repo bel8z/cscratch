@@ -99,7 +99,7 @@ pathChangeExt(Str path, Str new_ext, Char8 *out)
 
     CF_ASSERT_NOT_NULL(ext.ptr);
 
-    Isize offset = path.len - ext.len;
+    Usize offset = path.len - ext.len;
 
     if (out)
     {
@@ -134,7 +134,7 @@ pathSplitNext(PathSplitIter *iter)
     }
     else
     {
-        Usize offset = iter->curr.ptr + iter->curr.len - iter->path.ptr;
+        Isize offset = iter->curr.ptr + iter->curr.len - iter->path.ptr;
         iter->curr.ptr = iter->path.ptr + offset;
         iter->curr.len = iter->path.len - offset;
     }

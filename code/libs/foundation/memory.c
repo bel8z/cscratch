@@ -172,7 +172,7 @@ mem_arenaCommitVMem(MemArena *arena)
         U8 *curr_pos = arena->memory + arena->committed;
 
         Usize max_commit_size = arena->reserved - arena->allocated;
-        Usize commit_size = cfMin(next_pos - curr_pos, max_commit_size);
+        Usize commit_size = cfMin((Usize)(next_pos - curr_pos), max_commit_size);
 
         vmemCommit(arena->vmem, curr_pos, commit_size);
         arena->committed += commit_size;
@@ -189,7 +189,11 @@ mem_arenaDecommitVm(MemArena *arena)
 
         // Align base pointer forward
         U8 const *base = arena->memory + arena->allocated;
-        Usize offset = memAlignForward(base, arena->vmem->page_size) - arena->memory;
+        U8 const *next = memAlignForward(base, arena->vmem->page_size);
+
+        CF_ASSERT(next > arena->memory, "Possible overflow");
+
+        Usize offset = (Usize)(next - arena->memory);
 
         if (offset < arena->committed)
         {
@@ -198,6 +202,13 @@ mem_arenaDecommitVm(MemArena *arena)
             arena->committed -= decommit_size;
         }
     }
+}
+
+CF_INTERNAL inline U32
+memRoundUp(Usize block_size, Usize page_size)
+{
+    CF_ASSERT((page_size & (page_size - 1)) == 0, "Page size is not a power of 2");
+    return page_size * ((block_size + page_size - 1) / page_size);
 }
 
 void
@@ -235,7 +246,7 @@ memArenaBootstrapFromVmem(VMemApi *vmem, void *reserved_block, Usize reserved_si
     {
         CF_ASSERT(reserved_size > sizeof(*arena), "Cannot bootstrap arena from smaller allocation");
 
-        Usize commit_size = cfMin(reserved_size, cfRoundUp(sizeof(*arena), vmem->page_size));
+        Usize commit_size = cfMin(reserved_size, memRoundUp(sizeof(*arena), vmem->page_size));
         vmemCommit(vmem, reserved_block, commit_size);
 
         arena = reserved_block;
@@ -311,7 +322,10 @@ memArenaAllocAlign(MemArena *arena, Usize size, Usize align)
 
     // Align base pointer forward
     U8 const *base = arena->memory + arena->allocated;
-    Usize offset = memAlignForward(base, align) - arena->memory;
+    U8 const *next = memAlignForward(base, align);
+
+    CF_ASSERT(next > arena->memory, "Possible overflow");
+    Usize offset = (Usize)(next - arena->memory);
 
     if (offset + size <= arena->reserved)
     {

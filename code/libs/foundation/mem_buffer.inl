@@ -21,17 +21,18 @@
 #define memBufferBytes(buffer) ((buffer)->len * memBufferItemSize(buffer))
 
 /// Set the size of the buffer to the required values, unless it is greater than capacity
-#define memBufferResize(buffer, required) \
-    ((required) > (buffer)->cap ? Error_BufferFull : ((buffer)->len = (required), Error_None))
+#define memBufferResize(buffer, required)                 \
+    ((Usize)(required) > (buffer)->cap ? Error_BufferFull \
+                                       : ((buffer)->len = (Usize)(required), Error_None))
 
 /// Increase the size of the buffer by the required amount, unless it causes the size to be greater
 /// than capacity.
 /// Optionally assigns the given pointer to the added slice of the buffer
 #define memBufferExtend(buffer, slice_size, out_slice)                        \
-    ((buffer)->len + slice_size > (buffer)->cap                               \
+    ((buffer)->len + (Usize)(slice_size) > (buffer)->cap                      \
          ? Error_BufferFull                                                   \
          : (((out_slice) ? *(out_slice) = (buffer)->ptr + (buffer)->len : 0), \
-            (buffer)->len += slice_size, Error_None))
+            (buffer)->len += (Usize)(slice_size), Error_None))
 
 /// Push the given element at the end of the buffer, if the capacity allows for it
 #define memBufferPush(buffer, item)                    \
@@ -44,13 +45,14 @@
 
 // TODO (Matteo): Review this for better resizing
 /// Insert the given element at the given position in the buffer, if the capacity allows for it
-#define memBufferInsert(buffer, at, item)                                                       \
-    (memBufferResize((buffer), (buffer)->len + 1)                                               \
-         ? Error_BufferFull                                                                     \
-         : (at >= (buffer)->len ? Error_OutOfRange                                              \
-                                : (memCopyArray((buffer)->ptr + (at), (buffer)->ptr + (at) + 1, \
-                                                (buffer)->len - (at)),                          \
-                                   (buffer)->ptr[at] = (item), Error_None)))
+#define memBufferInsert(buffer, at, item)                                              \
+    (memBufferResize((buffer), (buffer)->len + 1)                                      \
+         ? Error_BufferFull                                                            \
+         : (at >= (buffer)->len                                                        \
+                ? Error_OutOfRange                                                     \
+                : (memCopyArray((buffer)->ptr + (Usize)(at), (buffer)->ptr + (at) + 1, \
+                                (buffer)->len - (Usize)(at)),                          \
+                   (buffer)->ptr[at] = (item), Error_None)))
 
 /// Remove the element at the given position in the buffer, in constant time, filling the hole with
 /// the last buffer element. The order of elements is thus not preserved.
@@ -61,10 +63,10 @@
 /// Remove the element at the given position in the buffer, shifting the followin buffer elements to
 /// fill the hole. The order of elements is preserved, but cost of the operation is linear.
 #define memBufferStableRemove(buffer, at)                                                         \
-    ((at) >= (buffer)->len                                                                        \
-         ? Error_OutOfRange                                                                       \
-         : (memCopyArray((buffer)->ptr + (at) + 1, (buffer)->ptr + (at), --(buffer)->len - (at)), \
-            Error_None))
+    ((at) >= (buffer)->len ? Error_OutOfRange                                                     \
+                           : (memCopyArray((buffer)->ptr + (at) + 1, (buffer)->ptr + (Usize)(at), \
+                                           --(buffer)->len - (Usize)(at)),                        \
+                              Error_None))
 
 //=== Allocating API ===//
 
@@ -76,7 +78,7 @@
 /// Ensure the buffer has the required capacity, allocating memory if needed
 #define memBufferEnsure(buffer, required_capacity, allocator)                            \
     mem_BufferGrow((void **)(&(buffer)->ptr), &(buffer)->cap, memBufferItemSize(buffer), \
-                   mem_BufferItemAlign(buffer), required_capacity, allocator)
+                   mem_BufferItemAlign(buffer), (Usize)(required_capacity), allocator)
 
 // The following operations are equivalent to the non allocating ones, but uses the provided
 // allocator to grow the buffer if needed.

@@ -68,7 +68,7 @@ strPrintV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
 
     va_end(args_copy);
 
-    if (len < 0 || (len + 1) > buffer_size) return -1;
+    if (len < 0 || (Usize)(len + 1) > buffer_size) return -1;
 
     if (buffer) vsnprintf(buffer, len + 1, fmt, args); // NOLINT
 
@@ -103,7 +103,7 @@ strBufferPrint(StrBuffer *buf, Cstr fmt, ...)
     if (len < 0) return Error_BufferFull;
 
     // TODO (Matteo): Should account for the null terminator?
-    buf->str.len = len;
+    buf->str.len = (Usize)len;
 
     return Error_None;
 }
@@ -141,10 +141,10 @@ strBufferAppendV(StrBuffer *buf, Cstr fmt, va_list args)
     if (len < 0) return Error_Reserved; // TODO (Matteo): Better diagnostics
 
     Usize avail = CF_ARRAY_SIZE(buf->data) - buf->str.len;
-    if (avail < len) return Error_BufferFull;
+    if (avail < (Usize)len) return Error_BufferFull;
 
     vsnprintf(buf->data + buf->str.len, avail, fmt, args); // NOLINT
-    buf->str.len += len;
+    buf->str.len += (Usize)len;
 
     return Error_None;
 }
@@ -394,9 +394,10 @@ strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args)
     ErrorCode32 err = memBufferResizeAlloc(sb, sb->len + len, sb->alloc);
     if (err) return err;
 
-    CF_ASSERT(sb->len >= len + 1, "Buffer not extended correctly");
+    Usize size = (Usize)(len + 1);
+    CF_ASSERT(sb->len >= size, "Buffer not extended correctly");
 
-    vsnprintf(sb->ptr + nul_pos, len + 1, fmt, args); // NOLINT
+    vsnprintf(sb->ptr + nul_pos, size, fmt, args); // NOLINT
 
     // Null terminate again
     sb->ptr[sb->len - 1] = 0;
