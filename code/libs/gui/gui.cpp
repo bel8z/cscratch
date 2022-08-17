@@ -1458,25 +1458,25 @@ guiPlotEnd()
 void
 guiPlotLineF32(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride)
 {
-    ImPlot::PlotLine(id, &xy[0], &xy[1], count, offset, stride);
+    ImPlot::PlotLine(id, &xy[0], &xy[1], count, 0, offset, stride);
 }
 
 void
 guiPlotLineF64(Cstr id, F64 *xy, Usize count, Usize offset, Usize stride)
 {
-    ImPlot::PlotLine(id, &xy[0], &xy[1], count, offset, stride);
+    ImPlot::PlotLine(id, &xy[0], &xy[1], count, 0, offset, stride);
 }
 
 void
 guiPlotScatterF32(Cstr id, F32 *xy, Usize count, Usize offset, Usize stride)
 {
-    ImPlot::PlotScatter(id, &xy[0], &xy[1], count, offset, stride);
+    ImPlot::PlotScatter(id, &xy[0], &xy[1], count, 0, offset, stride);
 }
 
 void
 guiPlotScatterF64(Cstr id, F64 *xy, Usize count, Usize offset, Usize stride)
 {
-    ImPlot::PlotScatter(id, &xy[0], &xy[1], count, offset, stride);
+    ImPlot::PlotScatter(id, &xy[0], &xy[1], count, 0, offset, stride);
 }
 
 //=== File dialogs ===//
