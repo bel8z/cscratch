@@ -134,7 +134,7 @@ pathSplitNext(PathSplitIter *iter)
     }
     else
     {
-        Isize offset = iter->curr.ptr + iter->curr.len - iter->path.ptr;
+        Usize offset = (Usize)(iter->curr.ptr + iter->curr.len - iter->path.ptr);
         iter->curr.ptr = iter->path.ptr + offset;
         iter->curr.len = iter->path.len - offset;
     }

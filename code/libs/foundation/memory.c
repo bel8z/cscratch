@@ -191,7 +191,7 @@ mem_arenaDecommitVm(MemArena *arena)
         U8 const *base = arena->memory + arena->allocated;
         U8 const *next = memAlignForward(base, arena->vmem->page_size);
 
-        CF_ASSERT(next > arena->memory, "Possible overflow");
+        CF_ASSERT(next >= arena->memory, "Possible overflow");
 
         Usize offset = (Usize)(next - arena->memory);
 
@@ -204,7 +204,7 @@ mem_arenaDecommitVm(MemArena *arena)
     }
 }
 
-CF_INTERNAL inline U32
+CF_INTERNAL inline Usize
 memRoundUp(Usize block_size, Usize page_size)
 {
     CF_ASSERT((page_size & (page_size - 1)) == 0, "Page size is not a power of 2");
@@ -324,7 +324,7 @@ memArenaAllocAlign(MemArena *arena, Usize size, Usize align)
     U8 const *base = arena->memory + arena->allocated;
     U8 const *next = memAlignForward(base, align);
 
-    CF_ASSERT(next > arena->memory, "Possible overflow");
+    CF_ASSERT(next >= arena->memory, "Possible overflow");
     Usize offset = (Usize)(next - arena->memory);
 
     if (offset + size <= arena->reserved)

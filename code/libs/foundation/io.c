@@ -111,7 +111,8 @@ ioRead(IoReader *reader, Usize count, U8 *buffer, Usize *read_size)
         Usize remaining = count - read;
         if (!remaining) break;
 
-        Usize available = reader->end - reader->cursor;
+        CF_ASSERT(reader->end >= reader->cursor, "Overflow");
+        Usize available = (Usize)(reader->end - reader->cursor);
 
         if (available)
         {

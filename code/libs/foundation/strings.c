@@ -68,9 +68,10 @@ strPrintV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
 
     va_end(args_copy);
 
-    if (len < 0 || (Usize)(len + 1) > buffer_size) return -1;
+    Usize size = (Usize)(len + 1);
+    if (len < 0 || size > buffer_size) return -1;
 
-    if (buffer) vsnprintf(buffer, len + 1, fmt, args); // NOLINT
+    if (buffer) vsnprintf(buffer, size, fmt, args); // NOLINT
 
     return len;
 }
@@ -391,7 +392,7 @@ strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args)
     // Write over the previous null terminator
     Usize nul_pos = sb->len - 1;
 
-    ErrorCode32 err = memBufferResizeAlloc(sb, sb->len + len, sb->alloc);
+    ErrorCode32 err = memBufferResizeAlloc(sb, sb->len + (Usize)len, sb->alloc);
     if (err) return err;
 
     Usize size = (Usize)(len + 1);
