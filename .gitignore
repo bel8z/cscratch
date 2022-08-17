@@ -13,3 +13,9 @@ build/
 
 # TODO (Matteo): Handle subfolders correctly
 code/.vscode/*
+
+# Apps should have their own repository to avoid cluttering the framework.
+code/apps/*
+# Some early apps are kept for reference
+!code/apps/demo
+!code/apps/image_viewer
