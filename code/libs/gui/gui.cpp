@@ -1430,7 +1430,7 @@ guiPlotBegin(Cstr label, GuiPlotSetup *setup)
         plot_flags |= ImPlotFlags_NoLegend;
     }
 
-    if (!ImPlot::BeginPlot(label)) return false;
+    if (!ImPlot::BeginPlot(label, ImVec2{-1, 0}, plot_flags)) return false;
 
     ImPlot::SetupLegend(leg_location, leg_flags);
 
