@@ -56,14 +56,15 @@ pwmWindow(AppState *app)
 
     guiBegin("PWM", NULL);
     guiSliderF64("Duty cycle", &pwm->duty_cyle, 0, 1);
-    guiSliderF64("Phase shift", &app->phase, 0, period * 0.5);
+    guiSliderF64("Phase shift", &app->phase, 0, period);
 
-    F64 t_max = 3 * period;
-    F64 t_step = t_max / (CF_ARRAY_SIZE(samples) - 1);
+    F64 t_min = -period * 0.5;
+    F64 t_max = 3 * period + t_min;
+    F64 t_step = (t_max - t_min) / (CF_ARRAY_SIZE(samples) - 1);
 
     for (Usize i = 0; i < CF_ARRAY_SIZE(samples); ++i)
     {
-        F64 t = i * t_step;
+        F64 t = t_min + i * t_step;
         samples[i].x = t;
         samples[i].y = pwmSample(pwm, t);
         samples[i].z = pwmSample(pwm, t - app->phase);
@@ -72,6 +73,7 @@ pwmWindow(AppState *app)
     GuiPlotSetup plot = {
         .info[GuiAxis_X1] = &(GuiAxisInfo){.range =
                                                &(GuiAxisRange){
+                                                   .min = t_min,
                                                    .max = t_max,
                                                    .locked = true,
                                                }},
@@ -103,7 +105,6 @@ APP_API APP_CREATE_FN(appCreate)
     app->alloc = plat->heap;
     app->windows.stats = true;
     app->pwm.duty_cyle = 0.5;
-    app->pwm.frequency = 1.0 / 10;
 
     appLoad(app);
 
@@ -129,6 +130,8 @@ APP_API APP_FN(appLoad)
 
     // glEnable(GL_FRAMEBUFFER_SRGB);
     glDisable(GL_FRAMEBUFFER_SRGB);
+
+    app->pwm.frequency = 1.0;
 }
 
 APP_API APP_FN(appUnload)
