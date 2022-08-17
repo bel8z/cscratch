@@ -176,20 +176,20 @@ win32InitWgl(void)
     // real window, we want to use wglChoosePixelFormatARB (so we can potentially specify options
     // that aren't available in PIXELFORMATDESCRIPTOR), but we can't load and use that before we
     // have a context.
-    WNDCLASSA window_class = {
+    WNDCLASSW window_class = {
         .style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
         .lpfnWndProc = DefWindowProcA,
         .hInstance = GetModuleHandle(0),
-        .lpszClassName = "WGL_Boostrap_Window",
+        .lpszClassName = L"WGL_Boostrap_Window",
     };
 
-    if (!RegisterClassA(&window_class))
+    if (!RegisterClassW(&window_class))
     {
-        win32GuiErrorHandler(strLiteral("Failed to register dummy OpenGL window."));
+        win32GuiErrorHandler(strLiteral("Failed to register boostrap OpenGL window."));
         return false;
     }
 
-    HWND dummy_window = CreateWindowExA(0, window_class.lpszClassName, "Dummy OpenGL Window", 0,
+    HWND dummy_window = CreateWindowExW(0, window_class.lpszClassName, L"WGL_Boostrap_Window", 0,
                                         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                                         0, 0, window_class.hInstance, 0);
 
@@ -489,6 +489,9 @@ ENTRYPOINT
 
     I32 result = -1;
 
+    // Setup error handling
+    errorInstallHandler(win32GuiErrorHandlerV, NULL);
+
     // Setup platform layer
     win32PlatformInit();
     // TODO (Matteo): Improve command line handling
@@ -508,9 +511,6 @@ ENTRYPOINT
         .lpszClassName = L"CSCRATCH",
     };
     RegisterClassExW(&wc);
-
-    // Setup error handling
-    errorInstallHandler(win32GuiErrorHandlerV, NULL);
 
     // NOTE (Matteo): Custom IMGUI ini file
     // TODO (Matteo): Clean up!
@@ -586,6 +586,7 @@ ENTRYPOINT
     // Setup application
     Win32AppApi app_api = {0};
     win32LoadAppApi(&app_api, g_platform.paths);
+
     AppState *app_state = app_api.create(&g_platform, &cmd_line);
 
     // Main loop

@@ -141,6 +141,10 @@ foreach(APP ${APPS})
             ${LIBS_DIR}/gl/gl_api.c
             ${EXE_RESOURCES})
 
+        # Even if Win32 functions should be called explicitly and not relying on
+        # macros, I find it safer to enforce the Unicode (WCHAR) variants
+        target_compile_definitions(${EXE_NAME} PUBLIC UNICODE=1 _UNICODE=1)
+
         # NOTE (Matteo): _lib suffix added to prevent conflicts with .pdb files
         set(LIB_NAME ${APP}_lib) 
         set(LIB_SOURCES)
@@ -189,12 +193,6 @@ set_source_files_properties(${CLI_ENTRY} PROPERTIES LANGUAGE C)
 
 include(CTest)
 enable_testing()
-
-# set (ASANFLAGS 
-#     -fsanitize=address
-#     -fno-common
-#     -fno-omit-frame-pointer)
-# target_link_libraries(dummy PRIVATE ${ASANFLAGS})
 
 add_executable(test_buffer ${TESTS_DIR}/test_buffer.c ${CLI_ENTRY})
 target_link_libraries(test_buffer PRIVATE foundation)

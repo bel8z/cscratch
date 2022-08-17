@@ -4,7 +4,7 @@ function(set_c_compile_flags project_name)
     option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" TRUE)
     option(CHECK_PADDING "Check extra padding in structs" FALSE)
 
-    set(MSVC_WARNINGS
+    set(MSVC_FLAGS
         /W4 # Baseline reasonable warnings
         /w14242 # 'identifier': conversion from 'type1' to 'type1', possible loss of data
         /w14254 # 'operator': conversion from 'type1:field_bits' to 'type2:field_bits', possible loss of data
@@ -67,17 +67,17 @@ function(set_c_compile_flags project_name)
     )
 
     if (WARNINGS_AS_ERRORS)
-        set(CLANG_WARNINGS ${CLANG_WARNINGS} -Werror)
-        set(MSVC_WARNINGS ${MSVC_WARNINGS} /WX)
+        set(CLANG_FLAGS ${CLANG_FLAGS} -Werror)
+        set(MSVC_FLAGS ${MSVC_FLAGS} /WX)
     endif()
 
     if (CHECK_PADDING)
-        set(CLANG_WARNINGS ${CLANG_WARNINGS} -Wpadded)
-        set(MSVC_WARNINGS ${MSVC_WARNINGS} /we4820 /we4121)
+        set(CLANG_FLAGS ${CLANG_FLAGS} -Wpadded)
+        set(MSVC_FLAGS ${MSVC_FLAGS} /we4820 /we4121)
     endif()
 
-    set(GCC_WARNINGS
-        ${CLANG_WARNINGS}
+    set(GCC_FLAGS
+        ${CLANG_FLAGS}
         -Wmisleading-indentation # warn if indentation implies blocks where blocks do not exist
         -Wduplicated-cond # warn if if / else chain has duplicated conditions
         -Wduplicated-branches # warn if if / else branches have duplicated code
@@ -86,16 +86,19 @@ function(set_c_compile_flags project_name)
     )
 
     if(MSVC)
-        set(PROJECT_WARNINGS ${MSVC_WARNINGS})
+        set(PROJECT_FLAGS ${MSVC_FLAGS})
     elseif(CMAKE_C_COMPILER_ID MATCHES ".*Clang")
+        # Enable UBSAN for debug builds
+        add_compile_options("$<$<CONFIG:DEBUG>:-fsanitize=undefined>")
+        add_compile_options("$<$<CONFIG:DEBUG>:-fno-omit-frame-pointer>")
         add_compile_options(-fcolor-diagnostics)
-        set(PROJECT_WARNINGS ${CLANG_WARNINGS})
+        set(PROJECT_FLAGS ${CLANG_FLAGS})
     elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
         add_compile_options(-fdiagnostics-color=always)
-        set(PROJECT_WARNINGS ${GCC_WARNINGS})
+        set(PROJECT_FLAGS ${GCC_FLAGS})
     else()
-        message(AUTHOR_WARNING "No compiler warnings set for '${CMAKE_C_COMPILER_ID}' compiler.")
+        message(AUTHOR_WARNING "No compiler flags set for '${CMAKE_C_COMPILER_ID}' compiler.")
     endif()
 
-  target_compile_options(${project_name} INTERFACE ${PROJECT_WARNINGS})
+  target_compile_options(${project_name} INTERFACE ${PROJECT_FLAGS})
 endfunction()
