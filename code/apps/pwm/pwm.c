@@ -12,6 +12,11 @@
 
 #include "gui/gui.h"
 
+typedef struct Pwm
+{
+    F64 frequency, duty_cyle;
+} Pwm;
+
 typedef struct AppWindows
 {
     bool metrics;
@@ -25,12 +30,10 @@ struct AppState
     Platform *plat;
     MemAllocator alloc;
     AppWindows windows;
-};
 
-typedef struct Pwm
-{
-    F64 frequency, duty_cyle;
-} Pwm;
+    Pwm pwm;
+    F64 phase;
+};
 
 CF_INTERNAL F64
 pwmSample(Pwm const *pwm, F64 t)
@@ -42,9 +45,102 @@ pwmSample(Pwm const *pwm, F64 t)
     return mFloor(ft) - mFloor(ft - pwm->duty_cyle);
 }
 
+CF_INTERNAL void
+pwmWindow(AppState *app)
+{
+    static DVec3 samples[512] = {0};
+
+    Pwm *pwm = &app->pwm;
+
+    F64 period = 1 / pwm->frequency;
+
+    guiBegin("PWM", NULL);
+    guiSliderF64("Duty cycle", &pwm->duty_cyle, 0, 1);
+    guiSliderF64("Phase shift", &app->phase, 0, period * 0.5);
+
+    F64 t_max = 3 * period;
+    F64 t_step = t_max / (CF_ARRAY_SIZE(samples) - 1);
+
+    for (Usize i = 0; i < CF_ARRAY_SIZE(samples); ++i)
+    {
+        F64 t = i * t_step;
+        samples[i].x = t;
+        samples[i].y = pwmSample(pwm, t);
+        samples[i].z = pwmSample(pwm, t - app->phase);
+    }
+
+    GuiPlotSetup plot = {
+        .info[GuiAxis_X1] = &(GuiAxisInfo){.range =
+                                               &(GuiAxisRange){
+                                                   .max = t_max,
+                                                   .locked = true,
+                                               }},
+        .info[GuiAxis_Y1] = &(GuiAxisInfo){.range =
+                                               &(GuiAxisRange){
+                                                   .min = -0.1,
+                                                   .max = +1.1,
+                                                   .locked = true,
+                                               }},
+    };
+
+    if (guiPlotBegin("plot", &plot))
+    {
+        guiPlotLineF64("Y", samples[0].elem, samples[0].elem + 1, CF_ARRAY_SIZE(samples), 0, 3);
+        guiPlotLineF64("Z", samples[0].elem, samples[0].elem + 2, CF_ARRAY_SIZE(samples), 0, 3);
+        guiPlotEnd();
+    }
+    guiEnd();
+}
+
+APP_API APP_CREATE_FN(appCreate)
+{
+    CF_UNUSED(cmd_line);
+
+    // NOTE (Matteo): Memory comes cleared to 0
+    AppState *app = memAllocStruct(plat->heap, AppState);
+
+    app->plat = plat;
+    app->alloc = plat->heap;
+    app->windows.stats = true;
+    app->pwm.duty_cyle = 0.5;
+    app->pwm.frequency = 1.0 / 10;
+
+    appLoad(app);
+
+    return app;
+}
+
+APP_API APP_FN(appDestroy)
+{
+    appUnload(app);
+    memFreeStruct(app->alloc, app);
+}
+
+APP_API APP_FN(appLoad)
+{
+    CF_ASSERT_NOT_NULL(app);
+    CF_ASSERT_NOT_NULL(app->plat);
+
+    // Init Dear Imgui
+    guiSetContext(app->plat->gui);
+
+    // Init OpenGl
+    glApiSet(app->plat->gl);
+
+    // glEnable(GL_FRAMEBUFFER_SRGB);
+    glDisable(GL_FRAMEBUFFER_SRGB);
+}
+
+APP_API APP_FN(appUnload)
+{
+    CF_ASSERT_NOT_NULL(app);
+}
+
 APP_API APP_UPDATE_FN(appUpdate)
 {
     Platform *plat = state->plat;
+
+    //=== Menu bar ===//
 
     if (guiBeginMainMenuBar())
     {
@@ -63,53 +159,12 @@ APP_API APP_UPDATE_FN(appUpdate)
         guiEndMainMenuBar();
     }
 
+    //=== Main window ===//
+
     guiDockSpace(GuiDockStyle_Transparent);
+    pwmWindow(state);
 
-    guiBegin("PWM", NULL);
-    {
-
-        static const F64 period = 10;
-
-        static DVec3 samples[512] = {0};
-        static Pwm pwm = {.duty_cyle = 0.5, .frequency = 1 / period};
-        static F64 phase = 0;
-
-        guiSliderF64("Duty cycle", &pwm.duty_cyle, 0, 1);
-        guiSliderF64("Phase shift", &phase, 0, period * 0.5);
-
-        F64 t_max = 3 * period;
-        F64 t_step = t_max / (CF_ARRAY_SIZE(samples) - 1);
-
-        for (Usize i = 0; i < CF_ARRAY_SIZE(samples); ++i)
-        {
-            F64 t = i * t_step;
-            samples[i].x = t;
-            samples[i].y = pwmSample(&pwm, t);
-            samples[i].z = pwmSample(&pwm, t - phase);
-        }
-
-        GuiPlotSetup plot = {
-            .info[GuiAxis_X1] = &(GuiAxisInfo){.range =
-                                                   &(GuiAxisRange){
-                                                       .max = t_max,
-                                                       .locked = true,
-                                                   }},
-            .info[GuiAxis_Y1] = &(GuiAxisInfo){.range =
-                                                   &(GuiAxisRange){
-                                                       .min = -0.1,
-                                                       .max = +1.1,
-                                                       .locked = true,
-                                                   }},
-        };
-
-        if (guiPlotBegin("plot", &plot))
-        {
-            guiPlotLineF64("Y", samples[0].elem, samples[0].elem + 1, CF_ARRAY_SIZE(samples), 0, 3);
-            guiPlotLineF64("Z", samples[0].elem, samples[0].elem + 2, CF_ARRAY_SIZE(samples), 0, 3);
-            guiPlotEnd();
-        }
-    }
-    guiEnd();
+    //=== Service windows ===//
 
     if (state->windows.metrics) guiMetricsWindow(&state->windows.metrics);
 
@@ -151,46 +206,4 @@ APP_API APP_UPDATE_FN(appUpdate)
     }
 
     io->back_color = SRGB32_SOLID(115, 140, 153);
-}
-
-APP_API APP_CREATE_FN(appCreate)
-{
-    CF_UNUSED(cmd_line);
-
-    // NOTE (Matteo): Memory comes cleared to 0
-    AppState *app = memAllocStruct(plat->heap, AppState);
-
-    app->plat = plat;
-    app->alloc = plat->heap;
-    app->windows.stats = true;
-
-    appLoad(app);
-
-    return app;
-}
-
-APP_API APP_FN(appDestroy)
-{
-    appUnload(app);
-    memFreeStruct(app->alloc, app);
-}
-
-APP_API APP_FN(appLoad)
-{
-    CF_ASSERT_NOT_NULL(app);
-    CF_ASSERT_NOT_NULL(app->plat);
-
-    // Init Dear Imgui
-    guiSetContext(app->plat->gui);
-
-    // Init OpenGl
-    glApiSet(app->plat->gl);
-
-    // glEnable(GL_FRAMEBUFFER_SRGB);
-    glDisable(GL_FRAMEBUFFER_SRGB);
-}
-
-APP_API APP_FN(appUnload)
-{
-    CF_ASSERT_NOT_NULL(app);
 }
