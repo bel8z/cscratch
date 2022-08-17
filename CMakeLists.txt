@@ -87,7 +87,7 @@ endif()
 
 set(GUI_NAME gui)
 set(IMGUI_DIR ${EXT_DIR}/imgui)
-set(IMPLOT_DIR ${EXT_DIR}/implot-v0.13)
+set(IMPLOT_DIR ${EXT_DIR}/implot)
 set(FREETYPE_DIR ${EXT_DIR}/freetype-2.9.1)
 
 find_package(freetype REQUIRED PATHS ${FREETYPE_DIR})
