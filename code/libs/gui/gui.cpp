@@ -1004,9 +1004,19 @@ void
 guiCanvasBegin(GuiCanvas *canvas)
 {
     canvas->size = ImGui::GetContentRegionAvail();
-    ImGui::InvisibleButton("Canvas", canvas->size, ImGuiButtonFlags_None);
-    canvas->p0 = ImGui::GetItemRectMin();
-    canvas->p1 = ImGui::GetItemRectMax();
+
+    if (canvas->size.x > 0 && canvas->size.y)
+    {
+        ImGui::InvisibleButton("Canvas", canvas->size, ImGuiButtonFlags_None);
+        canvas->p0 = ImGui::GetItemRectMin();
+        canvas->p1 = ImGui::GetItemRectMax();
+    }
+    else
+    {
+        canvas->size.x = canvas->size.y = 0;
+        canvas->p0 = (Vec2){0};
+        canvas->p1 = (Vec2){0};
+    }
 
     canvas->draw_list = ImGui::GetWindowDrawList();
     canvas->draw_list->PushClipRect(canvas->p0, canvas->p1, true);
