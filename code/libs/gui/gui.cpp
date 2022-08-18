@@ -1188,6 +1188,12 @@ guiClosePopup(void)
 
 //=== Widgets ===//
 
+CF_API Vec2
+guiGetAvailableSize(void)
+{
+    return ImGui::GetContentRegionAvail();
+}
+
 bool
 guiIsItemHovered(void)
 {
@@ -1440,7 +1446,10 @@ guiPlotBegin(Cstr label, GuiPlotSetup *setup)
         plot_flags |= ImPlotFlags_NoLegend;
     }
 
-    if (!ImPlot::BeginPlot(label, ImVec2{-1, 0}, plot_flags)) return false;
+    ImVec2 size = setup->size;
+    if (size.x == 0) size = {-1, 0}; // Conform to default value of {-1,0}
+
+    if (!ImPlot::BeginPlot(label, size, plot_flags)) return false;
 
     ImPlot::SetupLegend(leg_location, leg_flags);
 

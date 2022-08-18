@@ -327,6 +327,7 @@ typedef struct GuiInputInfo
     Cstr format;
 } GuiInputInfo;
 
+CF_API Vec2 guiGetAvailableSize(void);
 CF_API bool guiIsItemHovered(void);
 
 CF_API bool guiButton(Cstr label);
@@ -380,6 +381,7 @@ typedef struct GuiPlotLegend
 
 typedef struct GuiPlotSetup
 {
+    Vec2 size;
     GuiPlotLegend *legend;
     GuiAxisInfo *info[GuiAxis_COUNT];
 } GuiPlotSetup;
