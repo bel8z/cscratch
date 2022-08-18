@@ -76,11 +76,14 @@ mRadians64(F64 degrees)
 
 #define mSqrt(X) _Generic((X), default : sqrt, F32 : sqrtf, I32 : mISqrt32, I64 : mISqrt64)(X)
 #define mRsqrt(X) _Generic((X), default : (1 / mSqrt(X)), F32 : mRsqrt32(X))
+#define mCbrt(X) _Generic((X), default : cbrt, F32 : cbrtf)(X)
 #define mPow(base, xp) _Generic((base, xp), default : pow, F32 : powf)(base, xp)
 #define mSquare(x) ((x) * (x))
 #define mCube(x) ((x) * (x) * (x))
 #define mExp(xp) _Generic((xp), default : exp, F32 : expf)(xp)
 #define mLog(x) _Generic((x), default : log, F32 : logf)(x)
+#define mLog10(x) _Generic((x), default : log10, F32 : logf10)(x)
+#define mLog2(x) _Generic((x), default : log2, F32 : logf2)(x)
 
 CF_INTERNAL inline F32
 mRsqrt32(F32 x)
