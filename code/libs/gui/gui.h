@@ -389,11 +389,17 @@ typedef struct GuiPlotSetup
 CF_API bool guiPlotBegin(Cstr label, GuiPlotSetup *setup);
 CF_API void guiPlotEnd();
 
-CF_API void guiPlotLineF32(Cstr id, F32 *x, F32 *y, Usize count, Usize offset, Usize stride);
-CF_API void guiPlotLineF64(Cstr id, F64 *x, F64 *y, Usize count, Usize offset, Usize stride);
+CF_API void guiPlotSetAxis(GuiAxis y);
 
-CF_API void guiPlotScatterF32(Cstr id, F32 *x, F32 *y, Usize count, Usize offset, Usize stride);
-CF_API void guiPlotScatterF64(Cstr id, F64 *x, F64 *y, Usize count, Usize offset, Usize stride);
+CF_API void guiPlotLineF32(Cstr id, F32 const *x, F32 const *y, Usize count, Usize offset,
+                           Usize stride);
+CF_API void guiPlotLineF64(Cstr id, F64 const *x, F64 const *y, Usize count, Usize offset,
+                           Usize stride);
+
+CF_API void guiPlotScatterF32(Cstr id, F32 const *x, F32 const *y, Usize count, Usize offset,
+                              Usize stride);
+CF_API void guiPlotScatterF64(Cstr id, F64 const *x, F64 const *y, Usize count, Usize offset,
+                              Usize stride);
 
 //=== Fonts handling ===//
 
