@@ -1483,26 +1483,32 @@ guiPlotEnd()
     ImPlot::EndPlot();
 }
 
+CF_API void
+guiPlotSetAxis(GuiAxis y)
+{
+    ImPlot::SetAxis(y);
+}
+
 void
-guiPlotLineF32(Cstr id, F32 *x, F32 *y, Usize count, Usize offset, Usize stride)
+guiPlotLineF32(Cstr id, F32 const *x, F32 const *y, Usize count, Usize offset, Usize stride)
 {
     ImPlot::PlotLine(id, x, y, count, 0, offset, stride * sizeof(*x));
 }
 
 void
-guiPlotLineF64(Cstr id, F64 *x, F64 *y, Usize count, Usize offset, Usize stride)
+guiPlotLineF64(Cstr id, F64 const *x, F64 const *y, Usize count, Usize offset, Usize stride)
 {
     ImPlot::PlotLine(id, x, y, count, 0, offset, stride * sizeof(*x));
 }
 
 void
-guiPlotScatterF32(Cstr id, F32 *x, F32 *y, Usize count, Usize offset, Usize stride)
+guiPlotScatterF32(Cstr id, F32 const *x, F32 const *y, Usize count, Usize offset, Usize stride)
 {
     ImPlot::PlotScatter(id, x, y, count, 0, offset, stride * sizeof(*x));
 }
 
 void
-guiPlotScatterF64(Cstr id, F64 *x, F64 *y, Usize count, Usize offset, Usize stride)
+guiPlotScatterF64(Cstr id, F64 const *x, F64 const *y, Usize count, Usize offset, Usize stride)
 {
     ImPlot::PlotScatter(id, x, y, count, 0, offset, stride * sizeof(*x));
 }
