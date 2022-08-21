@@ -4,6 +4,9 @@
 #include <sqlext.h>
 #pragma comment(lib, "odbc32.lib")
 
+// TODO (Matteo): Replace with platform API
+#include <stdio.h>
+
 typedef struct Platform Platform;
 typedef struct CommandLine CommandLine;
 

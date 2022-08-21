@@ -1,5 +1,4 @@
 #include "foundation/core.h"
-#include "platform.h"
 
 #include "foundation/atom.h"
 #include "foundation/atom.inl"
@@ -7,7 +6,13 @@
 #include "foundation/threading.h"
 #include "foundation/time.h"
 
-typedef struct Platform Platform;
+#include "platform.h"
+
+// TODO (Matteo): Replace with platform API
+#include <stdio.h>
+
+#include <immintrin.h>
+#include <time.h>
 
 typedef struct QueueCell
 {
@@ -128,10 +133,6 @@ mpmcDequeue(MpmcQueue *queue, Usize *data)
 
     return true;
 }
-
-#include <immintrin.h>
-#include <stdlib.h>
-#include <time.h>
 
 #define THREAD_COUNT 4
 #define BATCH_SIZE 1

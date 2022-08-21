@@ -122,6 +122,8 @@ canvasPutPixel(GuiCanvas *canvas, Vec2 pixel, Srgb32 color)
 CF_INTERNAL void
 canvasWindow(void)
 {
+    (void)pointToCanvas;
+
     Duration time = clockElapsed(g_clock);
     Char8 buffer[1024];
     strPrint(buffer, CF_ARRAY_SIZE(buffer), "%f", timeGetSeconds(time));
