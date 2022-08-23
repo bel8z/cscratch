@@ -43,21 +43,14 @@ CF_API Isize strPrintV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
 /// Print formatted string on the given static buffer
 /// This does not take a Str because it represents a string view more than a char buffer.
 /// You can use a Str by explicitly calling strPrint(str.buf, str.len, ...).
-CF_API ErrorCode32 strPrint(Char8 *buffer, Usize buffer_size, Cstr fmt, ...) CF_PRINTF_LIKE(2);
-
-/// Print formatted string on the given dynamic buffer
-CF_API ErrorCode32 strBufferPrint(StrBuffer *buf, Cstr fmt, ...) CF_PRINTF_LIKE(1);
+CF_API Isize strPrint(Char8 *buffer, Usize buffer_size, Cstr fmt, ...) CF_PRINTF_LIKE(2);
 
 CF_API ErrorCode32 strBufferAppendStr(StrBuffer *buf, Str what);
-CF_API ErrorCode32 strBufferAppend(StrBuffer *buf, Cstr fmt, ...) CF_PRINTF_LIKE(1);
-CF_API ErrorCode32 strBufferAppendV(StrBuffer *buf, Cstr fmt, va_list args) CF_VPRINTF_LIKE(1);
 
 //------------------------------//
 //   String (view) comparison   //
 //------------------------------//
 
-CF_API I32 strCompare(Str l, Str r);
-CF_API bool strEqual(Str l, Str r);
 CF_API I32 strCompareInsensitive(Str l, Str r);
 CF_API bool strEqualInsensitive(Str l, Str r);
 

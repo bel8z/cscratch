@@ -76,7 +76,7 @@ strPrintV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
     return len;
 }
 
-ErrorCode32
+Isize
 strPrint(Char8 *buffer, Usize buffer_size, Cstr fmt, ...)
 {
     va_list args;
@@ -87,7 +87,7 @@ strPrint(Char8 *buffer, Usize buffer_size, Cstr fmt, ...)
 
     va_end(args);
 
-    return (len >= 0) ? Error_None : Error_BufferFull;
+    return len;
 }
 
 ErrorCode32
@@ -121,47 +121,12 @@ strBufferAppendStr(StrBuffer *buf, Str what)
     return Error_None;
 }
 
-ErrorCode32
-strBufferAppend(StrBuffer *buf, Cstr fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    ErrorCode32 result = strBufferAppendV(buf, fmt, args);
-    va_end(args);
-    return result;
-}
-
-ErrorCode32
-strBufferAppendV(StrBuffer *buf, Cstr fmt, va_list args)
-{
-    va_list args_copy;
-    va_copy(args_copy, args);
-    Isize len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
-    va_end(args_copy);
-
-    if (len < 0) return Error_Reserved; // TODO (Matteo): Better diagnostics
-
-    Usize avail = CF_ARRAY_SIZE(buf->data) - buf->str.len;
-    if (avail < (Usize)len) return Error_BufferFull;
-
-    vsnprintf(buf->data + buf->str.len, avail, fmt, args); // NOLINT
-    buf->str.len += (Usize)len;
-
-    return Error_None;
-}
-
 //-----------------------//
 //   String comparison   //
 //-----------------------//
 
-I32
-strCompare(Str l, Str r)
-{
-    return memCompare(l.ptr, r.ptr, cfMin(l.len, r.len));
-}
-
 CF_INTERNAL inline I32
-__strIComp(Cstr l, Cstr r, Usize size)
+str_compareInsensitive(Cstr l, Cstr r, Usize size)
 {
     I32 diff = 0;
 
@@ -176,20 +141,13 @@ __strIComp(Cstr l, Cstr r, Usize size)
 I32
 strCompareInsensitive(Str l, Str r)
 {
-    return __strIComp(l.ptr, r.ptr, cfMin(l.len, r.len));
-}
-
-bool
-strEqual(Str l, Str r)
-{
-    return (l.len == r.len && memMatch(l.ptr, r.ptr, l.len));
+    return str_compareInsensitive(l.ptr, r.ptr, cfMin(l.len, r.len));
 }
 
 bool
 strEqualInsensitive(Str l, Str r)
 {
-    // TODO (Matteo): replace with portable method
-    return (l.len == r.len && !__strIComp(l.ptr, r.ptr, l.len));
+    return (l.len == r.len && !str_compareInsensitive(l.ptr, r.ptr, l.len));
 }
 
 //----------------------------//

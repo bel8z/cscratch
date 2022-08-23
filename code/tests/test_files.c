@@ -73,16 +73,45 @@ consoleMain(Platform *platform, CommandLine *cmd_line)
         iter.close(&iter);
     }
 
-    // U32 sz = 0;
-    // char *f = plat.fs.fileOpenDialog(NULL, NULL, &plat.heap, &sz);
-    // printf("Opened file: %s \n", f);
-    // cfFree(&plat.heap, f, sz);
+    //======================================================//
 
-    // cfAllocatorStats s = cfAllocStats(&plat.heap);
-    // CF_ASSERT(s.count == 0, "LEAK!");
-    // CF_ASSERT(s.size == 0, "LEAK!");
+    // Str filename = strLiteral("C:/Temp/Dummy.txt");
+    // Clock clock;
+    // IoFile file;
+    // {
+    //     file = fileOpen(filename, IoOpenMode_Write);
+    //     for (Usize i = 0; i < 1000; ++i)
+    //     {
+    //         fileWriteStr(&file, strLiteral("This is a dummy file!\n"));
+    //     }
+    //     fileClose(&file);
+    // }
 
-    // cfPlatformShutdown(&plat);
+    // Duration traw, tbuf;
+    // Usize bcount = 0;
+    // {
+    //     clockStart(&clock);
+    //     file = fileOpen(filename, IoOpenMode_Read);
+    //     U8 buffer[1024] = {0};
+    //     IoReader reader = {0};
+    //     ioReaderInitFile(&reader, &file, buffer, CF_ARRAY_SIZE(buffer));
+    //     U8 byte = {0};
+    //     while (!ioReadByte(&reader, &byte)) bcount++;
+    //     fileClose(&file);
+    //     tbuf = clockElapsed(&clock);
+    // }
+    // {
+    //     clockStart(&clock);
+    //     file = fileOpen(filename, IoOpenMode_Read);
+    //     U8 byte = {0};
+    //     while (file.read(&file, &byte, 1)) bcount++;
+    //     fileClose(&file);
+    //     traw = clockElapsed(&clock);
+    // }
+
+    // printf("Read  %llu bytes\n", bcount);
+    // printf("Raw read: %f\n", timeGetSeconds(traw));
+    // printf("Buffered read: %f\n", timeGetSeconds(tbuf));
 
     return 0;
 }

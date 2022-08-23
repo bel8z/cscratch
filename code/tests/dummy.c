@@ -1,6 +1,6 @@
-#include "foundation/core.h"
 #include "platform.h"
 
+#include "foundation/core.h"
 #include "foundation/error.h"
 #include "foundation/io.h"
 #include "foundation/list.h"
@@ -141,85 +141,6 @@ freeListAllocator(FreeListAlloc *alloc)
 
 //======================================================//
 
-// Windows thread pool IO
-
-#include "foundation/win32.inl"
-
-#define IO_CALLBACK(name) void name(void *context, ULONG result, ULONG_PTR bytes)
-
-typedef IO_CALLBACK((*IoCallback));
-
-typedef struct IoContext
-{
-    IoCallback callback;
-    void *user_data;
-    OVERLAPPED ovp;
-} IoContext;
-
-void WINAPI
-ioCallback(TP_CALLBACK_INSTANCE *Instance,     //
-           void *Context,                      //
-           void *Overlapped,                   //
-           ULONG IoResult,                     //
-           ULONG_PTR NumberOfBytesTransferred, //
-           TP_IO *Io)
-{
-    CF_UNUSED(Instance);
-
-    IoContext *ioctxt = Context;
-    ioctxt->callback(ioctxt->user_data, IoResult, NumberOfBytesTransferred);
-
-    CF_ASSERT(Overlapped == &ioctxt->ovp, "");
-
-    CloseThreadpoolIo(Io);
-    memFreeStruct(g_heap, ioctxt);
-}
-
-TP_IO *
-ioBegin(IoContext *context, HANDLE file)
-{
-    TP_IO *io = CreateThreadpoolIo(file, ioCallback, context, NULL);
-    StartThreadpoolIo(io);
-    return io;
-}
-
-typedef struct FileIoToken
-{
-    bool completed;
-    bool success;
-} FileIoToken;
-
-IO_CALLBACK(fileIoCallback)
-{
-    CF_UNUSED(bytes);
-    FileIoToken *token = context;
-    token->success = !result;
-    token->completed = true;
-}
-
-void
-fileBeginWrite(Cstr filename, U8 const *buffer, Usize size, FileIoToken *token)
-{
-    IoContext *context = memAllocStruct(g_heap, IoContext);
-    context->callback = fileIoCallback;
-    context->user_data = token;
-
-    HANDLE file = CreateFileA(filename, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
-                              FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL);
-
-    TP_IO *io = ioBegin(context, file);
-
-    token->success = WriteFile(file, buffer, (DWORD)size, NULL, &context->ovp);
-
-    if (token->success || GetLastError() != ERROR_IO_PENDING)
-    {
-        token->completed = true;
-        CancelThreadpoolIo(io);
-    }
-}
-
-//======================================================//
-
 #define ALLOC_SIZE CF_MB(1)
 #define BUFF_SIZE 1024
 
@@ -297,62 +218,6 @@ consoleMain(Platform *platform, CommandLine *cmd_line)
     strBuilderShutdown(&sb);
 
     memFree(g_heap, fl_buffer, ALLOC_SIZE);
-
-    //======================================================//
-
-    Usize big_block_size = CF_GB(1);
-    U8 *big_block = memAlloc(g_heap, big_block_size);
-    FileIoToken token = {0};
-
-    fileBeginWrite("C:/Temp/BigFile.bin", big_block, big_block_size, &token);
-
-    while (!token.completed)
-    {
-        Sleep(1);
-    }
-
-    memFree(g_heap, big_block, big_block_size);
-    printf("%s\n", token.success ? "SUCCESS" : "FAILURE");
-
-    //======================================================//
-
-    // Str filename = strLiteral("C:/Temp/Dummy.txt");
-    // Clock clock;
-    // IoFile file;
-    // {
-    //     file = fileOpen(filename, IoOpenMode_Write);
-    //     for (Usize i = 0; i < 1000; ++i)
-    //     {
-    //         fileWriteStr(&file, strLiteral("This is a dummy file!\n"));
-    //     }
-    //     fileClose(&file);
-    // }
-
-    // Duration traw, tbuf;
-    // Usize bcount = 0;
-    // {
-    //     clockStart(&clock);
-    //     file = fileOpen(filename, IoOpenMode_Read);
-    //     U8 buffer[1024] = {0};
-    //     IoReader reader = {0};
-    //     ioReaderInitFile(&reader, &file, buffer, CF_ARRAY_SIZE(buffer));
-    //     U8 byte = {0};
-    //     while (!ioReadByte(&reader, &byte)) bcount++;
-    //     fileClose(&file);
-    //     tbuf = clockElapsed(&clock);
-    // }
-    // {
-    //     clockStart(&clock);
-    //     file = fileOpen(filename, IoOpenMode_Read);
-    //     U8 byte = {0};
-    //     while (file.read(&file, &byte, 1)) bcount++;
-    //     fileClose(&file);
-    //     traw = clockElapsed(&clock);
-    // }
-
-    // printf("Read  %llu bytes\n", bcount);
-    // printf("Raw read: %f\n", timeGetSeconds(traw));
-    // printf("Buffered read: %f\n", timeGetSeconds(tbuf));
 
     return 0;
 }

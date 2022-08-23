@@ -237,3 +237,8 @@ add_executable(test_sockets ${TESTS_DIR}/test_sockets.c ${CLI_ENTRY})
 target_link_libraries(test_sockets PRIVATE foundation)
 target_include_directories(test_sockets PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_sockets)
+
+add_executable(test_iocp ${TESTS_DIR}/test_iocp.c ${CLI_ENTRY})
+target_link_libraries(test_iocp PRIVATE foundation)
+target_include_directories(test_iocp PRIVATE ${LIBS_DIR})
+set_c_compile_flags(test_iocp)
