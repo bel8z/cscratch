@@ -830,9 +830,9 @@ APP_API APP_UPDATE_FN(appUpdate)
     io->back_color = guiGetBackColor();
     io->continuous_update = false;
 
-    if (strValid(io->window_title))
+    if (!strValid(io->window_title))
     {
-        io->window_title = strFromCstr(VER_PRODUCTNAME_STR);
+        io->window_title = strLiteral(VER_PRODUCTNAME_STR);
         io->window_title_changed = true;
     }
     else if (io->window_title_changed)

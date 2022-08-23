@@ -536,9 +536,8 @@ ENTRYPOINT
     {
         if (!win32InitWgl()) goto WIN32_PLATORM_SHUTDOWN;
 
-        window =
-            CreateWindowW(wc.lpszClassName, win32ConvertStr(strLiteral("Dear ImGui template")),
-                          WS_OVERLAPPEDWINDOW, 100, 100, 1280, 720, NULL, NULL, wc.hInstance, NULL);
+        window = CreateWindowW(wc.lpszClassName, L"", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 720,
+                               NULL, NULL, wc.hInstance, NULL);
         if (!window) goto WIN32_PLATORM_SHUTDOWN;
 
         // Show the window

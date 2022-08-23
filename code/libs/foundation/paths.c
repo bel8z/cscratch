@@ -5,12 +5,7 @@
 #include "memory.h"
 #include "strings.h"
 
-#define DELIMITER_STR "\\/"
-
-CF_GLOBAL const Str g_delimiters = {
-    .ptr = DELIMITER_STR,
-    .len = CF_ARRAY_SIZE(DELIMITER_STR) - 1,
-};
+CF_GLOBAL const Str g_delimiters = strLiteral("\\/");
 
 Str
 pathSplitName(Str path)
