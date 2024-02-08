@@ -210,6 +210,7 @@ add_executable(dummy ${TESTS_DIR}/dummy.c ${CLI_ENTRY})
 target_link_libraries(dummy PRIVATE foundation)
 target_include_directories(dummy PRIVATE ${LIBS_DIR})
 set_c_compile_flags(dummy)
+add_test(dummy dummy)
 
 file(GLOB_RECURSE TEST_SOURCES ${TESTS_DIR}/threading/*.c ${CLI_ENTRY})
 add_executable(test_threading ${TEST_SOURCES})
@@ -225,6 +226,13 @@ add_executable(test_files ${TESTS_DIR}/test_files.c ${CLI_ENTRY})
 target_link_libraries(test_files PRIVATE foundation)
 target_include_directories(test_files PRIVATE ${LIBS_DIR})
 set_c_compile_flags(test_files)
+add_test(test_files test_files)
+
+add_executable(test_sort ${TESTS_DIR}/sort.c ${CLI_ENTRY})
+target_link_libraries(test_sort PRIVATE foundation)
+target_include_directories(test_sort PRIVATE ${LIBS_DIR})
+set_c_compile_flags(test_sort)
+add_test(test_sort test_sort)
 
 # WINDOWS SPECIFIC
 
