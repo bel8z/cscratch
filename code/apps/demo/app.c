@@ -686,7 +686,7 @@ APP_UPDATE_FN(appUpdate)
 
         Clock *clock = &plat->clock;
         Duration t = clockElapsed(clock);
-        CalendarTime now = localTime(systemTime());
+        CalendarTime now = timeGetLocal(timeGetSystem());
 
         guiCheckbox("Gui demo", &state->windows.gui_demo);
         guiSameLine();

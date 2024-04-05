@@ -12,7 +12,7 @@
 static inline DWORD
 win32DurationMs(Duration duration)
 {
-    if (timeDurationIsInfinite(duration)) return INFINITE;
+    if (timeIsInfinite(duration)) return INFINITE;
     CF_ASSERT(duration.seconds >= 0, "Negative duration given");
     I64 ms = duration.seconds * 1000 + duration.nanos / 1000000;
     return (DWORD)ms;

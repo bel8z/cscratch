@@ -50,7 +50,7 @@ timeGetSeconds(Duration duration)
 }
 
 bool
-timeDurationIsInfinite(Duration d)
+timeIsInfinite(Duration d)
 {
     return (U32_MAX == d.nanos);
 }
@@ -190,7 +190,7 @@ clockElapsed(Clock *clock)
 }
 
 SystemTime
-systemTime(void)
+timeGetSystem(void)
 {
     FILETIME time;
     GetSystemTimePreciseAsFileTime(&time);
@@ -201,7 +201,7 @@ systemTime(void)
 }
 
 CalendarTime
-utcTime(SystemTime sys_time)
+timeGetUtc(SystemTime sys_time)
 {
     ULARGE_INTEGER temp = {.QuadPart = sys_time};
     FILETIME in = {.dwLowDateTime = temp.LowPart, //
@@ -217,7 +217,7 @@ utcTime(SystemTime sys_time)
 }
 
 CalendarTime
-localTime(SystemTime sys_time)
+timeGetLocal(SystemTime sys_time)
 {
     // File time conversions according to MS docs:
     // https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-filetimetolocalfiletime

@@ -45,10 +45,9 @@ typedef struct CalendarTime
     U16 milliseconds;
 } CalendarTime;
 
-SystemTime systemTime(void);
-
-CalendarTime utcTime(SystemTime sys_time);
-CalendarTime localTime(SystemTime sys_time);
+SystemTime timeGetSystem(void);
+CalendarTime timeGetUtc(SystemTime sys_time);
+CalendarTime timeGetLocal(SystemTime sys_time);
 
 //------------------------------//
 //   Time duration operations   //
@@ -63,7 +62,7 @@ double timeGetSeconds(Duration duration);
 
 //=== Comparison ===//
 
-bool timeDurationIsInfinite(Duration d);
+bool timeIsInfinite(Duration d);
 
 bool timeIsEq(Duration lhs, Duration rhs);
 bool timeIsGt(Duration lhs, Duration rhs);
