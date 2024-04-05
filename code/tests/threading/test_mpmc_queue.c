@@ -10,6 +10,7 @@
 
 // TODO (Matteo): Replace with platform API
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <immintrin.h>
 #include <time.h>
@@ -139,7 +140,8 @@ mpmcDequeue(MpmcQueue *queue, Usize *data)
 #define ITER_COUNT 2000000
 CF_GLOBAL AtomBool g_start;
 
-CF_INTERNAL CF_THREAD_FN(thread_func)
+CF_INTERNAL
+CF_THREAD_FN(thread_func)
 {
     MpmcQueue *queue = args;
     Usize data;

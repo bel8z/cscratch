@@ -5,7 +5,7 @@
 #include "memory.h"
 #include "strings.h"
 
-CF_GLOBAL const Str g_delimiters = strLiteral("\\/");
+#define G_DELIMITERS "\\/"
 
 Str
 pathSplitName(Str path)
@@ -24,14 +24,15 @@ pathSplitExt(Str path)
 Str
 pathSplitNameExt(Str path, Str *ext)
 {
-    Usize delim_pos = strFindLast(path, g_delimiters);
+    Str delim = strLiteral(G_DELIMITERS);
+    Usize delim_pos = strFindLast(path, delim);
 
     if (delim_pos != USIZE_MAX)
     {
         path.ptr += delim_pos;
         path.len -= delim_pos;
 
-        while (path.len && strContains(g_delimiters, path.ptr[0]))
+        while (path.len && strContains(delim, path.ptr[0]))
         {
             path.ptr++;
             path.len--;
@@ -134,14 +135,16 @@ pathSplitNext(PathSplitIter *iter)
         iter->curr.len = iter->path.len - offset;
     }
 
-    while (iter->curr.len && strContains(g_delimiters, iter->curr.ptr[0]))
+    Str delim = strLiteral(G_DELIMITERS);
+
+    while (iter->curr.len && strContains(delim, iter->curr.ptr[0]))
     {
         iter->curr.ptr++;
         iter->curr.len--;
     }
 
     // Find next separator to terminate the string
-    Usize delim_pos = strFindFirst(iter->curr, g_delimiters);
+    Usize delim_pos = strFindFirst(iter->curr, delim);
     if (delim_pos != USIZE_MAX) iter->curr.len = delim_pos;
 
     return !!(iter->curr.len);

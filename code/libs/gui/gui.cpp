@@ -1014,8 +1014,8 @@ guiCanvasBegin(GuiCanvas *canvas)
     else
     {
         canvas->size.x = canvas->size.y = 0;
-        canvas->p0 = (Vec2){0};
-        canvas->p1 = (Vec2){0};
+        canvas->p0 = Vec2{0};
+        canvas->p1 = Vec2{0};
     }
 
     canvas->draw_list = ImGui::GetWindowDrawList();

@@ -5,6 +5,10 @@ function(set_c_compile_flags project_name)
     option(CHECK_PADDING "Check extra padding in structs" FALSE)
 
     set(MSVC_FLAGS
+        /permissive- # standards conformance mode for MSVC compiler.
+        /std:c11
+        /std:c++14
+
         /W4 # Baseline reasonable warnings
         /w14242 # 'identifier': conversion from 'type1' to 'type1', possible loss of data
         /w14254 # 'operator': conversion from 'type1:field_bits' to 'type2:field_bits', possible loss of data
@@ -27,8 +31,7 @@ function(set_c_compile_flags project_name)
         /w14905 # wide string literal cast to 'LPSTR'
         /w14906 # string literal cast to 'LPWSTR'
         /w14928 # illegal copy-initialization; more than one user-defined conversion has been implicitly applied
-        /permissive- # standards conformance mode for MSVC compiler.
-
+        
         /volatile:iso #standard conformant volatile specifier
 
         # Disabled
