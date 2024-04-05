@@ -396,10 +396,16 @@ CF_API void guiPlotLineF32(Cstr id, F32 const *x, F32 const *y, Usize count, Usi
 CF_API void guiPlotLineF64(Cstr id, F64 const *x, F64 const *y, Usize count, Usize offset,
                            Usize stride);
 
+CF_API void guiPlotLineVec2(Cstr id, Vec2 const *v, Usize count, Usize offset);
+CF_API void guiPlotLineDVec2(Cstr id, DVec2 const *v, Usize count, Usize offset);
+
 CF_API void guiPlotScatterF32(Cstr id, F32 const *x, F32 const *y, Usize count, Usize offset,
                               Usize stride);
 CF_API void guiPlotScatterF64(Cstr id, F64 const *x, F64 const *y, Usize count, Usize offset,
                               Usize stride);
+
+CF_API void guiPlotScatterVec2(Cstr id, Vec2 const *v, Usize count, Usize offset);
+CF_API void guiPlotScatterDVec2(Cstr id, DVec2 const *v, Usize count, Usize offset);
 
 //=== Fonts handling ===//
 

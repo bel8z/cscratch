@@ -1502,6 +1502,18 @@ guiPlotLineF64(Cstr id, F64 const *x, F64 const *y, Usize count, Usize offset, U
 }
 
 void
+guiPlotLineVec2(Cstr id, Vec2 const *v, Usize count, Usize offset)
+{
+    ImPlot::PlotLine(id, &v[0].x, &v[0].y, count, 0, offset, sizeof(*v));
+}
+
+void
+guiPlotLineDVec2(Cstr id, DVec2 const *v, Usize count, Usize offset)
+{
+    ImPlot::PlotLine(id, &v[0].x, &v[0].y, count, 0, offset, sizeof(*v));
+}
+
+void
 guiPlotScatterF32(Cstr id, F32 const *x, F32 const *y, Usize count, Usize offset, Usize stride)
 {
     ImPlot::PlotScatter(id, x, y, count, 0, offset, stride * sizeof(*x));
@@ -1511,6 +1523,18 @@ void
 guiPlotScatterF64(Cstr id, F64 const *x, F64 const *y, Usize count, Usize offset, Usize stride)
 {
     ImPlot::PlotScatter(id, x, y, count, 0, offset, stride * sizeof(*x));
+}
+
+void
+guiPlotScatterVec2(Cstr id, Vec2 const *v, Usize count, Usize offset)
+{
+    ImPlot::PlotScatter(id, &v[0].x, &v[0].y, count, 0, offset, sizeof(*v));
+}
+
+void
+guiPlotScatterDVec2(Cstr id, DVec2 const *v, Usize count, Usize offset)
+{
+    ImPlot::PlotScatter(id, &v[0].x, &v[0].y, count, 0, offset, sizeof(*v));
 }
 
 //=== File dialogs ===//
