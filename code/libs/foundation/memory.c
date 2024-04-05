@@ -168,7 +168,7 @@ mem_arenaCommitVMem(MemArena *arena)
     {
         // NOTE (Matteo): Align memory commits to page boundaries
         U8 const *next_pos =
-            memAlignForward(arena->memory + arena->allocated, arena->vmem->page_size);
+            memAlignForward(arena->memory + arena->allocated, arena->vmem->address_granularity);
         U8 *curr_pos = arena->memory + arena->committed;
 
         Size max_commit_size = arena->reserved - arena->allocated;
@@ -189,7 +189,7 @@ mem_arenaDecommitVm(MemArena *arena)
 
         // Align base pointer forward
         U8 const *base = arena->memory + arena->allocated;
-        U8 const *next = memAlignForward(base, arena->vmem->page_size);
+        U8 const *next = memAlignForward(base, arena->vmem->address_granularity);
 
         CF_ASSERT(next >= arena->memory, "Possible overflow");
 
@@ -246,7 +246,8 @@ memArenaBootstrapFromVmem(VMemApi *vmem, void *reserved_block, Size reserved_siz
     {
         CF_ASSERT(reserved_size > sizeof(*arena), "Cannot bootstrap arena from smaller allocation");
 
-        Size commit_size = cfMin(reserved_size, memRoundUp(sizeof(*arena), vmem->page_size));
+        Size commit_size =
+            cfMin(reserved_size, memRoundUp(sizeof(*arena), vmem->address_granularity));
         vmemCommit(vmem, reserved_block, commit_size);
 
         arena = reserved_block;
