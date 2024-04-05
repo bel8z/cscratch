@@ -275,14 +275,14 @@ normalize(float value, float range, float offset)
 void
 fxEllipse(GuiCanvas *canvas, Vec4f mouse_data, double time)
 {
-    static float const pi2 = 2 * M_PI32;
+    static float const pi2 = 2 * M_PI_F;
 
     // Center of the view
     Vec2f const center = {.x = (canvas->p0.x + canvas->p1.x) / 2, //
                           .y = (canvas->p0.y + canvas->p1.y) / 2};
 
     // Rotation of the ellipse
-    float const rot = normalize(0.1f * pi2 * (float)time, M_PI32, 0);
+    float const rot = normalize(0.1f * pi2 * (float)time, M_PI_F, 0);
     float const cosw = mCos(rot);
     float const sinw = mSin(rot);
 
@@ -360,8 +360,8 @@ fxSine(GuiCanvas *canvas, Vec4f mouse_data, double time)
 
     static Vec2f points[1024] = {0};
 
-    static float const pi2 = 2 * M_PI32;
-    static float const rad_step = 4 * M_PI32 / (CF_ARRAY_SIZE(points) - 1);
+    static float const pi2 = 2 * M_PI_F;
+    static float const rad_step = 4 * M_PI_F / (CF_ARRAY_SIZE(points) - 1);
 
     float const amp = cfMin(canvas->size.x, canvas->size.y) / 4;
 
@@ -484,7 +484,7 @@ fxDrawArc(GuiCanvas *canvas, Vec2f center, Vec2f p0, Vec2f p1, float radius, Srg
 void
 fxTangentCircles(void)
 {
-#define deg2rad (M_PI32 / 180.0f)
+#define deg2rad (M_PI_F / 180.0f)
 
     static float const cutter_start = deg2rad * 270.0f;
     static float const cutter_end = deg2rad * 70.0f;

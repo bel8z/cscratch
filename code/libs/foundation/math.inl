@@ -27,8 +27,8 @@
 //   Trig   //
 //----------//
 
-#define M_PI64 3.1415926535897932384626433832795028841971693993751058209749445923078164062
-#define M_PI32 3.1415926535897932384626433832795028841971693993751058209749445923078164062f
+#define M_PI_D 3.1415926535897932384626433832795028841971693993751058209749445923078164062
+#define M_PI_F 3.1415926535897932384626433832795028841971693993751058209749445923078164062f
 
 #define mCos(X) _Generic((X), default: cos, float: cosf)(X)
 #define mSin(X) _Generic((X), default: sin, float: sinf)(X)
@@ -43,31 +43,31 @@
 #define mSinH(X) _Generic((X), default: sinh, float: sinhf)(X)
 #define mTanH(X) _Generic((X), default: tanh, float: tanhf)(X)
 
-#define mDegrees(X) _Generic((X), default: mDegrees64, float: mDegrees32)(X)
-#define mRadians(X) _Generic((X), default: mRadians64, float: mRadians32)(X)
+#define mDegrees(X) _Generic((X), default: m_dDegrees, float: m_fDegrees)(X)
+#define mRadians(X) _Generic((X), default: m_dRadians, float: m_fRadians)(X)
 
 static inline float
-mDegrees32(float radians)
+m_fDegrees(float radians)
 {
-    return (radians * 180.0f) / M_PI32;
+    return (radians * 180.0f) / M_PI_F;
 }
 
 static inline double
-mDegrees64(double radians)
+m_dDegrees(double radians)
 {
-    return (radians * 180.0) / M_PI64;
+    return (radians * 180.0) / M_PI_D;
 }
 
 static inline float
-mRadians32(float degrees)
+m_fRadians(float degrees)
 {
-    return (degrees * M_PI32) / 180.0f;
+    return (degrees * M_PI_F) / 180.0f;
 }
 
 static inline double
-mRadians64(double degrees)
+m_dRadians(double degrees)
 {
-    return (degrees * M_PI64) / 180.0;
+    return (degrees * M_PI_D) / 180.0;
 }
 
 //-------------------//
@@ -243,16 +243,16 @@ M__MULDIV(I64)
 //  Lerp   //
 //---------//
 
-#define mLerp(x, y, t) _Generic((x, y, t), default: mLerp64, float: mLerp32)(x, y, t)
+#define mLerp(x, y, t) _Generic((x, y, t), default: m_dLerp, float: m_fLerp)(x, y, t)
 
 static inline float
-mLerp32(float x, float y, float t)
+m_fLerp(float x, float y, float t)
 {
     return x * (1 - t) + y * t;
 }
 
 static inline double
-mLerp64(double x, double y, double t)
+m_dLerp(double x, double y, double t)
 {
     return x * (1 - t) + y * t;
 }
