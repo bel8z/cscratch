@@ -189,8 +189,8 @@ enum GuiAxis_
 // Memory information
 typedef struct GuiMemory
 {
-    Usize size;
-    Usize blocks;
+    Size size;
+    Size blocks;
 } GuiMemory;
 
 /// IMGUI state, used to initialize internal global variables
@@ -203,7 +203,7 @@ typedef struct GuiInitInfo
     Str data_path;
 } GuiInitInfo;
 
-CF_API GuiContext *guiInit(GuiInitInfo *info, F32 dpi_scale);
+CF_API GuiContext *guiInit(GuiInitInfo *info, float dpi_scale);
 CF_API void guiShutdown(GuiContext *ctx);
 CF_API void guiSetContext(GuiContext *ctx);
 
@@ -219,7 +219,7 @@ CF_API void guiUpdateViewports(bool render);
 //=== Themes & styling ===//
 
 /// Custom IMGUI color themes
-typedef Usize GuiTheme;
+typedef Size GuiTheme;
 
 #define GUI_THEMES(X) \
     X(EmeraldDark)    \
@@ -240,7 +240,7 @@ enum GuiTheme_
 };
 
 /// Set a custom IMGUI color theme and sizes according to scale
-CF_API void guiSetupStyle(GuiTheme theme, F32 dpi_scale);
+CF_API void guiSetupStyle(GuiTheme theme, float dpi_scale);
 
 /// Set a custom IMGUI color theme
 CF_API void guiSetTheme(GuiTheme theme);
@@ -255,7 +255,7 @@ CF_API void guiGammaCorrection(bool enabled);
 
 //=== IO ===//
 
-CF_API F32 guiGetFramerate(void);
+CF_API float guiGetFramerate(void);
 
 CF_API bool guiKeyPressed(GuiKey key);
 CF_API I32 guiKeyPressedCount(GuiKey key);
@@ -263,11 +263,11 @@ CF_API bool guiKeyCtrl(void);
 CF_API bool guiKeyAlt(void);
 CF_API bool guiKeyShift(void);
 
-CF_API Vec2 guiGetMousePos(void);
-CF_API Vec2 guiGetMouseDelta(void);
-CF_API F32 guiGetMouseWheel(void);
-CF_API bool guiGetMouseDragging(GuiMouseButton button, Vec2 *out_delta);
-CF_API F32 guiGetMouseDownDuration(GuiMouseButton button);
+CF_API Vec2f guiGetMousePos(void);
+CF_API Vec2f guiGetMouseDelta(void);
+CF_API float guiGetMouseWheel(void);
+CF_API bool guiGetMouseDragging(GuiMouseButton button, Vec2f *out_delta);
+CF_API float guiGetMouseDownDuration(GuiMouseButton button);
 
 //=== Windows ===//
 
@@ -289,13 +289,13 @@ typedef struct GuiDockLayout
 CF_API void guiDockSpace(GuiDockStyle style);
 
 CF_API GuiDockLayout guiDockLayout(void);
-CF_API U32 guiDockSplitUp(GuiDockLayout *layout, F32 size_ratio);
-CF_API U32 guiDockSplitDown(GuiDockLayout *layout, F32 size_ratio);
-CF_API U32 guiDockSplitLeft(GuiDockLayout *layout, F32 size_ratio);
-CF_API U32 guiDockSplitRight(GuiDockLayout *layout, F32 size_ratio);
+CF_API U32 guiDockSplitUp(GuiDockLayout *layout, float size_ratio);
+CF_API U32 guiDockSplitDown(GuiDockLayout *layout, float size_ratio);
+CF_API U32 guiDockSplitLeft(GuiDockLayout *layout, float size_ratio);
+CF_API U32 guiDockSplitRight(GuiDockLayout *layout, float size_ratio);
 CF_API bool guiDockWindow(GuiDockLayout *layout, Cstr name, U32 dock_id);
 
-CF_API void guiSetNextWindowSize(Vec2 size, GuiCond cond);
+CF_API void guiSetNextWindowSize(Vec2f size, GuiCond cond);
 
 CF_API bool guiBegin(Cstr name, bool *p_open);
 CF_API bool guiBeginAutoResize(Cstr name, bool *p_open);
@@ -322,12 +322,12 @@ CF_API void guiClosePopup(void);
 
 typedef struct GuiInputInfo
 {
-    F32 step;
-    F32 step_fast;
+    float step;
+    float step_fast;
     Cstr format;
 } GuiInputInfo;
 
-CF_API Vec2 guiGetAvailableSize(void);
+CF_API Vec2f guiGetAvailableSize(void);
 CF_API bool guiIsItemHovered(void);
 
 CF_API bool guiButton(Cstr label);
@@ -335,10 +335,10 @@ CF_API bool guiCenteredButton(Cstr label);
 
 CF_API bool guiCheckbox(Cstr label, bool *checked);
 
-CF_API bool guiSliderF32(Cstr label, F32 *value, F32 min_value, F32 max_value);
-CF_API bool guiSliderF64(Cstr label, F64 *value, F64 min_value, F64 max_value);
+CF_API bool guiSliderF32(Cstr label, float *value, float min_value, float max_value);
+CF_API bool guiSliderF64(Cstr label, double *value, double min_value, double max_value);
 
-CF_API bool guiInput(Cstr label, F32 *value, GuiInputInfo *info);
+CF_API bool guiInput(Cstr label, float *value, GuiInputInfo *info);
 
 CF_API void guiText(Cstr fmt, ...) CF_PRINTF_LIKE(0);
 CF_API void guiTextV(Cstr fmt, va_list args) CF_VPRINTF_LIKE(0);
@@ -349,8 +349,8 @@ CF_API bool guiBeginMenu(Cstr label, bool enabled);
 CF_API void guiEndMenu(void);
 CF_API bool guiMenuItem(Cstr label, bool *p_selected);
 
-CF_API bool guiCombo(Cstr label, Cstr preview, Cstr const *values, Usize count,
-                     Usize *selected_index);
+CF_API bool guiCombo(Cstr label, Cstr preview, Cstr const *values, Size count,
+                     Size *selected_index);
 
 /// Custom color edit with an additional combobox for choosing X11 named colors
 CF_API bool guiColorEdit(Cstr label, Srgb32 *color);
@@ -361,7 +361,7 @@ CF_API void guiStyleEditor(void);
 
 typedef struct GuiAxisRange
 {
-    F64 min, max;
+    double min, max;
     bool locked;
 } GuiAxisRange;
 
@@ -381,7 +381,7 @@ typedef struct GuiPlotLegend
 
 typedef struct GuiPlotSetup
 {
-    Vec2 size;
+    Vec2f size;
     GuiPlotLegend *legend;
     GuiAxisInfo *info[GuiAxis_COUNT];
 } GuiPlotSetup;
@@ -391,21 +391,21 @@ CF_API void guiPlotEnd();
 
 CF_API void guiPlotSetAxis(GuiAxis y);
 
-CF_API void guiPlotLineF32(Cstr id, F32 const *x, F32 const *y, Usize count, Usize offset,
-                           Usize stride);
-CF_API void guiPlotLineF64(Cstr id, F64 const *x, F64 const *y, Usize count, Usize offset,
-                           Usize stride);
+CF_API void guiPlotLineF32(Cstr id, float const *x, float const *y, Size count, Size offset,
+                           Size stride);
+CF_API void guiPlotLineF64(Cstr id, double const *x, double const *y, Size count, Size offset,
+                           Size stride);
 
-CF_API void guiPlotLineVec2(Cstr id, Vec2 const *v, Usize count, Usize offset);
-CF_API void guiPlotLineDVec2(Cstr id, DVec2 const *v, Usize count, Usize offset);
+CF_API void guiPlotLineVec2(Cstr id, Vec2f const *v, Size count, Size offset);
+CF_API void guiPlotLineDVec2(Cstr id, Vec2d const *v, Size count, Size offset);
 
-CF_API void guiPlotScatterF32(Cstr id, F32 const *x, F32 const *y, Usize count, Usize offset,
-                              Usize stride);
-CF_API void guiPlotScatterF64(Cstr id, F64 const *x, F64 const *y, Usize count, Usize offset,
-                              Usize stride);
+CF_API void guiPlotScatterF32(Cstr id, float const *x, float const *y, Size count, Size offset,
+                              Size stride);
+CF_API void guiPlotScatterF64(Cstr id, double const *x, double const *y, Size count, Size offset,
+                              Size stride);
 
-CF_API void guiPlotScatterVec2(Cstr id, Vec2 const *v, Usize count, Usize offset);
-CF_API void guiPlotScatterDVec2(Cstr id, DVec2 const *v, Usize count, Usize offset);
+CF_API void guiPlotScatterVec2(Cstr id, Vec2f const *v, Size count, Size offset);
+CF_API void guiPlotScatterDVec2(Cstr id, Vec2d const *v, Size count, Size offset);
 
 //=== Fonts handling ===//
 
@@ -413,7 +413,7 @@ CF_API void guiPlotScatterDVec2(Cstr id, DVec2 const *v, Usize count, Usize offs
 typedef struct GuiFontOptions
 {
     I32 tex_glyph_padding;
-    F32 rasterizer_multiply;
+    float rasterizer_multiply;
 
     // Stb only
     I32 oversample_h;
@@ -434,9 +434,9 @@ CF_API void guiUpdateAtlas(GuiFontAtlas *fonts, GuiFontOptions *font_opts);
 #define guiUpdateFonts(font_opts) guiUpdateAtlas(igGetIO()->Fonts, font_opts)
 
 CF_API GuiFontAtlas *guiFonts(void);
-CF_API GuiFont *guiLoadFont(GuiFontAtlas *fonts, Cstr file_name, F32 font_size);
+CF_API GuiFont *guiLoadFont(GuiFontAtlas *fonts, Cstr file_name, float font_size);
 CF_API GuiFont *guiLoadDefaultFont(GuiFontAtlas *fonts);
-CF_API bool guiLoadCustomFonts(GuiFontAtlas *fonts, F32 scale, Str data_path);
+CF_API bool guiLoadCustomFonts(GuiFontAtlas *fonts, float scale, Str data_path);
 
 //=== File dialogs ===//
 
@@ -452,7 +452,7 @@ typedef struct GuiFileDialogFilter
     Cstr name;
     // Supported extensions
     Cstr *extensions;
-    Usize num_extensions;
+    Size num_extensions;
 } GuiFileDialogFilter;
 
 typedef struct GuiFileDialogParms
@@ -460,7 +460,7 @@ typedef struct GuiFileDialogParms
     Str filename_hint;
 
     GuiFileDialogFilter *filters;
-    Usize num_filters;
+    Size num_filters;
 
     U8 type;
 } GuiFileDialogParms;
@@ -492,29 +492,29 @@ CF_API void guiLogBox(CfLog *log, bool readonly);
 
 typedef struct GuiCanvas
 {
-    Vec2 size, p0, p1;
+    Vec2f size, p0, p1;
     GuiDrawList *draw_list;
     Srgb32 stroke_color, fill_color;
-    F32 stroke_thick;
+    float stroke_thick;
 } GuiCanvas;
 
 CF_API void guiCanvasBegin(GuiCanvas *canvas);
 CF_API void guiCanvasEnd(GuiCanvas *canvas);
 
-CF_API void guiCanvasDrawLine(GuiCanvas *canvas, Vec2 p0, Vec2 p1);
-CF_API void guiCanvasDrawPolyline(GuiCanvas *canvas, Vec2 points[], Usize count);
+CF_API void guiCanvasDrawLine(GuiCanvas *canvas, Vec2f p0, Vec2f p1);
+CF_API void guiCanvasDrawPolyline(GuiCanvas *canvas, Vec2f points[], Size count);
 
-CF_API void guiCanvasDrawRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1);
-CF_API void guiCanvasFillRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1);
+CF_API void guiCanvasDrawRect(GuiCanvas *canvas, Vec2f p0, Vec2f p1);
+CF_API void guiCanvasFillRect(GuiCanvas *canvas, Vec2f p0, Vec2f p1);
 
-CF_API void guiCanvasDrawCircle(GuiCanvas *canvas, Vec2 center, F32 radius);
-CF_API void guiCanvasFillCircle(GuiCanvas *canvas, Vec2 center, F32 radius);
+CF_API void guiCanvasDrawCircle(GuiCanvas *canvas, Vec2f center, float radius);
+CF_API void guiCanvasFillCircle(GuiCanvas *canvas, Vec2f center, float radius);
 
-CF_API void guiCanvasDrawText(GuiCanvas *canvas, Str text, Vec2 pos, Srgb32 color);
+CF_API void guiCanvasDrawText(GuiCanvas *canvas, Str text, Vec2f pos, Srgb32 color);
 
-CF_API void guiCanvasDrawImage(GuiCanvas *canvas, U32 texture, //
-                               Vec2 image_min, Vec2 image_max, //
-                               Vec2 uv_min, Vec2 uv_max);
+CF_API void guiCanvasDrawImage(GuiCanvas *canvas, U32 texture,   //
+                               Vec2f image_min, Vec2f image_max, //
+                               Vec2f uv_min, Vec2f uv_max);
 
 //=== Miscellanea ===//
 

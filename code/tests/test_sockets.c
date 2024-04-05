@@ -23,20 +23,20 @@ typedef struct Result
 
 typedef HANDLE Iocp;
 
-CF_INTERNAL Iocp
-iocpCreate(Usize max_concurrency)
+static Iocp
+iocpCreate(Size max_concurrency)
 {
     CF_ASSERT(max_concurrency <= U32_MAX, "Overflow");
     return CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, (DWORD)max_concurrency);
 }
 
-CF_INTERNAL bool
+static bool
 iocpBindSocket(Iocp iocp, SOCKET socket)
 {
     return (iocp == CreateIoCompletionPort((HANDLE)socket, iocp, 0, 0));
 }
 
-CF_INTERNAL void
+static void
 serverFn(void *data)
 {
     ADDRINFO *info = NULL;
@@ -136,7 +136,7 @@ CLEANUP:
     result->code = WSAGetLastError();
 }
 
-CF_INTERNAL void
+static void
 clientFn(void *data)
 {
     cfSleep(timeDurationMs(2000));

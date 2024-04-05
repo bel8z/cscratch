@@ -23,7 +23,7 @@
 //---------------------//
 
 /// Number of logical processors available on the machine
-Usize cfNumCores(void);
+Size cfNumCores(void);
 
 /// Suspends the execution of the current thread until the given duration elapses
 void cfSleep(Duration duration);
@@ -42,7 +42,7 @@ U32 cfCurrentThreadId(void);
 /// Thread handle
 typedef struct CfThread
 {
-    Uptr handle;
+    Size handle;
 } CfThread;
 
 /// Macro to generate a thread procedure signature
@@ -57,20 +57,20 @@ typedef struct CfThreadParms
     CfThreadFn fn;
     void *args;
     Char8 const *debug_name;
-    Usize stack_size;
+    Size stack_size;
 } CfThreadParms;
 
 CF_API CfThread cfThreadCreate(CfThreadParms *parms);
 CF_API void cfThreadDestroy(CfThread thread);
 CF_API bool cfThreadIsRunning(CfThread thread);
 CF_API bool cfThreadWait(CfThread thread, Duration duration);
-CF_API bool cfThreadWaitAll(CfThread *threads, Usize num_threads, Duration duration);
+CF_API bool cfThreadWaitAll(CfThread *threads, Size num_threads, Duration duration);
 
 // TODO (Matteo): Review this API
 /// Wait any of the given thread for completion
 /// Returns the index of the first completed thread, or the number of threads in case of
 /// timeout, or USIZE_MAX in case of error
-CF_API Usize cfThreadWaitAny(CfThread *threads, Usize num_threads, Duration duration);
+CF_API Size cfThreadWaitAny(CfThread *threads, Size num_threads, Duration duration);
 
 /// Wrapper around threadCreate that allows a more convenient syntax for optional
 /// parameters
@@ -151,10 +151,10 @@ typedef struct CfSemaphore
     AtomIsize count;
 } CfSemaphore;
 
-CF_API void cfSemaInit(CfSemaphore *sema, Usize init_count);
+CF_API void cfSemaInit(CfSemaphore *sema, Size init_count);
 CF_API bool cfSemaTryWait(CfSemaphore *sema);
 CF_API void cfSemaWait(CfSemaphore *sema);
 CF_API void cfSemaSignalOne(CfSemaphore *sema);
-CF_API void cfSemaSignal(CfSemaphore *sema, Usize count);
+CF_API void cfSemaSignal(CfSemaphore *sema, Size count);
 
 //------------------------------------------------------------------------------

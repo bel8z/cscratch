@@ -9,7 +9,7 @@
 //------------------------------------------------------------------------------
 // Misc implementation
 
-CF_INTERNAL inline DWORD
+static inline DWORD
 win32DurationMs(Duration duration)
 {
     if (timeDurationIsInfinite(duration)) return INFINITE;
@@ -36,7 +36,7 @@ cfCurrentThreadId(void)
     return GetCurrentThreadId();
 }
 
-Usize
+Size
 cfNumCores(void)
 {
     // TODO (Matteo): Group calls to GetSystemInfo?
@@ -62,7 +62,7 @@ typedef struct Win32ThreadData
 
 } Win32ThreadData;
 
-CF_INTERNAL U32 WINAPI
+static U32 WINAPI
 win32threadProc(void *data_ptr)
 {
     Win32ThreadData *data = data_ptr;
@@ -149,7 +149,7 @@ cfThreadWait(CfThread thread, Duration duration)
 }
 
 bool
-cfThreadWaitAll(CfThread *threads, Usize num_threads, Duration duration)
+cfThreadWaitAll(CfThread *threads, Size num_threads, Duration duration)
 {
     CF_ASSERT(num_threads <= U32_MAX, "Given number of threads is too large");
     DWORD count = (DWORD)num_threads;
@@ -157,8 +157,8 @@ cfThreadWaitAll(CfThread *threads, Usize num_threads, Duration duration)
     return (code < WAIT_OBJECT_0 + count);
 }
 
-Usize
-cfThreadWaitAny(CfThread *threads, Usize num_threads, Duration duration)
+Size
+cfThreadWaitAny(CfThread *threads, Size num_threads, Duration duration)
 {
     CF_ASSERT(num_threads <= U32_MAX, "Given number of threads is too large");
 
@@ -173,7 +173,7 @@ cfThreadWaitAny(CfThread *threads, Usize num_threads, Duration duration)
     }
 
     win32HandleLastError();
-    return USIZE_MAX;
+    return SIZE_MAX;
 }
 
 //------------------------------------------------------------------------------
@@ -182,7 +182,7 @@ cfThreadWaitAny(CfThread *threads, Usize num_threads, Duration duration)
 
 #if CF_THREADING_DEBUG
 
-CF_INTERNAL bool
+static bool
 win32TryLockExc(SRWLOCK *lock, U32 *owner_id)
 {
     CF_ASSERT_NOT_NULL(lock);
@@ -199,7 +199,7 @@ win32TryLockExc(SRWLOCK *lock, U32 *owner_id)
     return true;
 }
 
-CF_INTERNAL void
+static void
 win32LockExc(SRWLOCK *lock, U32 *owner_id)
 {
     CF_ASSERT_NOT_NULL(lock);
@@ -215,7 +215,7 @@ win32LockExc(SRWLOCK *lock, U32 *owner_id)
     *owner_id = GetCurrentThreadId();
 }
 
-CF_INTERNAL void
+static void
 win32UnlockExc(SRWLOCK *lock, U32 *owner_id)
 {
     CF_ASSERT_NOT_NULL(lock);
@@ -382,7 +382,7 @@ cfRwUnlockWriter(CfRwLock *lock)
 CF_STATIC_ASSERT(sizeof(((CfConditionVariable *)0)->data) == sizeof(CONDITION_VARIABLE),
                  "Invalid CfConditionVariable internal size");
 
-CF_INTERNAL inline bool
+static inline bool
 win32cvWait(CfConditionVariable *cv, SRWLOCK *lock, Duration duration)
 {
     CF_ASSERT_NOT_NULL(cv);
@@ -441,20 +441,20 @@ cfCvSignalAll(CfConditionVariable *cv)
 //------------------------------------------------------------------------------
 // Semaphore implementation
 
-CF_INTERNAL CfSemaphoreHandle
-semaHandleCreate(Usize init_count)
+static CfSemaphoreHandle
+semaHandleCreate(Size init_count)
 {
     return CreateSemaphore(NULL, init_count, MAXLONG, NULL);
 }
 
-CF_INTERNAL void
+static void
 semaHandleWait(CfSemaphoreHandle handle)
 {
     WaitForSingleObject(handle, INFINITE);
 }
 
-CF_INTERNAL void
-semaHandleSignal(CfSemaphoreHandle handle, Usize count)
+static void
+semaHandleSignal(CfSemaphoreHandle handle, Size count)
 {
     ReleaseSemaphore(handle, count, NULL);
 }

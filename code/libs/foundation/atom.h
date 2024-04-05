@@ -23,8 +23,8 @@ typedef _Atomic(I32) AtomI32;
 typedef _Atomic(U32) AtomU32;
 typedef _Atomic(I64) AtomI64;
 typedef _Atomic(U64) AtomU64;
-typedef _Atomic(Isize) AtomIsize;
-typedef _Atomic(Usize) AtomUsize;
+typedef _Atomic(Offset) AtomIsize;
+typedef _Atomic(Size) AtomUsize;
 typedef _Atomic(void *) AtomPtr;
 typedef _Atomic(bool) AtomBool;
 #else
@@ -55,13 +55,13 @@ typedef AtomI32 AtomBool;
 #    endif
 
 #    if CF_PTR_SIZE == 4
-CF_STATIC_ASSERT(sizeof(Isize) == 4 && sizeof(Usize) == 4, "Invalid size types");
+CF_STATIC_ASSERT(sizeof(Offset) == 4 && sizeof(Size) == 4, "Invalid size types");
 
 typedef AtomI32 AtomIsize;
 typedef AtomU32 AtomUsize;
 
 #    elif CF_PTR_SIZE == 8
-CF_STATIC_ASSERT(sizeof(Isize) == 8 && sizeof(Usize) == 8, "Invalid size types");
+CF_STATIC_ASSERT(sizeof(Offset) == 8 && sizeof(Size) == 8, "Invalid size types");
 
 typedef AtomI64 AtomIsize;
 typedef AtomU64 AtomUsize;

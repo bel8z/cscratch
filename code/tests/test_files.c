@@ -80,7 +80,7 @@ consoleMain(Platform *platform, CommandLine *cmd_line)
     // IoFile file;
     // {
     //     file = fileOpen(filename, IoOpenMode_Write);
-    //     for (Usize i = 0; i < 1000; ++i)
+    //     for (Size i = 0; i < 1000; ++i)
     //     {
     //         fileWriteStr(&file, strLiteral("This is a dummy file!\n"));
     //     }
@@ -88,7 +88,7 @@ consoleMain(Platform *platform, CommandLine *cmd_line)
     // }
 
     // Duration traw, tbuf;
-    // Usize bcount = 0;
+    // Size bcount = 0;
     // {
     //     clockStart(&clock);
     //     file = fileOpen(filename, IoOpenMode_Read);

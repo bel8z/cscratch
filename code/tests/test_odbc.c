@@ -10,7 +10,7 @@
 typedef struct Platform Platform;
 typedef struct CommandLine CommandLine;
 
-CF_INTERNAL bool
+static bool
 sqlHandleResult(SQLRETURN code, I16 handle_type, SQLHANDLE handle)
 {
     if (code == SQL_SUCCESS) return true;
@@ -29,7 +29,7 @@ sqlHandleResult(SQLRETURN code, I16 handle_type, SQLHANDLE handle)
     return (code != SQL_ERROR);
 }
 
-CF_INTERNAL SQLHENV
+static SQLHENV
 sqlEnvCreate(void)
 {
     SQLHENV env = SQL_NULL_HANDLE;
@@ -46,7 +46,7 @@ sqlEnvCreate(void)
     return env;
 }
 
-CF_INTERNAL void
+static void
 sqlEnvDestroy(SQLHENV env)
 {
     SQLFreeEnv(env);

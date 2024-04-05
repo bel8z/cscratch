@@ -13,8 +13,8 @@
 
 // Swap elements using a temporary buffer of the same size
 // Implementation detail for cfSwapItem
-CF_INTERNAL inline void
-cfSwapBuf(void *l, void *r, U8 *buf, Usize size)
+static inline void
+cfSwapBuf(void *l, void *r, U8 *buf, Size size)
 {
     memCopy(l, buf, size);
     memCopy(r, l, size);
@@ -22,8 +22,8 @@ cfSwapBuf(void *l, void *r, U8 *buf, Usize size)
 }
 
 // Swap elements byte per byte
-CF_INTERNAL inline void
-cfSwapBytes(void *l, void *r, Usize size)
+static inline void
+cfSwapBytes(void *l, void *r, Size size)
 {
     U8 *lbuf = (U8 *)l;
     U8 *rbuf = (U8 *)r;
@@ -37,13 +37,13 @@ cfSwapBytes(void *l, void *r, Usize size)
     }
 }
 
-CF_INTERNAL inline void
-cfSwapBlock(void *array, Usize l, Usize r, Usize count, Usize item_size)
+static inline void
+cfSwapBlock(void *array, Size l, Size r, Size count, Size item_size)
 {
     U8 *lbuf = (U8 *)array + l * item_size;
     U8 *rbuf = (U8 *)array + r * item_size;
 
-    for (Usize i = 0; i < count; ++i, lbuf += item_size, rbuf += item_size)
+    for (Size i = 0; i < count; ++i, lbuf += item_size, rbuf += item_size)
     {
         cfSwapBytes(lbuf, rbuf, item_size);
     }
@@ -51,8 +51,11 @@ cfSwapBlock(void *array, Usize l, Usize r, Usize count, Usize item_size)
 
 // Defines a temporary buffer object that can hold either a or b, ensuring
 // they have the same size.
-#define CF_TEMP_SWAP_BUF(a, b) \
-    (U8[sizeof(*(1 ? &(a) : &(b)))]) { 0 }
+#define CF_TEMP_SWAP_BUF(a, b)       \
+    (U8[sizeof(*(1 ? &(a) : &(b)))]) \
+    {                                \
+        0                            \
+    }
 
 #define cfSwapItem(a, b) cfSwapBuf(&(a), &(b), CF_TEMP_SWAP_BUF(a, b), sizeof(a))
 
@@ -60,11 +63,11 @@ cfSwapBlock(void *array, Usize l, Usize r, Usize count, Usize item_size)
 // Array reversal
 //------------------------------------------------------------------------------
 
-CF_INTERNAL inline void
-cfReverseBuf(void *array, Usize size, U8 *swap_buf, Usize swap_size)
+static inline void
+cfReverseBuf(void *array, Size size, U8 *swap_buf, Size swap_size)
 {
     U8 *buf = (U8 *)array;
-    for (Usize i = 0; i < size / 2; ++i)
+    for (Size i = 0; i < size / 2; ++i)
     {
         cfSwapBuf(buf + i * swap_size, buf + (size - i - 1) * swap_size, swap_buf, swap_size);
     }
@@ -78,18 +81,18 @@ cfReverseBuf(void *array, Usize size, U8 *swap_buf, Usize swap_size)
 //------------------------------------------------------------------------------
 
 // Rotate array using reversal method (from John Bentley's "Programming Pearls")
-CF_INTERNAL inline void
-cf__rotateReversal(void *array, Usize size, Usize pos, U8 *swap_buf, Usize swap_size)
+static inline void
+cf__rotateReversal(void *array, Size size, Size pos, U8 *swap_buf, Size swap_size)
 {
     U8 *buf = (U8 *)array;
-    Usize rest = size - pos;
+    Size rest = size - pos;
     cfReverseBuf(buf, size, swap_buf, swap_size);
     cfReverseBuf(buf, rest, swap_buf, swap_size);
     cfReverseBuf(buf + rest * swap_size, pos, swap_buf, swap_size);
 }
 
 #define cfRotateReversal(array, size, pos) \
-    cf__rotateReversal(array, size, pos, (U8[sizeof(*(array)]){0}, sizeof(*(array))
+    cf__rotateReversal(array, size, pos, (U8[sizeof(*(array)]){0}, sizeof(*(array)))
 
 // Rotate array elements
 #define cfRotateLeft(array, size, pos) cfRotateReversal(array, size, pos)

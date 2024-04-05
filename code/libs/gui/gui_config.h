@@ -42,8 +42,8 @@
 // SetCurrentContext() + SetAllocatorFunctions() for each static/DLL boundary you are calling from.
 // Read "Context and Memory Allocators" section of imgui.cpp for more details.
 
-//#define IMGUI_API __declspec( dllexport )
-//#define IMGUI_API __declspec( dllimport )
+// #define IMGUI_API __declspec( dllexport )
+// #define IMGUI_API __declspec( dllimport )
 
 //---- Don't define obsolete functions/enums/behaviors.
 // Consider enabling from time to time after updating to avoid using soon-to-be obsolete
@@ -57,64 +57,64 @@
 // comments in imgui_demo.cpp.
 
 // Disable everything: all headers and source files will be empty.
-//#define IMGUI_DISABLE
+// #define IMGUI_DISABLE
 
 // Disable demo windows: ShowDemoWindow()/ShowStyleEditor() will be empty. Not recommended.
-//#define IMGUI_DISABLE_DEMO_WINDOWS
+// #define IMGUI_DISABLE_DEMO_WINDOWS
 
 // Disable metrics/debugger window: ShowMetricsWindow() will be empty.
-//#define IMGUI_DISABLE_METRICS_WINDOW
+// #define IMGUI_DISABLE_METRICS_WINDOW
 
 //---- Don't implement some functions to reduce linkage requirements.
 
 // [Win32] Don't implement default clipboard handler. Won't use and link with
 // OpenClipboard/GetClipboardData/CloseClipboard etc. (user32.lib/.a, kernel32.lib/.a)
-//#define IMGUI_DISABLE_WIN32_DEFAULT_CLIPBOARD_FUNCTIONS
+// #define IMGUI_DISABLE_WIN32_DEFAULT_CLIPBOARD_FUNCTIONS
 
 // [Win32] [Default with Visual Studio] Implement default IME handler (require imm32.lib/.a,
 // auto-link for Visual Studio, -limm32 on command-line for MinGW)
-//#define IMGUI_ENABLE_WIN32_DEFAULT_IME_FUNCTIONS
+// #define IMGUI_ENABLE_WIN32_DEFAULT_IME_FUNCTIONS
 
 // [Win32] [Default with non-Visual Studio compilers] Don't implement default IME handler (won't
 // require imm32.lib/.a)
-//#define IMGUI_DISABLE_WIN32_DEFAULT_IME_FUNCTIONS
+// #define IMGUI_DISABLE_WIN32_DEFAULT_IME_FUNCTIONS
 
 // [Win32] Won't use and link with any Win32 function (clipboard, ime).
-//#define IMGUI_DISABLE_WIN32_FUNCTIONS
+// #define IMGUI_DISABLE_WIN32_FUNCTIONS
 
 // [OSX] Implement default OSX clipboard handler (need to link with '-framework
 // ApplicationServices', this is why this is not the default).
-//#define IMGUI_ENABLE_OSX_DEFAULT_CLIPBOARD_FUNCTIONS
+// #define IMGUI_ENABLE_OSX_DEFAULT_CLIPBOARD_FUNCTIONS
 
 // Don't implement ImFormatString/ImFormatStringV so you can implement them yourself (e.g. if you
 // don't want to link with vsnprintf)
-//#define IMGUI_DISABLE_DEFAULT_FORMAT_FUNCTIONS
+// #define IMGUI_DISABLE_DEFAULT_FORMAT_FUNCTIONS
 
 // Don't implement ImFabs/ImSqrt/ImPow/ImFmod/ImCos/ImSin/ImAcos/ImAtan2 so you can implement them
 // yourself.
 // #define IMGUI_DISABLE_DEFAULT_MATH_FUNCTIONS
 
-//#define IMGUI_DISABLE_FILE_FUNCTIONS
-// Don't implement  ImFileOpen/ImFileClose/ImFileRead/ImFileWrite and ImFileHandle at all (replace
-// them with dummies)
+// #define IMGUI_DISABLE_FILE_FUNCTIONS
+//  Don't implement  ImFileOpen/ImFileClose/ImFileRead/ImFileWrite and ImFileHandle at all (replace
+//  them with dummies)
 
 // Don't implement ImFileOpen/ImFileClose/ImFileRead/ImFileWrite and ImFileHandle so you can
 // implement them yourself if you don't want to link with fopen/fclose/fread/fwrite. This will also
 // disable the LogToTTY() function.
-//#define IMGUI_DISABLE_DEFAULT_FILE_FUNCTIONS
+// #define IMGUI_DISABLE_DEFAULT_FILE_FUNCTIONS
 
 // Don't implement default allocators  calling malloc()/free() to avoid linking with them.
 // You will need to call ImGui::SetAllocatorFunctions().
 #define IMGUI_DISABLE_DEFAULT_ALLOCATORS
 
 // Disable use of SSE intrinsics even if available
-//#define IMGUI_DISABLE_SSE
+// #define IMGUI_DISABLE_SSE
 
 //---- Include imgui_user.h at the end of imgui.h as a convenience
-//#define IMGUI_INCLUDE_IMGUI_USER_H
+// #define IMGUI_INCLUDE_IMGUI_USER_H
 
 //---- Pack colors to BGRA8 instead of RGBA8 (to avoid converting from one to another)
-//#define IMGUI_USE_BGRA_PACKED_COLOR
+// #define IMGUI_USE_BGRA_PACKED_COLOR
 
 //---- Use 32-bit for ImWchar (default is 16-bit) to support unicode planes 1-16. (e.g. point beyond
 // 0xFFFF like emoticons, dingbats, symbols, shapes, ancient languages, etc...)
@@ -160,23 +160,29 @@
 // and ImVec2/ImVec4.
 // This will be inlined as part of ImVec2 and ImVec4 class declarations.
 
-#define IM_VEC2_CLASS_EXTRA \
-    ImVec2(const Vec2 &f)   \
-    {                       \
-        x = f.x;            \
-        y = f.y;            \
-    }                       \
-    operator Vec2() const { return Vec2{{x, y}}; }
+#define IM_VEC2_CLASS_EXTRA   \
+    ImVec2(const Vec2f &f)    \
+    {                         \
+        x = f.x;              \
+        y = f.y;              \
+    }                         \
+    operator Vec2f() const    \
+    {                         \
+        return Vec2f{{x, y}}; \
+    }
 
-#define IM_VEC4_CLASS_EXTRA      \
-    ImVec4(const LinearColor &f) \
-    {                            \
-        x = f.r;                 \
-        y = f.g;                 \
-        z = f.b;                 \
-        w = f.a;                 \
-    }                            \
-    operator LinearColor() const { return LinearColor{{x, y, z, w}}; }
+#define IM_VEC4_CLASS_EXTRA               \
+    ImVec4(const LinearColor &f)          \
+    {                                     \
+        x = f.r;                          \
+        y = f.g;                          \
+        z = f.b;                          \
+        w = f.a;                          \
+    }                                     \
+    operator LinearColor() const          \
+    {                                     \
+        return LinearColor{{x, y, z, w}}; \
+    }
 
 //---- Use 32-bit vertex indices (default is 16-bit) is one way to allow large meshes with more than
 // 64K vertices.
@@ -185,7 +191,7 @@
 // ImDrawCmd::VtxOffset in your renderer. Read about ImGuiBackendFlags_RendererHasVtxOffset for
 // details.
 
-//#define ImDrawIdx unsigned int
+// #define ImDrawIdx unsigned int
 
 //---- Override ImDrawCallback signature (will need to modify renderer backends accordingly)
 // struct ImDrawList;
@@ -193,7 +199,7 @@
 // typedef void (*MyImDrawCallback)(const ImDrawList* draw_list, const ImDrawCmd* cmd, void*
 // my_renderer_user_data);
 
-//#define ImDrawCallback MyImDrawCallback
+// #define ImDrawCallback MyImDrawCallback
 
 //---- Debug Tools: Macro to break in Debugger
 // (use 'Metrics->Tools->Item Picker' to pick widgets with the mouse and break into them for easy

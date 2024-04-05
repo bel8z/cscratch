@@ -25,38 +25,38 @@
 
 //---- Virtual memory ----//
 
-CF_INTERNAL VMEM_RESERVE_FN(win32VmReserve);
-CF_INTERNAL VMEM_COMMIT_FN(win32VmCommit);
-CF_INTERNAL VMEM_DECOMMIT_FN(win32VmDecommit);
-CF_INTERNAL VMEM_RELEASE_FN(win32VmRelease);
+static VMEM_RESERVE_FN(win32VmReserve);
+static VMEM_COMMIT_FN(win32VmCommit);
+static VMEM_DECOMMIT_FN(win32VmDecommit);
+static VMEM_RELEASE_FN(win32VmRelease);
 
-CF_INTERNAL VMEM_MIRROR_ALLOCATE_FN(win32MirrorAllocate);
-CF_INTERNAL VMEM_MIRROR_FREE_FN(win32MirrorFree);
+static VMEM_MIRROR_ALLOCATE_FN(win32MirrorAllocate);
+static VMEM_MIRROR_FREE_FN(win32MirrorFree);
 
 //---- Heap allocation ----//
 
-CF_INTERNAL MEM_ALLOCATOR_FN(win32Alloc);
+static MEM_ALLOCATOR_FN(win32Alloc);
 
 //---- File system ----//
 
-CF_INTERNAL IO_FILE_COPY(win32FileCopy);
-CF_INTERNAL IO_FILE_OPEN(win32FileOpen);
-CF_INTERNAL IO_FILE_CLOSE(win32FileClose);
-CF_INTERNAL IO_FILE_SIZE(win32FileSize);
-CF_INTERNAL IO_FILE_SEEK(win32FileSeek);
-CF_INTERNAL IO_FILE_READ(win32FileRead);
-CF_INTERNAL IO_FILE_READ_AT(win32FileReadAt);
-CF_INTERNAL IO_FILE_WRITE(win32FileWrite);
-CF_INTERNAL IO_FILE_WRITE_AT(win32FileWriteAt);
-CF_INTERNAL IO_FILE_PROPERTIES(win32FileProperties);
-CF_INTERNAL IO_FILE_PROPERTIES_P(win32FilePropertiesP);
+static IO_FILE_COPY(win32FileCopy);
+static IO_FILE_OPEN(win32FileOpen);
+static IO_FILE_CLOSE(win32FileClose);
+static IO_FILE_SIZE(win32FileSize);
+static IO_FILE_SEEK(win32FileSeek);
+static IO_FILE_READ(win32FileRead);
+static IO_FILE_READ_AT(win32FileReadAt);
+static IO_FILE_WRITE(win32FileWrite);
+static IO_FILE_WRITE_AT(win32FileWriteAt);
+static IO_FILE_PROPERTIES(win32FileProperties);
+static IO_FILE_PROPERTIES_P(win32FilePropertiesP);
 
-CF_INTERNAL IO_DIRECTORY_OPEN(win32DirectoryOpen);
+static IO_DIRECTORY_OPEN(win32DirectoryOpen);
 
 //---- Global platform API ----//
 
 // NOTE (Matteo): a global here should be quite safe
-CF_GLOBAL Platform g_platform = {
+static Platform g_platform = {
     .vmem =
         &(VMemApi){
             .reserve = win32VmReserve,
@@ -92,7 +92,7 @@ CF_GLOBAL Platform g_platform = {
 // Main entry point
 //------------------------------------------------------------------------------
 
-CF_INTERNAL void
+static void
 win32PathsInit(Paths *g_paths)
 {
     // Clear shared buffer
@@ -126,7 +126,7 @@ win32PathsInit(Paths *g_paths)
     g_paths->data.len = strLength(g_paths->data.ptr);
 }
 
-CF_INTERNAL void
+static void
 win32PlatformInit(void)
 {
     // ** Init memory management **
@@ -160,7 +160,7 @@ win32PlatformInit(void)
     clockStart(&g_platform.clock);
 }
 
-CF_INTERNAL void
+static void
 win32PlatformShutdown(void)
 {
     CF_ASSERT(g_platform.heap_blocks == 0, "Potential memory leak");
@@ -237,8 +237,8 @@ VMEM_MIRROR_ALLOCATE_FN(win32MirrorAllocate)
 {
     // NOTE (Matteo): Size is rounded to virtual memory granularity because the mapping addresses
     // must be aligned as such.
-    Usize granularity = g_platform.vmem->address_granularity;
-    Usize buffer_size = (size + granularity - 1) & ~(granularity - 1);
+    Size granularity = g_platform.vmem->address_granularity;
+    Size buffer_size = (size + granularity - 1) & ~(granularity - 1);
 
     VMemMirrorBuffer buffer = {0};
 
@@ -410,20 +410,20 @@ typedef struct Win32DirIterator
 CF_STATIC_ASSERT(sizeof(((Win32DirIterator *)0)->buffer) >= 512,
                  "FsIterator buffer size is too small");
 
-CF_INTERNAL inline U64
+static inline U64
 win32MergeWords(DWORD high, DWORD low)
 {
     ULARGE_INTEGER value = {.HighPart = high, .LowPart = low};
     return value.QuadPart;
 }
 
-CF_INTERNAL inline SystemTime
+static inline SystemTime
 win32FileSystemTime(FILETIME time)
 {
     return win32MergeWords(time.dwHighDateTime, time.dwLowDateTime);
 }
 
-CF_INTERNAL void
+static void
 win32ReadAttributes(DWORD attributes, IoFileProperties *out)
 {
     if (attributes & FILE_ATTRIBUTE_DIRECTORY)
@@ -437,8 +437,8 @@ win32ReadAttributes(DWORD attributes, IoFileProperties *out)
     }
 }
 
-CF_INTERNAL OVERLAPPED
-win32FileOffset(Usize offset)
+static OVERLAPPED
+win32FileOffset(Size offset)
 {
     ULARGE_INTEGER temp_offset = {.QuadPart = offset};
     OVERLAPPED overlapped = {.Offset = temp_offset.LowPart, .OffsetHigh = temp_offset.HighPart};
@@ -507,13 +507,13 @@ IO_FILE_CLOSE(win32FileClose)
 
 IO_FILE_SIZE(win32FileSize)
 {
-    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+    if (file == INVALID_HANDLE_VALUE) return SIZE_MAX;
 
     ULARGE_INTEGER size;
 
     size.LowPart = GetFileSize(file, &size.HighPart);
 
-    return (Usize)size.QuadPart;
+    return (Size)size.QuadPart;
 }
 
 IO_FILE_PROPERTIES(win32FileProperties)
@@ -525,7 +525,7 @@ IO_FILE_PROPERTIES(win32FileProperties)
     {
         props.exists = true;
         props.last_write = win32FileSystemTime(info.ftLastWriteTime);
-        props.size = (Usize)win32MergeWords(info.nFileSizeHigh, info.nFileSizeLow);
+        props.size = (Size)win32MergeWords(info.nFileSizeHigh, info.nFileSizeLow);
         win32ReadAttributes(info.dwFileAttributes, &props);
     }
 
@@ -546,7 +546,7 @@ IO_FILE_PROPERTIES_P(win32FilePropertiesP)
     {
         props.exists = true;
         props.last_write = win32FileSystemTime(data.ftLastWriteTime);
-        props.size = (Usize)win32MergeWords(data.nFileSizeHigh, data.nFileSizeLow);
+        props.size = (Size)win32MergeWords(data.nFileSizeHigh, data.nFileSizeLow);
         win32ReadAttributes(data.dwFileAttributes, &props);
         FindClose(find_handle);
     }
@@ -556,7 +556,7 @@ IO_FILE_PROPERTIES_P(win32FilePropertiesP)
 
 IO_FILE_SEEK(win32FileSeek)
 {
-    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+    if (file == INVALID_HANDLE_VALUE) return SIZE_MAX;
 
     LARGE_INTEGER temp = {.QuadPart = offset};
     LARGE_INTEGER dest = {0};
@@ -567,22 +567,22 @@ IO_FILE_SEEK(win32FileSeek)
     if (!SetFilePointerEx(file, temp, &dest, pos))
     {
         win32HandleLastError();
-        return USIZE_MAX;
+        return SIZE_MAX;
     };
 
-    return (Usize)dest.QuadPart;
+    return (Size)dest.QuadPart;
 }
 
 IO_FILE_READ(win32FileRead)
 {
-    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+    if (file == INVALID_HANDLE_VALUE) return SIZE_MAX;
 
     DWORD read_bytes;
 
     if (!ReadFile(file, buffer, (DWORD)buffer_size, &read_bytes, NULL))
     {
         win32HandleLastError();
-        return USIZE_MAX;
+        return SIZE_MAX;
     }
 
     return read_bytes;
@@ -590,7 +590,7 @@ IO_FILE_READ(win32FileRead)
 
 IO_FILE_READ_AT(win32FileReadAt)
 {
-    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+    if (file == INVALID_HANDLE_VALUE) return SIZE_MAX;
 
     OVERLAPPED overlapped = win32FileOffset(offset);
     DWORD read_bytes;
@@ -598,7 +598,7 @@ IO_FILE_READ_AT(win32FileReadAt)
     if (!ReadFile(file, buffer, (DWORD)buffer_size, &read_bytes, &overlapped))
     {
         win32HandleLastError();
-        return USIZE_MAX;
+        return SIZE_MAX;
     }
 
     return read_bytes;
@@ -606,7 +606,7 @@ IO_FILE_READ_AT(win32FileReadAt)
 
 IO_FILE_WRITE(win32FileWrite)
 {
-    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+    if (file == INVALID_HANDLE_VALUE) return SIZE_MAX;
 
     DWORD written_bytes;
 
@@ -623,7 +623,7 @@ IO_FILE_WRITE(win32FileWrite)
 
 IO_FILE_WRITE_AT(win32FileWriteAt)
 {
-    if (file == INVALID_HANDLE_VALUE) return USIZE_MAX;
+    if (file == INVALID_HANDLE_VALUE) return SIZE_MAX;
 
     OVERLAPPED overlapped = win32FileOffset(offset);
     DWORD written_bytes;
@@ -639,7 +639,7 @@ IO_FILE_WRITE_AT(win32FileWriteAt)
     return true;
 }
 
-CF_INTERNAL IO_DIRECTORY_NEXT(win32DirectoryNext)
+static IO_DIRECTORY_NEXT(win32DirectoryNext)
 {
     CF_ASSERT_NOT_NULL(self);
 
@@ -647,30 +647,30 @@ CF_INTERNAL IO_DIRECTORY_NEXT(win32DirectoryNext)
 
     if (!FindNextFileW(iter->finder, &iter->data)) return false;
 
-    Usize size = win32Utf16To8(str16FromCstr(iter->data.cFileName), iter->buffer,
-                               CF_ARRAY_SIZE(iter->buffer));
+    Size size = win32Utf16To8(str16FromCstr(iter->data.cFileName), iter->buffer,
+                              CF_ARRAY_SIZE(iter->buffer));
 
     // NOTE (Matteo): Truncation is considered an error
     // TODO (Matteo): Maybe require a bigger buffer?
-    if (size == USIZE_MAX || size == CF_ARRAY_SIZE(iter->buffer)) return false;
+    if (size == SIZE_MAX || size == CF_ARRAY_SIZE(iter->buffer)) return false;
 
     CF_ASSERT(size > 0, "Which filename can have a size of 0???");
 
     filename->ptr = iter->buffer;
-    filename->len = (Usize)(size);
+    filename->len = (Size)(size);
 
     if (props)
     {
         props->exists = true;
         props->last_write = win32FileSystemTime(iter->data.ftLastWriteTime);
-        props->size = (Usize)win32MergeWords(iter->data.nFileSizeHigh, iter->data.nFileSizeLow);
+        props->size = (Size)win32MergeWords(iter->data.nFileSizeHigh, iter->data.nFileSizeLow);
         win32ReadAttributes(iter->data.dwFileAttributes, props);
     }
 
     return true;
 }
 
-CF_INTERNAL IO_DIRECTORY_CLOSE(win32DirectoryClose)
+static IO_DIRECTORY_CLOSE(win32DirectoryClose)
 {
     CF_ASSERT_NOT_NULL(self);
 
@@ -686,9 +686,9 @@ IO_DIRECTORY_OPEN(win32DirectoryOpen)
     Char16 buffer[1024];
 
     // Encode path to UTF16
-    Usize length = win32Utf8To16(path, buffer, CF_ARRAY_SIZE(buffer));
+    Size length = win32Utf8To16(path, buffer, CF_ARRAY_SIZE(buffer));
 
-    if (length == USIZE_MAX || length >= CF_ARRAY_SIZE(buffer) - 2)
+    if (length == SIZE_MAX || length >= CF_ARRAY_SIZE(buffer) - 2)
     {
         CF_ASSERT(false, "Encoding error or overflow");
         return false;

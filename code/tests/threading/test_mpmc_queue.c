@@ -18,7 +18,7 @@
 typedef struct QueueCell
 {
     AtomUsize sequence;
-    Usize data;
+    Size data;
 } QueueCell;
 
 typedef struct MpmcQueue
@@ -26,7 +26,7 @@ typedef struct MpmcQueue
     CF_CACHELINE_PAD;
 
     QueueCell *buffer;
-    Usize buffer_mask;
+    Size buffer_mask;
 
     CF_CACHELINE_PAD;
 
@@ -39,8 +39,8 @@ typedef struct MpmcQueue
     CF_CACHELINE_PAD;
 } MpmcQueue;
 
-CF_INTERNAL void
-mpmcInit(MpmcQueue *queue, Usize buffer_size, MemAllocator alloc)
+static void
+mpmcInit(MpmcQueue *queue, Size buffer_size, MemAllocator alloc)
 {
     queue->buffer = memAllocArray(alloc, QueueCell, buffer_size);
     queue->buffer_mask = buffer_size - 1;
@@ -48,7 +48,7 @@ mpmcInit(MpmcQueue *queue, Usize buffer_size, MemAllocator alloc)
     CF_ASSERT(buffer_size >= 2, "Buffer size is too small");
     CF_ASSERT((buffer_size & (buffer_size - 1)) == 0, "Buffer size is not a power of 2");
 
-    for (Usize i = 0; i != buffer_size; i += 1)
+    for (Size i = 0; i != buffer_size; i += 1)
     {
         atomWrite(&queue->buffer[i].sequence, i);
     }
@@ -57,26 +57,26 @@ mpmcInit(MpmcQueue *queue, Usize buffer_size, MemAllocator alloc)
     atomWrite(&queue->dequeue_pos, 0);
 }
 
-CF_INTERNAL void
+static void
 mpmcShutdown(MpmcQueue *queue, MemAllocator alloc)
 {
     memFreeArray(alloc, queue->buffer, queue->buffer_mask + 1);
 }
 
-CF_INTERNAL bool
-mpmcEnqueue(MpmcQueue *queue, Usize data)
+static bool
+mpmcEnqueue(MpmcQueue *queue, Size data)
 {
     QueueCell *cell = NULL;
-    Usize pos = atomRead(&queue->enqueue_pos);
+    Size pos = atomRead(&queue->enqueue_pos);
 
     for (;;)
     {
         cell = queue->buffer + (pos & queue->buffer_mask);
 
-        Usize seq = atomRead(&cell->sequence);
+        Size seq = atomRead(&cell->sequence);
         atomAcquireFence();
 
-        Isize dif = (Isize)seq - (Isize)pos;
+        Offset dif = (Offset)seq - (Offset)pos;
 
         if (dif < 0) return false; // Full
 
@@ -99,20 +99,20 @@ mpmcEnqueue(MpmcQueue *queue, Usize data)
     return true;
 }
 
-CF_INTERNAL bool
-mpmcDequeue(MpmcQueue *queue, Usize *data)
+static bool
+mpmcDequeue(MpmcQueue *queue, Size *data)
 {
     QueueCell *cell = NULL;
-    Usize pos = atomRead(&queue->dequeue_pos);
+    Size pos = atomRead(&queue->dequeue_pos);
 
     for (;;)
     {
         cell = queue->buffer + (pos & queue->buffer_mask);
 
-        Usize seq = atomRead(&cell->sequence);
+        Size seq = atomRead(&cell->sequence);
         atomAcquireFence();
 
-        Isize dif = (Isize)seq - (Isize)(pos + 1);
+        Offset dif = (Offset)seq - (Offset)(pos + 1);
 
         if (dif < 0) return false; // Empty
 
@@ -138,30 +138,30 @@ mpmcDequeue(MpmcQueue *queue, Usize *data)
 #define THREAD_COUNT 4
 #define BATCH_SIZE 1
 #define ITER_COUNT 2000000
-CF_GLOBAL AtomBool g_start;
+static AtomBool g_start;
 
-CF_INTERNAL
+static
 CF_THREAD_FN(thread_func)
 {
     MpmcQueue *queue = args;
-    Usize data;
+    Size data;
 
     U32 id = cfCurrentThreadId();
 
     srand((U32)time(0) + id);
-    Usize pause = (Usize)rand() % 1000;
+    Size pause = (Size)rand() % 1000;
 
     while (!atomRead(&g_start)) cfYield();
 
-    for (Usize i = 0; i != pause; i += 1) _mm_pause();
+    for (Size i = 0; i != pause; i += 1) _mm_pause();
 
-    for (Usize iter = 0; iter != ITER_COUNT; ++iter)
+    for (Size iter = 0; iter != ITER_COUNT; ++iter)
     {
-        for (Usize i = 0; i != BATCH_SIZE; i += 1)
+        for (Size i = 0; i != BATCH_SIZE; i += 1)
         {
             while (!mpmcEnqueue(queue, i)) cfYield();
         }
-        for (Usize i = 0; i != BATCH_SIZE; i += 1)
+        for (Size i = 0; i != BATCH_SIZE; i += 1)
         {
             while (!mpmcDequeue(queue, &data)) cfYield();
         }
@@ -179,7 +179,7 @@ testMpmcQueue(Platform *platform)
     atomInit(&g_start, false);
 
     CfThread threads[THREAD_COUNT];
-    for (Usize i = 0; i != THREAD_COUNT; ++i)
+    for (Size i = 0; i != THREAD_COUNT; ++i)
     {
         threads[i] = cfThreadStart(thread_func, .args = &queue);
     }

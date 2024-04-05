@@ -18,5 +18,5 @@ CF_API void win32GuiNewFrame(void);
 CF_API void win32GuiRender(GuiDrawData *draw_data);
 
 // Utility
-CF_API F32 win32GuiGetDpiScale(void *window);
+CF_API float win32GuiGetDpiScale(void *window);
 CF_API void win32GuiUpdateFontsTexture(void);

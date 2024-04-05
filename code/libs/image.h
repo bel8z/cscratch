@@ -7,7 +7,7 @@
 #    include "foundation/core.h"
 
 #    if defined(IMAGE_INTERNAL)
-#        define IMAGE_API CF_INTERNAL
+#        define IMAGE_API static
 #    else
 #        define IMAGE_API extern
 #    endif
@@ -35,7 +35,7 @@ IMAGE_API void imageInit(MemAllocator alloc);
 
 // TODO (Matteo): Migrate to Str?
 IMAGE_API bool imageLoadFromFile(Image *image, Str filename, IoFileApi *api);
-IMAGE_API bool imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size);
+IMAGE_API bool imageLoadFromMemory(Image *image, U8 const *in_data, Size in_data_size);
 IMAGE_API void imageUnload(Image *image);
 
 #    define IMAGE_DECL
@@ -70,10 +70,10 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wunused-function")
 #    define STBI_ASSERT(x) CF_ASSERT(x, "stb image assert")
 
 // Custom memory management for stbi
-CF_GLOBAL MemAllocator g_alloc;
-CF_INTERNAL void *stbiAlloc(Usize size);
-CF_INTERNAL void *stbiRealloc(void *memory, Usize size);
-CF_INTERNAL void stbiFree(void *memory);
+static MemAllocator g_alloc;
+static void *stbiAlloc(Size size);
+static void *stbiRealloc(void *memory, Size size);
+static void stbiFree(void *memory);
 
 #    define STBI_MALLOC stbiAlloc
 #    define STBI_REALLOC stbiRealloc
@@ -94,10 +94,10 @@ CF_DIAGNOSTIC_POP()
 // Memory management
 
 void *
-stbiAlloc(Usize size)
+stbiAlloc(Size size)
 {
-    Usize total_size = size + sizeof(total_size);
-    Usize *buffer = memAlloc(g_alloc, total_size);
+    Size total_size = size + sizeof(total_size);
+    Size *buffer = memAlloc(g_alloc, total_size);
 
     if (buffer)
     {
@@ -109,11 +109,11 @@ stbiAlloc(Usize size)
 }
 
 void *
-stbiRealloc(void *memory, Usize size)
+stbiRealloc(void *memory, Size size)
 {
-    Usize new_size = size + sizeof(new_size);
-    Usize old_size = 0;
-    Usize *old_buffer = memory;
+    Size new_size = size + sizeof(new_size);
+    Size old_size = 0;
+    Size *old_buffer = memory;
 
     if (old_buffer)
     {
@@ -121,7 +121,7 @@ stbiRealloc(void *memory, Usize size)
         old_size = *old_buffer;
     }
 
-    Usize *new_buffer = memRealloc(g_alloc, old_buffer, old_size, new_size);
+    Size *new_buffer = memRealloc(g_alloc, old_buffer, old_size, new_size);
 
     if (new_buffer)
     {
@@ -137,7 +137,7 @@ stbiFree(void *memory)
 {
     if (memory)
     {
-        Usize *buffer = memory;
+        Size *buffer = memory;
         buffer--;
         memFree(g_alloc, buffer, *buffer);
     }
@@ -153,23 +153,23 @@ typedef struct FileReader
     bool eof;
 } FileReader;
 
-CF_INTERNAL I32
+static I32
 stbiRead(void *user, Char8 *data, I32 size)
 {
     FileReader *reader = user;
-    Usize read_bytes = reader->api->read(reader->file, (U8 *)data, (Usize)size);
+    Size read_bytes = reader->api->read(reader->file, (U8 *)data, (Size)size);
     reader->eof = !read_bytes;
     return (I32)read_bytes;
 }
 
-CF_INTERNAL void
+static void
 stbiSkip(void *user, I32 n)
 {
     FileReader *reader = user;
     reader->api->seek(reader->file, IoSeekPos_Current, n);
 }
 
-CF_INTERNAL I32
+static I32
 stbiEof(void *user)
 {
     FileReader *reader = user;
@@ -212,7 +212,7 @@ imageLoadFromFile(Image *image, Str filename, IoFileApi *api)
 }
 
 bool
-imageLoadFromMemory(Image *image, U8 const *in_data, Usize in_data_size)
+imageLoadFromMemory(Image *image, U8 const *in_data, Size in_data_size)
 {
     CF_ASSERT_NOT_NULL(image);
     CF_ASSERT_NOT_NULL(in_data);

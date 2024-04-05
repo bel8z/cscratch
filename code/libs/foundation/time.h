@@ -59,7 +59,7 @@ Duration timeDurationMs(U64 milliseconds);
 Duration timeDurationUs(U64 microseconds);
 Duration timeDurationNs(U64 nanoseconds);
 
-F64 timeGetSeconds(Duration duration);
+double timeGetSeconds(Duration duration);
 
 //=== Comparison ===//
 

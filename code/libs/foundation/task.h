@@ -6,12 +6,12 @@
 typedef struct TaskQueueConfig
 {
     /// [In] Size of the internal FIFO buffer
-    Usize buffer_size;
+    Size buffer_size;
     /// [In] Number of worker threads that service the queue (a default value of 0 means to use a
     /// number of workers equal to the number of logical cores on the machine)
-    Usize num_workers;
+    Size num_workers;
     /// [Out] Memory footprint of the configured queue
-    Usize footprint;
+    Size footprint;
 } TaskQueueConfig;
 
 #define TASK_QUEUE_FN(name) void name(void *data, bool *canceled)
@@ -20,7 +20,7 @@ typedef struct TaskQueueConfig
 typedef TASK_QUEUE_FN((*TaskFn));
 
 /// Task identifier
-typedef Usize TaskId;
+typedef Size TaskId;
 
 /// Opaque type representing the task queue
 typedef struct TaskQueue TaskQueue;

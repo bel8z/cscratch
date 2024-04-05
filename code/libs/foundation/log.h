@@ -8,11 +8,11 @@ typedef struct CfLog
 {
     void *os_handle;
     void *buffer;
-    Usize size;
-    Usize write_pos;
+    Size size;
+    Size write_pos;
 } CfLog;
 
-CF_API CfLog cfLogCreate(VMemApi *vmem, Usize buffer_size);
+CF_API CfLog cfLogCreate(VMemApi *vmem, Size buffer_size);
 CF_API void cfLogDestroy(CfLog *log, VMemApi *vmem);
 
 CF_API Str cfLogString(CfLog *log);

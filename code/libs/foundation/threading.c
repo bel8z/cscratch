@@ -18,12 +18,12 @@
 // TODO (Matteo): Tweak spin count
 #define SEMA_SPIN_COUNT 10000
 
-CF_INTERNAL CfSemaphoreHandle semaHandleCreate(Usize init_count);
-CF_INTERNAL void semaHandleWait(CfSemaphoreHandle handle);
-CF_INTERNAL void semaHandleSignal(CfSemaphoreHandle handle, Usize count);
+static CfSemaphoreHandle semaHandleCreate(Size init_count);
+static void semaHandleWait(CfSemaphoreHandle handle);
+static void semaHandleSignal(CfSemaphoreHandle handle, Size count);
 
 CF_API void
-cfSemaInit(CfSemaphore *sema, Usize init_count)
+cfSemaInit(CfSemaphore *sema, Size init_count)
 {
 #if SEMA_SPIN_COUNT != 0
     sema->handle = semaHandleCreate(0);
@@ -37,7 +37,7 @@ CF_API bool
 cfSemaTryWait(CfSemaphore *sema)
 {
 #if SEMA_SPIN_COUNT != 0
-    Isize prev_count = atomRead(&sema->count);
+    Offset prev_count = atomRead(&sema->count);
     if (prev_count > 0 &&
         prev_count == atomCompareExchange(&sema->count, prev_count, prev_count - 1))
     {
@@ -52,8 +52,8 @@ CF_API void
 cfSemaWait(CfSemaphore *sema)
 {
 #if SEMA_SPIN_COUNT != 0
-    Isize prev_count;
-    Isize spin_count = SEMA_SPIN_COUNT;
+    Offset prev_count;
+    Offset spin_count = SEMA_SPIN_COUNT;
 
     while (spin_count--)
     {
@@ -83,12 +83,12 @@ cfSemaSignalOne(CfSemaphore *sema)
 }
 
 CF_API void
-cfSemaSignal(CfSemaphore *sema, Usize count)
+cfSemaSignal(CfSemaphore *sema, Size count)
 {
 #if SEMA_SPIN_COUNT != 0
     atomReleaseFence();
-    Isize prev_count = atomFetchAdd(&sema->count, count);
-    Isize signal_count = -prev_count < count ? -prev_count : count;
+    Offset prev_count = atomFetchAdd(&sema->count, count);
+    Offset signal_count = -prev_count < count ? -prev_count : count;
     if (signal_count > 0)
     {
         semaHandleSignal(sema->handle, count);

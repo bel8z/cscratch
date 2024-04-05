@@ -4,8 +4,8 @@
 // At the moment it is required for printing assertion failures to stderr
 #include <stdio.h>
 
-CF_GLOBAL ErrorLogFn *g_handler = NULL;
-CF_GLOBAL ErrorLogFn *g_context = NULL;
+static ErrorLogFn *g_handler = NULL;
+static ErrorLogFn *g_context = NULL;
 
 void
 errorLog(Cstr format, ...)

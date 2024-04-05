@@ -43,10 +43,10 @@ timeDurationNs(U64 nanoseconds)
     };
 }
 
-F64
+double
 timeGetSeconds(Duration duration)
 {
-    return (F64)duration.seconds + (F64)duration.nanos / CF_NS_PER_SEC;
+    return (double)duration.seconds + (double)duration.nanos / CF_NS_PER_SEC;
 }
 
 bool
@@ -138,7 +138,7 @@ typedef struct Win32Clock
 
 CF_STATIC_ASSERT(sizeof(Clock) == sizeof(Win32Clock), "Clock type is too small on Win32");
 
-CF_INTERNAL CalendarTime
+static CalendarTime
 win32CalendarTime(SYSTEMTIME const *out)
 {
     return (CalendarTime){.year = out->wYear,

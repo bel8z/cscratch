@@ -10,7 +10,7 @@
 // TODO (Matteo): Get rid of it and use platform API only
 #include <stdio.h>
 
-CF_GLOBAL MemAllocator g_heap;
+static MemAllocator g_heap;
 
 #define IO_CALLBACK(name) void name(void *context, ULONG result, ULONG_PTR bytes)
 
@@ -48,7 +48,7 @@ ioCallback(TP_CALLBACK_INSTANCE *Instance,     //
     memFreeStruct(g_heap, ioctxt);
 }
 
-CF_INTERNAL TP_IO *
+static TP_IO *
 ioBegin(IoContext *context, HANDLE file)
 {
     TP_IO *io = CreateThreadpoolIo(file, ioCallback, context, NULL);
@@ -56,7 +56,7 @@ ioBegin(IoContext *context, HANDLE file)
     return io;
 }
 
-CF_INTERNAL IO_CALLBACK(fileIoCallback)
+static IO_CALLBACK(fileIoCallback)
 {
     CF_UNUSED(bytes);
     FileIoToken *token = context;
@@ -64,8 +64,8 @@ CF_INTERNAL IO_CALLBACK(fileIoCallback)
     token->completed = true;
 }
 
-CF_INTERNAL void
-fileBeginWrite(Cstr filename, U8 const *buffer, Usize size, FileIoToken *token)
+static void
+fileBeginWrite(Cstr filename, U8 const *buffer, Size size, FileIoToken *token)
 {
     IoContext *context = memAllocStruct(g_heap, IoContext);
     context->callback = fileIoCallback;
@@ -91,7 +91,7 @@ consoleMain(Platform *platform, CommandLine *cmd_line)
     CF_UNUSED(cmd_line);
 
     g_heap = platform->heap;
-    Usize big_block_size = CF_GB(1);
+    Size big_block_size = CF_GB(1);
     U8 *big_block = memAlloc(g_heap, big_block_size);
     FileIoToken token = {0};
 

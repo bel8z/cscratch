@@ -37,8 +37,8 @@ CF_DIAGNOSTIC_POP()
 
 //=== Font handling ===//
 
-CF_INTERNAL GuiFont *
-gui_LoadCustomFont(GuiFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
+static GuiFont *
+gui_LoadCustomFont(GuiFontAtlas *fonts, Str data_path, Cstr name, float font_size)
 {
     Char8 buffer[1024] = {0};
     strPrint(buffer, CF_ARRAY_SIZE(buffer), "%.*s%s.ttf", (I32)data_path.len, data_path.ptr, name);
@@ -46,7 +46,7 @@ gui_LoadCustomFont(GuiFontAtlas *fonts, Str data_path, Cstr name, F32 font_size)
 }
 
 bool
-guiLoadCustomFonts(GuiFontAtlas *atlas, F32 dpi_scale, Str data_path)
+guiLoadCustomFonts(GuiFontAtlas *atlas, float dpi_scale, Str data_path)
 {
     // TODO (Matteo): Make font list available to the application?
 
@@ -66,7 +66,7 @@ guiLoadCustomFonts(GuiFontAtlas *atlas, F32 dpi_scale, Str data_path)
     // - Remember that in C/C++ if you want to include a backslash \ in a string
     // literal you need to write a double backslash \\ !
 
-    F32 const scale = dpi_scale * GUI_PLATFORM_DPI / GUI_TRUETYPE_DPI;
+    float const scale = dpi_scale * GUI_PLATFORM_DPI / GUI_TRUETYPE_DPI;
 
 #if CF_OS_WIN32
     Str const system_path = strLiteral("C:/Windows/Fonts/");
@@ -83,7 +83,7 @@ guiLoadCustomFonts(GuiFontAtlas *atlas, F32 dpi_scale, Str data_path)
         gui_LoadCustomFont(atlas, data_path, "SourceSansPro", mRound(14.0f * scale)),
     };
 
-    for (Usize i = 0; i < CF_ARRAY_SIZE(fonts); ++i)
+    for (Size i = 0; i < CF_ARRAY_SIZE(fonts); ++i)
     {
         if (fonts[i]) return true;
     }
@@ -96,18 +96,18 @@ guiLoadCustomFonts(GuiFontAtlas *atlas, F32 dpi_scale, Str data_path)
 
 typedef BOOL(APIENTRY *Win32FileDialog)(LPOPENFILENAMEW);
 
-CF_GLOBAL const Win32FileDialog win32FileDialog[2] = {
+static const Win32FileDialog win32FileDialog[2] = {
     [GuiFileDialog_Open] = GetOpenFileNameW,
     [GuiFileDialog_Save] = GetSaveFileNameW,
 };
 
-CF_GLOBAL const DWORD win32FileDialogFlags[2] = {
+static const DWORD win32FileDialogFlags[2] = {
     [GuiFileDialog_Open] = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST,
     [GuiFileDialog_Save] = OFN_OVERWRITEPROMPT,
 };
 
-CF_INTERNAL ErrorCode32
-win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAllocator alloc,
+static ErrorCode32
+win32BuildFilterString(GuiFileDialogFilter *filters, Size num_filters, MemAllocator alloc,
                        StrBuf16 *out_filter)
 {
     ErrorCode32 err = Error_None;
@@ -120,16 +120,16 @@ win32BuildFilterString(GuiFileDialogFilter *filters, Usize num_filters, MemAlloc
          filter < end; ++filter)
     {
         Str filter_name = strFromCstr(filter->name);
-        Usize name_size = win32Utf8To16(filter_name, NULL, 0) + 1;
+        Size name_size = win32Utf8To16(filter_name, NULL, 0) + 1;
 
         Char16 *slice;
         if ((err = memBufferExtendAlloc(out_filter, name_size, alloc, &slice))) return err;
         win32Utf8To16(filter_name, slice, name_size);
 
-        for (Usize ext_no = 0; ext_no < filter->num_extensions; ++ext_no)
+        for (Size ext_no = 0; ext_no < filter->num_extensions; ++ext_no)
         {
             Str ext = strFromCstr(filter->extensions[ext_no]);
-            Usize ext_size = win32Utf8To16(ext, NULL, 0) + 1;
+            Size ext_size = win32Utf8To16(ext, NULL, 0) + 1;
 
             // Prepend '*' to the extension - not documented but actually required
             if ((err = memBufferPushAlloc(out_filter, L'*', alloc))) return err;
@@ -158,7 +158,7 @@ guiFileDialog(GuiFileDialogParms *parms, MemAllocator alloc)
 
     if (strValid(parms->filename_hint))
     {
-        Usize name_length = win32Utf8To16(parms->filename_hint, NULL, 0);
+        Size name_length = win32Utf8To16(parms->filename_hint, NULL, 0);
         if (name_length >= MAX_PATH)
         {
             result.error = Error_BufferFull;

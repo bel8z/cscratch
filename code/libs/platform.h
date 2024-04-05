@@ -30,7 +30,7 @@ typedef struct Paths
 
 typedef struct CommandLine
 {
-    Usize len;
+    Size len;
     Cstr *arg;
 } CommandLine;
 
@@ -47,19 +47,19 @@ typedef struct Platform
     VMemApi *vmem;
     /// Reserved VM size in bytes
     // TODO (Matteo): Should be a pointer?
-    Usize reserved_size;
+    Size reserved_size;
     /// Committed VM size in bytes
     // TODO (Matteo): Should be a pointer?
-    Usize committed_size;
+    Size committed_size;
 
     /// System heap allocator
     MemAllocator heap;
     /// Number of blocks allocated by the heap allocator
     // TODO (Matteo): Should be a pointer?
-    Usize heap_blocks;
+    Size heap_blocks;
     // Total size in bytes of the allocation provided by the heap
     // TODO (Matteo): Should be a pointer?
-    Usize heap_size;
+    Size heap_size;
 
     // File IO API
     IoFileApi *file;

@@ -7,8 +7,8 @@
 // Internal functions and data
 //------------------------------------------------------------------------------
 
-CF_INTERNAL bool gl__ParseVersion(void);
-CF_INTERNAL void gl__LoadProcs(GlApi *api, GlApiLoadFn *fn);
+static bool gl__ParseVersion(void);
+static void gl__LoadProcs(GlApi *api, GlApiLoadFn *fn);
 
 static GlApi g_api = {0};
 

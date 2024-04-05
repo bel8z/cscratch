@@ -36,8 +36,8 @@
 //--------------------------------------------------------------------------------------------------
 // Color space manipulation utilities
 
-CF_API F32 colorSrgbEncode(F32 channel);
-CF_API F32 colorSrgbDecode(F32 channel);
+CF_API float colorSrgbEncode(float channel);
+CF_API float colorSrgbDecode(float channel);
 
 /// Convert linear space RBGA color to sRGB space, packed
 CF_API Srgb32 colorToSrgb(LinearColor in);

@@ -29,18 +29,18 @@ typedef Char16 const *Cstr16;
 typedef struct Str16
 {
     Char16 const *ptr; // Pointer to string data (not a C string)
-    Usize len;         // Lenght in chars of the string (not including terminators)
+    Size len;          // Lenght in chars of the string (not including terminators)
 } Str16;
 
 typedef MemBuffer(Char16) StrBuf16;
 
-CF_INTERNAL inline Str16
+static inline Str16
 str16FromCstr(Cstr16 cstr)
 {
     return (Str16){.ptr = (cstr), .len = wcslen(cstr)};
 }
 
-CF_INTERNAL inline void
+static inline void
 win32HandleLastError(void)
 {
     DWORD error = GetLastError();
@@ -62,8 +62,8 @@ win32HandleLastError(void)
 /// The string is not null terminated, and the function returns the length of the written string in
 /// UTF16 characters; in case of a NULL output buffer, this number is the minimum required buffer
 /// size.
-CF_INTERNAL inline Usize
-win32Utf8To16(Str str, Char16 *out, Usize out_size)
+static inline Size
+win32Utf8To16(Str str, Char16 *out, Size out_size)
 {
     CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
 
@@ -73,19 +73,19 @@ win32Utf8To16(Str str, Char16 *out, Usize out_size)
     if (len == 0)
     {
         win32HandleLastError();
-        return USIZE_MAX;
+        return SIZE_MAX;
     }
 
-    CF_ASSERT(!out || (Usize)len <= out_size, "The given buffer is not large enough");
+    CF_ASSERT(!out || (Size)len <= out_size, "The given buffer is not large enough");
 
-    return (Usize)len;
+    return (Size)len;
 }
 
 /// Encodes the given UTF8 string slice in UTF16.
 /// The string is not null terminated, and the function returns the length of the written string in
 /// bytes; in case of a NULL output buffer, this number is the minimum required buffer size.
-CF_INTERNAL inline Usize
-win32Utf16To8(Str16 str, Char8 *out, Usize out_size)
+static inline Size
+win32Utf16To8(Str16 str, Char8 *out, Size out_size)
 {
     CF_ASSERT(out_size <= I32_MAX, "Invalid out size");
 
@@ -94,10 +94,10 @@ win32Utf16To8(Str16 str, Char8 *out, Usize out_size)
     if (len == 0)
     {
         win32HandleLastError();
-        return USIZE_MAX;
+        return SIZE_MAX;
     }
 
-    CF_ASSERT(!out || (Usize)len <= out_size, "The given buffer is not large enough");
+    CF_ASSERT(!out || (Size)len <= out_size, "The given buffer is not large enough");
 
-    return (Usize)len;
+    return (Size)len;
 }

@@ -14,7 +14,7 @@ typedef struct TestBenaphoreState
     I32 value;
 } TestBenaphoreState;
 
-CF_INTERNAL CF_THREAD_FN(testBenaphoreWork)
+static CF_THREAD_FN(testBenaphoreWork)
 {
     TestBenaphoreState *test = args;
 

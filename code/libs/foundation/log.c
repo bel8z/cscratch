@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 CfLog
-cfLogCreate(VMemApi *vmem, Usize buffer_size)
+cfLogCreate(VMemApi *vmem, Size buffer_size)
 {
     VMemMirrorBuffer buffer = vmemMirrorAllocate(vmem, buffer_size);
     return (CfLog){
@@ -53,7 +53,7 @@ cfLogAppendF(CfLog *log, Cstr format, ...)
     va_start(args, format);
     va_copy(copy, args);
 
-    Usize len = (Usize)vsnprintf(NULL, 0, format, copy); // NOLINT
+    Size len = (Size)vsnprintf(NULL, 0, format, copy); // NOLINT
     va_end(copy);
 
     CF_ASSERT(len < log->size, "What?");
@@ -84,7 +84,7 @@ cfLogString(CfLog *log)
 Cstr
 cfLogCstring(CfLog *log)
 {
-    Usize offset = 0;
+    Size offset = 0;
 
     if (log->write_pos > log->size)
     {

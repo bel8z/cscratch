@@ -36,7 +36,7 @@ typedef struct Data
     Queue *queue;
 } Data;
 
-CF_INTERNAL void
+static void
 produce(Queue *queue, I32 value)
 {
     cfMutexAcquire(&queue->lock);
@@ -62,12 +62,12 @@ produce(Queue *queue, I32 value)
     cfMutexRelease(&queue->lock);
 }
 
-CF_INTERNAL CF_THREAD_FN(producerFn)
+static CF_THREAD_FN(producerFn)
 {
     Data *d = args;
     Queue *queue = d->queue;
 
-    for (Usize produced_values = 0; produced_values < QueueSize * 2; ++produced_values)
+    for (Size produced_values = 0; produced_values < QueueSize * 2; ++produced_values)
     {
         cfSleep(timeDurationMs(20));
 
@@ -83,7 +83,7 @@ CF_INTERNAL CF_THREAD_FN(producerFn)
     produce(queue, StopSignal);
 }
 
-CF_INTERNAL CF_THREAD_FN(consumerFn)
+static CF_THREAD_FN(consumerFn)
 {
     Data *d = args;
     Queue *queue = d->queue;

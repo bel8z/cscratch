@@ -40,21 +40,21 @@ struct GuiData
 
 //=== Type conversions ===//
 
-CF_STATIC_ASSERT(sizeof(Vec2) == sizeof(ImVec2), "Vec2 not compatible with ImVec2");
+CF_STATIC_ASSERT(sizeof(Vec2f) == sizeof(ImVec2), "Vec2f not compatible with ImVec2");
 CF_STATIC_ASSERT(sizeof(LinearColor) == sizeof(ImVec4), "LinearColor not compatible with ImVec4");
 
 //=== Memory management ===//
 
-CF_INTERNAL void *
-guiAlloc(Usize size, void *state)
+static void *
+guiAlloc(Size size, void *state)
 {
     // TODO (Matteo): Check for misaligned access
 
     CF_ASSERT_NOT_NULL(state);
 
     GuiData *data = (GuiData *)state;
-    Usize total_size = size + sizeof(Usize);
-    Usize *buf = (Usize *)memAlloc(data->allocator, total_size);
+    Size total_size = size + sizeof(Size);
+    Size *buf = (Size *)memAlloc(data->allocator, total_size);
 
     if (buf)
     {
@@ -66,7 +66,7 @@ guiAlloc(Usize size, void *state)
     return buf;
 }
 
-CF_INTERNAL void
+static void
 guiFree(void *mem, void *state)
 {
     CF_ASSERT_NOT_NULL(state);
@@ -74,8 +74,8 @@ guiFree(void *mem, void *state)
     if (mem)
     {
         GuiData *data = (GuiData *)state;
-        Usize *buf = (Usize *)mem;
-        Usize total_size = *(--buf);
+        Size *buf = (Size *)mem;
+        Size total_size = *(--buf);
 
         CF_ASSERT_NOT_NULL(total_size);
 
@@ -85,7 +85,7 @@ guiFree(void *mem, void *state)
     }
 }
 
-CF_INTERNAL GuiData &
+static GuiData &
 guiData()
 {
     return *(GuiData *)ImGui::GetIO().UserData;
@@ -94,7 +94,7 @@ guiData()
 //=== Initialization ===//
 
 GuiContext *
-guiInit(GuiInitInfo *gui, F32 dpi_scale)
+guiInit(GuiInitInfo *gui, float dpi_scale)
 {
     CF_ASSERT_NOT_NULL(gui);
 
@@ -206,13 +206,13 @@ guiUpdateViewports(bool render)
 
 // TODO (Matteo): Handle SRGB colorspace correctly
 
-CF_INTERNAL ImVec4
-gui_Color(F32 r, F32 g, F32 b, F32 a)
+static ImVec4
+gui_Color(float r, float g, float b, float a)
 {
     return {r, g, b, a};
 }
 
-CF_INTERNAL ImVec4
+static ImVec4
 gui_InvertColor(ImVec4 in)
 {
     // NOTE (Matteo): Here I should apply a linear->HSV->linear transformation
@@ -236,7 +236,7 @@ gui_InvertColor(ImVec4 in)
     }
 
     Srgb32 const srgb_out = colorHsvToSrgb(hsv);
-    F32 const f = 1.0f / 255.0f;
+    float const f = 1.0f / 255.0f;
 
     return {
         ImClamp(SRGB32_R(srgb_out) * f, 0.0f, 1.0f),
@@ -246,7 +246,7 @@ gui_InvertColor(ImVec4 in)
     };
 }
 
-CF_INTERNAL ImVec4
+static ImVec4
 gui_GammaDecode(ImVec4 color)
 {
     color.x = colorSrgbDecode(color.x);
@@ -255,7 +255,7 @@ gui_GammaDecode(ImVec4 color)
     return color;
 }
 
-CF_INTERNAL ImVec4
+static ImVec4
 gui_GammaEncode(ImVec4 color)
 {
     color.x = colorSrgbEncode(color.x);
@@ -641,7 +641,7 @@ guiSetTheme(GuiTheme theme)
     }
 }
 
-CF_INTERNAL void
+static void
 gui_SetSizes(ImGuiStyle *style)
 {
     // Main
@@ -668,7 +668,7 @@ gui_SetSizes(ImGuiStyle *style)
 }
 
 void
-guiSetupStyle(GuiTheme theme, F32 dpi_scale)
+guiSetupStyle(GuiTheme theme, float dpi_scale)
 {
     ImGuiStyle &style = ImGui::GetStyle();
 
@@ -792,7 +792,7 @@ guiFonts(void)
 }
 
 ImFont *
-guiLoadFont(ImFontAtlas *fonts, Cstr file_name, F32 font_size)
+guiLoadFont(ImFontAtlas *fonts, Cstr file_name, float font_size)
 {
     return fonts->AddFontFromFileTTF(file_name, font_size, nullptr, fonts->GetGlyphRangesDefault());
 }
@@ -805,8 +805,8 @@ guiLoadDefaultFont(ImFontAtlas *fonts)
 
 //=== Windows ===//
 
-CF_INTERNAL U32
-gui_DockSplit(GuiDockLayout *layout, ImGuiDir dir, F32 size_ratio)
+static U32
+gui_DockSplit(GuiDockLayout *layout, ImGuiDir dir, float size_ratio)
 {
     U32 id = U32_MAX;
     if (layout->open)
@@ -816,7 +816,7 @@ gui_DockSplit(GuiDockLayout *layout, ImGuiDir dir, F32 size_ratio)
     return id;
 }
 
-CF_INTERNAL U32
+static U32
 gui_DockSpaceOnMainViewport(ImGuiDockNodeFlags dock_flags)
 {
     ImGuiViewport const *viewport = ImGui::GetMainViewport();
@@ -864,25 +864,25 @@ guiDockLayout(void)
 }
 
 U32
-guiDockSplitUp(GuiDockLayout *layout, F32 size_ratio)
+guiDockSplitUp(GuiDockLayout *layout, float size_ratio)
 {
     return gui_DockSplit(layout, ImGuiDir_Up, size_ratio);
 }
 
 U32
-guiDockSplitDown(GuiDockLayout *layout, F32 size_ratio)
+guiDockSplitDown(GuiDockLayout *layout, float size_ratio)
 {
     return gui_DockSplit(layout, ImGuiDir_Down, size_ratio);
 }
 
 U32
-guiDockSplitLeft(GuiDockLayout *layout, F32 size_ratio)
+guiDockSplitLeft(GuiDockLayout *layout, float size_ratio)
 {
     return gui_DockSplit(layout, ImGuiDir_Left, size_ratio);
 }
 
 U32
-guiDockSplitRight(GuiDockLayout *layout, F32 size_ratio)
+guiDockSplitRight(GuiDockLayout *layout, float size_ratio)
 {
     return gui_DockSplit(layout, ImGuiDir_Right, size_ratio);
 }
@@ -900,7 +900,7 @@ guiDockWindow(GuiDockLayout *layout, Cstr name, U32 dock_id)
 }
 
 void
-guiSetNextWindowSize(Vec2 size, GuiCond cond)
+guiSetNextWindowSize(Vec2f size, GuiCond cond)
 {
     ImGui::SetNextWindowSize(size, cond);
 }
@@ -1014,8 +1014,8 @@ guiCanvasBegin(GuiCanvas *canvas)
     else
     {
         canvas->size.x = canvas->size.y = 0;
-        canvas->p0 = Vec2{0};
-        canvas->p1 = Vec2{0};
+        canvas->p0 = Vec2f{0};
+        canvas->p1 = Vec2f{0};
     }
 
     canvas->draw_list = ImGui::GetWindowDrawList();
@@ -1031,60 +1031,60 @@ guiCanvasEnd(GuiCanvas *canvas)
 }
 
 void
-guiCanvasDrawLine(GuiCanvas *canvas, Vec2 p0, Vec2 p1)
+guiCanvasDrawLine(GuiCanvas *canvas, Vec2f p0, Vec2f p1)
 {
     canvas->draw_list->AddLine(p0, p1, canvas->stroke_color, canvas->stroke_thick);
 }
 
 void
-guiCanvasDrawPolyline(GuiCanvas *canvas, Vec2 points[], Usize count)
+guiCanvasDrawPolyline(GuiCanvas *canvas, Vec2f points[], Size count)
 {
     canvas->draw_list->AddPolyline((ImVec2 *)points, (I32)count, canvas->stroke_color, 0,
                                    canvas->stroke_thick);
 }
 
 void
-guiCanvasDrawRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1)
+guiCanvasDrawRect(GuiCanvas *canvas, Vec2f p0, Vec2f p1)
 {
     canvas->draw_list->AddRect(p0, p1, canvas->stroke_color, 0.0f, 0, canvas->stroke_thick);
 }
 
 void
-guiCanvasFillRect(GuiCanvas *canvas, Vec2 p0, Vec2 p1)
+guiCanvasFillRect(GuiCanvas *canvas, Vec2f p0, Vec2f p1)
 {
     canvas->draw_list->AddRectFilled(p0, p1, canvas->fill_color, 0.0f, 0);
 }
 
 void
-guiCanvasDrawCircle(GuiCanvas *canvas, Vec2 center, F32 radius)
+guiCanvasDrawCircle(GuiCanvas *canvas, Vec2f center, float radius)
 {
     canvas->draw_list->AddCircle(center, radius, canvas->stroke_color, 0, canvas->stroke_thick);
 }
 
 void
-guiCanvasFillCircle(GuiCanvas *canvas, Vec2 center, F32 radius)
+guiCanvasFillCircle(GuiCanvas *canvas, Vec2f center, float radius)
 {
     canvas->draw_list->AddCircleFilled(center, radius, canvas->fill_color, 0);
 }
 
 void
-guiCanvasDrawText(GuiCanvas *canvas, Str text, Vec2 pos, Srgb32 color)
+guiCanvasDrawText(GuiCanvas *canvas, Str text, Vec2f pos, Srgb32 color)
 {
     canvas->draw_list->AddText(pos, color, text.ptr, text.ptr + text.len);
 }
 
 void
-guiCanvasDrawImage(GuiCanvas *canvas, U32 texture, //
-                   Vec2 image_min, Vec2 image_max, //
-                   Vec2 uv_min, Vec2 uv_max)
+guiCanvasDrawImage(GuiCanvas *canvas, U32 texture,   //
+                   Vec2f image_min, Vec2f image_max, //
+                   Vec2f uv_min, Vec2f uv_max)
 {
-    canvas->draw_list->AddImage((ImTextureID)(Iptr)texture, image_min, image_max, uv_min, uv_max,
+    canvas->draw_list->AddImage((ImTextureID)(Size)texture, image_min, image_max, uv_min, uv_max,
                                 ImGui::GetColorU32(SRGB32_WHITE));
 }
 
 //=== IO ===//
 
-F32
+float
 guiGetFramerate(void)
 {
     return ImGui::GetIO().Framerate;
@@ -1121,32 +1121,32 @@ guiKeyShift(void)
     return ImGui::GetIO().KeyShift;
 }
 
-Vec2
+Vec2f
 guiGetMousePos(void)
 {
     return ImGui::GetMousePos();
 }
 
-Vec2
+Vec2f
 guiGetMouseDelta(void)
 {
     return ImGui::GetIO().MouseDelta;
 }
 
-F32
+float
 guiGetMouseWheel(void)
 {
     return ImGui::GetIO().MouseWheel;
 }
 
-F32
+float
 guiGetMouseDownDuration(GuiMouseButton button)
 {
     return ImGui::GetIO().MouseDownDuration[button];
 }
 
 bool
-guiGetMouseDragging(GuiMouseButton button, Vec2 *out_delta)
+guiGetMouseDragging(GuiMouseButton button, Vec2f *out_delta)
 {
     if (ImGui::IsMouseDragging(button, -1.0f))
     {
@@ -1188,7 +1188,7 @@ guiClosePopup(void)
 
 //=== Widgets ===//
 
-CF_API Vec2
+CF_API Vec2f
 guiGetAvailableSize(void)
 {
     return ImGui::GetContentRegionAvail();
@@ -1276,14 +1276,14 @@ guiCheckbox(Cstr label, bool *checked)
 }
 
 bool
-guiSliderF32(Cstr label, F32 *value, F32 min_value, F32 max_value)
+guiSliderF32(Cstr label, float *value, float min_value, float max_value)
 {
     return ImGui::SliderFloat(label, value, min_value, max_value, "%.3f",
                               ImGuiSliderFlags_AlwaysClamp);
 }
 
 bool
-guiSliderF64(Cstr label, F64 *value, F64 min_value, F64 max_value)
+guiSliderF64(Cstr label, double *value, double min_value, double max_value)
 {
     return ImGui::SliderScalar(label, ImGuiDataType_Double, value, //
                                (void const *)(&min_value),         //
@@ -1292,7 +1292,7 @@ guiSliderF64(Cstr label, F64 *value, F64 min_value, F64 max_value)
 }
 
 CF_API bool
-guiInput(Cstr label, F32 *value, GuiInputInfo *info)
+guiInput(Cstr label, float *value, GuiInputInfo *info)
 {
     return ImGui::InputFloat(label, value, info->step, info->step_fast,
                              info->format ? info->format : "%.3f");
@@ -1344,13 +1344,13 @@ guiMenuItem(Cstr label, bool *p_selected)
 }
 
 bool
-guiCombo(Cstr label, Cstr preview, Cstr const *values, Usize count, Usize *selected_index)
+guiCombo(Cstr label, Cstr preview, Cstr const *values, Size count, Size *selected_index)
 {
     bool changed = false;
 
     if (ImGui::BeginCombo(label, preview, 0))
     {
-        for (Usize i = 0; i < count; ++i)
+        for (Size i = 0; i < count; ++i)
         {
             bool const selected = (i == *selected_index);
             if (ImGui::Selectable(values[i], selected) && !selected)
@@ -1382,12 +1382,12 @@ guiColorEdit(Cstr label, Srgb32 *color)
     CF_DIAGNOSTIC_POP()
 
     bool color_changed = false;
-    Usize color_index = USIZE_MAX;
+    Size color_index = SIZE_MAX;
     Cstr color_name = nullptr;
     Char8 label_buffer[1024];
 
     // Test if the color is a known named one
-    for (Usize i = 0; i < CF_ARRAY_SIZE(colors) && color_index == USIZE_MAX; ++i)
+    for (Size i = 0; i < CF_ARRAY_SIZE(colors) && color_index == SIZE_MAX; ++i)
     {
         if (colors[i] == *color)
         {
@@ -1490,49 +1490,49 @@ guiPlotSetAxis(GuiAxis y)
 }
 
 void
-guiPlotLineF32(Cstr id, F32 const *x, F32 const *y, Usize count, Usize offset, Usize stride)
+guiPlotLineF32(Cstr id, float const *x, float const *y, Size count, Size offset, Size stride)
 {
     ImPlot::PlotLine(id, x, y, count, 0, offset, stride * sizeof(*x));
 }
 
 void
-guiPlotLineF64(Cstr id, F64 const *x, F64 const *y, Usize count, Usize offset, Usize stride)
+guiPlotLineF64(Cstr id, double const *x, double const *y, Size count, Size offset, Size stride)
 {
     ImPlot::PlotLine(id, x, y, count, 0, offset, stride * sizeof(*x));
 }
 
 void
-guiPlotLineVec2(Cstr id, Vec2 const *v, Usize count, Usize offset)
+guiPlotLineVec2(Cstr id, Vec2f const *v, Size count, Size offset)
 {
     ImPlot::PlotLine(id, &v[0].x, &v[0].y, count, 0, offset, sizeof(*v));
 }
 
 void
-guiPlotLineDVec2(Cstr id, DVec2 const *v, Usize count, Usize offset)
+guiPlotLineDVec2(Cstr id, Vec2d const *v, Size count, Size offset)
 {
     ImPlot::PlotLine(id, &v[0].x, &v[0].y, count, 0, offset, sizeof(*v));
 }
 
 void
-guiPlotScatterF32(Cstr id, F32 const *x, F32 const *y, Usize count, Usize offset, Usize stride)
+guiPlotScatterF32(Cstr id, float const *x, float const *y, Size count, Size offset, Size stride)
 {
     ImPlot::PlotScatter(id, x, y, count, 0, offset, stride * sizeof(*x));
 }
 
 void
-guiPlotScatterF64(Cstr id, F64 const *x, F64 const *y, Usize count, Usize offset, Usize stride)
+guiPlotScatterF64(Cstr id, double const *x, double const *y, Size count, Size offset, Size stride)
 {
     ImPlot::PlotScatter(id, x, y, count, 0, offset, stride * sizeof(*x));
 }
 
 void
-guiPlotScatterVec2(Cstr id, Vec2 const *v, Usize count, Usize offset)
+guiPlotScatterVec2(Cstr id, Vec2f const *v, Size count, Size offset)
 {
     ImPlot::PlotScatter(id, &v[0].x, &v[0].y, count, 0, offset, sizeof(*v));
 }
 
 void
-guiPlotScatterDVec2(Cstr id, DVec2 const *v, Usize count, Usize offset)
+guiPlotScatterDVec2(Cstr id, Vec2d const *v, Size count, Size offset)
 {
     ImPlot::PlotScatter(id, &v[0].x, &v[0].y, count, 0, offset, sizeof(*v));
 }

@@ -36,14 +36,15 @@ struct AppState
     Duration log_time;
 };
 
-CF_GLOBAL CfLog *g_log = NULL;
-CF_GLOBAL Clock *g_clock = NULL;
+static CfLog *g_log = NULL;
+static Clock *g_clock = NULL;
 
 #define appLog(...) (g_log ? (cfLogAppendF(g_log, __VA_ARGS__), 1) : 0)
 
 //------------------------------------------------------------------------------
 
-APP_API APP_CREATE_FN(appCreate)
+APP_API
+APP_CREATE_FN(appCreate)
 {
     CF_UNUSED(cmd_line);
 
@@ -69,14 +70,16 @@ APP_API APP_CREATE_FN(appCreate)
     return app;
 }
 
-APP_API APP_FN(appDestroy)
+APP_API
+APP_FN(appDestroy)
 {
     appUnload(app);
     cfLogDestroy(&app->log, app->plat->vmem);
     memFreeStruct(app->alloc, app);
 }
 
-APP_API APP_FN(appLoad)
+APP_API
+APP_FN(appLoad)
 {
     CF_ASSERT_NOT_NULL(app);
     CF_ASSERT_NOT_NULL(app->plat);
@@ -101,7 +104,8 @@ APP_API APP_FN(appLoad)
     }
 }
 
-APP_API APP_FN(appUnload)
+APP_API
+APP_FN(appUnload)
 {
     CF_ASSERT_NOT_NULL(app);
     g_log = NULL;
@@ -111,16 +115,17 @@ APP_API APP_FN(appUnload)
 
 typedef struct QueryResult
 {
-    F32 x0, x1, distance;
+    float x0, x1, distance;
 } QueryResult;
 
-#define MAX_ITER(Type) F_DIGITS(Type) - F_MIN_EXP(Type)
+#define FLT_MAX_ITER FLT_MANT_DIG - FLT_MIN_EXP
+#define DBL_MAX_ITER DBL_MANT_DIG - DBL_MIN_EXP
 
-CF_INTERNAL F32
-RobustLength(F32 x, F32 y)
+static float
+RobustLength(float x, float y)
 {
-    F32 abs_x = mAbs(x);
-    F32 abs_y = mAbs(y);
+    float abs_x = mAbs(x);
+    float abs_y = mAbs(y);
 
     if (abs_x > abs_y) return abs_x * mSqrt(1 + mSquare(y / x));
     if (abs_x < abs_y) return abs_y * mSqrt(1 + mSquare(x / y));
@@ -128,16 +133,16 @@ RobustLength(F32 x, F32 y)
     return mSqrt(x * x + y * y);
 }
 
-CF_INTERNAL F32
-GetRoot(F32 r0, F32 z0, F32 z1, F32 g)
+static float
+GetRoot(float r0, float z0, float z1, float g)
 {
-    F32 n0 = r0 * z0;
+    float n0 = r0 * z0;
 
-    F32 s0 = z1 - 1;
-    F32 s1 = (g < 0 ? 0 : RobustLength(n0, z1) - 1);
-    F32 s = 0;
+    float s0 = z1 - 1;
+    float s1 = (g < 0 ? 0 : RobustLength(n0, z1) - 1);
+    float s = 0;
 
-    CF_STATIC_ASSERT(MAX_ITER(F32) > 0, "Wrong number of iterations");
+    CF_STATIC_ASSERT(FLT_MAX_ITER > 0, "Wrong number of iterations");
 
     U32 iter = 0;
 
@@ -147,8 +152,8 @@ GetRoot(F32 r0, F32 z0, F32 z1, F32 g)
 
         if (s == s0 || s == s1) break;
 
-        F32 ratio0 = n0 / (s + r0);
-        F32 ratio1 = z1 / (s + 1);
+        float ratio0 = n0 / (s + r0);
+        float ratio1 = z1 / (s + 1);
 
         g = mSquare(ratio0) + mSquare(ratio1) - 1;
 
@@ -165,7 +170,7 @@ GetRoot(F32 r0, F32 z0, F32 z1, F32 g)
             break;
         }
 
-        if (++iter == MAX_ITER(F32))
+        if (++iter == FLT_MAX_ITER)
         {
             appLog("GetRoot reached max # of iterations: %u\n", iter);
             break;
@@ -177,12 +182,12 @@ GetRoot(F32 r0, F32 z0, F32 z1, F32 g)
     return s;
 }
 
-Vec3
-DistancePointEllipse(F32 e0, F32 e1, Vec2 p)
+Vec3f
+DistancePointEllipse(float e0, float e1, Vec2f p)
 {
-    Vec3 result = {0};
+    Vec3f result = {0};
 
-    Vec2 p_ori = p;
+    Vec2f p_ori = p;
 
     p.x = mAbs(p.x);
     p.y = mAbs(p.y);
@@ -191,14 +196,14 @@ DistancePointEllipse(F32 e0, F32 e1, Vec2 p)
     {
         if (p.x > 0)
         {
-            F32 z0 = p.x / e0;
-            F32 z1 = p.y / e1;
-            F32 g = mSquare(z0) + mSquare(z1) - 1;
+            float z0 = p.x / e0;
+            float z1 = p.y / e1;
+            float g = mSquare(z0) + mSquare(z1) - 1;
 
             if (g != 0)
             {
-                F32 r0 = mSquare(e0 / e1);
-                F32 sbar = GetRoot(r0, z0, z1, g);
+                float r0 = mSquare(e0 / e1);
+                float sbar = GetRoot(r0, z0, z1, g);
                 result.x = r0 * p.x / (sbar + r0);
                 result.y = p.y / (sbar + 1);
                 result.z = mSqrt(mSquare(result.x - p.x) + mSquare(result.y - p.y));
@@ -219,12 +224,12 @@ DistancePointEllipse(F32 e0, F32 e1, Vec2 p)
     }
     else //  p.y == 0
     {
-        F32 numer0 = e0 * p.x;
-        F32 denom0 = mSquare(e0) - mSquare(e1);
+        float numer0 = e0 * p.x;
+        float denom0 = mSquare(e0) - mSquare(e1);
 
         if (numer0 < denom0)
         {
-            F32 xde0 = numer0 / denom0;
+            float xde0 = numer0 / denom0;
             result.x = e0 * xde0;
             result.y = e1 * mSqrt(1 - xde0 * xde0);
             result.z = mSqrt(mSquare(result.x - p.x) + mSquare(result.y - p.y));
@@ -243,56 +248,56 @@ DistancePointEllipse(F32 e0, F32 e1, Vec2 p)
     return result;
 }
 
-CF_INTERNAL Vec2
-rotateFwd(Vec2 p, F32 cos, F32 sin)
+static Vec2f
+rotateFwd(Vec2f p, float cos, float sin)
 {
-    Vec2 r = {0};
+    Vec2f r = {0};
     r.x = p.x * cos - p.y * sin;
     r.y = p.x * sin + p.y * cos;
     return r;
 }
 
-CF_INTERNAL Vec2
-rotateBwd(Vec2 p, F32 cos, F32 sin)
+static Vec2f
+rotateBwd(Vec2f p, float cos, float sin)
 {
-    Vec2 r = {0};
+    Vec2f r = {0};
     r.x = p.x * cos + p.y * sin;
     r.y = p.y * cos - p.x * sin;
     return r;
 }
 
-CF_INTERNAL F32
-normalize(F32 value, F32 range, F32 offset)
+static float
+normalize(float value, float range, float offset)
 {
     return value - range * mFloor((value + offset) / range);
 }
 
 void
-fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
+fxEllipse(GuiCanvas *canvas, Vec4f mouse_data, double time)
 {
-    static F32 const pi2 = 2 * M_PI32;
+    static float const pi2 = 2 * M_PI32;
 
     // Center of the view
-    Vec2 const center = {.x = (canvas->p0.x + canvas->p1.x) / 2, //
-                         .y = (canvas->p0.y + canvas->p1.y) / 2};
+    Vec2f const center = {.x = (canvas->p0.x + canvas->p1.x) / 2, //
+                          .y = (canvas->p0.y + canvas->p1.y) / 2};
 
     // Rotation of the ellipse
-    F32 const rot = normalize(0.1f * pi2 * (F32)time, M_PI32, 0);
-    F32 const cosw = mCos(rot);
-    F32 const sinw = mSin(rot);
+    float const rot = normalize(0.1f * pi2 * (float)time, M_PI32, 0);
+    float const cosw = mCos(rot);
+    float const sinw = mSin(rot);
 
     // Draw the ellipse as a series of segments
-    Vec2 points[1024] = {0};
-    F32 const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
+    Vec2f points[1024] = {0};
+    float const rad_step = 2 * pi2 / (CF_ARRAY_SIZE(points) - 1);
 
-    F32 const extent = cfMin(canvas->size.x, canvas->size.y);
-    F32 const a = 3 * extent / 8;
-    F32 const b = 3 * a / 5;
-    for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
+    float const extent = cfMin(canvas->size.x, canvas->size.y);
+    float const a = 3 * extent / 8;
+    float const b = 3 * a / 5;
+    for (Size i = 0; i < CF_ARRAY_SIZE(points); ++i)
     {
-        F32 rad = (F32)i * rad_step;
-        F32 cost = mCos(rad);
-        F32 sint = mSin(rad);
+        float rad = (float)i * rad_step;
+        float cost = mCos(rad);
+        float sint = mSin(rad);
 
         points[i].x = center.x + a * cost * cosw - b * sint * sinw;
         points[i].y = center.y + a * cost * sinw + b * sint * cosw;
@@ -302,10 +307,10 @@ fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     guiCanvasDrawPolyline(canvas, points, CF_ARRAY_SIZE(points));
 
     // Draw mouse position and nearest point on the ellipse
-    Vec2 query_pt = vecSub(mouse_data.xy, center);
+    Vec2f query_pt = vecSub(mouse_data.xy, center);
     query_pt = rotateBwd(query_pt, cosw, sinw);
 
-    Vec2 query_res = DistancePointEllipse(a, b, query_pt).xy;
+    Vec2f query_res = DistancePointEllipse(a, b, query_pt).xy;
     query_res = rotateFwd(query_res, cosw, sinw);
 
     canvas->stroke_color = canvas->fill_color = SRGB32_ORANGE_RED;
@@ -317,29 +322,29 @@ fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     guiCanvasDrawLine(canvas, mouse_data.xy, vecAdd(query_res, center));
 
     // Draw intersection on the Y axis
-    F32 sinw2 = sinw * sinw;
-    F32 cosw2 = cosw * cosw;
-    Vec2 itx = {.x = 0, .y = a * b * mRsqrt(a * a * cosw2 + b * b * sinw2)};
+    float sinw2 = sinw * sinw;
+    float cosw2 = cosw * cosw;
+    Vec2f itx = {.x = 0, .y = a * b * mRsqrt(a * a * cosw2 + b * b * sinw2)};
 
     canvas->stroke_color = SRGB32_CYAN;
-    guiCanvasDrawLine(canvas,                                   //
-                      (Vec2){.x = center.x, .y = canvas->p0.y}, //
-                      (Vec2){.x = center.x, .y = canvas->p1.y});
+    guiCanvasDrawLine(canvas,                                    //
+                      (Vec2f){.x = center.x, .y = canvas->p0.y}, //
+                      (Vec2f){.x = center.x, .y = canvas->p1.y});
 
     canvas->stroke_color = SRGB32_ORANGE_RED;
-    guiCanvasDrawLine(canvas, center, (Vec2){.x = center.x + itx.x, .y = center.y + itx.y});
+    guiCanvasDrawLine(canvas, center, (Vec2f){.x = center.x + itx.x, .y = center.y + itx.y});
 
     // Place a circle on the ellipse
-    F32 const circ_rad = b / 3;
-    Vec2 circ_center = {.x = 0, .y = -canvas->size.y * 2};
+    float const circ_rad = b / 3;
+    Vec2f circ_center = {.x = 0, .y = -canvas->size.y * 2};
 
     query_res = DistancePointEllipse(a, b, rotateBwd(circ_center, cosw, sinw)).xy;
     query_res = rotateFwd(query_res, cosw, sinw);
 
-    Vec2 circ_pt = vecMul(vecNormalize(vecSub(query_res, circ_center)), circ_rad);
-    Vec2 delta = vecSub2(query_res, circ_pt);
+    Vec2f circ_pt = vecMul(vecNormalize(vecSub(query_res, circ_center)), circ_rad);
+    Vec2f delta = vecSub2f(query_res, circ_pt);
 
-    circ_center = vecAdd2(circ_center, delta);
+    circ_center = vecAdd2f(circ_center, delta);
 
     canvas->stroke_color = SRGB32_YELLOW;
     guiCanvasDrawCircle(canvas, vecAdd(circ_center, center), circ_rad);
@@ -349,34 +354,34 @@ fxEllipse(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
 }
 
 void
-fxSine(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
+fxSine(GuiCanvas *canvas, Vec4f mouse_data, double time)
 {
     // 1 Hz sinusoid, YAY!
 
-    static Vec2 points[1024] = {0};
+    static Vec2f points[1024] = {0};
 
-    static F32 const pi2 = 2 * M_PI32;
-    static F32 const rad_step = 4 * M_PI32 / (CF_ARRAY_SIZE(points) - 1);
+    static float const pi2 = 2 * M_PI32;
+    static float const rad_step = 4 * M_PI32 / (CF_ARRAY_SIZE(points) - 1);
 
-    F32 const amp = cfMin(canvas->size.x, canvas->size.y) / 4;
+    float const amp = cfMin(canvas->size.x, canvas->size.y) / 4;
 
-    F32 const x_offset = 2 * amp;
-    F32 const x_space = canvas->size.x - x_offset;
-    F32 const x_step = x_space / (CF_ARRAY_SIZE(points) - 1);
-    F32 const y_offset = canvas->size.y / 2;
+    float const x_offset = 2 * amp;
+    float const x_space = canvas->size.x - x_offset;
+    float const x_step = x_space / (CF_ARRAY_SIZE(points) - 1);
+    float const y_offset = canvas->size.y / 2;
 
-    F32 const phase = pi2 * (F32)time;
+    float const phase = pi2 * (float)time;
 
-    Vec2 const center = {.x = canvas->p0.x + amp, .y = canvas->p0.y + y_offset};
-    Vec2 polar = {0};
+    Vec2f const center = {.x = canvas->p0.x + amp, .y = canvas->p0.y + y_offset};
+    Vec2f polar = {0};
 
-    for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
+    for (Size i = 0; i < CF_ARRAY_SIZE(points); ++i)
     {
-        F32 rad = (F32)i * rad_step + phase;
-        F32 sin = amp * mSin(rad);
-        F32 cos = amp * mCos(rad);
+        float rad = (float)i * rad_step + phase;
+        float sin = amp * mSin(rad);
+        float cos = amp * mCos(rad);
 
-        points[i].x = canvas->p0.x + x_offset + x_step * (F32)i;
+        points[i].x = canvas->p0.x + x_offset + x_step * (float)i;
         points[i].y = canvas->p0.y + y_offset + sin;
 
         polar.x = center.x + cos;
@@ -389,28 +394,28 @@ fxSine(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     guiCanvasDrawLine(canvas, polar, points[0]);
     guiCanvasDrawPolyline(canvas, points, CF_ARRAY_SIZE(points));
 
-    Vec2 p0 = canvas->p0;
-    Vec2 p1 = canvas->p1;
+    Vec2f p0 = canvas->p0;
+    Vec2f p1 = canvas->p1;
 
     canvas->stroke_color = SRGB32_PURPLE;
     guiCanvasDrawLine(canvas, //
-                      (Vec2){.x = p0.x, .y = p0.y + y_offset},
-                      (Vec2){.x = p1.x, .y = p0.y + y_offset});
+                      (Vec2f){.x = p0.x, .y = p0.y + y_offset},
+                      (Vec2f){.x = p1.x, .y = p0.y + y_offset});
 
-    guiCanvasDrawLine(canvas,                             //
-                      (Vec2){.x = p0.x + amp, .y = p0.y}, //
-                      (Vec2){.x = p0.x + amp, .y = p1.y});
+    guiCanvasDrawLine(canvas,                              //
+                      (Vec2f){.x = p0.x + amp, .y = p0.y}, //
+                      (Vec2f){.x = p0.x + amp, .y = p1.y});
 
     guiCanvasDrawLine(canvas, //
-                      (Vec2){.x = p0.x + 2 * amp, .y = p0.y},
-                      (Vec2){.x = p0.x + 2 * amp, .y = p1.y});
+                      (Vec2f){.x = p0.x + 2 * amp, .y = p0.y},
+                      (Vec2f){.x = p0.x + 2 * amp, .y = p1.y});
 
     canvas->fill_color = SRGB32_ORANGE_RED;
     guiCanvasFillCircle(canvas, mouse_data.xy, 5.0f);
 }
 
-CF_INTERNAL void
-fxDraw(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
+static void
+fxDraw(GuiCanvas *canvas, Vec4f mouse_data, double time)
 {
     canvas->stroke_color = SRGB32_RED;
     guiCanvasDrawRect(canvas, canvas->p0, canvas->p1);
@@ -423,16 +428,16 @@ fxDraw(GuiCanvas *canvas, Vec4 mouse_data, F64 time)
     fxEllipse(canvas, mouse_data, time);
 }
 
-CF_INTERNAL void
+static void
 fxWindow(void)
 {
-    guiSetNextWindowSize((Vec2){{320, 180}}, GuiCond_Once);
+    guiSetNextWindowSize((Vec2f){{320, 180}}, GuiCond_Once);
     guiBegin("FX", NULL);
 
     GuiCanvas canvas = {0};
     guiCanvasBegin(&canvas);
 
-    Vec4 mouse_data;
+    Vec4f mouse_data;
     mouse_data.xy = guiGetMousePos();
     mouse_data.z = guiGetMouseDownDuration(GuiMouseButton_Left);
     mouse_data.w = guiGetMouseDownDuration(GuiMouseButton_Right);
@@ -445,24 +450,24 @@ fxWindow(void)
     guiEnd();
 }
 
-CF_INTERNAL void
-fxDrawArc(GuiCanvas *canvas, Vec2 center, Vec2 p0, Vec2 p1, F32 radius, Srgb32 color)
+static void
+fxDrawArc(GuiCanvas *canvas, Vec2f center, Vec2f p0, Vec2f p1, float radius, Srgb32 color)
 {
-    Vec2 points[1024];
+    Vec2f points[1024];
 
-    F32 dx = p1.x - p0.x;
-    F32 dy = p1.y - p0.y;
-    F32 chord = mSqrt(dx * dx + dy * dy);
+    float dx = p1.x - p0.x;
+    float dy = p1.y - p0.y;
+    float chord = mSqrt(dx * dx + dy * dy);
 
-    F32 span = 2 * mAsin(chord / (2 * mAbs(radius)));
+    float span = 2 * mAsin(chord / (2 * mAbs(radius)));
 
-    F32 step = mCopySign(span / (CF_ARRAY_SIZE(points) - 1), radius);
-    F32 cos = mCos(step);
-    F32 sin = mSin(step);
+    float step = mCopySign(span / (CF_ARRAY_SIZE(points) - 1), radius);
+    float cos = mCos(step);
+    float sin = mSin(step);
 
-    Vec2 v0 = vecSub(p0, center);
+    Vec2f v0 = vecSub(p0, center);
 
-    for (Usize i = 0; i < CF_ARRAY_SIZE(points); ++i)
+    for (Size i = 0; i < CF_ARRAY_SIZE(points); ++i)
     {
         points[i] = vecAdd(v0, center);
         // points[i].x = center.x + v0.x;
@@ -481,16 +486,16 @@ fxTangentCircles(void)
 {
 #define deg2rad (M_PI32 / 180.0f)
 
-    static F32 const cutter_start = deg2rad * 270.0f;
-    static F32 const cutter_end = deg2rad * 70.0f;
+    static float const cutter_start = deg2rad * 270.0f;
+    static float const cutter_end = deg2rad * 70.0f;
 
-    static F32 lens_radius_parm = 50;
-    static F32 depth = 1;
+    static float lens_radius_parm = 50;
+    static float depth = 1;
 
-    F32 crib = 60;
-    F32 cutter_radius = 1;
+    float crib = 60;
+    float cutter_radius = 1;
 
-    guiSetNextWindowSize((Vec2){.x = 320, .y = 180}, GuiCond_Once);
+    guiSetNextWindowSize((Vec2f){.x = 320, .y = 180}, GuiCond_Once);
     guiBegin("Tangent circles", NULL);
 
     guiSliderF32("Radius", &lens_radius_parm, 50, 1000);
@@ -500,34 +505,34 @@ fxTangentCircles(void)
     GuiCanvas canvas = {0};
     guiCanvasBegin(&canvas);
 
-    F32 scale = canvas.size.y / (crib / 2 + 5.0f);
+    float scale = canvas.size.y / (crib / 2 + 5.0f);
 
-    F32 lens_radius = lens_radius_parm * scale;
+    float lens_radius = lens_radius_parm * scale;
     crib *= scale;
     cutter_radius *= scale;
 
-    Vec2 lens_center = {.x = canvas.p0.x + canvas.size.x / 2 + lens_radius, //
-                        .y = canvas.p1.y};
+    Vec2f lens_center = {.x = canvas.p0.x + canvas.size.x / 2 + lens_radius, //
+                         .y = canvas.p1.y};
 
-    F32 crib_x = mSqrt(lens_radius * lens_radius - crib * crib / 4);
-    Vec2 lens_start = {.x = lens_center.x - crib_x, .y = lens_center.y + crib / 2};
-    Vec2 lens_end = {.x = lens_center.x - crib_x, .y = lens_center.y - crib / 2};
-    F32 lens_angle = mAtan2(crib / 2, crib_x);
+    float crib_x = mSqrt(lens_radius * lens_radius - crib * crib / 4);
+    Vec2f lens_start = {.x = lens_center.x - crib_x, .y = lens_center.y + crib / 2};
+    Vec2f lens_end = {.x = lens_center.x - crib_x, .y = lens_center.y - crib / 2};
+    float lens_angle = mAtan2(crib / 2, crib_x);
 
     fxDrawArc(&canvas, lens_center, lens_start, lens_end, lens_radius, SRGB32_FUCHSIA);
 
-    Vec2 cutter_center = {.x = lens_end.x - mCos(lens_angle) * cutter_radius,
-                          .y = lens_end.y - mSin(lens_angle) * cutter_radius};
+    Vec2f cutter_center = {.x = lens_end.x - mCos(lens_angle) * cutter_radius,
+                           .y = lens_end.y - mSin(lens_angle) * cutter_radius};
 
-    F32 delta_angle = lens_angle - cutter_end;
-    F32 dcos = mCos(delta_angle);
-    F32 dsin = mSin(delta_angle);
+    float delta_angle = lens_angle - cutter_end;
+    float dcos = mCos(delta_angle);
+    float dsin = mSin(delta_angle);
 
-    Vec2 cutter_start_p = {.x = cutter_radius * mCos(cutter_start),
-                           .y = cutter_radius * mSin(cutter_start)};
+    Vec2f cutter_start_p = {.x = cutter_radius * mCos(cutter_start),
+                            .y = cutter_radius * mSin(cutter_start)};
 
-    Vec2 cutter_end_p = {.x = cutter_radius * mCos(cutter_end),
-                         .y = cutter_radius * mSin(cutter_end)};
+    Vec2f cutter_end_p = {.x = cutter_radius * mCos(cutter_end),
+                          .y = cutter_radius * mSin(cutter_end)};
 
     cutter_start_p = vecAdd(cutter_center, rotateFwd(cutter_start_p, dcos, dsin));
     cutter_end_p = vecAdd(cutter_center, rotateFwd(cutter_end_p, dcos, dsin));
@@ -539,7 +544,7 @@ fxTangentCircles(void)
     guiEnd();
 }
 
-CF_INTERNAL void
+static void
 guiClock(Duration time)
 {
     I64 const secs_per_hour = 60 * 60;
@@ -554,16 +559,16 @@ guiClock(Duration time)
     guiText("%02lld:%02lld:%02lld.%09u", hours, mins, final_secs, time.nanos);
 }
 
-CF_INTERNAL void
+static void
 guiFrameratePlot()
 {
     // TODO (Matteo): Is there a better way to implement a scrolling buffer?
-    static DVec2 samples[256] = {0};
-    static Usize sample_count = 0;
-    static const Usize mask = CF_ARRAY_SIZE(samples) - 1;
+    static Vec2d samples[256] = {0};
+    static Size sample_count = 0;
+    static const Size mask = CF_ARRAY_SIZE(samples) - 1;
 
-    Usize count, offset;
-    Usize index = index = sample_count & mask;
+    Size count, offset;
+    Size index = index = sample_count & mask;
 
     if (index != sample_count)
     {
@@ -576,9 +581,9 @@ guiFrameratePlot()
         count = sample_count + 1;
     }
 
-    F64 framerate = (F64)guiGetFramerate();
-    F64 window = (F64)CF_ARRAY_SIZE(samples) / framerate;
-    F64 time = 1.0 / framerate;
+    double framerate = (double)guiGetFramerate();
+    double window = (double)CF_ARRAY_SIZE(samples) / framerate;
+    double time = 1.0 / framerate;
     if (sample_count) time += samples[(sample_count - 1) & mask].x;
 
     samples[index].x = time;
@@ -603,7 +608,8 @@ guiFrameratePlot()
     }
 }
 
-APP_API APP_UPDATE_FN(appUpdate)
+APP_API
+APP_UPDATE_FN(appUpdate)
 {
     Platform *plat = state->plat;
 
@@ -641,7 +647,7 @@ APP_API APP_UPDATE_FN(appUpdate)
 
     if (state->windows.stats)
     {
-        F64 framerate = (F64)guiGetFramerate();
+        double framerate = (double)guiGetFramerate();
         GuiMemory gui_mem = guiMemoryInfo();
 
         guiBegin("Application stats", &state->windows.stats);
@@ -649,10 +655,10 @@ APP_API APP_UPDATE_FN(appUpdate)
 
         guiSeparator();
         guiText("Virtual memory: Reserved %.3fkb - Committed %.3fkb",
-                (F64)plat->reserved_size / 1024, (F64)plat->committed_size / 1024);
-        guiText("Heap memory   : Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024,
+                (double)plat->reserved_size / 1024, (double)plat->committed_size / 1024);
+        guiText("Heap memory   : Allocated %.3fkb in %zu blocks", (double)plat->heap_size / 1024,
                 plat->heap_blocks);
-        guiText("GUI memory    : Allocated %.3fkb in %zu blocks", (F64)gui_mem.size / 1024,
+        guiText("GUI memory    : Allocated %.3fkb in %zu blocks", (double)gui_mem.size / 1024,
                 gui_mem.blocks);
 
         guiSeparator();
@@ -676,7 +682,7 @@ APP_API APP_UPDATE_FN(appUpdate)
 
     guiBegin("Test", NULL);
     {
-        static F32 f = 0;
+        static float f = 0;
 
         Clock *clock = &plat->clock;
         Duration t = clockElapsed(clock);

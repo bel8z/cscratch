@@ -10,84 +10,84 @@
 //----------------------------//
 
 void
-memClear(void *mem, Usize count)
+memClear(void *mem, Size count)
 {
     memset(mem, 0, count); // NOLINT
 }
 
 void
-memCopy(void const *from, void *to, Usize count)
+memCopy(void const *from, void *to, Size count)
 {
     memmove(to, from, count); // NOLINT
 }
 
 void
-memCopySafe(void const *from, Usize from_size, void *to, Usize to_size)
+memCopySafe(void const *from, Size from_size, void *to, Size to_size)
 {
     memmove_s(to, to_size, from, from_size);
 }
 
 void
-memWrite(U8 *mem, U8 value, Usize count)
+memWrite(U8 *mem, U8 value, Size count)
 {
     memset(mem, value, count); // NOLINT
 }
 
 I32
-memCompare(void const *left, void const *right, Usize count)
+memCompare(void const *left, void const *right, Size count)
 {
     return memcmp(left, right, count);
 }
 
 bool
-memMatch(void const *left, void const *right, Usize count)
+memMatch(void const *left, void const *right, Size count)
 {
     return !memcmp(left, right, count);
 }
 
 U8 const *
-memAlignForward(U8 const *address, Usize alignment)
+memAlignForward(U8 const *address, Size alignment)
 {
     CF_ASSERT((alignment & (alignment - 1)) == 0, "Alignment is not a power of 2");
     // Same as (address % alignment) but faster as alignment is a power of 2
-    Uptr modulo = (Uptr)address & (alignment - 1);
+    Size modulo = (Size)address & (alignment - 1);
     // Move pointer forward if needed
     return modulo ? address + alignment - modulo : address;
 }
 
 void *
-memAlloc(MemAllocator a, Usize size)
+memAlloc(MemAllocator a, Size size)
 {
     return memAllocAlign(a, size, CF_MAX_ALIGN);
 }
 
 void *
-memAllocAlign(MemAllocator a, Usize size, Usize align)
+memAllocAlign(MemAllocator a, Size size, Size align)
 {
     return a.func(a.state, NULL, 0, size, align);
 }
 
 void *
-memRealloc(MemAllocator a, void *mem, Usize old_size, Usize new_size)
+memRealloc(MemAllocator a, void *mem, Size old_size, Size new_size)
 {
     return memReallocAlign(a, mem, old_size, new_size, CF_MAX_ALIGN);
 }
 
 void *
-memReallocAlign(MemAllocator a, void *mem, Usize old_size, Usize new_size, Usize align)
+memReallocAlign(MemAllocator a, void *mem, Size old_size, Size new_size, Size align)
 {
     return a.func(a.state, mem, old_size, new_size, align);
 }
 
 void
-memFree(MemAllocator a, void *mem, Usize size)
+memFree(MemAllocator a, void *mem, Size size)
 {
 
     memFreeAlign(a, mem, size, CF_MAX_ALIGN);
 }
 
 void
-memFreeAlign(MemAllocator a, void *mem, Usize size, Usize align)
+memFreeAlign(MemAllocator a, void *mem, Size size, Size align)
 {
 
     a.func(a.state, mem, size, 0, align);
@@ -97,14 +97,14 @@ memFreeAlign(MemAllocator a, void *mem, Usize size, Usize align)
 //   End-of-page allocator   //
 //---------------------------//
 
-CF_INTERNAL Usize
-memRoundSize(Usize req_size, Usize page_size)
+static Size
+memRoundSize(Size req_size, Size page_size)
 {
-    Usize page_count = (req_size + page_size - 1) / page_size;
+    Size page_count = (req_size + page_size - 1) / page_size;
     return page_count * page_size;
 }
 
-CF_INTERNAL MEM_ALLOCATOR_FN(memEndOfPageAlloc)
+static MEM_ALLOCATOR_FN(memEndOfPageAlloc)
 {
     VMemApi *vmem = state;
 
@@ -119,7 +119,7 @@ CF_INTERNAL MEM_ALLOCATOR_FN(memEndOfPageAlloc)
 
     if (new_size)
     {
-        Usize block_size = memRoundSize(new_size, vmem->page_size);
+        Size block_size = memRoundSize(new_size, vmem->page_size);
         U8 *base = vmemReserve(vmem, block_size);
         if (!base) return NULL;
 
@@ -137,7 +137,7 @@ CF_INTERNAL MEM_ALLOCATOR_FN(memEndOfPageAlloc)
             memCopy(memory, new_mem, cfMin(old_size, new_size));
         }
 
-        Usize block_size = memRoundSize(old_size, vmem->page_size);
+        Size block_size = memRoundSize(old_size, vmem->page_size);
         U8 *base = (U8 *)memory + old_size - block_size;
 
         vmemDecommit(vmem, base, block_size);
@@ -159,7 +159,7 @@ memEndOfPageAllocator(VMemApi *vmem)
 //   Memory arena   //
 //------------------//
 
-CF_INTERNAL void
+static void
 mem_arenaCommitVMem(MemArena *arena)
 {
     CF_ASSERT_NOT_NULL(arena);
@@ -171,15 +171,15 @@ mem_arenaCommitVMem(MemArena *arena)
             memAlignForward(arena->memory + arena->allocated, arena->vmem->page_size);
         U8 *curr_pos = arena->memory + arena->committed;
 
-        Usize max_commit_size = arena->reserved - arena->allocated;
-        Usize commit_size = cfMin((Usize)(next_pos - curr_pos), max_commit_size);
+        Size max_commit_size = arena->reserved - arena->allocated;
+        Size commit_size = cfMin((Size)(next_pos - curr_pos), max_commit_size);
 
         vmemCommit(arena->vmem, curr_pos, commit_size);
         arena->committed += commit_size;
     }
 }
 
-CF_INTERNAL void
+static void
 mem_arenaDecommitVm(MemArena *arena)
 {
     if (arena->vmem && arena->committed > arena->allocated)
@@ -193,26 +193,26 @@ mem_arenaDecommitVm(MemArena *arena)
 
         CF_ASSERT(next >= arena->memory, "Possible overflow");
 
-        Usize offset = (Usize)(next - arena->memory);
+        Size offset = (Size)(next - arena->memory);
 
         if (offset < arena->committed)
         {
-            Usize decommit_size = arena->committed - offset;
+            Size decommit_size = arena->committed - offset;
             vmemDecommit(arena->vmem, arena->memory + offset, decommit_size);
             arena->committed -= decommit_size;
         }
     }
 }
 
-CF_INTERNAL inline Usize
-memRoundUp(Usize block_size, Usize page_size)
+static inline Size
+memRoundUp(Size block_size, Size page_size)
 {
     CF_ASSERT((page_size & (page_size - 1)) == 0, "Page size is not a power of 2");
     return page_size * ((block_size + page_size - 1) / page_size);
 }
 
 void
-memArenaInitOnVmem(MemArena *arena, VMemApi *vmem, void *reserved_block, Usize reserved_size)
+memArenaInitOnVmem(MemArena *arena, VMemApi *vmem, void *reserved_block, Size reserved_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -225,7 +225,7 @@ memArenaInitOnVmem(MemArena *arena, VMemApi *vmem, void *reserved_block, Usize r
 }
 
 void
-memArenaInitOnBuffer(MemArena *arena, U8 *buffer, Usize buffer_size)
+memArenaInitOnBuffer(MemArena *arena, U8 *buffer, Size buffer_size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -238,7 +238,7 @@ memArenaInitOnBuffer(MemArena *arena, U8 *buffer, Usize buffer_size)
 }
 
 MemArena *
-memArenaBootstrapFromVmem(VMemApi *vmem, void *reserved_block, Usize reserved_size)
+memArenaBootstrapFromVmem(VMemApi *vmem, void *reserved_block, Size reserved_size)
 {
     MemArena *arena = NULL;
 
@@ -246,7 +246,7 @@ memArenaBootstrapFromVmem(VMemApi *vmem, void *reserved_block, Usize reserved_si
     {
         CF_ASSERT(reserved_size > sizeof(*arena), "Cannot bootstrap arena from smaller allocation");
 
-        Usize commit_size = cfMin(reserved_size, memRoundUp(sizeof(*arena), vmem->page_size));
+        Size commit_size = cfMin(reserved_size, memRoundUp(sizeof(*arena), vmem->page_size));
         vmemCommit(vmem, reserved_block, commit_size);
 
         arena = reserved_block;
@@ -262,7 +262,7 @@ memArenaBootstrapFromVmem(VMemApi *vmem, void *reserved_block, Usize reserved_si
 }
 
 MemArena *
-memArenaBootstrapFromBuffer(U8 *buffer, Usize buffer_size)
+memArenaBootstrapFromBuffer(U8 *buffer, Size buffer_size)
 {
     MemArena *arena = NULL;
 
@@ -300,20 +300,20 @@ memArenaClear(MemArena *arena)
     mem_arenaDecommitVm(arena);
 }
 
-Usize
+Size
 memArenaAvailable(MemArena *arena)
 {
     return arena->reserved - arena->allocated;
 }
 
 void *
-memArenaAlloc(MemArena *arena, Usize size)
+memArenaAlloc(MemArena *arena, Size size)
 {
     return memArenaAllocAlign(arena, size, CF_MAX_ALIGN);
 }
 
 void *
-memArenaAllocAlign(MemArena *arena, Usize size, Usize align)
+memArenaAllocAlign(MemArena *arena, Size size, Size align)
 {
     CF_ASSERT_NOT_NULL(arena);
     CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
@@ -325,7 +325,7 @@ memArenaAllocAlign(MemArena *arena, Usize size, Usize align)
     U8 const *next = memAlignForward(base, align);
 
     CF_ASSERT(next >= arena->memory, "Possible overflow");
-    Usize offset = (Usize)(next - arena->memory);
+    Size offset = (Size)(next - arena->memory);
 
     if (offset + size <= arena->reserved)
     {
@@ -343,13 +343,13 @@ memArenaAllocAlign(MemArena *arena, Usize size, Usize align)
 }
 
 void *
-memArenaRealloc(MemArena *arena, void *memory, Usize old_size, Usize new_size)
+memArenaRealloc(MemArena *arena, void *memory, Size old_size, Size new_size)
 {
     return memArenaReallocAlign(arena, memory, old_size, new_size, CF_MAX_ALIGN);
 }
 
 void *
-memArenaReallocAlign(MemArena *arena, void *memory, Usize old_size, Usize new_size, Usize align)
+memArenaReallocAlign(MemArena *arena, void *memory, Size old_size, Size new_size, Size align)
 {
     CF_ASSERT_NOT_NULL(arena);
     CF_ASSERT((align & (align - 1)) == 0, "Alignment is not a power of 2");
@@ -396,7 +396,7 @@ memArenaReallocAlign(MemArena *arena, void *memory, Usize old_size, Usize new_si
 }
 
 void
-memArenaFree(MemArena *arena, void *memory, Usize size)
+memArenaFree(MemArena *arena, void *memory, Size size)
 {
     CF_ASSERT_NOT_NULL(arena);
 
@@ -457,19 +457,19 @@ memArenaRestore(MemArenaState state)
 }
 
 bool
-memArenaSplit(MemArena *arena, MemArena *split, Usize size)
+memArenaSplit(MemArena *arena, MemArena *split, Size size)
 {
     CF_ASSERT(!split->memory, "split is expected to be 0-initialized");
 
     if (size > arena->reserved) return false;
 
-    Usize new_reserved = arena->reserved - size;
+    Size new_reserved = arena->reserved - size;
 
     if (arena->vmem)
     {
         // NOTE (Matteo): When VM is involved, split must occur on page boundaries
-        Uptr new_end = (Uptr)(arena->memory + new_reserved);
-        Uptr modulo = new_end & (arena->vmem->page_size - 1);
+        Size new_end = (Size)(arena->memory + new_reserved);
+        Size modulo = new_end & (arena->vmem->page_size - 1);
         new_reserved -= modulo;
     }
 
@@ -493,7 +493,7 @@ memArenaSplit(MemArena *arena, MemArena *split, Usize size)
     return true;
 }
 
-CF_INTERNAL MEM_ALLOCATOR_FN(mem_arenaAllocFn)
+static MEM_ALLOCATOR_FN(mem_arenaAllocFn)
 {
     CF_ASSERT(memory || !old_size, "Invalid allocation request");
 

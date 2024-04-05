@@ -184,10 +184,6 @@
 // Function with both inline and exported out-of-line declaration
 #define CF_INLINE_API CF_EXTERN_C inline CF_DLL_EXPORT
 
-// More explicit aliases to 'static'
-#define CF_INTERNAL static
-#define CF_GLOBAL static
-
 //-------------------//
 //   Compiler diagnostics   //
 //-------------------//
@@ -305,38 +301,33 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wgnu-anonymous-struct")
 typedef _Bool bool;
 #endif
 
-//----------------------------------//
-//   Fixed size unsigned integers   //
-//----------------------------------//
+//-------------------------//
+//   Fixed size integers   //
+//-------------------------//
 
 typedef uint8_t U8;
 typedef uint16_t U16;
 typedef uint32_t U32;
 typedef uint64_t U64;
 
-#define U8_MAX UINT8_MAX
-#define U16_MAX UINT16_MAX
-#define U32_MAX UINT32_MAX
-#define U64_MAX UINT64_MAX
-
-//--------------------------------//
-//   Fixed size signed integers   //
-//--------------------------------//
-
 typedef int8_t I8;
 typedef int16_t I16;
 typedef int32_t I32;
 typedef int64_t I64;
 
+#define U8_MAX UINT8_MAX
 #define I8_MIN INT8_MIN
 #define I8_MAX INT8_MAX
 
+#define U16_MAX UINT16_MAX
 #define I16_MIN INT16_MIN
 #define I16_MAX INT16_MAX
 
+#define U32_MAX UINT32_MAX
 #define I32_MIN INT32_MIN
 #define I32_MAX INT32_MAX
 
+#define U64_MAX UINT64_MAX
 #define I64_MIN INT64_MIN
 #define I64_MAX INT64_MAX
 
@@ -345,63 +336,22 @@ typedef int64_t I64;
 //----------------------------//
 
 // Unsigned integer type of the result of sizeof, alignof and offsetof.
+// Can be used as an unsigned representation of a pointer (ie. store an address).
+typedef size_t Size;
 
-typedef size_t Usize;
+// Signed integer type of the result of subtracting two pointers. Can be used
+// as a memory offset.
+typedef ptrdiff_t Offset;
 
-#define USIZE_MAX SIZE_MAX
+#define OFFSET_MIN PTRDIFF_MIN
+#define OFFSET_MAX PTRDIFF_MAX
 
-// Signed integer type of the result of subtracting two pointers.
+CF_STATIC_ASSERT(sizeof(Size) == sizeof(uintptr_t), "Unexpeced uintptr_t size detected");
+CF_STATIC_ASSERT(sizeof(Offset) == sizeof(intptr_t), "Unexpeced intptr_t size detected");
 
-typedef ptrdiff_t Isize;
-
-#define ISIZE_MIN PTRDIFF_MIN
-#define ISIZE_MAX PTRDIFF_MAX
-
-// Integer types capable of holding a pointer (for more comfortable arithmetics)
-
-typedef intptr_t Iptr;
-typedef uintptr_t Uptr;
-
-#define UPTR_MAX UINTPTR_MAX
-#define IPTR_MIN INTPTR_MIN
-#define IPTR_MAX INTPTR_MAX
-
-//------------------------------------------//
-//   Fixed size IEEE floating point types   //
-//------------------------------------------//
-
-typedef float F32;
-typedef double F64;
-
-#define F32_MIN FLT_MIN
-#define F32_MAX FLT_MAX
-#define F32_EPS FLT_EPSILON
-#define F32_MIN_EXP FLT_MIN_EXP
-#define F32_DIGITS FLT_MANT_DIG
-
-#define F64_MIN DBL_MIN
-#define F64_MAX DBL_MAX
-#define F64_EPS DBL_EPSILON
-#define F64_MIN_EXP DBL_MIN_EXP
-#define F64_DIGITS DBL_MANT_DIG
-
-// clang-format off
-#define F_DIGITS(Type)        \
-    _Generic((Type)(0),       \
-             F32: F32_DIGITS, \
-             F64: F64_DIGITS)
-
-#define F_EPS(Type)        \
-    _Generic((Type)(0),    \
-             F32: F32_EPS, \
-             F64: F64_EPS)
-
-#define F_MIN_EXP(Type)        \
-    _Generic((Type)(0),        \
-             F32: F32_MIN_EXP, \
-             F64: F64_MIN_EXP)
-
-// clang-format on
+CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(void *), "Invalid pointer size detected");
+CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(Size), "Invalid pointer size detected");
+CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(Offset), "Invalid pointer size detected");
 
 //---------------------//
 //   Character types   //
@@ -410,14 +360,11 @@ typedef double F64;
 // NOTE (Matteo): This should be used instead of the integer equivalents to better communicate the
 // fact that we are handling text
 
-/// Standard 8-bit character (for ASCII and UTF8 strings)
+/// Standard 8-bits character (for ASCII and UTF8 strings)
 typedef char Char8;
 
-/// UTF16 character
+/// 16-bits "wide" character (for UTF16 strings)
 typedef wchar_t Char16;
-
-/// UTF8 codepoint
-typedef U32 Codepoint;
 
 //--------------------------------------------------------//
 //    Macros to retrieve min/max values for basic types   //
@@ -432,8 +379,8 @@ typedef U32 Codepoint;
              I16: I16_MIN, \
              I32: I32_MIN, \
              I64: I64_MIN, \
-             F32: F32_MIN, \
-             F64: F64_MIN)
+             float: FLT_MIN, \
+             double: DBL_MIN)
 
 #define T_MAX(Type)        \
     _Generic((Type)(0),    \
@@ -445,8 +392,8 @@ typedef U32 Codepoint;
              I16: I16_MAX, \
              I32: I32_MAX, \
              I64: I64_MAX, \
-             F32: F32_MAX, \
-             F64: F64_MAX)
+             float: FLT_MAX, \
+             double: DBL_MAX)
 // clang-format on
 
 //----------------//
@@ -497,7 +444,7 @@ typedef U64 SystemTime;
 
 /// Definition of the main allocation function
 #define MEM_ALLOCATOR_FN(name) \
-    void *name(void *state, void *memory, Usize old_size, Usize new_size, Usize align)
+    void *name(void *state, void *memory, Size old_size, Size new_size, Size align)
 
 typedef MEM_ALLOCATOR_FN((*MemAllocatorFn));
 
@@ -521,7 +468,7 @@ typedef struct MemAllocator
         /* Pointer to actual storage */             \
         Type *ptr;                                  \
         /* Length of the slice (number of items) */ \
-        Usize len;                                  \
+        Size len;                                   \
     }
 
 /// Macro to define a typed buffer, represented as {pointer, size, capacity}
@@ -535,7 +482,7 @@ typedef struct MemAllocator
         MemSlice(Type);                                                                           \
         /* Capacity of the buffer (number of elements that can be stored - acts as a watermark    \
          * for dynamic growth) */                                                                 \
-        Usize cap;                                                                                \
+        Size cap;                                                                                 \
     }
 
 /// Slice of raw memory
@@ -579,8 +526,11 @@ typedef struct StrBuffer
 #define strEnd(str) ((str).ptr + (str).len)
 
 /// Build a string view from a string literal (static C string)
-#define strLiteral(lit) \
-    (Str) { .ptr = (lit), .len = CF_ARRAY_SIZE(lit) - 1, }
+#define strLiteral(lit)                              \
+    (Str)                                            \
+    {                                                \
+        .ptr = (lit), .len = CF_ARRAY_SIZE(lit) - 1, \
+    }
 
 //-------------//
 //   Vectors   //
@@ -590,7 +540,7 @@ typedef struct StrBuffer
 
 #define VEC_TYPES(Scalar, tag)    \
     /* 2D vector */               \
-    typedef union tag##Vec2       \
+    typedef union Vec2##tag       \
     {                             \
         struct                    \
         {                         \
@@ -605,10 +555,10 @@ typedef struct StrBuffer
             Scalar width, height; \
         };                        \
         Scalar elem[2];           \
-    } tag##Vec2;                  \
+    } Vec2##tag;                  \
                                   \
     /* 3D vector */               \
-    typedef union tag##Vec3       \
+    typedef union Vec3##tag       \
     {                             \
         struct                    \
         {                         \
@@ -616,14 +566,14 @@ typedef struct StrBuffer
         };                        \
         struct                    \
         {                         \
-            tag##Vec2 xy;         \
+            Vec2##tag xy;         \
             Scalar _;             \
         };                        \
         Scalar elem[3];           \
-    } tag##Vec3;                  \
+    } Vec3##tag;                  \
                                   \
     /* 4D vector (quaternion) */  \
-    typedef union tag##Vec4       \
+    typedef union Vec4##tag       \
     {                             \
         struct                    \
         {                         \
@@ -631,20 +581,20 @@ typedef struct StrBuffer
         };                        \
         struct                    \
         {                         \
-            tag##Vec3 xyz;        \
+            Vec3##tag xyz;        \
             Scalar _;             \
         };                        \
         struct                    \
         {                         \
-            tag##Vec2 xy;         \
-            tag##Vec2 zw;         \
+            Vec2##tag xy;         \
+            Vec2##tag zw;         \
         };                        \
         Scalar elem[4];           \
-    } tag##Vec4;
+    } Vec4##tag;
 
-VEC_TYPES(F32, )  // Vectors with single-precision float components
-VEC_TYPES(F64, D) // Vectors with double-precision float components
-VEC_TYPES(I32, I) // Vectors with (32 bit) integer components
+VEC_TYPES(float, f)  // Vectors with single-precision float components
+VEC_TYPES(double, d) // Vectors with double-precision float components
+VEC_TYPES(I32, i)    // Vectors with (32 bit) integer components
 
 #undef VEC_TYPES
 
@@ -652,16 +602,16 @@ VEC_TYPES(I32, I) // Vectors with (32 bit) integer components
 // used by GPU shaders, and so easy interop with OpenGL, Vulkan and D3D is ensured.
 
 #define MAT_TYPE(Scalar, tag) \
-    typedef union tag##Mat4   \
+    typedef union Mat4##tag   \
     {                         \
-        tag##Vec4 cols[4];    \
+        Vec4##tag cols[4];    \
         Scalar elem[4][4];    \
         Scalar array[16];     \
-    } tag##Mat4;
+    } Mat4##tag;
 
-MAT_TYPE(F32, )  // Transformation matrix with single-precision float components
-MAT_TYPE(F64, D) // Transformation matrix with double-precision float components
-MAT_TYPE(I32, I) // Transformation matrix with (32 bit) integer components
+MAT_TYPE(float, f)  // Transformation matrix with single-precision float components
+MAT_TYPE(double, d) // Transformation matrix with double-precision float components
+MAT_TYPE(I32, i)    // Transformation matrix with (32 bit) integer components
 
 #undef MAT_TYPE
 
@@ -677,9 +627,9 @@ typedef union LinearColor
 {
     struct
     {
-        F32 r, g, b, a;
+        float r, g, b, a;
     };
-    F32 channel[4];
+    float channel[4];
 } LinearColor;
 
 /// Represents a color in HSV sRGB space, plus alpha channel, as 4 floats in the [0,1] range
@@ -687,9 +637,9 @@ typedef union HsvColor
 {
     struct
     {
-        F32 h, s, v, a;
+        float h, s, v, a;
     };
-    F32 elem[4];
+    float elem[4];
 } HsvColor;
 
 //----------------//
@@ -700,11 +650,11 @@ typedef union FRect
 {
     struct
     {
-        Vec2 p0, p1;
+        Vec2f p0, p1;
     };
     struct
     {
-        F32 x0, y0, x1, y1;
+        float x0, y0, x1, y1;
     };
 } FRect;
 
@@ -712,7 +662,7 @@ typedef union IRect
 {
     struct
     {
-        IVec2 p0, p1;
+        Vec2i p0, p1;
     };
     struct
     {
@@ -726,9 +676,9 @@ typedef union IRect
 
 typedef struct ClipSpace
 {
-    F32 y_dir;
-    F32 z_near;
-    F32 z_far;
+    float y_dir;
+    float z_near;
+    float z_far;
 } ClipSpace;
 
 //------------------------------------------------------------------------------
@@ -738,9 +688,5 @@ CF_DIAGNOSTIC_POP()
 #endif
 
 //------------------------------------------------------------------------------
-
-CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(void *), "Invalid pointer size detected");
-CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(Uptr), "Invalid pointer size detected");
-CF_STATIC_ASSERT(CF_PTR_SIZE == sizeof(Iptr), "Invalid pointer size detected");
 
 CF_DIAGNOSTIC_IGNORE_CLANG("-Wgnu-alignof-expression")

@@ -23,13 +23,14 @@ typedef struct ThreadData
     I32 id;
 } ThreadData;
 
-CF_INTERNAL F32
+static float
 randF32(void)
 {
-    return (F32)rand() / (F32)RAND_MAX;
+    return (float)rand() / (float)RAND_MAX;
 }
 
-CF_INTERNAL CF_THREAD_FN(testArEventWork)
+static
+CF_THREAD_FN(testArEventWork)
 {
     ThreadData *data = args;
     TestArEventState *test = data->test;
@@ -59,7 +60,7 @@ CF_INTERNAL CF_THREAD_FN(testArEventWork)
         is_kicker = (previous == 1);
 
         // Do a random amount of work in the range [0, 10) units, biased towards low numbers.
-        F32 f = randF32();
+        float f = randF32();
         I32 workUnits = (I32)(f * f * 10);
         for (I32 j = 1; j < workUnits; j++)
         {

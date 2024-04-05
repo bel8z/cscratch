@@ -22,17 +22,17 @@
 
 /// Set the size of the buffer to the required values, unless it is greater than capacity
 #define memBufferResize(buffer, required)                 \
-    ((Usize)(required) > (buffer)->cap ? Error_BufferFull \
-                                       : ((buffer)->len = (Usize)(required), Error_None))
+    ((Size)(required) > (buffer)->cap ? Error_BufferFull \
+                                       : ((buffer)->len = (Size)(required), Error_None))
 
 /// Increase the size of the buffer by the required amount, unless it causes the size to be greater
 /// than capacity.
 /// Optionally assigns the given pointer to the added slice of the buffer
 #define memBufferExtend(buffer, slice_size, out_slice)                        \
-    ((buffer)->len + (Usize)(slice_size) > (buffer)->cap                      \
+    ((buffer)->len + (Size)(slice_size) > (buffer)->cap                      \
          ? Error_BufferFull                                                   \
          : (((out_slice) ? *(out_slice) = (buffer)->ptr + (buffer)->len : 0), \
-            (buffer)->len += (Usize)(slice_size), Error_None))
+            (buffer)->len += (Size)(slice_size), Error_None))
 
 /// Push the given element at the end of the buffer, if the capacity allows for it
 #define memBufferPush(buffer, item)                    \
@@ -50,8 +50,8 @@
          ? Error_BufferFull                                                            \
          : (at >= (buffer)->len                                                        \
                 ? Error_OutOfRange                                                     \
-                : (memCopyArray((buffer)->ptr + (Usize)(at), (buffer)->ptr + (at) + 1, \
-                                (buffer)->len - (Usize)(at)),                          \
+                : (memCopyArray((buffer)->ptr + (Size)(at), (buffer)->ptr + (at) + 1, \
+                                (buffer)->len - (Size)(at)),                          \
                    (buffer)->ptr[at] = (item), Error_None)))
 
 /// Remove the element at the given position in the buffer, in constant time, filling the hole with
@@ -64,8 +64,8 @@
 /// fill the hole. The order of elements is preserved, but cost of the operation is linear.
 #define memBufferStableRemove(buffer, at)                                                         \
     ((at) >= (buffer)->len ? Error_OutOfRange                                                     \
-                           : (memCopyArray((buffer)->ptr + (at) + 1, (buffer)->ptr + (Usize)(at), \
-                                           --(buffer)->len - (Usize)(at)),                        \
+                           : (memCopyArray((buffer)->ptr + (at) + 1, (buffer)->ptr + (Size)(at), \
+                                           --(buffer)->len - (Size)(at)),                        \
                               Error_None))
 
 //=== Allocating API ===//
@@ -78,7 +78,7 @@
 /// Ensure the buffer has the required capacity, allocating memory if needed
 #define memBufferEnsure(buffer, required_capacity, allocator)                            \
     mem_BufferGrow((void **)(&(buffer)->ptr), &(buffer)->cap, memBufferItemSize(buffer), \
-                   mem_BufferItemAlign(buffer), (Usize)(required_capacity), allocator)
+                   mem_BufferItemAlign(buffer), (Size)(required_capacity), allocator)
 
 // The following operations are equivalent to the non allocating ones, but uses the provided
 // allocator to grow the buffer if needed.
@@ -109,8 +109,8 @@
 #    define mem_BufferItemAlign(buffer) CF_MAX_ALIGN
 #endif
 
-CF_INTERNAL ErrorCode32
-mem_BufferGrow(void **data, Usize *cap, Usize item_size, Usize item_align, Usize required,
+static ErrorCode32
+mem_BufferGrow(void **data, Size *cap, Size item_size, Size item_align, Size required,
                MemAllocator allocator)
 {
     CF_ASSERT_NOT_NULL(data);
@@ -118,7 +118,7 @@ mem_BufferGrow(void **data, Usize *cap, Usize item_size, Usize item_align, Usize
 
     if (required > *cap)
     {
-        Usize new_cap = (*cap) ? (*cap << 1) : 1;
+        Size new_cap = (*cap) ? (*cap << 1) : 1;
         CF_ASSERT(cfIsPowerOf2(new_cap), "Capacity not a power of 2");
         while (new_cap < required) new_cap <<= 1;
 

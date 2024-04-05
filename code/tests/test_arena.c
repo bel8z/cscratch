@@ -12,7 +12,7 @@ consoleMain(Platform *platform, CommandLine *cmd_line)
     CF_UNUSED(cmd_line);
 
     MemArena arena;
-    Usize const storage_size = 1024 * 1024 * 1024;
+    Size const storage_size = 1024 * 1024 * 1024;
     void *storage = vmemReserve(platform->vmem, storage_size);
 
     memArenaInitOnVmem(&arena, platform->vmem, storage, storage_size);

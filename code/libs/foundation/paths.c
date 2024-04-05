@@ -25,9 +25,9 @@ Str
 pathSplitNameExt(Str path, Str *ext)
 {
     Str delim = strLiteral(G_DELIMITERS);
-    Usize delim_pos = strFindLast(path, delim);
+    Size delim_pos = strFindLast(path, delim);
 
-    if (delim_pos != USIZE_MAX)
+    if (delim_pos != SIZE_MAX)
     {
         path.ptr += delim_pos;
         path.len -= delim_pos;
@@ -42,9 +42,9 @@ pathSplitNameExt(Str path, Str *ext)
     if (ext && path.len)
     {
         // TODO (Matteo): Improve
-        Usize ext_pos = strFindLast(path, strLiteral("."));
+        Size ext_pos = strFindLast(path, strLiteral("."));
 
-        if (ext_pos == USIZE_MAX)
+        if (ext_pos == SIZE_MAX)
         {
             ext->ptr = NULL;
             ext->len = 0;
@@ -59,14 +59,14 @@ pathSplitNameExt(Str path, Str *ext)
     return path;
 }
 
-Usize
-pathJoin(Str root, Str leaf, Char8 *buffer, Usize buffer_size)
+Size
+pathJoin(Str root, Str leaf, Char8 *buffer, Size buffer_size)
 {
-    Usize size = root.len + leaf.len + 1;
+    Size size = root.len + leaf.len + 1;
 
     if (buffer)
     {
-        if (size > buffer_size) return USIZE_MAX;
+        if (size > buffer_size) return SIZE_MAX;
 
         memCopy(root.ptr, buffer, root.len);
         buffer += root.len;
@@ -80,22 +80,22 @@ pathJoin(Str root, Str leaf, Char8 *buffer, Usize buffer_size)
     return size;
 }
 
-Usize
+Size
 pathJoinBuf(Str root, Str leaf, StrBuffer *buffer)
 {
-    Usize req_len = pathJoin(root, leaf, buffer->data, CF_ARRAY_SIZE(buffer->data));
-    if (req_len != USIZE_MAX) buffer->str.len = req_len;
+    Size req_len = pathJoin(root, leaf, buffer->data, CF_ARRAY_SIZE(buffer->data));
+    if (req_len != SIZE_MAX) buffer->str.len = req_len;
     return req_len;
 }
 
-Usize
+Size
 pathChangeExt(Str path, Str new_ext, Char8 *out)
 {
     Str ext = pathSplitExt(path);
 
     CF_ASSERT_NOT_NULL(ext.ptr);
 
-    Usize offset = path.len - ext.len;
+    Size offset = path.len - ext.len;
 
     if (out)
     {
@@ -130,7 +130,7 @@ pathSplitNext(PathSplitIter *iter)
     }
     else
     {
-        Usize offset = (Usize)(iter->curr.ptr + iter->curr.len - iter->path.ptr);
+        Size offset = (Size)(iter->curr.ptr + iter->curr.len - iter->path.ptr);
         iter->curr.ptr = iter->path.ptr + offset;
         iter->curr.len = iter->path.len - offset;
     }
@@ -144,8 +144,8 @@ pathSplitNext(PathSplitIter *iter)
     }
 
     // Find next separator to terminate the string
-    Usize delim_pos = strFindFirst(iter->curr, delim);
-    if (delim_pos != USIZE_MAX) iter->curr.len = delim_pos;
+    Size delim_pos = strFindFirst(iter->curr, delim);
+    if (delim_pos != SIZE_MAX) iter->curr.len = delim_pos;
 
     return !!(iter->curr.len);
 }

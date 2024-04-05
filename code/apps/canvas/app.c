@@ -34,14 +34,15 @@ struct AppState
     Duration log_time;
 };
 
-CF_GLOBAL CfLog *g_log = NULL;
-CF_GLOBAL Clock *g_clock = NULL;
+static CfLog *g_log = NULL;
+static Clock *g_clock = NULL;
 
 #define appLog(...) (g_log ? (cfLogAppendF(g_log, __VA_ARGS__), 1) : 0)
 
 //------------------------------------------------------------------------------
 
-APP_API APP_CREATE_FN(appCreate)
+APP_API
+APP_CREATE_FN(appCreate)
 {
     CF_UNUSED(cmd_line);
 
@@ -59,14 +60,16 @@ APP_API APP_CREATE_FN(appCreate)
     return app;
 }
 
-APP_API APP_FN(appDestroy)
+APP_API
+APP_FN(appDestroy)
 {
     appUnload(app);
     cfLogDestroy(&app->log, app->plat->vmem);
     memFreeStruct(app->alloc, app);
 }
 
-APP_API APP_FN(appLoad)
+APP_API
+APP_FN(appLoad)
 {
     CF_ASSERT_NOT_NULL(app);
     CF_ASSERT_NOT_NULL(app->plat);
@@ -84,7 +87,8 @@ APP_API APP_FN(appLoad)
     glDisable(GL_FRAMEBUFFER_SRGB);
 }
 
-APP_API APP_FN(appUnload)
+APP_API
+APP_FN(appUnload)
 {
     CF_ASSERT_NOT_NULL(app);
     g_log = NULL;
@@ -92,34 +96,34 @@ APP_API APP_FN(appUnload)
 
 //------------------------------------------------------------------------------
 
-CF_INTERNAL inline Vec2
-pointToScreen(GuiCanvas *canvas, Vec2 point)
+static inline Vec2f
+pointToScreen(GuiCanvas *canvas, Vec2f point)
 {
-    return (Vec2){
+    return (Vec2f){
         .x = canvas->size.x * 0.5f + point.x + canvas->p0.x,
         .y = canvas->size.y * 0.5f - point.y + canvas->p0.y,
     };
 }
 
-CF_INTERNAL inline Vec2
-pointToCanvas(GuiCanvas *canvas, Vec2 point)
+static inline Vec2f
+pointToCanvas(GuiCanvas *canvas, Vec2f point)
 {
-    return (Vec2){
+    return (Vec2f){
         .x = point.x - canvas->size.x * 0.5f - canvas->p0.x,
         .y = canvas->size.y * 0.5f - point.y - canvas->p0.y,
     };
 }
 
-CF_INTERNAL void
-canvasPutPixel(GuiCanvas *canvas, Vec2 pixel, Srgb32 color)
+static void
+canvasPutPixel(GuiCanvas *canvas, Vec2f pixel, Srgb32 color)
 {
-    Vec2 p0 = pointToScreen(canvas, pixel);
-    Vec2 p1 = {.x = p0.x + 1, .y = p0.y + 1};
+    Vec2f p0 = pointToScreen(canvas, pixel);
+    Vec2f p1 = {.x = p0.x + 1, .y = p0.y + 1};
     canvas->fill_color = color;
     guiCanvasFillRect(canvas, p0, p1);
 }
 
-CF_INTERNAL void
+static void
 canvasWindow(void)
 {
     (void)pointToCanvas;
@@ -128,16 +132,16 @@ canvasWindow(void)
     Char8 buffer[1024];
     strPrint(buffer, CF_ARRAY_SIZE(buffer), "%f", timeGetSeconds(time));
 
-    Vec2 mouse = guiGetMousePos();
-    F32 mouse_l = guiGetMouseDownDuration(GuiMouseButton_Left);
-    F32 mouse_r = guiGetMouseDownDuration(GuiMouseButton_Right);
+    Vec2f mouse = guiGetMousePos();
+    float mouse_l = guiGetMouseDownDuration(GuiMouseButton_Left);
+    float mouse_r = guiGetMouseDownDuration(GuiMouseButton_Right);
 
     CF_UNUSED(mouse);
     CF_UNUSED(mouse_l);
     CF_UNUSED(mouse_r);
 
     GuiCanvas canvas = {0};
-    guiSetNextWindowSize((Vec2){{640, 360}}, GuiCond_Once);
+    guiSetNextWindowSize((Vec2f){{640, 360}}, GuiCond_Once);
     guiBegin("Canvas", NULL);
     guiCanvasBegin(&canvas);
 
@@ -145,13 +149,13 @@ canvasWindow(void)
     guiCanvasDrawRect(&canvas, canvas.p0, canvas.p1);
     guiCanvasDrawText(&canvas, strFromCstr(buffer), canvas.p0, canvas.stroke_color);
 
-    canvasPutPixel(&canvas, (Vec2){{0, 0}}, SRGB32_RED);
+    canvasPutPixel(&canvas, (Vec2f){{0, 0}}, SRGB32_RED);
 
     guiCanvasEnd(&canvas);
     guiEnd();
 }
 
-CF_INTERNAL void
+static void
 guiClock(Duration time)
 {
     I64 const secs_per_hour = 60 * 60;
@@ -166,7 +170,8 @@ guiClock(Duration time)
     guiText("%02lld:%02lld:%02lld.%09u", hours, mins, final_secs, time.nanos);
 }
 
-APP_API APP_UPDATE_FN(appUpdate)
+APP_API
+APP_UPDATE_FN(appUpdate)
 {
     Platform *plat = state->plat;
 
@@ -198,7 +203,7 @@ APP_API APP_UPDATE_FN(appUpdate)
 
     if (state->windows.stats)
     {
-        F64 framerate = (F64)guiGetFramerate();
+        double framerate = (double)guiGetFramerate();
         GuiMemory gui_mem = guiMemoryInfo();
 
         guiBegin("Application stats", &state->windows.stats);
@@ -206,10 +211,10 @@ APP_API APP_UPDATE_FN(appUpdate)
 
         guiSeparator();
         guiText("Virtual memory: Reserved %.3fkb - Committed %.3fkb",
-                (F64)plat->reserved_size / 1024, (F64)plat->committed_size / 1024);
-        guiText("Heap memory   : Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024,
+                (double)plat->reserved_size / 1024, (double)plat->committed_size / 1024);
+        guiText("Heap memory   : Allocated %.3fkb in %zu blocks", (double)plat->heap_size / 1024,
                 plat->heap_blocks);
-        guiText("GUI memory    : Allocated %.3fkb in %zu blocks", (F64)gui_mem.size / 1024,
+        guiText("GUI memory    : Allocated %.3fkb in %zu blocks", (double)gui_mem.size / 1024,
                 gui_mem.blocks);
 
         guiSeparator();

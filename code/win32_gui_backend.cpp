@@ -18,7 +18,7 @@ CF_DIAGNOSTIC_IGNORE_CLANG("-Wsign-conversion")
 #include <backends/imgui_impl_win32.cpp>
 CF_DIAGNOSTIC_POP()
 
-F32
+float
 win32GuiGetDpiScale(void *window)
 {
     return ImGui_ImplWin32_GetDpiScaleForHwnd(window);
@@ -140,7 +140,7 @@ struct BackendData
 // Backend data stored in io.BackendRendererUserData to allow support for multiple Dear ImGui
 // contexts It is STRONGLY preferred that you use docking branch with multi-viewports (== single
 // Dear ImGui context + multiple windows) instead of multiple Dear ImGui contexts.
-CF_INTERNAL BackendData *
+static BackendData *
 backendData()
 {
     return ImGui::GetCurrentContext() ? (BackendData *)ImGui::GetIO().BackendRendererUserData
@@ -149,7 +149,7 @@ backendData()
 
 // Functions
 
-CF_INTERNAL void
+static void
 backendSetupRenderState(ImDrawData *draw_data, GLsizei fb_width, GLsizei fb_height,
                         GLuint vertex_array_object)
 {
@@ -183,20 +183,20 @@ backendSetupRenderState(ImDrawData *draw_data, GLsizei fb_width, GLsizei fb_heig
     // draw_data->DisplayPos+data_data->DisplaySize (bottom right). DisplayPos is (0,0) for single
     // viewport apps.
     glViewport(0, 0, fb_width, fb_height);
-    F32 L = draw_data->DisplayPos.x;
-    F32 R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
-    F32 T = draw_data->DisplayPos.y;
-    F32 B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
+    float L = draw_data->DisplayPos.x;
+    float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
+    float T = draw_data->DisplayPos.y;
+    float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
 #    if defined(GL_CLIP_ORIGIN)
     // Swap top and bottom if origin is upper left
     if (!clip_origin_lower_left)
     {
-        F32 tmp = T;
+        float tmp = T;
         T = B;
         B = tmp;
     }
 #    endif
-    const F32 ortho_projection[4][4] = {
+    const float ortho_projection[4][4] = {
         {2.0f / (R - L), 0.0f, 0.0f, 0.0f},
         {0.0f, 2.0f / (T - B), 0.0f, 0.0f},
         {0.0f, 0.0f, -1.0f, 0.0f},
@@ -228,7 +228,7 @@ backendSetupRenderState(ImDrawData *draw_data, GLsizei fb_width, GLsizei fb_heig
 
 // If you get an error please report on github. You may try different GL context version or GLSL
 // version. See GL<>GLSL version table at the top of this file.
-CF_INTERNAL bool
+static bool
 backendCheckShader(GLuint handle, const char *desc)
 {
     BackendData *bd = backendData();
@@ -255,7 +255,7 @@ backendCheckShader(GLuint handle, const char *desc)
 
 // If you get an error please report on GitHub. You may try different GL context version or GLSL
 // version.
-CF_INTERNAL bool
+static bool
 backendCheckProgram(GLuint handle, const char *desc)
 {
     BackendData *bd = backendData();
@@ -280,7 +280,7 @@ backendCheckProgram(GLuint handle, const char *desc)
     return (status == GL_TRUE);
 }
 
-CF_INTERNAL void
+static void
 backendCreateFontsTexture()
 {
     ImGuiIO &io = ImGui::GetIO();
@@ -308,13 +308,13 @@ backendCreateFontsTexture()
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
     // Store our identifier
-    io.Fonts->SetTexID((ImTextureID)(Iptr)bd->font_tex);
+    io.Fonts->SetTexID((ImTextureID)(Size)bd->font_tex);
 
     // Restore state
     glBindTexture(GL_TEXTURE_2D, (GLuint)last_texture);
 }
 
-CF_INTERNAL void
+static void
 backendDeleteFontsTexture()
 {
     ImGuiIO &io = ImGui::GetIO();
@@ -327,7 +327,7 @@ backendDeleteFontsTexture()
     }
 }
 
-CF_INTERNAL bool
+static bool
 backendCreateDeviceObjects()
 {
     BackendData *bd = backendData();
@@ -454,7 +454,7 @@ backendCreateDeviceObjects()
     return true;
 }
 
-CF_INTERNAL void
+static void
 backendDeleteDeviceObjects()
 {
     BackendData *bd = backendData();
@@ -487,7 +487,7 @@ backendDeleteDeviceObjects()
 // dear imgui, it is recommended that you completely ignore this section first..
 //--------------------------------------------------------------------------------------------------
 
-CF_INTERNAL void
+static void
 backendRenderWindow(ImGuiViewport *viewport, void *)
 {
     if (!(viewport->Flags & ImGuiViewportFlags_NoRendererClear))
@@ -674,12 +674,12 @@ win32GuiRender(GuiDrawData *draw_data)
                 if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) continue;
 
                 // Apply scissor/clipping rectangle (Y is inverted in OpenGL)
-                glScissor((GLint)clip_min.x, (GLint)((F32)fb_height - clip_max.y),
+                glScissor((GLint)clip_min.x, (GLint)((float)fb_height - clip_max.y),
                           (GLint)(clip_max.x - clip_min.x), (GLint)(clip_max.y - clip_min.y));
 
                 // Bind texture, Draw
-                Usize const idx_size = sizeof(ImDrawIdx);
-                GLuint const tex = (GLuint)(Iptr)pcmd->GetTexID();
+                Size const idx_size = sizeof(ImDrawIdx);
+                GLuint const tex = (GLuint)(Size)pcmd->GetTexID();
 
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, tex);
@@ -688,14 +688,14 @@ win32GuiRender(GuiDrawData *draw_data)
                 {
                     glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)pcmd->ElemCount,
                                              idx_size == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT,
-                                             (void *)(Iptr)(pcmd->IdxOffset * idx_size),
+                                             (void *)(Offset)(pcmd->IdxOffset * idx_size),
                                              (GLint)pcmd->VtxOffset);
                 }
                 else
                 {
                     glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount,
                                    idx_size == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT,
-                                   (void *)(Iptr)(pcmd->IdxOffset * idx_size));
+                                   (void *)(Offset)(pcmd->IdxOffset * idx_size));
                 }
             }
         }

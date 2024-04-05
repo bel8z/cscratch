@@ -11,10 +11,10 @@
 
 //=== Write/Copy ===//
 
-CF_API void memClear(void *mem, Usize count);
-CF_API void memWrite(U8 *mem, U8 value, Usize count);
-CF_API void memCopy(void const *from, void *to, Usize count);
-CF_API void memCopySafe(void const *from, Usize from_size, void *to, Usize to_size);
+CF_API void memClear(void *mem, Size count);
+CF_API void memWrite(U8 *mem, U8 value, Size count);
+CF_API void memCopy(void const *from, void *to, Size count);
+CF_API void memCopySafe(void const *from, Size from_size, void *to, Size to_size);
 
 #define memClearStruct(ptr) memClear(ptr, sizeof(*(ptr)))
 #define memClearArray(ptr, count) memClear(ptr, (count) * sizeof(*(ptr)))
@@ -24,8 +24,8 @@ CF_API void memCopySafe(void const *from, Usize from_size, void *to, Usize to_si
 
 //=== Comparison ===//
 
-CF_API I32 memCompare(void const *left, void const *right, Usize count);
-CF_API bool memMatch(void const *left, void const *right, Usize count);
+CF_API I32 memCompare(void const *left, void const *right, Size count);
+CF_API bool memMatch(void const *left, void const *right, Size count);
 
 #define memMatchStruct(a, b) (CF_SAME_TYPE(a, b), memMatch(&a, &b, sizeof(a)))
 #define memMatchArray(a, b, count) \
@@ -33,19 +33,19 @@ CF_API bool memMatch(void const *left, void const *right, Usize count);
 
 //=== Alignment ===//
 
-U8 const *memAlignForward(U8 const *address, Usize alignment);
+U8 const *memAlignForward(U8 const *address, Size alignment);
 
 //=== Allocation ===//
 
-CF_INLINE_API void *memAlloc(MemAllocator a, Usize size);
-CF_INLINE_API void *memAllocAlign(MemAllocator a, Usize size, Usize align);
+CF_INLINE_API void *memAlloc(MemAllocator a, Size size);
+CF_INLINE_API void *memAllocAlign(MemAllocator a, Size size, Size align);
 
-CF_INLINE_API void *memRealloc(MemAllocator a, void *mem, Usize old_size, Usize new_size);
-CF_INLINE_API void *memReallocAlign(MemAllocator a, void *mem, Usize old_size, Usize new_size,
-                                    Usize align);
+CF_INLINE_API void *memRealloc(MemAllocator a, void *mem, Size old_size, Size new_size);
+CF_INLINE_API void *memReallocAlign(MemAllocator a, void *mem, Size old_size, Size new_size,
+                                    Size align);
 
-CF_INLINE_API void memFree(MemAllocator a, void *mem, Usize size);
-CF_INLINE_API void memFreeAlign(MemAllocator a, void *mem, Usize size, Usize align);
+CF_INLINE_API void memFree(MemAllocator a, void *mem, Size size);
+CF_INLINE_API void memFreeAlign(MemAllocator a, void *mem, Size size, Size align);
 
 // NOTE (Matteo): Those are the very basics required to implement a dynamic array
 // and are offered in case the full-fledged MemBuffer is not needed or suitable.
@@ -82,13 +82,13 @@ CF_INLINE_API void memFreeAlign(MemAllocator a, void *mem, Usize size, Usize ali
 // NOTE (Matteo): The implementation of this API must be provided by the platform layer
 // TODO (Matteo): Improve mirror buffer API (and naming)
 
-#define VMEM_RESERVE_FN(name) void *name(Usize size)
-#define VMEM_RELEASE_FN(name) void name(void *memory, Usize size)
+#define VMEM_RESERVE_FN(name) void *name(Size size)
+#define VMEM_RELEASE_FN(name) void name(void *memory, Size size)
 
-#define VMEM_COMMIT_FN(name) bool name(void *memory, Usize size)
-#define VMEM_DECOMMIT_FN(name) void name(void *memory, Usize size)
+#define VMEM_COMMIT_FN(name) bool name(void *memory, Size size)
+#define VMEM_DECOMMIT_FN(name) void name(void *memory, Size size)
 
-#define VMEM_MIRROR_ALLOCATE_FN(name) VMemMirrorBuffer name(Usize size)
+#define VMEM_MIRROR_ALLOCATE_FN(name) VMemMirrorBuffer name(Size size)
 #define VMEM_MIRROR_FREE_FN(name) void name(VMemMirrorBuffer *buffer)
 
 /// Buffer built upon two adjacent virtual memory blocks that map to the same physical memory.
@@ -98,7 +98,7 @@ CF_INLINE_API void memFreeAlign(MemAllocator a, void *mem, Usize size, Usize ali
 typedef struct VMemMirrorBuffer
 {
     // Size of the buffer (it may be greater than requested to match address granularity)
-    Usize size;
+    Size size;
     // Pointer to start of the block
     void *data;
     // OS specific handle
@@ -123,8 +123,8 @@ typedef struct VMemApi
     // Release a "mirror buffer"
     VMEM_MIRROR_FREE_FN((*mirrorFree));
 
-    Usize page_size;
-    Usize address_granularity;
+    Size page_size;
+    Size address_granularity;
 } VMemApi;
 
 #define vmemReserve(vmem, size) (vmem)->reserve(size)
@@ -154,20 +154,20 @@ typedef struct MemArena
 {
     // TODO (Matteo): Use U64 explicitly for sizes?
 
-    Usize reserved;   // Reserved block size in bytes
-    Usize allocated;  // Allocated (used) bytes count
-    Usize committed;  // VMem only - committed virtual memory in bytes
-    Usize save_stack; // Stack of saved states, as a progressive state ID.
-    U8 *memory;       // Pointer to the reserved block
-    VMemApi *vmem;    // VMem only - API for virtual memory operations
+    Size reserved;   // Reserved block size in bytes
+    Size allocated;  // Allocated (used) bytes count
+    Size committed;  // VMem only - committed virtual memory in bytes
+    Size save_stack; // Stack of saved states, as a progressive state ID.
+    U8 *memory;      // Pointer to the reserved block
+    VMemApi *vmem;   // VMem only - API for virtual memory operations
 } MemArena;
 
 /// Arena state, used for recovery after temporary allocations
 typedef struct MemArenaState
 {
     MemArena *arena;
-    Usize allocated;
-    Usize stack_id;
+    Size allocated;
+    Size stack_id;
 } MemArenaState;
 
 // NOTE (Matteo): On virtual memory usage
@@ -183,43 +183,42 @@ typedef struct MemArenaState
 /// Initialize the arena using a reserved block of virtual memory, from which actual pages can be
 /// committed
 CF_API void memArenaInitOnVmem(MemArena *arena, VMemApi *vmem, void *reserved_block,
-                               Usize reserved_size);
+                               Size reserved_size);
 
 /// Initialize the arena using a pre-allocated memory buffer
-CF_API void memArenaInitOnBuffer(MemArena *arena, U8 *buffer, Usize buffer_size);
+CF_API void memArenaInitOnBuffer(MemArena *arena, U8 *buffer, Size buffer_size);
 
 /// Allocate a block of virtual memory and initialize an arena directly in it
-CF_API MemArena *memArenaBootstrapFromVmem(VMemApi *vmem, void *reserved_block,
-                                           Usize reserved_size);
+CF_API MemArena *memArenaBootstrapFromVmem(VMemApi *vmem, void *reserved_block, Size reserved_size);
 
 // TODO (Matteo): Bootstrap from buffer
-CF_API MemArena *memArenaBootstrapFromBuffer(U8 *buffer, Usize buffer_size);
+CF_API MemArena *memArenaBootstrapFromBuffer(U8 *buffer, Size buffer_size);
 
 /// Free all the memory allocated by the arena. In case of a virtual memory backing
 /// store, the memory is decommitted (returned to the OS)
 CF_API void memArenaClear(MemArena *arena);
 
 /// Return the amount of remaining memory available for allocation
-CF_INLINE_API Usize memArenaAvailable(MemArena *arena);
+CF_INLINE_API Size memArenaAvailable(MemArena *arena);
 
 /// Allocate a block of the given size and default alignment from the top of the arena stack
-CF_INLINE_API void *memArenaAlloc(MemArena *arena, Usize size);
+CF_INLINE_API void *memArenaAlloc(MemArena *arena, Size size);
 
 /// Allocate a block of the given size and alignment from the top of the arena stack
-CF_API void *memArenaAllocAlign(MemArena *arena, Usize size, Usize alignment);
+CF_API void *memArenaAllocAlign(MemArena *arena, Size size, Size alignment);
 
 /// Try reallocating a block of the given size and default alignment at the top of the arena stack
 /// If the block does not match the last allocation, a new block is allocated
-CF_INLINE_API void *memArenaRealloc(MemArena *arena, void *memory, Usize old_size, Usize new_size);
+CF_INLINE_API void *memArenaRealloc(MemArena *arena, void *memory, Size old_size, Size new_size);
 
 /// Try reallocating a block of the given size and alignment at the top of the arena stack
 /// If the block does not match the last allocation, a new block is allocated
-CF_API void *memArenaReallocAlign(MemArena *arena, void *memory, Usize old_size, Usize new_size,
-                                  Usize alignment);
+CF_API void *memArenaReallocAlign(MemArena *arena, void *memory, Size old_size, Size new_size,
+                                  Size alignment);
 
 /// Returns a block of the given size to the top of the arena stack; this is
 /// effective only if the block matches with the last allocation
-CF_API void memArenaFree(MemArena *arena, void *memory, Usize size);
+CF_API void memArenaFree(MemArena *arena, void *memory, Size size);
 
 /// Allocates a block which fits the given struct on top of the arena stack
 #define memArenaAllocStruct(arena, Type) memArenaAllocAlign(arena, sizeof(Type), alignof(Type))
@@ -257,7 +256,7 @@ CF_API void memArenaRestore(MemArenaState state);
 /// Split the arena in two smaller ones, each one responsible of its own block.
 /// The size given is the minimum size of the chunk to split off the source arena, and can be larger
 /// to accomodate the page sizes for VM backed arenas.
-CF_API bool memArenaSplit(MemArena *arena, MemArena *split, Usize size);
+CF_API bool memArenaSplit(MemArena *arena, MemArena *split, Size size);
 
 /// Build a generic allocator based on the given arena
 CF_API MemAllocator memArenaAllocator(MemArena *arena);

@@ -3,8 +3,8 @@
 #include "math.inl"
 #include "util.h"
 
-F32
-colorSrgbEncode(F32 channel)
+float
+colorSrgbEncode(float channel)
 {
     if (channel > 0.0031308)
     {
@@ -14,8 +14,8 @@ colorSrgbEncode(F32 channel)
     return cfMax(0.0f, 12.92f * channel);
 }
 
-F32
-colorSrgbDecode(F32 channel)
+float
+colorSrgbDecode(float channel)
 {
     if (channel > 0.04045)
     {
@@ -37,7 +37,7 @@ colorToSrgb(LinearColor in)
 LinearColor
 colorToLinear(Srgb32 in)
 {
-    F32 s = 1.0f / 255.0f;
+    float s = 1.0f / 255.0f;
 
     return (LinearColor){
         .r = colorSrgbDecode(SRGB32_R(in) * s),
@@ -76,10 +76,10 @@ colorMultiplyAlpha(LinearColor col)
 
 // Convert rgba floats to hsva floats  (components in the [0-1] range), from Foley & van Dam p592
 // Optimized http://lolengine.net/blog/2013/01/13/fast-rgb-to-hsv
-CF_INTERNAL void
-_RgbToHsv(F32 rgb[3], F32 hsv[3])
+static void
+_RgbToHsv(float rgb[3], float hsv[3])
 {
-    F32 K = 0.f;
+    float K = 0.f;
 
     if (rgb[1] < rgb[2])
     {
@@ -93,18 +93,18 @@ _RgbToHsv(F32 rgb[3], F32 hsv[3])
         K = -2.f / 6.f - K;
     }
 
-    F32 const chroma = rgb[0] - (rgb[1] < rgb[2] ? rgb[1] : rgb[2]);
+    float const chroma = rgb[0] - (rgb[1] < rgb[2] ? rgb[1] : rgb[2]);
 
-    // NOTE (Matteo): F32_MIN is added below to avoid checking against divisions by 0
-    hsv[0] = mAbs(K + (rgb[1] - rgb[2]) / (6.f * chroma + F32_MIN));
-    hsv[1] = chroma / (rgb[0] + F32_MIN);
+    // NOTE (Matteo): FLT_MIN is added below to avoid checking against divisions by 0
+    hsv[0] = mAbs(K + (rgb[1] - rgb[2]) / (6.f * chroma + FLT_MIN));
+    hsv[1] = chroma / (rgb[0] + FLT_MIN);
     hsv[2] = rgb[0];
 }
 
 // Convert hsv floats to rgb floats (components in the [0-1] range), from Foley & van Dam p593 also
 // http://en.wikipedia.org/wiki/HSL_and_HSV
-CF_INTERNAL void
-_HsvToRgb(F32 hsv[3], F32 rgb[3])
+static void
+_HsvToRgb(float hsv[3], float rgb[3])
 {
     if (hsv[1] == 0.0f)
     {
@@ -113,12 +113,12 @@ _HsvToRgb(F32 hsv[3], F32 rgb[3])
     }
     else
     {
-        F32 h = mFmod(hsv[0], 1.0f) * 6.0f;
+        float h = mFmod(hsv[0], 1.0f) * 6.0f;
         I32 sector_index = (I32)h;
-        F32 f = h - (F32)sector_index;
-        F32 p = hsv[2] * (1.0f - hsv[1]);
-        F32 q = hsv[2] * (1.0f - hsv[1] * f);
-        F32 t = hsv[2] * (1.0f - hsv[1] * (1.0f - f));
+        float f = h - (float)sector_index;
+        float p = hsv[2] * (1.0f - hsv[1]);
+        float q = hsv[2] * (1.0f - hsv[1] * f);
+        float t = hsv[2] * (1.0f - hsv[1] * (1.0f - f));
 
         switch (sector_index)
         {
@@ -189,8 +189,8 @@ colorHsvToLinear(HsvColor in)
 HsvColor
 colorSrgbToHsv(Srgb32 in)
 {
-    F32 const ratio = 1.0f / 255.0f;
-    F32 rgb[3] = {
+    float const ratio = 1.0f / 255.0f;
+    float rgb[3] = {
         SRGB32_R(in) * ratio,
         SRGB32_G(in) * ratio,
         SRGB32_B(in) * ratio,
@@ -205,7 +205,7 @@ colorSrgbToHsv(Srgb32 in)
 CF_API Srgb32
 colorHsvToSrgb(HsvColor in)
 {
-    F32 rgb[3] = {0};
+    float rgb[3] = {0};
 
     _HsvToRgb(in.elem, rgb);
 

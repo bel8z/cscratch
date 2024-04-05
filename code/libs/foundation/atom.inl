@@ -85,7 +85,7 @@
 #    define atomFetchDec(value) atomFetchSub(value, 1)
 
 #    define ATOM__COMPARE_EXCHANGE(Type)                                                      \
-        CF_INTERNAL inline Type atomCompareExchange##Type(Atom##Type *object, Type expected,  \
+        static inline Type atomCompareExchange##Type(Atom##Type *object, Type expected,  \
                                                           Type desired)                       \
         {                                                                                     \
             Type got = expected;                                                              \
@@ -258,21 +258,21 @@ I64 _InterlockedCompareExchange64(I64 volatile *Destination, I64 Exchange, I64 C
 void *_InterlockedCompareExchangePointer(void *volatile *Destination, void *Exchange,
                                          void *Comparand);
 
-CF_INTERNAL inline void *
+static inline void *
 atomCompareExchangePtr(AtomPtr *object, void *expected, void *desired)
 {
     return _InterlockedCompareExchangePointer((void *volatile *)object, desired, expected);
 }
 
 #    define ATOM__COMPARE_EXCHANGE(Type, SysType, suffix)                                          \
-        CF_INTERNAL inline Type atomCompareExchange##Type(Atom##Type *object, Type expected,       \
+        static inline Type atomCompareExchange##Type(Atom##Type *object, Type expected,       \
                                                           Type desired)                            \
         {                                                                                          \
             return (Type)_InterlockedCompareExchange##suffix((SysType volatile *)object,           \
                                                              (SysType)desired, (SysType)expected); \
         }                                                                                          \
                                                                                                    \
-        CF_INTERNAL inline bool atomCompareExchangeWeak##Type(Atom##Type *object, Type *expected,  \
+        static inline bool atomCompareExchangeWeak##Type(Atom##Type *object, Type *expected,  \
                                                               Type desired)                        \
         {                                                                                          \
             SysType exp_value = (SysType)(*(expected));                                            \
@@ -310,14 +310,14 @@ void *_InterlockedExchangePointer(void *volatile *Target, void *Value);
 #        pragma intrinsic(_InterlockedExchange64)
 #    endif
 
-CF_INTERNAL inline void *
+static inline void *
 atomExchangePtr(AtomPtr *object, void *desired)
 {
     return _InterlockedExchangePointer((void *volatile *)object, desired);
 }
 
 #    define ATOM__EXCHANGE(Type, SysType, suffix)                                    \
-        CF_INTERNAL inline Type atomExchange##Type(Atom##Type *object, Type desired) \
+        static inline Type atomExchange##Type(Atom##Type *object, Type desired) \
         {                                                                            \
             return (Type)_InterlockedExchange##suffix((SysType volatile *)object,    \
                                                       (SysType)desired);             \
@@ -346,7 +346,7 @@ I64 _InterlockedAnd64(I64 volatile *value, I64 mask);
 #    endif
 
 #    define ATOM__FETCH_AND(Type, SysType, suffix)                                             \
-        CF_INTERNAL inline Type atomFetchAnd##Type(Atom##Type *value, Type operand)            \
+        static inline Type atomFetchAnd##Type(Atom##Type *value, Type operand)            \
         {                                                                                      \
             return (Type)_InterlockedAnd##suffix((SysType volatile *)value, (SysType)operand); \
         }
@@ -374,7 +374,7 @@ I64 _InterlockedOr64(I64 volatile *value, I64 mask);
 #    endif
 
 #    define ATOM__FETCH_OR(Type, SysType, suffix)                                             \
-        CF_INTERNAL inline Type atomFetchOr##Type(Atom##Type *value, Type operand)            \
+        static inline Type atomFetchOr##Type(Atom##Type *value, Type operand)            \
         {                                                                                     \
             return (Type)_InterlockedOr##suffix((SysType volatile *)value, (SysType)operand); \
         }
@@ -402,7 +402,7 @@ I64 _InterlockedExchangeAdd64(I64 volatile *Addend, I64 Value);
 #    endif
 
 #    define ATOM__FETCH_ADD(Type, SysType, suffix)                                  \
-        CF_INTERNAL inline Type atomFetchAdd##Type(Atom##Type *value, Type operand) \
+        static inline Type atomFetchAdd##Type(Atom##Type *value, Type operand) \
         {                                                                           \
             return (Type)_InterlockedExchangeAdd##suffix((SysType volatile *)value, \
                                                          (SysType)operand);         \
@@ -420,7 +420,7 @@ ATOM__FETCH_ADD(U64, I64, 64)
 //--- FetchSub  ---//
 
 #    define ATOM__FETCH_SUB(Type, SysType, suffix)                                  \
-        CF_INTERNAL inline Type atomFetchSub##Type(Atom##Type *value, Type operand) \
+        static inline Type atomFetchSub##Type(Atom##Type *value, Type operand) \
         {                                                                           \
             return (Type)_InterlockedExchangeAdd##suffix((SysType volatile *)value, \
                                                          -(SysType)(operand));      \
@@ -447,7 +447,7 @@ I64 _InterlockedIncrement64(I64 volatile *lpAddend);
 #        pragma intrinsic(_InterlockedIncrement64)
 #    endif
 
-CF_INTERNAL inline I8
+static inline I8
 atomFetchIncI8(AtomI8 *object)
 {
     char volatile *value = (char volatile *)object;
@@ -461,7 +461,7 @@ atomFetchIncI8(AtomI8 *object)
     return (I8)prev;
 }
 
-CF_INTERNAL inline U8
+static inline U8
 atomFetchIncU8(AtomU8 *object)
 {
     char volatile *value = (char volatile *)object;
@@ -476,7 +476,7 @@ atomFetchIncU8(AtomU8 *object)
 }
 
 #    define ATOM__FETCH_INC(Type, SysType, suffix)                                     \
-        CF_INTERNAL inline Type atomFetchInc##Type(Atom##Type *value)                  \
+        static inline Type atomFetchInc##Type(Atom##Type *value)                  \
         {                                                                              \
             return (Type)_InterlockedIncrement##suffix((SysType volatile *)value) - 1; \
         }
@@ -500,7 +500,7 @@ I64 _InterlockedDecrement64(I64 volatile *lpAddend);
 #        pragma intrinsic(_InterlockedDecrement64)
 #    endif
 
-CF_INTERNAL inline I8
+static inline I8
 atomFetchDecI8(AtomI8 *object)
 {
     char volatile *value = (char volatile *)object;
@@ -514,7 +514,7 @@ atomFetchDecI8(AtomI8 *object)
     return (I8)prev;
 }
 
-CF_INTERNAL inline U8
+static inline U8
 atomFetchDecU8(AtomU8 *object)
 {
     char volatile *value = (char volatile *)object;
@@ -529,7 +529,7 @@ atomFetchDecU8(AtomU8 *object)
 }
 
 #    define ATOM__FETCH_DEC(Type, SysType, suffix)                                     \
-        CF_INTERNAL inline Type atomFetchDec##Type(Atom##Type *value)                  \
+        static inline Type atomFetchDec##Type(Atom##Type *value)                  \
         {                                                                              \
             return (Type)_InterlockedDecrement##suffix((SysType volatile *)value) + 1; \
         }
@@ -552,7 +552,7 @@ ATOM__FETCH_DEC(U64, I64, 64)
 #        define atomRead64(x) atom__Read64((U64 volatile *)(x))
 #        define atomWrite64(x, y) atom__Write64((U64 volatile *)(x), (U64)(y))
 
-CF_INTERNAL inline U64
+static inline U64
 atom__Read64(U64 volatile *object)
 {
     // On 32-bit x86, the most compatible way to get an atomic 64-bit load is with
@@ -570,7 +570,7 @@ atom__Read64(U64 volatile *object)
     return result;
 }
 
-CF_INTERNAL inline void
+static inline void
 atom__Write64(U64 volatile *object, U64 value)
 {
     // On 32-bit x86, the most compatible way to get an atomic 64-bit store is with

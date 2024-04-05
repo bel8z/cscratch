@@ -31,21 +31,21 @@ struct IoReader
 };
 
 /// Initialize a buffered reader over a file
-// void ioReaderInitFile(IoReader *reader, IoFile *file, U8 *buffer, Usize buffer_size);
+// void ioReaderInitFile(IoReader *reader, IoFile *file, U8 *buffer, Size buffer_size);
 
 /// Initialize a reader over a memory buffer
-void ioReaderInitMemory(IoReader *reader, U8 *buffer, Usize buffer_size);
+void ioReaderInitMemory(IoReader *reader, U8 *buffer, Size buffer_size);
 
 /// Read at most 'count' bytes into the given buffer
 /// Buffer can be null (in the case the read bytes are consumed)
-ErrorCode32 ioRead(IoReader *reader, Usize count, U8 *buffer, Usize *read);
+ErrorCode32 ioRead(IoReader *reader, Size count, U8 *buffer, Size *read);
 
 ErrorCode32 ioReadByte(IoReader *reader, U8 *byte);
 
 /// Read a line of text, of at most 'count' bytes, into the given buffer.
 /// If the line length length exceeds the given 'count', the line is truncated and an error
 /// is returned.
-ErrorCode32 ioReadLine(IoReader *reader, Usize count, U8 *buffer, Usize *length);
+ErrorCode32 ioReadLine(IoReader *reader, Size count, U8 *buffer, Size *length);
 
 //=== File IO ===//
 
@@ -83,7 +83,7 @@ typedef struct IoFileProperties
 {
     SystemTime last_write;
     IoFileAttributes attributes;
-    Usize size;
+    Size size;
     bool exists;
 } IoFileProperties;
 
@@ -107,13 +107,12 @@ struct IoDirectory
 #define IO_FILE_COPY(name) bool name(Str source, Str dest, bool overwrite)
 #define IO_FILE_OPEN(name) IoFile *name(Str filename, IoOpenMode mode)
 #define IO_FILE_CLOSE(name) void name(IoFile *file)
-#define IO_FILE_SIZE(name) Usize name(IoFile *file)
-#define IO_FILE_SEEK(name) Usize name(IoFile *file, IoSeekPos pos, Isize offset)
-#define IO_FILE_READ(name) Usize name(IoFile *file, U8 *buffer, Usize buffer_size)
-#define IO_FILE_READ_AT(name) Usize name(IoFile *file, Usize offset, U8 *buffer, Usize buffer_size)
-#define IO_FILE_WRITE(name) bool name(IoFile *file, U8 const *data, Usize data_size)
-#define IO_FILE_WRITE_AT(name) \
-    bool name(IoFile *file, Usize offset, U8 const *data, Usize data_size)
+#define IO_FILE_SIZE(name) Size name(IoFile *file)
+#define IO_FILE_SEEK(name) Size name(IoFile *file, IoSeekPos pos, Offset offset)
+#define IO_FILE_READ(name) Size name(IoFile *file, U8 *buffer, Size buffer_size)
+#define IO_FILE_READ_AT(name) Size name(IoFile *file, Size offset, U8 *buffer, Size buffer_size)
+#define IO_FILE_WRITE(name) bool name(IoFile *file, U8 const *data, Size data_size)
+#define IO_FILE_WRITE_AT(name) bool name(IoFile *file, Size offset, U8 const *data, Size data_size)
 #define IO_FILE_PROPERTIES(name) IoFileProperties name(IoFile *file)
 #define IO_FILE_PROPERTIES_P(name) IoFileProperties name(Str path)
 
@@ -152,7 +151,7 @@ typedef struct IoFileApi
 typedef struct IoFileContent
 {
     U8 *data;
-    Usize size;
+    Size size;
 } IoFileContent;
 
 IoFileContent ioFileReadAll(IoFileApi *api, Str filename, MemAllocator alloc);

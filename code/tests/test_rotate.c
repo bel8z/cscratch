@@ -1,17 +1,19 @@
-#include <stdio.h>
+#include "platform.h"
 
 #include "foundation/util.h"
-#include "foundation/win32.h"
+#include "foundation/win32.inl"
+
+#include <stdio.h>
 
 // Rotate array using Gries-Mills block swap algorith
 // Implementation detail for cfRotateLeft/cfRotateLeft
-CF_INTERNAL inline void
-rotateBlockSwap_(void *array, Usize size, Usize pos, Usize item_size)
+static inline void
+rotateBlockSwap_(void *array, Size size, Size pos, Size item_size)
 {
     if (pos == 0 || pos == size) return;
 
-    Usize i = pos;
-    Usize j = size - pos;
+    Size i = pos;
+    Size j = size - pos;
 
     while (i != j)
     {
@@ -39,10 +41,10 @@ enum
 };
 
 void
-arrayPrint(I32 const *array, Usize count)
+arrayPrint(I32 const *array, Size count)
 {
     printf("{");
-    for (Usize i = 0; i < count; ++i)
+    for (Size i = 0; i < count; ++i)
     {
         printf("%d,", array[i]);
     }
@@ -53,7 +55,7 @@ I32
 platformMain(Platform *platform, CommandLine *cmd_line)
 {
     LARGE_INTEGER freq, start, end;
-    Isize elapsed_us;
+    Offset elapsed_us;
     QueryPerformanceFrequency(&freq);
 
     I32 *a = HeapAlloc(GetProcessHeap(), 0, COUNT * sizeof(*a));

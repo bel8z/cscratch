@@ -12,7 +12,7 @@
 //   C string helpers   //
 //----------------------//
 
-Usize
+Size
 strLength(Cstr cstr)
 {
     CF_ASSERT_NOT_NULL(cstr);
@@ -21,7 +21,7 @@ strLength(Cstr cstr)
     return size;
 }
 
-Usize
+Size
 strSize(Cstr cstr)
 {
     return strLength(cstr) + 1;
@@ -33,10 +33,10 @@ strFromCstr(Cstr cstr)
     return (Str){.ptr = (cstr), .len = strLength(cstr)};
 }
 
-Usize
-strToCstr(Str str, Char8 *buffer, Usize size)
+Size
+strToCstr(Str str, Char8 *buffer, Size size)
 {
-    Usize len = cfMin(str.len, size);
+    Size len = cfMin(str.len, size);
     if (buffer)
     {
         memCopy(str.ptr, buffer, len);
@@ -57,18 +57,18 @@ strBufferInit(StrBuffer *buffer)
 //-----------------------//
 
 // NOTE (Matteo): This returns the length of the written string, ignoring the null terminator
-Isize
-strPrintV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
+Offset
+strPrintV(Char8 *buffer, Size buffer_size, Cstr fmt, va_list args)
 {
     va_list args_copy;
 
     va_copy(args_copy, args);
 
-    Isize len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+    Offset len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
 
     va_end(args_copy);
 
-    Usize size = (Usize)(len + 1);
+    Size size = (Size)(len + 1);
     if (len < 0 || size > buffer_size) return -1;
 
     if (buffer) vsnprintf(buffer, size, fmt, args); // NOLINT
@@ -76,14 +76,14 @@ strPrintV(Char8 *buffer, Usize buffer_size, Cstr fmt, va_list args)
     return len;
 }
 
-Isize
-strPrint(Char8 *buffer, Usize buffer_size, Cstr fmt, ...)
+Offset
+strPrint(Char8 *buffer, Size buffer_size, Cstr fmt, ...)
 {
     va_list args;
 
     va_start(args, fmt);
 
-    Isize len = strPrintV(buffer, buffer_size, fmt, args);
+    Offset len = strPrintV(buffer, buffer_size, fmt, args);
 
     va_end(args);
 
@@ -97,14 +97,14 @@ strBufferPrint(StrBuffer *buf, Cstr fmt, ...)
 
     va_start(args, fmt);
 
-    Isize len = strPrintV(buf->data, buf->str.len, fmt, args);
+    Offset len = strPrintV(buf->data, buf->str.len, fmt, args);
 
     va_end(args);
 
     if (len < 0) return Error_BufferFull;
 
     // TODO (Matteo): Should account for the null terminator?
-    buf->str.len = (Usize)len;
+    buf->str.len = (Size)len;
 
     return Error_None;
 }
@@ -112,7 +112,7 @@ strBufferPrint(StrBuffer *buf, Cstr fmt, ...)
 ErrorCode32
 strBufferAppendStr(StrBuffer *buf, Str what)
 {
-    Usize avail = CF_ARRAY_SIZE(buf->data) - buf->str.len;
+    Size avail = CF_ARRAY_SIZE(buf->data) - buf->str.len;
     if (avail < what.len) return Error_BufferFull;
 
     memCopy(what.ptr, buf->data + buf->str.len, what.len);
@@ -125,12 +125,12 @@ strBufferAppendStr(StrBuffer *buf, Str what)
 //   String comparison   //
 //-----------------------//
 
-CF_INTERNAL inline I32
-str_compareInsensitive(Cstr l, Cstr r, Usize size)
+static inline I32
+str_compareInsensitive(Cstr l, Cstr r, Size size)
 {
     I32 diff = 0;
 
-    for (Usize i = 0; i < size && !diff; ++i)
+    for (Size i = 0; i < size && !diff; ++i)
     {
         diff = tolower(l[i]) - tolower(r[i]);
     }
@@ -154,12 +154,12 @@ strEqualInsensitive(Str l, Str r)
 //   String view processing   //
 //----------------------------//
 
-Usize
+Size
 strFindFirst(Str haystack, Str needle)
 {
-    for (Usize h = 0; h < haystack.len; ++h)
+    for (Size h = 0; h < haystack.len; ++h)
     {
-        for (Usize n = 0; n < needle.len; ++n)
+        for (Size n = 0; n < needle.len; ++n)
         {
             if (haystack.ptr[h] == needle.ptr[n])
             {
@@ -168,15 +168,15 @@ strFindFirst(Str haystack, Str needle)
         }
     }
 
-    return USIZE_MAX;
+    return SIZE_MAX;
 }
 
-Usize
+Size
 strFindLast(Str haystack, Str needle)
 {
-    for (Usize h = haystack.len; h > 0; --h)
+    for (Size h = haystack.len; h > 0; --h)
     {
-        for (Usize n = needle.len; n > 0; --n)
+        for (Size n = needle.len; n > 0; --n)
         {
             if (haystack.ptr[h - 1] == needle.ptr[n - 1])
             {
@@ -185,13 +185,13 @@ strFindLast(Str haystack, Str needle)
         }
     }
 
-    return USIZE_MAX;
+    return SIZE_MAX;
 }
 
 bool
 strContains(Str str, Char8 c)
 {
-    for (Usize i = 0; i < str.len; ++i)
+    for (Size i = 0; i < str.len; ++i)
     {
         if (str.ptr[i] == c) return true;
     }
@@ -203,7 +203,7 @@ strContains(Str str, Char8 c)
 //   Dynamic string building   //
 //-----------------------------//
 
-CF_INTERNAL inline void
+static inline void
 strBuilderValidate(StrBuilder *sb)
 {
     (CF_ASSERT((sb) && (sb)->ptr && (sb)->len >= 1, "Invalid string builder state"));
@@ -236,7 +236,7 @@ strBuilderInitFrom(StrBuilder *sb, MemAllocator alloc, Str str)
 }
 
 ErrorCode32
-strBuilderInitWith(StrBuilder *sb, MemAllocator alloc, Usize cap)
+strBuilderInitWith(StrBuilder *sb, MemAllocator alloc, Size cap)
 {
     CF_ASSERT_NOT_NULL(sb);
 
@@ -269,7 +269,7 @@ strBuilderAppendStr(StrBuilder *sb, Str what)
     strBuilderValidate(sb);
 
     // Write over the previous null terminator
-    Usize nul_pos = sb->len - 1;
+    Size nul_pos = sb->len - 1;
 
     ErrorCode32 err = memBufferResizeAlloc(sb, sb->len + what.len, sb->alloc);
     if (err) return err;
@@ -303,7 +303,7 @@ strBuilderPrintV(StrBuilder *sb, Cstr fmt, va_list args)
     va_list args_copy;
     va_copy(args_copy, args);
 
-    Isize len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+    Offset len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
 
     va_end(args_copy);
 
@@ -341,19 +341,19 @@ strBuilderAppendV(StrBuilder *sb, Cstr fmt, va_list args)
     va_list args_copy;
     va_copy(args_copy, args);
 
-    Isize len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
+    Offset len = vsnprintf(NULL, 0, fmt, args_copy); // NOLINT
 
     va_end(args_copy);
 
     if (len < 0) return Error_Reserved; // TODO (Matteo): Better diagnostics
 
     // Write over the previous null terminator
-    Usize nul_pos = sb->len - 1;
+    Size nul_pos = sb->len - 1;
 
-    ErrorCode32 err = memBufferResizeAlloc(sb, sb->len + (Usize)len, sb->alloc);
+    ErrorCode32 err = memBufferResizeAlloc(sb, sb->len + (Size)len, sb->alloc);
     if (err) return err;
 
-    Usize size = (Usize)(len + 1);
+    Size size = (Size)(len + 1);
     CF_ASSERT(sb->len >= size, "Buffer not extended correctly");
 
     vsnprintf(sb->ptr + nul_pos, size, fmt, args); // NOLINT

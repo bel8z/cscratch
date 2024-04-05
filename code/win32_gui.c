@@ -32,14 +32,14 @@ typedef struct Win32AppApi
 // Internal utilities
 //------------------------------------------------------------------------------
 
-CF_INTERNAL void win32GuiErrorHandlerV(Cstr format, va_list args, void *context) CF_VPRINTF_LIKE(0);
+static void win32GuiErrorHandlerV(Cstr format, va_list args, void *context) CF_VPRINTF_LIKE(0);
 
-CF_GLOBAL Char16 g_buf[1024] = {0};
+static Char16 g_buf[1024] = {0};
 
-CF_INTERNAL Char16 const *
+static Char16 const *
 win32ConvertStr(Str str)
 {
-    Usize len = win32Utf8To16(str, g_buf, CF_ARRAY_SIZE(g_buf));
+    Size len = win32Utf8To16(str, g_buf, CF_ARRAY_SIZE(g_buf));
 
     CF_ASSERT(len < CF_ARRAY_SIZE(g_buf) - 1, "Overflow");
     g_buf[len] = 0;
@@ -47,7 +47,7 @@ win32ConvertStr(Str str)
     return g_buf;
 }
 
-CF_INTERNAL void
+static void
 win32GuiErrorHandler(Str message)
 {
     MessageBoxW(NULL, win32ConvertStr(message), L"", 0);
@@ -59,15 +59,15 @@ win32GuiErrorHandlerV(Cstr format, va_list args, void *context)
     CF_UNUSED(context);
 
     static Char8 buf[1024] = {0};
-    Isize len = strPrintV(buf, CF_ARRAY_SIZE(buf), format, args);
+    Offset len = strPrintV(buf, CF_ARRAY_SIZE(buf), format, args);
 
     if (len > 0)
     {
-        win32GuiErrorHandler((Str){.ptr = (Char8 const *)buf, .len = (Usize)len});
+        win32GuiErrorHandler((Str){.ptr = (Char8 const *)buf, .len = (Size)len});
     }
 }
 
-CF_INTERNAL Usize
+static Size
 win32GetCommandLineArgs(MemAllocator alloc, CommandLine *out)
 {
     Cstr16 cmd_line = GetCommandLineW();
@@ -81,18 +81,18 @@ win32GetCommandLineArgs(MemAllocator alloc, CommandLine *out)
         return 0;
     }
 
-    out->len = (Usize)(num_args);
+    out->len = (Size)(num_args);
 
-    Usize out_size = (Usize)(out->len) * sizeof(*out->arg) + CF_MB(1);
+    Size out_size = (Size)(out->len) * sizeof(*out->arg) + CF_MB(1);
 
     out->arg = memAlloc(alloc, out_size);
     Cstr buf = (Char8 *)(out->arg + out->len);
 
-    for (Usize i = 0; i < out->len; ++i)
+    for (Size i = 0; i < out->len; ++i)
     {
         out->arg[i] = buf;
         Str16 arg16 = str16FromCstr(args16[i]);
-        Usize size = win32Utf16To8(arg16, NULL, 0);
+        Size size = win32Utf16To8(arg16, NULL, 0);
         win32Utf16To8(arg16, (Char8 *)out->arg[i], size);
         buf += size + 1; // Ensure space for the null-terminator
     }
@@ -148,15 +148,15 @@ typedef HGLRC WINAPI WglCreateContextAttribsARBFn(HDC hdc, HGLRC hShareContext,
                                                   I32 const *attribList);
 
 typedef BOOL WINAPI WglChoosePixelFormatARBFn(HDC hdc, I32 const *piAttribIList,
-                                              const F32 *pfAttribFList, U32 nMaxFormats,
+                                              const float *pfAttribFList, U32 nMaxFormats,
                                               I32 *piFormats, U32 *nNumFormats);
 typedef BOOL WglSwapIntervalEXTFn(I32 interval);
 
-CF_GLOBAL WglCreateContextAttribsARBFn *wglCreateContextAttribsARB;
-CF_GLOBAL WglChoosePixelFormatARBFn *wglChoosePixelFormatARB;
-CF_GLOBAL WglSwapIntervalEXTFn *wglSwapIntervalEXT;
+static WglCreateContextAttribsARBFn *wglCreateContextAttribsARB;
+static WglChoosePixelFormatARBFn *wglChoosePixelFormatARB;
+static WglSwapIntervalEXTFn *wglSwapIntervalEXT;
 
-CF_INTERNAL void *
+static void *
 win32LoadGlProc(Cstr name)
 {
     void *proc = (void *)wglGetProcAddress(name);
@@ -168,7 +168,7 @@ win32LoadGlProc(Cstr name)
     return (void *)GetProcAddress(GetModuleHandleW(L"opengl32"), name);
 }
 
-CF_INTERNAL bool
+static bool
 win32InitWgl(void)
 {
     // Before we can load extensions, we need a dummy OpenGL context, created using a dummy window.
@@ -253,7 +253,7 @@ win32InitWgl(void)
     return true;
 }
 
-CF_INTERNAL HGLRC
+static HGLRC
 win32CreateGlContext(HDC dc, OpenGLVersion *out_ver)
 {
     // clang-format off
@@ -313,7 +313,7 @@ win32CreateGlContext(HDC dc, OpenGLVersion *out_ver)
     };
     // clang-format on
 
-    for (Usize i = 0; i < CF_ARRAY_SIZE(gl_versions); ++i)
+    for (Size i = 0; i < CF_ARRAY_SIZE(gl_versions); ++i)
     {
         context_attribs[1] = (I32)gl_versions[i].major;
         context_attribs[3] = (I32)gl_versions[i].minor;
@@ -348,25 +348,28 @@ win32CreateGlContext(HDC dc, OpenGLVersion *out_ver)
 //   Application API handling   //
 //------------------------------//
 
-CF_INTERNAL APP_FN(win32AppProc)
+static
+APP_FN(win32AppProc)
 {
     CF_UNUSED(app);
 }
 
-CF_INTERNAL APP_CREATE_FN(win32AppCreate)
+static
+APP_CREATE_FN(win32AppCreate)
 {
     CF_UNUSED(plat);
     CF_UNUSED(cmd_line);
     return NULL;
 }
 
-CF_INTERNAL APP_UPDATE_FN(win32AppUpdate)
+static
+APP_UPDATE_FN(win32AppUpdate)
 {
     CF_UNUSED(state);
     io->quit = true;
 }
 
-CF_INTERNAL void
+static void
 win32LoadAppApi(Win32AppApi *api, Paths *paths)
 {
     if (api->lib)
@@ -407,7 +410,7 @@ win32LoadAppApi(Win32AppApi *api, Paths *paths)
     if (!api->update) api->update = win32AppUpdate;
 }
 
-CF_INTERNAL void
+static void
 win32UpdateAppApi(Win32AppApi *api, Paths *paths, AppState *app)
 {
     // TODO (Matteo): Are these operation too expensive to be performed every frame?
@@ -496,7 +499,7 @@ ENTRYPOINT
     win32PlatformInit();
     // TODO (Matteo): Improve command line handling
     CommandLine cmd_line = {0};
-    Usize cmd_line_size = win32GetCommandLineArgs(g_platform.heap, &cmd_line);
+    Size cmd_line_size = win32GetCommandLineArgs(g_platform.heap, &cmd_line);
     Paths *paths = g_platform.paths;
     clockStart(&g_platform.clock);
 
@@ -566,7 +569,7 @@ ENTRYPOINT
     // Setup Dear ImGui context
     {
         // HACK How do I get the platform base DPI?
-        F32 dpi_scale = win32GuiGetDpiScale(window);
+        float dpi_scale = win32GuiGetDpiScale(window);
 
         g_platform.gui = guiInit(
             &(GuiInitInfo){
@@ -663,7 +666,7 @@ ENTRYPOINT
 
             RECT rect;
             GetClientRect(window, &rect);
-            IVec2 display = {
+            Vec2i display = {
                 .x = rect.right - rect.left,
                 .y = rect.bottom - rect.top,
             };

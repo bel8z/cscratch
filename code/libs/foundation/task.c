@@ -8,8 +8,8 @@
 #include "memory.h"
 #include "threading.h"
 
-CF_INTERNAL inline Usize
-nextPowerOf2(Usize x)
+static inline Size
+nextPowerOf2(Size x)
 {
     x--;
     x |= x >> 1;
@@ -56,7 +56,7 @@ struct TaskQueue
     CF_CACHELINE_PAD;
 
     TaskQueueCell *buffer;
-    Usize buffer_mask;
+    Size buffer_mask;
     // TODO (Matteo): Should the semaphore be kept in a different cache line from the buffer?
     CfSemaphore semaphore;
     AtomBool stop;
@@ -70,7 +70,7 @@ struct TaskQueue
     // TODO (Matteo): Is this padding required?
     CF_CACHELINE_PAD;
 
-    Usize num_workers;
+    Size num_workers;
     CfThread *workers;
     TaskWorkerSlot *worker_slots;
 };
@@ -78,9 +78,9 @@ struct TaskQueue
 //===================================//
 // Internals
 
-CF_INTERNAL bool taskDequeue(TaskQueue *queue, Task *out_task);
+static bool taskDequeue(TaskQueue *queue, Task *out_task);
 
-CF_INTERNAL CF_THREAD_FN(taskThreadProc)
+static CF_THREAD_FN(taskThreadProc)
 {
     TaskWorkerSlot *slot = args;
     TaskQueue *queue = slot->queue;
@@ -100,31 +100,31 @@ CF_INTERNAL CF_THREAD_FN(taskThreadProc)
     }
 }
 
-CF_INTERNAL void
+static void
 taskClear(TaskQueue *queue)
 {
     CF_ASSERT_NOT_NULL(queue->buffer);
     CF_ASSERT(atomRead(&queue->stop), "Cannot flush while running");
 
-    Usize buffer_size = queue->buffer_mask + 1;
+    Size buffer_size = queue->buffer_mask + 1;
 
     atomWrite(&queue->enqueue_pos, 0);
     atomWrite(&queue->dequeue_pos, 0);
 
-    for (Usize i = 0; i != buffer_size; i += 1)
+    for (Size i = 0; i != buffer_size; i += 1)
     {
         atomWrite(&queue->buffer[i].sequence, i);
     }
 }
 
-CF_INTERNAL Task *
+static Task *
 taskFindInQueue(TaskQueue *queue, TaskId id)
 {
     Task *task = NULL;
 
-    Usize pos = ~id;
+    Size pos = ~id;
     TaskQueueCell *cell = queue->buffer + (pos & queue->buffer_mask);
-    Usize seq = atomRead(&cell->sequence);
+    Size seq = atomRead(&cell->sequence);
 
     atomAcquireFence();
 
@@ -133,10 +133,10 @@ taskFindInQueue(TaskQueue *queue, TaskId id)
     return task;
 }
 
-CF_INTERNAL Task *
+static Task *
 taskFindInProgress(TaskQueue *queue, TaskId id)
 {
-    for (Usize i = 0; i < queue->num_workers; ++i)
+    for (Size i = 0; i < queue->num_workers; ++i)
     {
         Task *task = &queue->worker_slots[i].curr_task;
         if (task->id == id) return task;
@@ -151,7 +151,7 @@ taskFindInProgress(TaskQueue *queue, TaskId id)
 bool
 taskConfig(TaskQueueConfig *config)
 {
-    Usize buffer_size = config->buffer_size;
+    Size buffer_size = config->buffer_size;
 
     if (buffer_size <= 2) return false;
     if (buffer_size & (buffer_size - 1)) return false;
@@ -175,7 +175,7 @@ taskInit(TaskQueueConfig *config, void *memory)
     atomInit(&queue->stop, true);
     cfSemaInit(&queue->semaphore, 0);
 
-    Usize buffer_size = config->buffer_size;
+    Size buffer_size = config->buffer_size;
 
     CF_ASSERT(buffer_size >= 2, "Buffer size is too small");
     CF_ASSERT((buffer_size & (buffer_size - 1)) == 0, "Buffer size is not a power of 2");
@@ -186,8 +186,8 @@ taskInit(TaskQueueConfig *config, void *memory)
 
     CF_ASSERT(config->num_workers > 0, "Invalid number of workers");
 
-    Usize workers_offset = buffer_size * sizeof(*queue->buffer);
-    Usize slots_offset = workers_offset + config->num_workers * (sizeof(*queue->workers));
+    Size workers_offset = buffer_size * sizeof(*queue->buffer);
+    Size slots_offset = workers_offset + config->num_workers * (sizeof(*queue->workers));
 
     queue->num_workers = config->num_workers;
     queue->workers = (CfThread *)((U8 *)queue->buffer + workers_offset);
@@ -210,7 +210,7 @@ taskStartProcessing(TaskQueue *queue)
 {
     if (atomExchange(&queue->stop, false))
     {
-        for (Usize i = 0; i < queue->num_workers; ++i)
+        for (Size i = 0; i < queue->num_workers; ++i)
         {
             TaskWorkerSlot *slot = queue->worker_slots + i;
             slot->queue = queue;
@@ -246,16 +246,16 @@ TaskId
 taskEnqueue(TaskQueue *queue, TaskFn fn, void *data)
 {
     TaskQueueCell *cell = NULL;
-    Usize pos = atomRead(&queue->enqueue_pos);
+    Size pos = atomRead(&queue->enqueue_pos);
 
     for (;;)
     {
         cell = queue->buffer + (pos & queue->buffer_mask);
 
-        Usize seq = atomRead(&cell->sequence);
+        Size seq = atomRead(&cell->sequence);
         atomAcquireFence();
 
-        Isize dif = (Isize)seq - (Isize)pos;
+        Offset dif = (Offset)seq - (Offset)pos;
 
         if (dif < 0) return 0; // Full
 
@@ -285,20 +285,20 @@ taskEnqueue(TaskQueue *queue, TaskFn fn, void *data)
     return cell->task.id;
 }
 
-CF_INTERNAL bool
+static bool
 taskDequeue(TaskQueue *queue, Task *out_task)
 {
     TaskQueueCell *cell = NULL;
-    Usize pos = atomRead(&queue->dequeue_pos);
+    Size pos = atomRead(&queue->dequeue_pos);
 
     for (;;)
     {
         cell = queue->buffer + (pos & queue->buffer_mask);
 
-        Usize seq = atomRead(&cell->sequence);
+        Size seq = atomRead(&cell->sequence);
         atomAcquireFence();
 
-        Isize dif = (Isize)seq - (Isize)(pos + 1);
+        Offset dif = (Offset)seq - (Offset)(pos + 1);
 
         if (dif < 0) return false; // Empty
 

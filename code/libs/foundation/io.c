@@ -5,13 +5,13 @@
 
 //=== IO buffered reader ===//
 
-CF_INTERNAL inline void
+static inline void
 io_fillCondition(IoReader *self)
 {
     CF_ASSERT(self->cursor == self->end, "Only an exhausted buffer can be refilled");
 }
 
-CF_INTERNAL IO_FILL_FN(io_fillZero)
+static IO_FILL_FN(io_fillZero)
 {
     io_fillCondition(self);
 
@@ -23,7 +23,7 @@ CF_INTERNAL IO_FILL_FN(io_fillZero)
     return self->error_code;
 }
 
-CF_INTERNAL ErrorCode32
+static ErrorCode32
 io_readFail(IoReader *self, ErrorCode32 cause)
 {
     self->error_code = cause;
@@ -31,15 +31,15 @@ io_readFail(IoReader *self, ErrorCode32 cause)
     return self->error_code;
 }
 
-// CF_INTERNAL IO_FILL_FN(io_fillFromFile)
+// static IO_FILL_FN(io_fillFromFile)
 // {
 //     io_fillCondition(self);
 
 //     if (!self->error_code)
 //     {
 //         File *file = self->source;
-//         Usize buffer_size = self->end - self->start;
-//         Usize read_size = file->read(file, self->start, buffer_size);
+//         Size buffer_size = self->end - self->start;
+//         Size read_size = file->read(file, self->start, buffer_size);
 
 //         switch (read_size)
 //         {
@@ -56,7 +56,7 @@ io_readFail(IoReader *self, ErrorCode32 cause)
 //             default:
 //                 // NOTE (Matteo): This is a performance vs. ease of use tradeoff;
 //                 // smaller reads are moved at the end of the buffer
-//                 Usize offset = buffer_size - read_size;
+//                 Size offset = buffer_size - read_size;
 //                 self->cursor = self->start + offset;
 //                 if (offset) memCopy(self->start, self->cursor, read_size);
 //                 break;
@@ -66,7 +66,7 @@ io_readFail(IoReader *self, ErrorCode32 cause)
 //     return self->error_code;
 // }
 
-CF_INTERNAL IO_FILL_FN(io_fillFromMemory)
+static IO_FILL_FN(io_fillFromMemory)
 {
     io_fillCondition(self);
 
@@ -80,7 +80,7 @@ CF_INTERNAL IO_FILL_FN(io_fillFromMemory)
 }
 
 // void
-// ioReaderInitFile(IoReader *reader, File *file, U8 *buffer, Usize buffer_size)
+// ioReaderInitFile(IoReader *reader, File *file, U8 *buffer, Size buffer_size)
 // {
 //     reader->error_code = Error_None;
 //     reader->source = file;
@@ -92,7 +92,7 @@ CF_INTERNAL IO_FILL_FN(io_fillFromMemory)
 // }
 
 void
-ioReaderInitMemory(IoReader *reader, U8 *buffer, Usize buffer_size)
+ioReaderInitMemory(IoReader *reader, U8 *buffer, Size buffer_size)
 {
     reader->error_code = Error_None;
     reader->source = NULL;
@@ -102,21 +102,21 @@ ioReaderInitMemory(IoReader *reader, U8 *buffer, Usize buffer_size)
 }
 
 ErrorCode32
-ioRead(IoReader *reader, Usize count, U8 *buffer, Usize *read_size)
+ioRead(IoReader *reader, Size count, U8 *buffer, Size *read_size)
 {
-    Usize read = 0;
+    Size read = 0;
 
     while (true)
     {
-        Usize remaining = count - read;
+        Size remaining = count - read;
         if (!remaining) break;
 
         CF_ASSERT(reader->end >= reader->cursor, "Overflow");
-        Usize available = (Usize)(reader->end - reader->cursor);
+        Size available = (Size)(reader->end - reader->cursor);
 
         if (available)
         {
-            Usize copied = cfMin(available, remaining);
+            Size copied = cfMin(available, remaining);
             if (buffer) memCopy(reader->cursor, buffer, copied);
             reader->cursor += copied;
             read += copied;
@@ -134,7 +134,7 @@ ioRead(IoReader *reader, Usize count, U8 *buffer, Usize *read_size)
 ErrorCode32
 ioReadByte(IoReader *reader, U8 *byte)
 {
-    Usize read;
+    Size read;
     if (!ioRead(reader, 1, byte, &read))
     {
         CF_ASSERT(1 == read, "Read too much");
@@ -143,9 +143,9 @@ ioReadByte(IoReader *reader, U8 *byte)
 }
 
 ErrorCode32
-ioReadLine(IoReader *reader, Usize count, U8 *buffer, Usize *length)
+ioReadLine(IoReader *reader, Size count, U8 *buffer, Size *length)
 {
-    Usize read = 0;
+    Size read = 0;
     bool found = false;
     U8 byte = 0;
 
@@ -179,8 +179,8 @@ ioFileReadAll(IoFileApi *api, Str filename, MemAllocator alloc)
 
     if (file != api->invalid)
     {
-        Usize file_size = api->size(file);
-        Usize read_size = file_size;
+        Size file_size = api->size(file);
+        Size read_size = file_size;
 
         content.data = memAlloc(alloc, read_size);
 
@@ -201,12 +201,12 @@ ioFileReadAll(IoFileApi *api, Str filename, MemAllocator alloc)
 }
 
 #if 0
-CF_INTERNAL Usize
-findLineBreak(U8 const *buffer, Usize size)
+static Size
+findLineBreak(U8 const *buffer, Size size)
 {
     bool cr_found = false;
 
-    for (Usize pos = 0; pos < size; ++pos)
+    for (Size pos = 0; pos < size; ++pos)
     {
         switch (buffer[pos])
         {

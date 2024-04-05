@@ -7,7 +7,7 @@ I32
 main(I32 argc, Cstr argv[])
 {
     win32PlatformInit();
-    I32 result = consoleMain(&g_platform, &(CommandLine){.arg = argv, .len = (Usize)argc});
+    I32 result = consoleMain(&g_platform, &(CommandLine){.arg = argv, .len = (Size)argc});
     win32PlatformShutdown();
     return result;
 }

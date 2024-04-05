@@ -2,7 +2,7 @@
 #include "foundation/util.h"
 
 #define SORT_CMP_FN(name) bool name(void *a, void *b, void *state)
-#define SORT_FN(name) void name(void *items, Usize item_size, Usize item_count, SortCtx ctx)
+#define SORT_FN(name) void name(void *items, Size item_size, Size item_count, SortCtx ctx)
 
 typedef struct SortCtx
 {
@@ -22,14 +22,14 @@ greater(void *a, void *b, SortCtx ctx)
 
 SORT_FN(bubbleSort)
 {
-    Usize n = item_count;
+    Size n = item_count;
     while (n > 0)
     {
-        Usize next_n = 0;
+        Size next_n = 0;
         U8 *prev = items;
         U8 *curr;
 
-        for (Usize i = 1; i < n; ++i, prev = curr)
+        for (Size i = 1; i < n; ++i, prev = curr)
         {
             curr = prev + item_size;
 
@@ -55,18 +55,13 @@ PRIMITIVE_CMP(U8)
 PRIMITIVE_CMP(U16)
 PRIMITIVE_CMP(U32)
 PRIMITIVE_CMP(U64)
-PRIMITIVE_CMP(Usize)
-PRIMITIVE_CMP(Uptr)
+PRIMITIVE_CMP(Size)
 
 PRIMITIVE_CMP(I8)
 PRIMITIVE_CMP(I16)
 PRIMITIVE_CMP(I32)
 PRIMITIVE_CMP(I64)
-PRIMITIVE_CMP(Isize)
-PRIMITIVE_CMP(Iptr)
-
-PRIMITIVE_CMP(F32)
-PRIMITIVE_CMP(F64)
+PRIMITIVE_CMP(Offset)
 
 #undef PRIMITIVE_CMP
 

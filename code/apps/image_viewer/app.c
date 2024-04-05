@@ -44,8 +44,8 @@
 //     Constants     //
 //-------------------//
 
-CF_GLOBAL Cstr g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
-CF_GLOBAL IoFileApi *g_file = NULL;
+static Cstr g_supported_ext[] = {".jpg", ".jpeg", ".bmp", ".png", ".gif"};
+static IoFileApi *g_file = NULL;
 
 #define MAIN_WINDOW "Main"
 #define STYLE_WINDOW "Style Editor"
@@ -83,8 +83,8 @@ typedef struct ImageView
 {
     ImageTex tex[NumTextures];
 
-    Vec2 drag;
-    F32 zoom;
+    Vec2f drag;
+    float zoom;
 
     U32 tex_index;
     U32 tex_count;
@@ -114,7 +114,7 @@ struct AppState
     //=== Application memory storage ===//
 
     void *base_pointer; /// Address of the main VM allocation
-    Usize storage_size; /// Size of the main VM allocation
+    Size storage_size;  /// Size of the main VM allocation
     MemArena *main;     /// Arena for persistent storage (main data structures)
     MemArena *scratch;  /// Arena for temporary storage (one-off allocations)
 
@@ -128,8 +128,8 @@ struct AppState
     /// Array of image file info backed by a large VM allocation (no waste since
     /// memory is committed only when required)
     MemBuffer(ImageFile) files;
-    Usize curr_file;
-    Usize browse_width;
+    Size curr_file;
+    Size browse_width;
 
     //=== Async file loading ===//
 
@@ -171,7 +171,7 @@ TASK_QUEUE_FN(loadFileTask)
     }
 }
 
-CF_INTERNAL void
+static void
 loadFileEnqueue(TaskQueue *queue, ImageFile *file)
 {
     if (file->state == ImageFileState_Idle)
@@ -188,7 +188,7 @@ loadFileEnqueue(TaskQueue *queue, ImageFile *file)
 //     Image display     //
 //-----------------------//
 
-CF_INTERNAL void
+static void
 imageTexBuild(ImageTex *tex)
 {
     CF_ASSERT(tex->id == 0, "Overwriting an existing texture");
@@ -226,7 +226,7 @@ imageTexBuild(ImageTex *tex)
     }
 }
 
-CF_INTERNAL ImageTex
+static ImageTex
 imageTexCreate(I32 width, I32 height)
 {
     ImageTex tex = {.width = width, .height = height};
@@ -234,39 +234,39 @@ imageTexCreate(I32 width, I32 height)
     return tex;
 }
 
-CF_INTERNAL void
+static void
 imageViewInit(ImageView *iv)
 {
     iv->advanced = false;
     iv->zoom = 1.0f;
     iv->dirty = true;
-    iv->drag = (Vec2){0};
+    iv->drag = (Vec2f){0};
     iv->tex_index = 0;
     iv->tex_count = CF_ARRAY_SIZE(iv->tex);
 
-    for (Usize i = 0; i < CF_ARRAY_SIZE(iv->tex); ++i)
+    for (Size i = 0; i < CF_ARRAY_SIZE(iv->tex); ++i)
     {
         iv->tex[i] = imageTexCreate(4920, 3264);
     }
 }
 
-CF_INTERNAL void
+static void
 imageViewShutdown(ImageView *iv)
 {
-    for (Usize i = 0; i < CF_ARRAY_SIZE(iv->tex); ++i)
+    for (Size i = 0; i < CF_ARRAY_SIZE(iv->tex); ++i)
     {
         glDeleteTextures(1, &iv->tex[i].id);
         iv->tex[i].id = 0;
     }
 }
 
-CF_INTERNAL inline ImageTex *
+static inline ImageTex *
 imageViewCurrTex(ImageView *iv)
 {
     return iv->tex + iv->tex_index;
 }
 
-CF_INTERNAL void
+static void
 imageViewUpdate(ImageView *iv, Image const *image)
 {
     if (iv->dirty)
@@ -299,7 +299,7 @@ imageViewUpdate(ImageView *iv, Image const *image)
 //     Application image handling     //
 //------------------------------------//
 
-CF_INTERNAL void
+static void
 appClearImages(AppState *app)
 {
     for (U32 i = 0; i < app->files.len; ++i)
@@ -320,16 +320,16 @@ appClearImages(AppState *app)
     }
 
     memBufferClear(&app->files);
-    app->curr_file = USIZE_MAX;
+    app->curr_file = SIZE_MAX;
 }
 
-CF_INTERNAL bool
+static bool
 appIsFileSupported(Str path)
 {
     Str ext = pathSplitExt(path);
     if (!strValid(ext)) return false;
 
-    for (Usize i = 0; i < CF_ARRAY_SIZE(g_supported_ext); ++i)
+    for (Size i = 0; i < CF_ARRAY_SIZE(g_supported_ext); ++i)
     {
         if (strEqualInsensitive(strFromCstr(g_supported_ext[i]), ext)) return true;
     }
@@ -337,24 +337,24 @@ appIsFileSupported(Str path)
     return false;
 }
 
-CF_INTERNAL void
+static void
 appQueueLoadFiles(AppState *app)
 {
     // NOTE (Matteo): improve browsing performance by pre-loading previous and next files
 
-    Usize curr = app->curr_file;
+    Size curr = app->curr_file;
     TaskQueue *queue = app->queue;
 
     loadFileEnqueue(queue, app->files.ptr + curr);
 
     if (app->browse_width == app->files.len)
     {
-        for (Usize i = curr + 1; i < app->files.len; ++i)
+        for (Size i = curr + 1; i < app->files.len; ++i)
         {
             loadFileEnqueue(queue, app->files.ptr + i);
         }
 
-        for (Usize i = 0; i < curr; ++i)
+        for (Size i = 0; i < curr; ++i)
         {
             loadFileEnqueue(queue, app->files.ptr + curr - i - 1);
         }
@@ -364,11 +364,11 @@ appQueueLoadFiles(AppState *app)
         CF_ASSERT(app->browse_width > 1, "Window width must be > 1");
         CF_ASSERT(app->browse_width & 1, "Window width must be odd");
 
-        Usize mid = app->browse_width / 2;
-        for (Usize i = 0; i < mid; ++i)
+        Size mid = app->browse_width / 2;
+        for (Size i = 0; i < mid; ++i)
         {
-            Usize next = cfMod(curr + i + 1, app->files.len);
-            Usize prev = cfMod(curr - i - 1, app->files.len);
+            Size next = cfMod(curr + i + 1, app->files.len);
+            Size prev = cfMod(curr - i - 1, app->files.len);
             CF_ASSERT(next != curr, "");
             CF_ASSERT(next != prev, "");
             CF_ASSERT(prev != curr, "");
@@ -380,10 +380,10 @@ appQueueLoadFiles(AppState *app)
     // NOTE (Matteo): Set view as dirty
     app->iv.dirty = true;
     app->iv.zoom = 1.0f;
-    app->iv.drag = (Vec2){0};
+    app->iv.drag = (Vec2f){0};
 }
 
-CF_INTERNAL void
+static void
 appPushFile(AppState *app, Cstr root_name, Str filename)
 {
     ImageFile *file = NULL;
@@ -392,12 +392,12 @@ appPushFile(AppState *app, Cstr root_name, Str filename)
 
     file->state = ImageFileState_Idle;
 
-    Isize len = strPrint(file->filename, FILENAME_SIZE, "%s%.*s", root_name, (I32)filename.len,
-                         filename.ptr);
+    Offset len = strPrint(file->filename, FILENAME_SIZE, "%s%.*s", root_name, (I32)filename.len,
+                          filename.ptr);
     CF_ASSERT(len > 0, "Path is too long!");
 }
 
-CF_INTERNAL void
+static void
 appLoadFromFile(AppState *state, Str full_name)
 {
     appClearImages(state);
@@ -445,7 +445,7 @@ appLoadFromFile(AppState *state, Str full_name)
         }
 
         state->browse_width = cfMin(BrowseWidth, state->files.len);
-        CF_ASSERT(state->curr_file != USIZE_MAX, "At least one image file should be present");
+        CF_ASSERT(state->curr_file != SIZE_MAX, "At least one image file should be present");
         appQueueLoadFiles(state);
     }
 }
@@ -454,16 +454,16 @@ appLoadFromFile(AppState *state, Str full_name)
 //     Application GUI    //
 //------------------------//
 
-CF_INTERNAL void
+static void
 appBrowseNext(AppState *app)
 {
     CF_ASSERT(app->curr_file != U32_MAX, "Invalid browse command");
 
-    Usize next = cfWrapInc(app->curr_file, app->files.len);
+    Size next = cfWrapInc(app->curr_file, app->files.len);
 
     if (app->browse_width != app->files.len)
     {
-        Usize lru = cfMod(app->curr_file - app->browse_width / 2, app->files.len);
+        Size lru = cfMod(app->curr_file - app->browse_width / 2, app->files.len);
         ImageFile *file = app->files.ptr + lru;
         if (file->state == ImageFileState_Loaded)
         {
@@ -480,16 +480,16 @@ appBrowseNext(AppState *app)
     appQueueLoadFiles(app);
 }
 
-CF_INTERNAL void
+static void
 appBrowsePrev(AppState *app)
 {
-    CF_ASSERT(app->curr_file != USIZE_MAX, "Invalid browse command");
+    CF_ASSERT(app->curr_file != SIZE_MAX, "Invalid browse command");
 
-    Usize prev = cfWrapDec(app->curr_file, app->files.len);
+    Size prev = cfWrapDec(app->curr_file, app->files.len);
 
     if (app->browse_width != app->files.len)
     {
-        Usize lru = cfMod(app->curr_file + app->browse_width / 2, app->files.len);
+        Size lru = cfMod(app->curr_file + app->browse_width / 2, app->files.len);
         ImageFile *file = app->files.ptr + lru;
         if (file->state == ImageFileState_Loaded)
         {
@@ -506,14 +506,14 @@ appBrowsePrev(AppState *app)
     appQueueLoadFiles(app);
 }
 
-CF_INTERNAL void
+static void
 appImageView(AppState *state)
 {
-    F32 const min_zoom = 1.0f;
-    F32 const max_zoom = 10.0f;
+    float const min_zoom = 1.0f;
+    float const max_zoom = 10.0f;
 
     ImageView *iv = &state->iv;
-    F32 curr_zoom = iv->zoom;
+    float curr_zoom = iv->zoom;
 
     // Image scaling settings
 
@@ -533,19 +533,19 @@ appImageView(AppState *state)
     // NOTE (Matteo): Use the available content area as the image view; an invisible button
     // is used in order to catch input.
 
-    guiSetNextWindowSize((Vec2){.x = 50, .y = 50}, GuiCond_Once);
+    guiSetNextWindowSize((Vec2f){.x = 50, .y = 50}, GuiCond_Once);
 
     GuiCanvas canvas = {0};
     guiCanvasBegin(&canvas);
 
-    Vec2 view_min = canvas.p0;
-    Vec2 view_max = canvas.p1;
+    Vec2f view_min = canvas.p0;
+    Vec2f view_max = canvas.p1;
 
-    Vec2 view_center = {.x = (view_max.x + view_min.x) / 2, //
-                        .y = (view_max.y + view_min.y) / 2};
-    Vec2 zoom_location = view_center;
+    Vec2f view_center = {.x = (view_max.x + view_min.x) / 2, //
+                         .y = (view_max.y + view_min.y) / 2};
+    Vec2f zoom_location = view_center;
 
-    if (state->curr_file != USIZE_MAX)
+    if (state->curr_file != SIZE_MAX)
     {
         ImageFile *curr_file = state->files.ptr + state->curr_file;
         bool can_browse = true;
@@ -590,14 +590,14 @@ appImageView(AppState *state)
         // NOTE (Matteo): Draw the image properly scaled to fit the view
         // TODO (Matteo): Fix zoom behavior
 
-        F32 image_w = (F32)curr_file->image.width;
-        F32 image_h = (F32)curr_file->image.height;
+        float image_w = (float)curr_file->image.width;
+        float image_h = (float)curr_file->image.height;
         ImageTex *tex = imageViewCurrTex(iv);
 
         // NOTE (Matteo): Clamp the displayed portion of the texture to the actual image size,
         // since the texture could be larger in order to be reused
-        Vec2 clamp_uv = {.x = image_w / (F32)tex->width, //
-                         .y = image_h / (F32)tex->height};
+        Vec2f clamp_uv = {.x = image_w / (float)tex->width, //
+                          .y = image_h / (float)tex->height};
 
         // NOTE (Matteo): the image is resized in order to adapt to the viewport, keeping the
         // aspect ratio at zoom level == 1; then zoom is applied
@@ -620,9 +620,9 @@ appImageView(AppState *state)
         // NOTE (Matteo): Handle zoom target
         if (curr_zoom != iv->zoom)
         {
-            Vec2 curr_pos = vecSub(zoom_location, view_center);
-            Vec2 next_pos = vecMul(curr_pos, curr_zoom);
-            Vec2 delta = vecSub(curr_pos, next_pos);
+            Vec2f curr_pos = vecSub(zoom_location, view_center);
+            Vec2f next_pos = vecMul(curr_pos, curr_zoom);
+            Vec2f delta = vecSub(curr_pos, next_pos);
 
             iv->drag.x = delta.x;
             iv->drag.y = delta.y;
@@ -630,13 +630,13 @@ appImageView(AppState *state)
             iv->zoom = curr_zoom;
         }
 
-        Vec2 image_min = {
+        Vec2f image_min = {
             .x = iv->drag.x + mRound(view_min.x + 0.5f * (canvas.size.width - image_w)),
             .y = iv->drag.y + mRound(view_min.y + 0.5f * (canvas.size.height - image_h))};
 
-        Vec2 image_max = {.x = image_min.x + image_w, .y = image_min.y + image_h};
+        Vec2f image_max = {.x = image_min.x + image_w, .y = image_min.y + image_h};
 
-        guiCanvasDrawImage(&canvas, tex->id, image_min, image_max, (Vec2){0}, clamp_uv);
+        guiCanvasDrawImage(&canvas, tex->id, image_min, image_max, (Vec2f){0}, clamp_uv);
 
         if (iv->advanced)
         {
@@ -648,7 +648,7 @@ appImageView(AppState *state)
     }
 }
 
-CF_INTERNAL bool
+static bool
 appOpenFile(AppState *state)
 {
     bool result = true;
@@ -661,7 +661,7 @@ appOpenFile(AppState *state)
             .num_filters = 1,
         };
 
-        if (state->curr_file != USIZE_MAX)
+        if (state->curr_file != SIZE_MAX)
         {
             dlg_parms.filename_hint = strFromCstr(state->files.ptr[state->curr_file].filename);
         }
@@ -679,7 +679,7 @@ appOpenFile(AppState *state)
     return result;
 }
 
-CF_INTERNAL bool
+static bool
 appMenuBar(AppState *state)
 {
     bool quit = false;
@@ -718,7 +718,7 @@ appMenuBar(AppState *state)
     return quit;
 }
 
-CF_INTERNAL void
+static void
 appMainWindow(AppState *state)
 {
 
@@ -742,10 +742,11 @@ appMainWindow(AppState *state)
 //     Application API implementation    //
 //---------------------------------------//
 
-APP_API APP_CREATE_FN(appCreate)
+APP_API
+APP_CREATE_FN(appCreate)
 {
     // NOTE (Matteo): Memory comes cleared to 0
-    Usize const storage_size = CF_GB(1);
+    Size const storage_size = CF_GB(1);
     void *storage = vmemReserve(plat->vmem, storage_size);
 
     MemArena *main = memArenaBootstrapFromVmem(plat->vmem, storage, storage_size);
@@ -765,7 +766,7 @@ APP_API APP_CREATE_FN(appCreate)
     app->filter.name = "Image files";
     app->filter.extensions = g_supported_ext;
     app->filter.num_extensions = CF_ARRAY_SIZE(g_supported_ext);
-    app->curr_file = USIZE_MAX;
+    app->curr_file = SIZE_MAX;
 
     TaskQueueConfig cfg = {.buffer_size = 128, .num_workers = 1};
     if (taskConfig(&cfg))
@@ -790,7 +791,8 @@ APP_API APP_CREATE_FN(appCreate)
     return app;
 }
 
-APP_API APP_FN(appDestroy)
+APP_API
+APP_FN(appDestroy)
 {
     appUnload(app);
     taskShutdown(app->queue);
@@ -803,7 +805,8 @@ APP_API APP_FN(appDestroy)
     vmemRelease(app->plat->vmem, app->base_pointer, app->storage_size);
 }
 
-APP_API APP_FN(appLoad)
+APP_API
+APP_FN(appLoad)
 {
     CF_ASSERT_NOT_NULL(app);
     CF_ASSERT_NOT_NULL(app->plat);
@@ -818,12 +821,14 @@ APP_API APP_FN(appLoad)
     taskStartProcessing(app->queue);
 }
 
-APP_API APP_FN(appUnload)
+APP_API
+APP_FN(appUnload)
 {
     taskStopProcessing(app->queue, true);
 }
 
-APP_API APP_UPDATE_FN(appUpdate)
+APP_API
+APP_UPDATE_FN(appUpdate)
 {
     Platform *plat = state->plat;
 
@@ -867,13 +872,14 @@ APP_API APP_UPDATE_FN(appUpdate)
 
     if (state->stats)
     {
-        F64 framerate = (F64)guiGetFramerate();
+        double framerate = (double)guiGetFramerate();
 
         guiBegin(STATS_WINDOW, &state->stats);
         guiText("Average %.3f ms/frame (%.1f FPS)", 1000.0 / framerate, framerate);
-        guiText("Allocated %.3fkb in %zu blocks", (F64)plat->heap_size / 1024, plat->heap_blocks);
+        guiText("Allocated %.3fkb in %zu blocks", (double)plat->heap_size / 1024,
+                plat->heap_blocks);
         guiText("Virtual memory reserved %.3fkb - committed %.3fkb",
-                (F64)plat->reserved_size / 1024, (F64)plat->committed_size / 1024);
+                (double)plat->reserved_size / 1024, (double)plat->committed_size / 1024);
         guiSeparator();
         guiText("App base path:%.*s", (I32)state->plat->paths->base.len,
                 state->plat->paths->base.ptr);
