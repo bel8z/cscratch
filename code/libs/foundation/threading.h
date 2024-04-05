@@ -148,7 +148,7 @@ typedef void *CfSemaphoreHandle;
 typedef struct CfSemaphore
 {
     CfSemaphoreHandle handle;
-    AtomIsize count;
+    AtomOffset count;
 } CfSemaphore;
 
 CF_API void cfSemaInit(CfSemaphore *sema, Size init_count);

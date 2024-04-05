@@ -17,7 +17,7 @@
 
 typedef struct QueueCell
 {
-    AtomUsize sequence;
+    AtomSize sequence;
     Size data;
 } QueueCell;
 
@@ -30,11 +30,11 @@ typedef struct MpmcQueue
 
     CF_CACHELINE_PAD;
 
-    AtomUsize enqueue_pos;
+    AtomSize enqueue_pos;
 
     CF_CACHELINE_PAD;
 
-    AtomUsize dequeue_pos;
+    AtomSize dequeue_pos;
 
     CF_CACHELINE_PAD;
 } MpmcQueue;
@@ -140,8 +140,7 @@ mpmcDequeue(MpmcQueue *queue, Size *data)
 #define ITER_COUNT 2000000
 static AtomBool g_start;
 
-static
-CF_THREAD_FN(thread_func)
+static CF_THREAD_FN(thread_func)
 {
     MpmcQueue *queue = args;
     Size data;

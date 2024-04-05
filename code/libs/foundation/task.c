@@ -39,7 +39,7 @@ typedef struct
 typedef struct
 {
     Task task;
-    AtomUsize sequence;
+    AtomSize sequence;
 } TaskQueueCell;
 
 typedef struct
@@ -63,9 +63,9 @@ struct TaskQueue
 
     // NOTE (Matteo): Read and write indices are kept in separate cache lines to avoid false sharing
     CF_CACHELINE_PAD;
-    AtomUsize enqueue_pos;
+    AtomSize enqueue_pos;
     CF_CACHELINE_PAD;
-    AtomUsize dequeue_pos;
+    AtomSize dequeue_pos;
 
     // TODO (Matteo): Is this padding required?
     CF_CACHELINE_PAD;
