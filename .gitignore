@@ -10,6 +10,9 @@
 build/
 build-zig/
 
+zig-cache/
+zig-out/
+
 *.sublime-workspace
 
 # TODO (Matteo): Handle subfolders correctly
